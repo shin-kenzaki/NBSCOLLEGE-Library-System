@@ -50,7 +50,7 @@ function handleInsertBook($conn)
         $values[$field] = isset($data[$field]) ? $conn->real_escape_string($data[$field]) : null;
     }
 
-    $sql = "INSERT INTO books (" . implode(", ", array_keys($values)) . ") 
+    $sql = "INSERT INTO books (" . implode(", ", array_keys($values)) . ")
             VALUES ('" . implode("', '", $values) . "')";
 
     if ($conn->query($sql)) {
