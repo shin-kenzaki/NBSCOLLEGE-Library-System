@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jan 31, 2025 at 06:04 AM
+-- Generation Time: Feb 03, 2025 at 04:26 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -47,10 +47,9 @@ CREATE TABLE `admins` (
 
 CREATE TABLE `books` (
   `id` int(225) NOT NULL,
-  `title` int(100) NOT NULL,
-  `preferred_title` int(100) NOT NULL,
-  `parallel_title` int(100) NOT NULL,
-  `main_author_id` int(100) NOT NULL,
+  `title` varchar(100) NOT NULL,
+  `preferred_title` varchar(100) NOT NULL,
+  `parallel_title` varchar(100) NOT NULL,
   `front_image` longblob NOT NULL,
   `back_image` longblob NOT NULL,
   `height` varchar(100) NOT NULL,
@@ -80,8 +79,7 @@ CREATE TABLE `borrowings` (
   `borrow_date` date NOT NULL,
   `allowed_days` int(225) NOT NULL,
   `due_date` date NOT NULL,
-  `return_date` date NOT NULL,
-  `fine_id` int(225) NOT NULL
+  `return_date` date NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -91,9 +89,9 @@ CREATE TABLE `borrowings` (
 --
 
 CREATE TABLE `contributors` (
-  `books_id` int(225) NOT NULL,
-  `writers_id` int(225) NOT NULL,
-  `contribution_type` varchar(100) NOT NULL
+  `book_id` int(225) NOT NULL,
+  `writer_id` int(225) NOT NULL,
+  `role` varchar(100) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -121,8 +119,8 @@ CREATE TABLE `fines` (
 
 CREATE TABLE `outside_users` (
   `id` int(225) NOT NULL,
-  `email` int(100) NOT NULL,
-  `password` int(100) NOT NULL,
+  `email` varchar(100) NOT NULL,
+  `password` varchar(100) NOT NULL,
   `contact_no` int(100) NOT NULL,
   `user_image` longblob NOT NULL,
   `borrowed_books` int(225) NOT NULL,
@@ -133,6 +131,13 @@ CREATE TABLE `outside_users` (
   `id_image` longblob NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `outside_users`
+--
+
+INSERT INTO `outside_users` (`id`, `email`, `password`, `contact_no`, `user_image`, `borrowed_books`, `returned_books`, `lost_books`, `address`, `id_type`, `id_image`) VALUES
+(3, 'kbonaagua2021@student.nbscollege.edu.ph', 'shinkenzaki09012003', 2147483647, 0x6261736536345f656e636f6465645f696d6167655f737472696e67, 2, 0, 0, 'B1 L8 Ph-F1 Francisco Homes - Narra, SJDM, Bulacan', 'none', 0x6261736536345f656e636f6465645f696d6167655f737472696e67);
+
 -- --------------------------------------------------------
 
 --
@@ -140,9 +145,9 @@ CREATE TABLE `outside_users` (
 --
 
 CREATE TABLE `publications` (
-  `books_id` int(225) NOT NULL,
-  `publishers_id` int(225) NOT NULL,
-  `date` date NOT NULL
+  `book_id` int(225) NOT NULL,
+  `publisher_id` int(225) NOT NULL,
+  `publish_date` date NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -160,16 +165,24 @@ CREATE TABLE `publishers` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `reservation`
+-- Table structure for table `reservations`
 --
 
-CREATE TABLE `reservation` (
+CREATE TABLE `reservations` (
   `id` int(225) NOT NULL,
   `user_id` int(225) NOT NULL,
+  `book_id` int(225) NOT NULL,
   `reserve_date` date NOT NULL,
   `cancel_date` date NOT NULL,
   `recieved_date` date NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `reservations`
+--
+
+INSERT INTO `reservations` (`id`, `user_id`, `book_id`, `reserve_date`, `cancel_date`, `recieved_date`) VALUES
+(3, 210078, 3, '2024-12-10', '0000-00-00', '2025-01-15');
 
 -- --------------------------------------------------------
 
@@ -181,7 +194,6 @@ CREATE TABLE `school_users` (
   `id` int(225) NOT NULL,
   `email` int(100) NOT NULL,
   `password` int(100) NOT NULL,
-  `contact_no` int(100) NOT NULL,
   `image` longblob NOT NULL,
   `borrowed_books` int(225) NOT NULL,
   `returned_books` int(225) NOT NULL,
@@ -206,6 +218,12 @@ CREATE TABLE `writers` (
 --
 
 --
+-- Indexes for table `borrowings`
+--
+ALTER TABLE `borrowings`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indexes for table `fines`
 --
 ALTER TABLE `fines`
@@ -218,9 +236,21 @@ ALTER TABLE `outside_users`
   ADD PRIMARY KEY (`id`);
 
 --
--- Indexes for table `reservation`
+-- Indexes for table `publishers`
 --
-ALTER TABLE `reservation`
+ALTER TABLE `publishers`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `reservations`
+--
+ALTER TABLE `reservations`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `writers`
+--
+ALTER TABLE `writers`
   ADD PRIMARY KEY (`id`);
 
 --
@@ -228,22 +258,40 @@ ALTER TABLE `reservation`
 --
 
 --
+-- AUTO_INCREMENT for table `borrowings`
+--
+ALTER TABLE `borrowings`
+  MODIFY `id` int(225) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
 -- AUTO_INCREMENT for table `fines`
 --
 ALTER TABLE `fines`
-  MODIFY `id` int(225) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(225) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `outside_users`
 --
 ALTER TABLE `outside_users`
-  MODIFY `id` int(225) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(225) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
--- AUTO_INCREMENT for table `reservation`
+-- AUTO_INCREMENT for table `publishers`
 --
-ALTER TABLE `reservation`
-  MODIFY `id` int(225) NOT NULL AUTO_INCREMENT;
+ALTER TABLE `publishers`
+  MODIFY `id` int(225) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `reservations`
+--
+ALTER TABLE `reservations`
+  MODIFY `id` int(225) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `writers`
+--
+ALTER TABLE `writers`
+  MODIFY `id` int(225) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

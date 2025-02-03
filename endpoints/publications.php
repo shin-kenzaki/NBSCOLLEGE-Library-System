@@ -41,7 +41,7 @@ function handleInsertPublication($conn)
         return;
     }
 
-    $fields = ["books_id", "publishers_id", "publish_date"];
+    $fields = ["book_id", "publisher_id", "publish_date"];
     $values = [];
 
     foreach ($fields as $field) {
@@ -65,15 +65,15 @@ function handleDeletePublication($conn)
 {
     $data = json_decode(file_get_contents("php://input"), true);
 
-    if (!isset($data["books_id"]) || !isset($data["publishers_id"])) {
-        echo json_encode(["error" => "Both books_id and publishers_id are required"]);
+    if (!isset($data["book_id"]) || !isset($data["publisher_id"])) {
+        echo json_encode(["error" => "Both book_id and publisher_id are required"]);
         return;
     }
 
-    $books_id = $conn->real_escape_string($data["books_id"]);
-    $publishers_id = $conn->real_escape_string($data["publishers_id"]);
+    $book_id = $conn->real_escape_string($data["book_id"]);
+    $publisher_id = $conn->real_escape_string($data["publisher_id"]);
 
-    $sql = "DELETE FROM publications WHERE books_id = '$books_id' AND publishers_id = '$publishers_id'";
+    $sql = "DELETE FROM publications WHERE book_id = '$book_id' AND publisher_id = '$publisher_id'";
 
     if ($conn->query($sql)) {
         echo json_encode(["message" => "Publication deleted"]);

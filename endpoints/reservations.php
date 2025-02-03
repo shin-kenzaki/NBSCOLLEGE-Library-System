@@ -43,7 +43,7 @@ function handleInsertReservation($conn)
         return;
     }
 
-    $fields = ["user_id", "books_id", "reserve_date", "cancel_date", "recieved_date"];
+    $fields = ["user_id", "book_id", "reserve_date", "cancel_date", "recieved_date"];
     $values = [];
 
     foreach ($fields as $field) {
@@ -72,7 +72,7 @@ function handleUpdateReservation($conn)
         return;
     }
 
-    $fields = ["id", "user_id", "books_id", "reserve_date", "cancel_date", "recieved_date"];
+    $fields = ["id", "user_id", "book_id", "reserve_date", "cancel_date", "recieved_date"];
     $updates = [];
     foreach ($fields as $field) {
         if (isset($data[$field])) {

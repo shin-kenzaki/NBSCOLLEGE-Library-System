@@ -41,7 +41,7 @@ function handleInsertContributor($conn)
         return;
     }
 
-    $fields = ["books_id", "writers_id", "role"];
+    $fields = ["book_id", "writer_id", "role"];
     $values = [];
 
     foreach ($fields as $field) {
@@ -65,15 +65,15 @@ function handleDeleteContributor($conn)
 {
     $data = json_decode(file_get_contents("php://input"), true);
 
-    if (!isset($data["books_id"]) || !isset($data["writers_id"])) {
-        echo json_encode(["error" => "Both books_id and writers_id are required"]);
+    if (!isset($data["book_id"]) || !isset($data["writer_id"])) {
+        echo json_encode(["error" => "Both book_id and writer_id are required"]);
         return;
     }
 
-    $books_id = $conn->real_escape_string($data["books_id"]);
-    $writers_id = $conn->real_escape_string($data["writers_id"]);
+    $book_id = $conn->real_escape_string($data["book_id"]);
+    $writer_id = $conn->real_escape_string($data["writer_id"]);
 
-    $sql = "DELETE FROM contributors WHERE books_id = '$books_id' AND writers_id = '$writers_id'";
+    $sql = "DELETE FROM contributors WHERE book_id = '$book_id' AND writer_id = '$writer_id'";
 
     if ($conn->query($sql)) {
         echo json_encode(["message" => "Contributor deleted"]);
