@@ -70,6 +70,12 @@
                 </div>
             </li>
 
+            <li class="nav-item">
+                <a class="nav-link" href="add-book.php">
+                    <i class="fas fa-fw fa-chart-area"></i>
+                    <span>Add Book</span></a>
+            </li>
+
             <!-- Nav Item - Utilities Collapse Menu -->
             <li class="nav-item">
                 <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseUtilities"
