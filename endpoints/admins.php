@@ -43,7 +43,7 @@ function handleInsertAdmin($conn)
         return;
     }
 
-    $fields = ["id", "firstname", "middle_init", "lastname", "username", "password", "image", "type", "date_added"];
+    $fields = ["id", "firstname", "middle_init", "lastname", "username", "password", "image", "role", "date_added", "status", "last_update"];
     $values = [];
 
     foreach ($fields as $field) {
@@ -72,7 +72,7 @@ function handleUpdateAdmin($conn)
         return;
     }
 
-    $fields = ["id", "firstname", "middle_init", "lastname", "username", "password", "image", "type", "date_added"];
+    $fields = ["id", "firstname", "middle_init", "lastname", "username", "password", "image", "role", "date_added", "status", "last_update"];
     $updates = [];
     foreach ($fields as $field) {
         if (isset($data[$field])) {
@@ -114,3 +114,4 @@ function handleDeleteAdmin($conn)
         echo json_encode(["error" => $conn->error]);
     }
 }
+

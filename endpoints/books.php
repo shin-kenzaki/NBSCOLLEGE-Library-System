@@ -43,7 +43,7 @@ function handleInsertBook($conn)
         return;
     }
 
-    $fields = ["id", "title", "preferred_title", "parallel_title", "front_image", "back_image", "height", "width", "series", "volume", "edition", "total_pages", "ISBN", "content_type", "media_type", "carrier_type", "URL"];
+    $fields = ["id", "title", "preferred_title", "parallel_title", "front_image", "back_image", "height", "width", "series", "volume", "edition", "copy_number", "total_pages", "ISBN", "content_type", "media_type", "carrier_type", "URL", "language", "shelf_location", "entered_by", "date_added", "status", "last_update"];
     $values = [];
 
     foreach ($fields as $field) {
@@ -75,7 +75,7 @@ function handleUpdateBook($conn)
     }
 
     // Define the fields to update
-    $fields = ["id", "title", "preferred_title", "parallel_title", "front_image", "back_image", "height", "width", "series", "volume", "edition", "total_pages", "ISBN", "content_type", "media_type", "carrier_type", "URL"];
+    $fields = ["id", "title", "preferred_title", "parallel_title", "front_image", "back_image", "height", "width", "series", "volume", "edition", "copy_number", "total_pages", "ISBN", "content_type", "media_type", "carrier_type", "URL", "language", "shelf_location", "entered_by", "date_added", "status", "last_update"];
 
     // Prepare the fields to update
     $updates = [];

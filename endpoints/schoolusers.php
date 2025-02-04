@@ -43,7 +43,7 @@ function handleInsertSchoolUser($conn)
         return;
     }
 
-    $fields = ["id", "email", "password", "image", "borrowed_books", "returned_books", "lost_books"];
+    $fields = ["id", "email", "password", "image", "borrowed_books", "returned_books", "damaged_books", "lost_books", "date_added", "status", "last_update"];
     $values = [];
 
     foreach ($fields as $field) {
@@ -72,7 +72,7 @@ function handleUpdateSchoolUser($conn)
         return;
     }
 
-    $fields = ["id", "email", "password", "image", "borrowed_books", "returned_books", "lost_books"];
+    $fields = ["id", "email", "password", "image", "borrowed_books", "returned_books", "damaged_books", "lost_books", "date_added", "status", "last_update"];
     $updates = [];
     foreach ($fields as $field) {
         if (isset($data[$field])) {

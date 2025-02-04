@@ -43,7 +43,7 @@ function handleInsertOutsideUser($conn)
         return;
     }
 
-    $fields = ["email", "password", "contact_no", "user_image", "borrowed_books", "returned_books", "lost_books", "address", "id_type", "id_image"];
+    $fields = ["email", "password", "contact_no", "user_image", "borrowed_books", "returned_books", "damaged_books", "lost_books", "address", "id_type", "id_image", "date_added", "status", "last_update"];
     $values = [];
 
     foreach ($fields as $field) {
@@ -72,7 +72,7 @@ function handleUpdateOutsideUser($conn)
         return;
     }
 
-    $fields = ["id", "email", "password", "contact_no", "user_image", "borrowed_books", "returned_books", "lost_books", "address", "id_type", "id_image"];
+    $fields = ["id", "email", "password", "contact_no", "user_image", "borrowed_books", "returned_books", "damaged_books",  "lost_books", "address", "id_type", "id_image", "date_added", "status", "last_update"];
     $updates = [];
     foreach ($fields as $field) {
         if (isset($data[$field])) {

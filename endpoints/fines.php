@@ -43,7 +43,7 @@ function handleInsertFine($conn)
         return;
     }
 
-    $fields = ["user_id", "book_id", "type", "amount", "status", "date", "payment_date"];
+    $fields = ["borrowing_id", "type", "amount", "status", "date", "payment_date"];
     $values = [];
 
     foreach ($fields as $field) {
@@ -72,7 +72,7 @@ function handleUpdateFine($conn)
         return;
     }
 
-    $fields = ["id", "user_id", "book_id", "type", "amount", "status", "date", "payment_date"];
+    $fields = ["id", "borrowing_id", "type", "amount", "status", "date", "payment_date"];
     $updates = [];
     foreach ($fields as $field) {
         if (isset($data[$field])) {
