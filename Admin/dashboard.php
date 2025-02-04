@@ -3,8 +3,6 @@
 <?php include '../admin/inc/header.php'; ?>
 
 
-
-
             <!-- Main Content -->
             <div id="content">
                 <!-- Begin Page Content -->
