@@ -1,6 +1,13 @@
+<?php
+session_start();
 
-
-<?php include '../admin/inc/header.php'; ?>
+// Check if the user is logged in
+if (!isset($_SESSION['userId'])) {
+    header("Location: index.php");
+    exit();
+}
+include '../admin/inc/header.php';
+?>
 
 <!-- Main Content -->
  <div id="content">
