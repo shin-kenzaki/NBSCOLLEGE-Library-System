@@ -23,6 +23,7 @@ include '../admin/inc/header.php';
                     <!-- Content Row -->
                     <div class="row">
 
+
                         <div class="col-xl-12 col-lg-7">
                                 <form id="bookForm" action="process_add_book.php" method="POST" enctype="multipart/form-data">
                                 <div class="form-step step-1">
@@ -181,24 +182,76 @@ include '../admin/inc/header.php';
             <button type="button" class="btn btn-primary next-step">Next</button>
         </div>
 
+
+
                     
                     <div class="form-step step-2 d-none">
-                        <h4>Writer Details</h4>
-                        <div class="form-group">
-                            <label>First Name</label>
-                            <input type="text" name="firstname" class="form-control" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Middle Initial</label>
-                            <input type="text" name="middle_init" class="form-control">
-                        </div>
-                        <div class="form-group">
-                            <label>Last Name</label>
-                            <input type="text" name="lastname" class="form-control" required>
-                        </div>
-                        <button type="button" class="btn btn-secondary prev-step">Previous</button>
-                        <button type="button" class="btn btn-primary next-step">Next</button>
+
+                    <h1 class="h3 mb-2 text-gray-800">Contributors</h1>
+        <p class="mb-4">Manage book writers and contributors.</p>
+        
+        <!-- Search Bar -->
+        <div class="mb-3">
+            <input type="text" id="searchWriter" class="form-control" placeholder="Search writer...">
+        </div>
+        
+        <!-- Add Writer Button -->
+        <div class="mb-4">
+            <button class="btn btn-primary" data-toggle="modal" data-target="#addWriterModal">Add Writer</button>
+        </div>
+
+        <!-- Writers Table -->
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>First Name</th>
+                    <th>Middle Initial</th>
+                    <th>Last Name</th>
+                </tr>
+            </thead>
+            <tbody id="writersList">
+                <!-- Writer rows will be dynamically inserted here -->
+            </tbody>
+        </table>
+        <button type="button" class="btn btn-secondary prev-step">Previous</button>
+        <button type="button" class="btn btn-primary next-step">Next</button>
+
+        
+        
+                        <!-- Add Writer Modal -->
+<div class="modal fade" id="addWriterModal" tabindex="-1" role="dialog" aria-labelledby="addWriterModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addWriterModalLabel">Add Writer</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="addWriterForm">
+                    <div class="form-group">
+                        <label>First Name</label>
+                        <input type="text" name="firstname" class="form-control" required>
                     </div>
+                    <div class="form-group">
+                        <label>Middle Initial</label>
+                        <input type="text" name="middle_init" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Last Name</label>
+                        <input type="text" name="lastname" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn btn-success">Add</button>
+                </form>
+  
+            </div>
+        </div>
+    </div>
+</div>
+
+
                     <div class="form-step step-3 d-none">
                         <h4>Publisher Details</h4>
                         <div class="form-group">
