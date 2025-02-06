@@ -1,31 +1,15 @@
-
-    document.addEventListener("DOMContentLoaded", function() {
-        let steps = document.querySelectorAll(".form-step");
-        let nextBtns = document.querySelectorAll(".next-step");
-        let prevBtns = document.querySelectorAll(".prev-step");
-        let currentStep = 0;
-
-        function showStep(step) {
-            steps.forEach((el, index) => {
-                el.classList.toggle("d-none", index !== step);
-            });
-        }
-
-        nextBtns.forEach(btn => {
-            btn.addEventListener("click", () => {
-                if (currentStep < steps.length - 1) {
-                    currentStep++;
-                    showStep(currentStep);
-                }
-            });
-        });
-
-        prevBtns.forEach(btn => {
-            btn.addEventListener("click", () => {
-                if (currentStep > 0) {
-                    currentStep--;
-                    showStep(currentStep);
-                }
-            });
+// Tab switching logic
+document.addEventListener("DOMContentLoaded", function () {
+    const tabs = document.querySelectorAll('.nav-link');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function (event) {
+            event.preventDefault();
+            const targetTab = document.querySelector(tab.getAttribute('href'));
+            tabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            const tabContents = document.querySelectorAll('.tab-pane');
+            tabContents.forEach(content => content.classList.remove('show', 'active'));
+            targetTab.classList.add('show', 'active');
         });
     });
+});
