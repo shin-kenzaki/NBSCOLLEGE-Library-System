@@ -42,7 +42,7 @@ include '../admin/inc/header.php';
                         <!-- Tab 1: Book Details -->
                         <div class="tab-pane fade show active" id="book-details" role="tabpanel" aria-labelledby="book-details-tab">
                             <h4>Book Details</h4>
-                            <form id="bookForm" action="process_add_book.php" method="POST" enctype="multipart/form-data">
+                            <form id="bookForm" action="../Admin/inc/add-book-process.php" method="POST" enctype="multipart/form-data">
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-group">
@@ -191,8 +191,7 @@ include '../admin/inc/header.php';
                                     </div>
                                 </div>
                             </div>
-
-                                         <!-- Submit Button -->
+                                          <!-- Submit Button -->
                     <div class="form-group mt-3">
                         <button type="submit" class="btn btn-success" id="addBookBtn">Add Book</button>
                     </div>
@@ -209,6 +208,8 @@ include '../admin/inc/header.php';
                             </div>
 
                             <button class="btn btn-primary" data-toggle="modal" data-target="#addWriterModal">Add Writer</button>
+                            <br>     <br>
+
                             <table class="table table-bordered">
                                 <thead>
                                     <tr>
@@ -232,6 +233,8 @@ include '../admin/inc/header.php';
                             </div>
 
                             <button class="btn btn-primary" data-toggle="modal" data-target="#addPublisherModal">Add Publisher</button>
+                            <br>     <br>
+
                             <table class="table table-bordered">
                                 <thead>
                                     <tr>

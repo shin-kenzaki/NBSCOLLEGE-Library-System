@@ -1,9 +1,8 @@
-// Tab switching logic
 document.addEventListener("DOMContentLoaded", function () {
     const tabs = document.querySelectorAll('.nav-link');
     tabs.forEach(tab => {
         tab.addEventListener('click', function (event) {
-            event.preventDefault();
+            // event.preventDefault(); // Remove this if you're navigating between pages
             const targetTab = document.querySelector(tab.getAttribute('href'));
             tabs.forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
