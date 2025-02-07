@@ -8,6 +8,14 @@ if (!isset($_SESSION['admin_id'])) {
 }
 
 include '../admin/inc/header.php';
+include '../db.php';
+// Fetch writers data
+$sql = "SELECT id, firstname, middle_init, lastname FROM writers";
+$result = $conn->query($sql);
+
+$sql1 = "SELECT id, company, place FROM publishers";
+$result1 = $conn->query($sql1);
+
 ?>
 
 
@@ -17,8 +25,7 @@ include '../admin/inc/header.php';
     <div class="container-fluid">
 
         <!-- Page Heading -->
-        <h1 class="h3 mb-2 text-gray-800">Add Book</h1>
-        <p class="mb-4">Maintenance</p>
+        <h1 class="h3 mb-2 text-gray-800">Writers</h1>
 
         <!-- Content Row -->
         <div class="row">
@@ -31,7 +38,7 @@ include '../admin/inc/header.php';
                             <a class="nav-link active" id="book-details-tab" data-bs-toggle="tab" href="#book-details" role="tab" aria-controls="book-details" aria-selected="true">Book Details</a>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <a class="nav-link" id="contributors-tab" data-bs-toggle="tab" href="#contributors" role="tab" aria-controls="contributors" aria-selected="false">Contributors</a>
+                            <a class="nav-link" id="contributors-tab" data-bs-toggle="tab" href="#contributors" role="tab" aria-controls="contributors" aria-selected="false">Writers</a>
                         </li>
                         <li class="nav-item" role="presentation">
                             <a class="nav-link" id="publisher-details-tab" data-bs-toggle="tab" href="#publisher-details" role="tab" aria-controls="publisher-details" aria-selected="false">Publisher Details</a>
@@ -160,7 +167,7 @@ include '../admin/inc/header.php';
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label>Entered By</label>
-                                        <input type="text" name="entered_by" class="form-control" value="<?php echo $_SESSION['userId']; ?>" readonly>
+                                        <input type="text" name="entered_by" class="form-control" value="<?php echo $_SESSION['admin_id']; ?>" readonly>
                                     </div>
                                 </div>
                             </div>
@@ -201,56 +208,105 @@ include '../admin/inc/header.php';
 
                 </form>
 
-                        <!-- Tab 2: Contributors -->
+                      <!-- Tab 2: Contributors -->
                         <div class="tab-pane fade" id="contributors" role="tabpanel" aria-labelledby="contributors-tab">
-                            <h4>Contributors</h4>
-                            <div class="mb-3">
-                                <input type="text" id="searchWriter" class="form-control" placeholder="Search writer...">
+                            <h4>Writers</h4>
+
+                            <div class="card shadow mb-4">
+                                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                                    <h6 class="m-0 font-weight-bold text-primary">Writers List</h6>
+                                    <!-- Add Writer Button Inside Header -->
+                                    <button class="btn btn-primary" data-toggle="modal" data-target="#addWriterModal">Add Writer</button>
+                                </div>
+
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                                            <thead>
+                                                <tr>
+                                                    <th>ID</th>
+                                                    <th>First Name</th>
+                                                    <th>Middle Initial</th>
+                                                    <th>Last Name</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php
+                                                // Check if the query returned any rows
+                                                if ($result->num_rows > 0) {
+                                                    // Loop through the rows and display them in the table
+                                                    while ($row = $result->fetch_assoc()) {
+                                                        echo "<tr>
+                                                                <td>" . $row['id'] . "</td>
+                                                                <td>" . $row['firstname'] . "</td>
+                                                                <td>" . $row['middle_init'] . "</td>
+                                                                <td>" . $row['lastname'] . "</td>
+                                                            </tr>";
+                                                    }
+                                                } else {
+                                                    // If no data is found, display a message
+                                                    echo "<tr><td colspan='4'>No writers found</td></tr>";
+                                                }
+                                                ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
                             </div>
-
-                            <button class="btn btn-primary" data-toggle="modal" data-target="#addWriterModal">Add Writer</button>
-                            <br>     <br>
-
-                            <table class="table table-bordered">
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>First Name</th>
-                                        <th>Middle Initial</th>
-                                        <th>Last Name</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="writersList">
-                                    <!-- Writer rows will be dynamically inserted here -->
-                                </tbody>
-                            </table>
                         </div>
+                             <!-- END Tab 2: Contributors -->
+
 
                         <!-- Tab 3: Publisher Details -->
                         <div class="tab-pane fade" id="publisher-details" role="tabpanel" aria-labelledby="publisher-details-tab">
                             <h4>Publisher Details</h4>
-                            <div class="mb-3">
-                                <input type="text" id="searchPublisher" class="form-control" placeholder="Search publisher...">
+
+
+                            <div class="card shadow mb-4">
+                                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                                    <h6 class="m-0 font-weight-bold text-primary">Publisher Details</h6>
+                                    <!-- Add Writer Button Inside Header -->
+                                    <button class="btn btn-primary" data-toggle="modal" data-target="#addPublisherModal">Add Publisher</button>
+                                </div>
+                            <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered" id="dataTable1" width="100%" cellspacing="0">
+                                            <thead>
+                                                <tr>
+                                                    <th>ID</th>
+                                                    <th>Company</th>
+                                                    <th>Place</th>
+
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php
+                                                // Check if the query returned any rows
+                                                if ($result1->num_rows > 0) {
+                                                    // Loop through the rows and display them in the table
+                                                    while ($row1 = $result1->fetch_assoc()) {
+                                                        echo "<tr>
+                                                                <td>" . $row1['id'] . "</td>
+                                                                <td>" . $row1['company'] . "</td>
+                                                                <td>" . $row1['place'] . "</td>
+
+                                                            </tr>";
+                                                    }
+                                                } else {
+                                                    // If no data is found, display a message
+                                                    echo "<tr><td colspan='4'>No writers found</td></tr>";
+                                                }
+                                                ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
                             </div>
-
-                            <button class="btn btn-primary" data-toggle="modal" data-target="#addPublisherModal">Add Publisher</button>
-                            <br>     <br>
-
-                            <table class="table table-bordered">
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Company</th>
-                                        <th>Place</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="publishersList">
-                                    <!-- Publisher rows will be dynamically inserted here -->
-                                </tbody>
-                            </table>
                         </div>
-                    </div>
 
+
+
+                    </div>
             </div>
         </div>
 
@@ -446,6 +502,68 @@ include '../admin/inc/header.php';
 
 
 
+</script>
+
+<!-- TABLE SCRIPT -->
+
+<script>
+    $(document).ready(function () {
+        var table = $('#dataTable').DataTable({
+            "dom": "<'row mb-3'<'col-sm-6'l><'col-sm-6 d-flex justify-content-end'f>>" +
+                   "<'row'<'col-sm-12'tr>>" +
+                   "<'row mt-3'<'col-sm-5'i><'col-sm-7 d-flex justify-content-end'p>>",
+            "pagingType": "simple_numbers",
+            "language": {
+                "search": "Search:" // Keeps the default 'Search:' label
+            }
+        });
+
+        // Style the search input with Bootstrap
+        $('#dataTable_filter input')
+            .addClass('form-control')
+            .attr("placeholder", "Search...");
+
+        // Add a trailing search icon inside the search field
+        $('#dataTable_filter input').wrap('<div class="input-group"></div>');  // Wrap input field with input group
+        $('#dataTable_filter').append('<div class="input-group-append"><span class="input-group-text"><i class="fa fa-search"></i></span></div>');
+
+        // Add a label next to the search field (without removing the default "Search:" label)
+        $('#dataTable_filter').append('<label class="ml-2 font-weight-bold">Search</label>');
+
+        // Fix pagination buttons styling & spacing
+        $('.dataTables_paginate .paginate_button')
+            .addClass('btn btn-sm btn-outline-primary mx-1');
+    });
+</script>
+
+<script>
+    $(document).ready(function () {
+        var table = $('#dataTable1').DataTable({
+            "dom": "<'row mb-3'<'col-sm-6'l><'col-sm-6 d-flex justify-content-end'f>>" +
+                   "<'row'<'col-sm-12'tr>>" +
+                   "<'row mt-3'<'col-sm-5'i><'col-sm-7 d-flex justify-content-end'p>>",
+            "pagingType": "simple_numbers",
+            "language": {
+                "search": "Search:" // Keeps the default 'Search:' label
+            }
+        });
+
+        // Style the search input with Bootstrap
+        $('#dataTable_filter input')
+            .addClass('form-control')
+            .attr("placeholder", "Search...");
+
+        // Add a trailing search icon inside the search field
+        $('#dataTable_filter input').wrap('<div class="input-group"></div>');  // Wrap input field with input group
+        $('#dataTable_filter').append('<div class="input-group-append"><span class="input-group-text"><i class="fa fa-search"></i></span></div>');
+
+        // Add a label next to the search field (without removing the default "Search:" label)
+        $('#dataTable_filter').append('<label class="ml-2 font-weight-bold">Search</label>');
+
+        // Fix pagination buttons styling & spacing
+        $('.dataTables_paginate .paginate_button')
+            .addClass('btn btn-sm btn-outline-primary mx-1');
+    });
 </script>
 
 

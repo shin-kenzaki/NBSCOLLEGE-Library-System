@@ -8,6 +8,10 @@ if (!isset($_SESSION['admin_id'])) {
 }
 
 include '../admin/inc/header.php';
+include '../db.php';
+// Fetch writers data
+$sql = "SELECT id, firstname, middle_init, lastname FROM writers";
+$result = $conn->query($sql);
 ?>
 
 
@@ -35,19 +39,29 @@ include '../admin/inc/header.php';
                 </thead>
 
                     <tbody>
-                    <tr>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
+                    <?php
+                            // Check if the query returned any rows
+                            if ($result->num_rows > 0) {
+                                // Loop through the rows and display them in the table
+                                while ($row = $result->fetch_assoc()) {
+                                    echo "<tr>
+                                            <td>" . $row['id'] . "</td>
+                                            <td>" . $row['firstname'] . "</td>
+                                            <td>" . $row['middle_init'] . "</td>
+                                            <td>" . $row['lastname'] . "</td>
+                                          </tr>";
+                                }
+                            } else {
+                                // If no data is found, display a message
+                                echo "<tr><td colspan='4'>No writers found</td></tr>";
+                            }
+                            ?>
 
-                    </tr>
-
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
 
                 </div>
                 <!-- /.container-fluid -->
