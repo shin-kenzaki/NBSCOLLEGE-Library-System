@@ -17,6 +17,7 @@
 
     <!-- Custom styles for this template-->
     <link href="inc/css/sb-admin-2.min.css" rel="stylesheet">
+    <link href="inc/assets/DataTables/datatables.min.css" rel="stylesheet">
 
 </head>
 
@@ -58,6 +59,24 @@
                     <span>Add Book</span></a>
             </li>
 
+                 <!-- Nav Item - Pages Collapse Menu -->
+                 <li class="nav-item">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseTwo"
+                    aria-expanded="true" aria-controls="collapseTwo">
+                    <i class="fas fa-fw fa-cog"></i>
+                    <span>Book Module</span>
+                </a>
+                <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <h6 class="collapse-header">Book Module:</h6>
+                        <a class="collapse-item" href="book_list.php">Book List</a>
+                        <a class="collapse-item" href="writers_list.php">Writers List</a>
+                        <a class="collapse-item" href="publisher_list.php">Publihser List</a>
+                    </div>
+                </div>
+            </li>
+
+
                         <!-- Nav Item - Charts -->
                         <li class="nav-item">
                 <a class="nav-link" href="charts.php">
@@ -80,21 +99,6 @@
                 Addons
             </div>
 
-                   <!-- Nav Item - Pages Collapse Menu -->
-                   <li class="nav-item">
-                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseTwo"
-                    aria-expanded="true" aria-controls="collapseTwo">
-                    <i class="fas fa-fw fa-cog"></i>
-                    <span>Components</span>
-                </a>
-                <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
-                    <div class="bg-white py-2 collapse-inner rounded">
-                        <h6 class="collapse-header">Custom Components:</h6>
-                        <a class="collapse-item" href="buttons.html">Buttons</a>
-                        <a class="collapse-item" href="cards.html">Cards</a>
-                    </div>
-                </div>
-            </li>
 
                         <!-- Nav Item - Utilities Collapse Menu -->
                         <li class="nav-item">
@@ -410,9 +414,17 @@
     <script src="vendor/chart.js/Chart.min.js"></script>
 
 
+
+
+
     <script src="inc/js/demo/chart-area-demo.js"></script>
     <script src="inc/js/demo/chart-pie-demo.js"></script>
     <script src="inc/js/demo/chart-bar-demo.js"></script>
+
+    <script src="inc/assets/DataTables/datatables.min.js"></script>
+
+
+
 
 
 </body>

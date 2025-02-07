@@ -12,6 +12,8 @@ include '../admin/inc/header.php';
 <!-- Main Content -->
  <div id="content">
 
+
+
 <!-- Begin Page Content -->
 <div class="container-fluid">
 
@@ -517,6 +519,31 @@ include '../admin/inc/header.php';
 
 </div>
 <!-- End of Main Content -->
+
+<script>
+    $(document).ready(function () {
+        var table = $('#dataTable').DataTable({
+            "dom": "<'row mb-3'<'col-sm-6'l><'col-sm-6 d-flex justify-content-end'f>>" +
+                   "<'row'<'col-sm-12'tr>>" +
+                   "<'row mt-3'<'col-sm-5'i><'col-sm-7 d-flex justify-content-end'p>>", // Align search & pagination to right
+            "pagingType": "simple_numbers", // Better pagination style
+            "language": {
+                "search": "" // Removes default 'Search:' label
+            }
+        });
+
+        // Style the search input with Bootstrap
+        $('#dataTable_filter input')
+            .addClass('form-control')
+            .attr("placeholder", "Search...");
+
+        // Fix pagination buttons styling & spacing
+        $('.dataTables_paginate .paginate_button')
+            .addClass('btn btn-sm btn-outline-primary mx-1'); // Adds space between buttons
+    });
+</script>
+
+
 
 <!-- Footer -->
 <footer class="sticky-footer bg-white">
