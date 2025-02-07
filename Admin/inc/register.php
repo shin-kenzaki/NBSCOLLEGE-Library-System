@@ -1,13 +1,13 @@
 <?php
     if (isset($_POST["submit"])) {
         $userID = $_POST["id"];
-        $firstname = $_POST["firstname"];                   
+        $firstname = $_POST["firstname"];
         $lastname = $_POST["lastname"];
         $username = $_POST["username"];
         $password = $_POST["password"];  // Directly store password
         $role = $_POST["role"];
 
-        $date_added = date("Y-m-d H:i:s"); 
+        $date_added = date("Y-m-d H:i:s");
 
         $image = "../Admin/inc/upload/bg-login.JPG";
         $status = "active";

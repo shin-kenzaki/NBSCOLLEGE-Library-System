@@ -22,7 +22,7 @@ header("Pragma: no-cache");
 </head>
 <body>
     <h1>Welcome, <?php echo htmlspecialchars($_SESSION['admin_firstname']); ?>!</h1>
-    
+
     <!-- Logout Button -->
     <form action="logout.php" method="POST">
         <button type="submit">Logout</button>

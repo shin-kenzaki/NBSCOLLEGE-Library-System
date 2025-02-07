@@ -1,8 +1,75 @@
 <?php
     session_start();
-    include '../db.php';
-    include '../Admin/inc/login.php'
-?>
+    if (isset($_SESSION['admin_id'])) {
+        header("Location: dashboard.php");
+        exit;
+    }
+    require '../db.php'; // Database connection
+
+    // Initialize error message
+    $error_message = '';
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        // Retrieve and sanitize input
+        $username = $_POST['username'];
+        $password = $_POST['password'];
+
+        // Query to check if the user exists
+        $sql = "SELECT * FROM admins WHERE username = ?";
+        if ($stmt = $conn->prepare($sql)) {
+            $stmt->bind_param("s", $username);
+            $stmt->execute();
+            $result = $stmt->get_result();
+
+            // If the username exists, check the password
+            if ($result->num_rows > 0) {
+                $admin = $result->fetch_assoc();
+                // Compare plain text passwords directly
+                if ($password === $admin['password']) {
+                    // Login successful, store session data
+                    $_SESSION['admin_id'] = $admin['id'];
+                    $_SESSION['admin_username'] = $admin['username'];
+                    $_SESSION['admin_firstname'] = $admin['firstname'];
+                    $_SESSION['admin_lastname'] = $admin['lastname'];
+                    // Store admin image in session (Convert binary data to base64)
+                    $_SESSION['admin_image'] = base64_encode($admin['image']);
+                    $_SESSION['role'] = strtolower($admin['role']); // Convert role to lowercase for consistency
+                    $_SESSION['admin_date_added'] = $admin['date_added'];
+                    $_SESSION['admin_status'] = $admin['status'];
+                    $_SESSION['admin_last_update'] = $admin['last_update'];
+
+                    // Redirect based on role
+                    switch ($_SESSION['role']) {
+                        case 'admin':
+                            header("location: dashboard.php");
+                            break;
+                        case 'librarian':
+                            echo "<p style='color: green;'>Logging In... Redirecting to Librarian Page...</p>";
+                            header("refresh:3;url=librarian/librarian_dashboard.php");
+                            break;
+                        case 'assistant':
+                            echo "<p style='color: green;'>Logging In... Redirecting to Assistant Page...</p>";
+                            header("refresh:3;url=assistant/assistant_dashboard.php");
+                            break;
+                        default:
+                            $error_message = "Invalid role assigned.";
+                    }
+                    exit;
+                } else {
+                    $error_message = "Invalid password.";
+                }
+            } else {
+                $error_message = "No such admin found.";
+            }
+
+            $stmt->close();
+        } else {
+            $error_message = "Error preparing query: " . $conn->error;
+        }
+
+        $conn->close();
+    }
+    ?>
 
 <!DOCTYPE html>
 <html lang="en">
@@ -47,7 +114,7 @@
                 <div class="card o-hidden border-0 shadow-lg my-5">
                     <div class="card-body p-0">
                         <!-- Nested Row within Card Body -->
-                       
+
                         <div class="row">
                         <div class="col-lg-6 d-none d-lg-block bg-login-image"></div>
                             <div class="col-lg-6">
@@ -58,13 +125,17 @@
                                     <form class="user" method="POST" action="">
                                         <div class="form-group">
                                             <input type="text" class="form-control form-control-user"
-                                                id="exampleInputUserId" aria-describedby="userIdHelp"
-                                                placeholder="User ID" name="userId" required>
+                                            placeholder="Username"
+                                            id="username" name="username" required
+                                                >
                                         </div>
                                         <div class="form-group">
                                             <input type="password" class="form-control form-control-user"
                                                 id="exampleInputPassword" placeholder="Password" name="password" required>
                                         </div>
+
+
+
                                         <div class="form-group">
                                             <div class="custom-control custom-checkbox small">
                                                 <input type="checkbox" class="custom-control-input" id="customCheck">
@@ -75,7 +146,7 @@
                                             Login
                                         </button>
                                     </form>
-                                  
+
                                         <!-- <a href="index.html" class="btn btn-google btn-user btn-block">
                                             <i class="fab fa-google fa-fw"></i> Login with Google
                                         </a>
@@ -88,7 +159,7 @@
                                         <a class="small" href="forgot-password.html">Forgot Password?</a>
                                     </div>
                                     <div class="text-center">
-                                        <a class="small" href="register.html">Create an Account!</a>
+                                        <a class="small" href="register.php">Create an Account!</a>
                                     </div>
                                 </div>
                             </div>
