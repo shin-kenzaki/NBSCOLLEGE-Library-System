@@ -67,7 +67,7 @@
 
                         if ($stmt->execute()) {
                             echo "<p style='color:green;'>Admin registered successfully! Redirecting to login...</p>";
-                            header("refresh:3;url=admin_login.php");
+                            header("refresh:3;url=index.php");
                             exit;
                         } else {
                             echo "<p style='color:red;'>Error: " . $stmt->error . "</p>";
@@ -206,7 +206,7 @@
                                     <div class="col-sm-6">
                                         <select name="role" class="form-control user select-dropdown" required>
                                             <option value="">Select Role</option>
-                                            <option value="SuperAdmin" <?= isset($_POST['role']) && $_POST['role'] == "SuperAdmin" ? "selected" : "" ?>>Admin</option>
+                                            <option value="Admin" <?= isset($_POST['role']) && $_POST['role'] == "Admin" ? "selected" : "" ?>>Admin</option>
                                             <option value="Librarian" <?= isset($_POST['role']) && $_POST['role'] == "Librarian" ? "selected" : "" ?>>Librarian</option>
                                             <option value="Encoder" <?= isset($_POST['role']) && $_POST['role'] == "Encoder" ? "selected" : "" ?>>Encoder</option>
                                         </select>
