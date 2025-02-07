@@ -14,7 +14,7 @@
     if (isset($_SESSION['admin_id'])) {
         header("Location: admin_dashboard.php");
         exit;
-    }    
+    }
     require '../db.php'; // Database connection
 
     // Initialize error message
