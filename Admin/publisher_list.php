@@ -8,6 +8,12 @@ if (!isset($_SESSION['admin_id'])) {
 }
 
 include '../admin/inc/header.php';
+include '../db.php';
+// Fetch writers data
+$sql = "SELECT id, company, place  FROM publishers";
+$result = $conn->query($sql);
+
+
 ?>
 
 
@@ -16,11 +22,11 @@ include '../admin/inc/header.php';
                 <div class="container-fluid">
 
                     <!-- Page Heading -->
-                    <h1 class="h3 mb-4 text-gray-800">Writers List</h1>
+                    <h1 class="h3 mb-4 text-gray-800">Publishers List</h1>
 
                     <div class="card shadow mb-4">
         <div class="card-header py-3">
-            <h6 class="m-0 font-weight-bold text-primary">Writers List</h6>
+            <h6 class="m-0 font-weight-bold text-primary">Publishers List</h6>
         </div>
         <div class="card-body">
             <div class="table-responsive">
@@ -29,16 +35,30 @@ include '../admin/inc/header.php';
                     <tr>
                         <th>ID</th>
                         <th>Company</th>
-                        <th>Placel</th>
+                        <th>Place</th>
                     </tr>
                 </thead>
 
                     <tbody>
-                    <tr>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                    </tr>
+                    <?php
+
+                            if ($result->num_rows > 0) {
+
+                                    while ($row = $result->fetch_assoc()) {
+                                    echo "<tr>
+                                            <td>" . $row['id'] . "</td>
+                                            <td>" . $row['company'] . "</td>
+                                            <td>" . $row['place'] . "</td>
+                                           </tr>";
+                                     }
+                                     }
+                                     else {
+
+                                        echo "<tr><td colspan='4'>No writers found</td></tr>";
+                                   }
+                    ?>
+
+
 
                     </tbody>
                 </table>
