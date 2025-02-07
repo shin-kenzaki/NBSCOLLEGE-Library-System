@@ -10,8 +10,7 @@ include '../admin/inc/header.php';
 ?>
 
 <!-- Main Content -->
-<div id="content">
-
+<div id="content" class="d-flex flex-column min-vh-100">
     <!-- Begin Page Content -->
     <div class="container-fluid">
 
@@ -441,6 +440,10 @@ include '../admin/inc/header.php';
         addWriterRow();
     });
 });
+
+
+
+
 </script>
 
 

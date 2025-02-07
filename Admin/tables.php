@@ -10,7 +10,7 @@ include '../admin/inc/header.php';
 ?>
 
 <!-- Main Content -->
- <div id="content">
+<div id="content" class="d-flex flex-column min-vh-100">
 
 
 
@@ -525,10 +525,10 @@ include '../admin/inc/header.php';
         var table = $('#dataTable').DataTable({
             "dom": "<'row mb-3'<'col-sm-6'l><'col-sm-6 d-flex justify-content-end'f>>" +
                    "<'row'<'col-sm-12'tr>>" +
-                   "<'row mt-3'<'col-sm-5'i><'col-sm-7 d-flex justify-content-end'p>>", // Align search & pagination to right
-            "pagingType": "simple_numbers", // Better pagination style
+                   "<'row mt-3'<'col-sm-5'i><'col-sm-7 d-flex justify-content-end'p>>",
+            "pagingType": "simple_numbers",
             "language": {
-                "search": "" // Removes default 'Search:' label
+                "search": "Search:" // Keeps the default 'Search:' label
             }
         });
 
@@ -537,11 +537,20 @@ include '../admin/inc/header.php';
             .addClass('form-control')
             .attr("placeholder", "Search...");
 
+        // Add a trailing search icon inside the search field
+        $('#dataTable_filter input').wrap('<div class="input-group"></div>');  // Wrap input field with input group
+        $('#dataTable_filter').append('<div class="input-group-append"><span class="input-group-text"><i class="fa fa-search"></i></span></div>');
+
+        // Add a label next to the search field (without removing the default "Search:" label)
+        $('#dataTable_filter').append('<label class="ml-2 font-weight-bold">Search</label>');
+
         // Fix pagination buttons styling & spacing
         $('.dataTables_paginate .paginate_button')
-            .addClass('btn btn-sm btn-outline-primary mx-1'); // Adds space between buttons
+            .addClass('btn btn-sm btn-outline-primary mx-1');
     });
 </script>
+
+
 
 
 
