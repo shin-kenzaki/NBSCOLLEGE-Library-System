@@ -9,7 +9,6 @@ if (!isset($_SESSION['admin_id'])) {
 
 include '../admin/inc/header.php';
 ?>
-
             <!-- Main Content -->
             <div id="content" class="d-flex flex-column min-vh-100">
                 <!-- Begin Page Content -->
