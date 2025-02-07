@@ -120,5 +120,5 @@ switch ($request_method) {
     default:
         echo json_encode(["error" => "Invalid request: Unsupported HTTP method"]);
         exit;
-}
+    }
 ?>

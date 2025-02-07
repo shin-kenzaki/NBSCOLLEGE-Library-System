@@ -1,69 +1,69 @@
 <?php
 // Check the request method and route accordingly
 if ($_SERVER["REQUEST_METHOD"] === "GET") {
-    handleGetOutsideUser($conn);
+    handleGetAdmins($conn);
 } elseif ($_SERVER["REQUEST_METHOD"] === "POST") {
-    handleInsertOutsideUser($conn);
+    handleInsertAdmin($conn);
 } elseif ($_SERVER["REQUEST_METHOD"] === "PUT") {
-    handleUpdateOutsideUser($conn);
+    handleUpdateAdmin($conn);
 } elseif ($_SERVER["REQUEST_METHOD"] === "DELETE") {
-    handleDeleteOutsideUser($conn);
+    handleDeleteAdmin($conn);
 } else {
     echo json_encode(["message" => "Invalid Request"]);
 }
 
 /**
- * Handle GET requests: Retrieve all outside users
+ * Handle GET requests: Retrieve all admins
  */
-function handleGetOutsideUser($conn)
+function handleGetAdmins($conn)
 {
-    $sql = "SELECT * FROM outside_users";
+    $sql = "SELECT * FROM admins";
     $result = $conn->query($sql);
 
     if ($result->num_rows > 0) {
-        $outside_users = [];
+        $admins = [];
         while ($row = $result->fetch_assoc()) {
-            $outside_users[] = $row;
+            $admins[] = $row;
         }
-        echo json_encode($outside_users);
+        echo json_encode($admins);
     } else {
-        echo json_encode(["message" => "No outside users found"]);
+        echo json_encode(["message" => "No admins found"]);
     }
 }
 
 /**
- * Handle POST requests: Insert a single outside user
+ * Handle POST requests: Insert a single admin
  */
-function handleInsertOutsideUser($conn)
+function handleInsertAdmin($conn)
 {
     $data = json_decode(file_get_contents("php://input"), true);
 
-    if (!$data) {
-        echo json_encode(["error" => "Invalid input"]);
+    if (!$data || !isset($data["id"])) {
+        echo json_encode(["error" => "Invalid input or missing ID"]);
         return;
     }
 
-    $fields = ["email", "password", "contact_no", "user_image", "borrowed_books", "returned_books", "lost_books", "address", "id_type", "id_image"];
+    $fields = ["id", "firstname", "middle_init", "lastname", "username", "password", "image", "role", "date_added", "status", "last_update"];
     $values = [];
 
     foreach ($fields as $field) {
         $values[$field] = isset($data[$field]) ? $conn->real_escape_string($data[$field]) : null;
     }
 
-    $sql = "INSERT INTO outside_users (" . implode(", ", array_keys($values)) . ") 
+    $sql = "INSERT INTO admins (" . implode(", ", array_keys($values)) . ") 
             VALUES ('" . implode("', '", $values) . "')";
 
     if ($conn->query($sql)) {
-        echo json_encode(["message" => "Outside user added"]);
+        echo json_encode(["message" => "Admin added"]);
     } else {
         echo json_encode(["error" => $conn->error]);
     }
 }
 
 /**
- * Handle PUT requests: Update all fields of an outside user
+ * Handle PUT requests: Update all fields of an admin
  */
-function handleUpdateOutsideUser($conn)
+function handleUpdateAdmin($conn)
 {
     $data = json_decode(file_get_contents("php://input"), true);
 
@@ -72,7 +72,7 @@ function handleUpdateOutsideUser($conn)
         return;
     }
 
-    $fields = ["id", "email", "password", "contact_no", "user_image", "borrowed_books", "returned_books", "lost_books", "address", "id_type", "id_image"];
+    $fields = ["id", "firstname", "middle_init", "lastname", "username", "password", "image", "role", "date_added", "status", "last_update"];
     $updates = [];
     foreach ($fields as $field) {
         if (isset($data[$field])) {
@@ -84,19 +84,19 @@ function handleUpdateOutsideUser($conn)
     }
 
     $id = $conn->real_escape_string($data["id"]);
-    $sql = "UPDATE outside_users SET " . implode(", ", $updates) . " WHERE id = '$id'";
+    $sql = "UPDATE admins SET " . implode(", ", $updates) . " WHERE id = '$id'";
 
     if ($conn->query($sql)) {
-        echo json_encode(["message" => "Outside user updated"]);
+        echo json_encode(["message" => "Admin updated"]);
     } else {
         echo json_encode(["error" => $conn->error]);
     }
 }
 
 /**
- * Handle DELETE requests: Delete a Outside user by ID
+ * Handle DELETE requests: Delete an admin by ID
  */
-function handleDeleteOutsideUser($conn)
+function handleDeleteAdmin($conn)
 {
     $data = json_decode(file_get_contents("php://input"), true);
 
@@ -106,11 +106,12 @@ function handleDeleteOutsideUser($conn)
     }
 
     $id = $conn->real_escape_string($data["id"]);
-    $sql = "DELETE FROM outside_users WHERE id = '$id'";
+    $sql = "DELETE FROM admins WHERE id = '$id'";
 
     if ($conn->query($sql)) {
-        echo json_encode(["message" => "Outside user deleted"]);
+        echo json_encode(["message" => "Admin deleted"]);
     } else {
         echo json_encode(["error" => $conn->error]);
     }
 }
+

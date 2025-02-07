@@ -1,69 +1,69 @@
 <?php
 // Check the request method and route accordingly
 if ($_SERVER["REQUEST_METHOD"] === "GET") {
-    handleGetFines($conn);
+    handleGetSchoolUser($conn);
 } elseif ($_SERVER["REQUEST_METHOD"] === "POST") {
-    handleInsertFine($conn);
+    handleInsertSchoolUser($conn);
 } elseif ($_SERVER["REQUEST_METHOD"] === "PUT") {
-    handleUpdateFine($conn);
+    handleUpdateSchoolUser($conn);
 } elseif ($_SERVER["REQUEST_METHOD"] === "DELETE") {
-    handleDeleteFine($conn);
+    handleDeleteSchoolUser($conn);
 } else {
     echo json_encode(["message" => "Invalid Request"]);
 }
 
 /**
- * Handle GET requests: Retrieve all Fines
+ * Handle GET requests: Retrieve all school users
  */
-function handleGetFines($conn)
+function handleGetSchoolUser($conn)
 {
-    $sql = "SELECT * FROM fines";
+    $sql = "SELECT * FROM school_users";
     $result = $conn->query($sql);
 
     if ($result->num_rows > 0) {
-        $Fines = [];
+        $school_users = [];
         while ($row = $result->fetch_assoc()) {
-            $Fines[] = $row;
+            $school_users[] = $row;
         }
-        echo json_encode($Fines);
+        echo json_encode($school_users);
     } else {
-        echo json_encode(["message" => "No Fines found"]);
+        echo json_encode(["message" => "No school users found"]);
     }
 }
 
 /**
- * Handle POST requests: Insert a single Fine
+ * Handle POST requests: Insert a single school user
  */
-function handleInsertFine($conn)
+function handleInsertSchoolUser($conn)
 {
     $data = json_decode(file_get_contents("php://input"), true);
 
-    if (!$data) {
-        echo json_encode(["error" => "Invalid input"]);
+    if (!$data || !isset($data["id"])) {
+        echo json_encode(["error" => "Invalid input or missing ID"]);
         return;
     }
 
-    $fields = ["user_id", "book_id", "type", "amount", "status", "date", "payment_date"];
+    $fields = ["id", "email", "password", "image", "borrowed_books", "returned_books", "damaged_books", "lost_books", "date_added", "status", "last_update"];
     $values = [];
 
     foreach ($fields as $field) {
         $values[$field] = isset($data[$field]) ? $conn->real_escape_string($data[$field]) : null;
     }
 
-    $sql = "INSERT INTO fines (" . implode(", ", array_keys($values)) . ") 
+    $sql = "INSERT INTO school_users (" . implode(", ", array_keys($values)) . ") 
             VALUES ('" . implode("', '", $values) . "')";
 
     if ($conn->query($sql)) {
-        echo json_encode(["message" => "Fine added"]);
+        echo json_encode(["message" => "School user added"]);
     } else {
         echo json_encode(["error" => $conn->error]);
     }
 }
 
 /**
- * Handle PUT requests: Update all fields of a Fine
+ * Handle PUT requests: Update all fields of a school user
  */
-function handleUpdateFine($conn)
+function handleUpdateSchoolUser($conn)
 {
     $data = json_decode(file_get_contents("php://input"), true);
 
@@ -72,7 +72,7 @@ function handleUpdateFine($conn)
         return;
     }
 
-    $fields = ["id", "user_id", "book_id", "type", "amount", "status", "date", "payment_date"];
+    $fields = ["id", "email", "password", "image", "borrowed_books", "returned_books", "damaged_books", "lost_books", "date_added", "status", "last_update"];
     $updates = [];
     foreach ($fields as $field) {
         if (isset($data[$field])) {
@@ -84,19 +84,19 @@ function handleUpdateFine($conn)
     }
 
     $id = $conn->real_escape_string($data["id"]);
-    $sql = "UPDATE fines SET " . implode(", ", $updates) . " WHERE id = '$id'";
+    $sql = "UPDATE school_users SET " . implode(", ", $updates) . " WHERE id = '$id'";
 
     if ($conn->query($sql)) {
-        echo json_encode(["message" => "Fine updated"]);
+        echo json_encode(["message" => "School user updated"]);
     } else {
         echo json_encode(["error" => $conn->error]);
     }
 }
 
 /**
- * Handle DELETE requests: Delete a Fine by ID
+ * Handle DELETE requests: Delete a School user by ID
  */
-function handleDeleteFine($conn)
+function handleDeleteSchoolUser($conn)
 {
     $data = json_decode(file_get_contents("php://input"), true);
 
@@ -106,10 +106,10 @@ function handleDeleteFine($conn)
     }
 
     $id = $conn->real_escape_string($data["id"]);
-    $sql = "DELETE FROM fines WHERE id = '$id'";
+    $sql = "DELETE FROM school_users WHERE id = '$id'";
 
     if ($conn->query($sql)) {
-        echo json_encode(["message" => "Fine deleted"]);
+        echo json_encode(["message" => "School user deleted"]);
     } else {
         echo json_encode(["error" => $conn->error]);
     }
