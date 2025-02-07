@@ -76,7 +76,7 @@
     
                         if ($stmt->execute()) {
                             echo "<p style='color:green;'>Admin registered successfully! Redirecting to login...</p>";
-                            header("refresh:3;url=admin_login.php");
+                            header("refresh:3;url=login.php");
                             exit;
                         } else {
                             echo "<p style='color:red;'>Error: " . $stmt->error . "</p>";
@@ -132,7 +132,7 @@
             <option value="Assistant" <?= isset($_POST['role']) && $_POST['role'] == "Assistant" ? "selected" : "" ?>>Assistant</option>
         </select><br><br>
 
-        <input type="submit" value="Register Admin">
+        <input type="submit" value="Register">
     </form>
 
     <br>

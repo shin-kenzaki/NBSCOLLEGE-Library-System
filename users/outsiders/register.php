@@ -14,7 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $lastname = trim($_POST['lastname']);
     $email = trim($_POST['email']);
     $password = $_POST['password'];
-    $contact_no = ($_POST['contact_no']);
+    $contact_no = trim($_POST['contact_no']);
     $date_added = date('Y-m-d H:i:s');
     $status = 'active';
     $last_update = $date_added;
@@ -143,8 +143,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </form>
 
     <br>
+    
     <form action="login.php" method="GET">
         <button type="submit">Login</button>
     </form>
+    
+    <br>
+    
+    <form action="../select_usertype.php" method="GET">
+        <button type="submit">Select Usertype</button>
+    </form>
+
 </body>
 </html>
