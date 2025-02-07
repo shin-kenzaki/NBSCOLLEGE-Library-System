@@ -20,7 +20,7 @@
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         require '../db.php'; // Database connection
-    
+
         // Retrieve and sanitize form input
         $id = $_POST['id'];
         $firstname = trim($_POST['firstname']);
@@ -43,9 +43,9 @@
         }
 
         // Check for duplicate ID, username, or (firstname + lastname)
-        $sql_check = "SELECT id, username, firstname, lastname FROM admins 
+        $sql_check = "SELECT id, username, firstname, lastname FROM admins
                       WHERE id = ? OR username = ? OR (firstname = ? AND lastname = ?)";
-        
+
         if ($stmt_check = $conn->prepare($sql_check)) {
             $stmt_check->bind_param("isss", $id, $username, $firstname, $lastname);
             $stmt_check->execute();
@@ -68,12 +68,12 @@
                 // Proceed if no errors exist
                 if (empty($errors['id']) && empty($errors['username']) && empty($errors['password']) && empty($errors['firstname']) && empty($errors['lastname'])) {
                     // Insert the new admin into the database
-                    $sql = "INSERT INTO admins (id, firstname, middle_init, lastname, username, password, image, role, status, date_added) 
+                    $sql = "INSERT INTO admins (id, firstname, middle_init, lastname, username, password, image, role, status, date_added)
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
-    
+
                     if ($stmt = $conn->prepare($sql)) {
                         $stmt->bind_param("issssssss", $id, $firstname, $middle_init, $lastname, $username, $password, $image, $role, $status);
-    
+
                         if ($stmt->execute()) {
                             echo "<p style='color:green;'>Admin registered successfully! Redirecting to login...</p>";
                             header("refresh:3;url=admin_login.php");
@@ -81,7 +81,7 @@
                         } else {
                             echo "<p style='color:red;'>Error: " . $stmt->error . "</p>";
                         }
-    
+
                         $stmt->close();
                     } else {
                         echo "<p style='color:red;'>Error preparing query: " . $conn->error . "</p>";
@@ -136,7 +136,7 @@
     </form>
 
     <br>
-    
+
     <form action="login.php" method="GET">
         <button type="submit">Login</button>
     </form>

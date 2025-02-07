@@ -2,10 +2,11 @@
 session_start();
 
 // Check if the user is logged in
-if (!isset($_SESSION['userId'])) {
+if (!isset($_SESSION['admin_id'])) {
     header("Location: index.php");
     exit();
 }
+
 include '../admin/inc/header.php';
 ?>
 
