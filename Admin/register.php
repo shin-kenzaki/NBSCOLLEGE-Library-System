@@ -21,7 +21,7 @@
         $password = $_POST['password']; // Raw password input
         $role = $_POST['role'];
         $status = "Active"; // Automatically set to Active
-        $image = '../inc/upload/bg-login.JPG'; // Default value if no image is uploaded
+        $image = 'inc/upload/default-avatar.jpg'; // Default value if no image is uploaded
 
         // Validate password length
         if (strlen($password) < 8) {

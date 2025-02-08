@@ -49,333 +49,264 @@ $result1 = $conn->query($sql1);
                             <a class="nav-link" id="publisher-details-tab" data-bs-toggle="tab" href="#publisher-details" role="tab" aria-controls="publisher-details" aria-selected="false">Publisher Details</a>
                         </li>
                     </ul>
-
-                    <br>
+                    <BR>
 
                     <div class="tab-content" id="formTabsContent">
                         <!-- Tab 1: Book Details -->
                         <div class="tab-pane fade show active" id="book-details" role="tabpanel" aria-labelledby="book-details-tab">
                             <h4>Book Details</h4>
                             <form id="bookForm" action="../Admin/inc/add-book-process.php" method="POST" enctype="multipart/form-data">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>ID</label>
-                                            <input type="text" name="id" class="form-control" required>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Title</label>
-                                            <input type="text" name="title" class="form-control" required>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Preferred Title</label>
-                                            <input type="text" name="preferred_title" class="form-control">
-                                        </div>
-                                    </div>
+                            <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                            <label>Parallel Title</label>
-                                            <input type="text" name="parallel_title" class="form-control">
-                                        </div>
+                                        <label>ID</label>
+                                        <input type="text" name="id" class="form-control" required>
                                     </div>
                                 </div>
-                                
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Front Image</label>
-                                            <input type="file" name="front_image" class="form-control">
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Back Image</label>
-                                            <input type="file" name="back_image" class="form-control">
-                                        </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Title</label>
+                                        <input type="text" name="title" class="form-control" required>
                                     </div>
                                 </div>
+                            </div>
 
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Height (cm)</label>
-                                            <input type="number" step="0.1" name="height" class="form-control">
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Width (cm)</label>
-                                            <input type="number" step="0.1" name="width" class="form-control">
-                                        </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Preferred Title</label>
+                                        <input type="text" name="preferred_title" class="form-control">
                                     </div>
                                 </div>
-                                
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Series</label>
-                                            <input type="text" name="series" class="form-control">
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Volume</label>
-                                            <input type="text" name="volume" class="form-control">
-                                        </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Parallel Title</label>
+                                        <input type="text" name="parallel_title" class="form-control">
                                     </div>
                                 </div>
-            
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Edition</label>
-                                            <input type="text" name="edition" class="form-control">
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Copy Number</label>
-                                            <input type="text" name="copy_number" class="form-control">
-                                        </div>
-                                    </div>
-                                </div>
+                            </div>
 
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Total Pages</label>
-                                            <input type="number" name="total_pages" class="form-control">
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>ISBN</label>
-                                            <input type="text" name="ISBN" class="form-control">
-                                        </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Front Image</label>
+                                        <input type="file" name="front_image" class="form-control">
                                     </div>
                                 </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Back Image</label>
+                                        <input type="file" name="back_image" class="form-control">
+                                    </div>
+                                </div>
+                            </div>
 
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Content Type</label>
-                                            <select name="content_type" class="form-control">
-                                                <option value="text">Text</option>
-                                                <option value="audio">Audio</option>
-                                                <option value="video">Video</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Media Type</label>
-                                            <select name="media_type" class="form-control">
-                                                <option value="print">Print</option>
-                                                <option value="digital">Digital</option>
-                                            </select>
-                                        </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Content Type</label>
+                                        <select name="content_type" class="form-control">
+                                            <option value="text">Text</option>
+                                            <option value="audio">Audio</option>
+                                            <option value="video">Video</option>
+                                        </select>
                                     </div>
                                 </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Media Type</label>
+                                        <select name="media_type" class="form-control">
+                                            <option value="print">Print</option>
+                                            <option value="digital">Digital</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
 
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Carrier Type</label>
-                                            <select name="carrier_type" class="form-control">
-                                                <option value="volume">Volume</option>
-                                                <option value="disk">Disk</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Call Number</label>
-                                            <input type="text" name="call_number" class="form-control">
-                                        </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Carrier Type</label>
+                                        <select name="carrier_type" class="form-control">
+                                            <option value="volume">Volume</option>
+                                            <option value="disk">Disk</option>
+                                        </select>
                                     </div>
                                 </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Call Number</label>
+                                        <input type="text" name="call_number" class="form-control">
+                                    </div>
+                                </div>
+                            </div>
 
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>URL</label>
-                                            <input type="text" name="URL" class="form-control">
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Language</label>
-                                            <select name="language" class="form-control">
-                                                <option value="English">English</option>
-                                                <option value="Spanish">Spanish</option>
-                                            </select>
-                                        </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>URL</label>
+                                        <input type="text" name="URL" class="form-control">
                                     </div>
                                 </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Language</label>
+                                        <select name="language" class="form-control">
+                                            <option value="English">English</option>
+                                            <option value="Spanish">Spanish</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
 
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Shelf Location</label>
-                                            <select name="shelf_location" class="form-control">
-                                                <option value="A1">A1</option>
-                                                <option value="B2">B2</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Entered By</label>
-                                            <input type="text" name="entered_by" class="form-control" value="<?php echo $_SESSION['admin_id']; ?>" readonly>
-                                        </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Shelf Location</label>
+                                        <select name="shelf_location" class="form-control">
+                                            <option value="A1">A1</option>
+                                            <option value="B2">B2</option>
+                                        </select>
                                     </div>
                                 </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Entered By</label>
+                                        <input type="text" name="entered_by" class="form-control" value="<?php echo $_SESSION['admin_id']; ?>" readonly>
+                                    </div>
+                                </div>
+                            </div>
 
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Date Added</label>
-                                            <input type="text" name="date_added" class="form-control" value="<?php echo date('Y-m-d'); ?>" readonly>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Status</label>
-                                            <select name="status" class="form-control">
-                                                <option value="inshelf">In Shelf</option>
-                                                <option value="borrowed">Borrowed</option>
-                                                <option value="lost">Lost</option>
-                                            </select>
-                                        </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Date Added</label>
+                                        <input type="text" name="date_added" class="form-control" value="<?php echo date('Y-m-d'); ?>" readonly>
                                     </div>
                                 </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Status</label>
+                                        <select name="status" class="form-control">
+                                            <option value="inshelf">In Shelf</option>
+                                            <option value="borrowed">Borrowed</option>
+                                            <option value="lost">Lost</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
 
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Last Update</label>
-                                            <input type="text" name="last_update" class="form-control" value="<?php echo date('Y-m-d'); ?>" readonly>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Copies</label>
-                                            <input type="number" name="copies" class="form-control" value="1" min="1" required>
-                                        </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Last Update</label>
+                                        <input type="text" name="last_update" class="form-control" value="<?php echo date('Y-m-d'); ?>" readonly>
                                     </div>
                                 </div>
-
-                                <!-- Submit Button -->
-                                <div class="form-group mt-3">
-                                    <button type="submit" class="btn btn-success" id="addBookBtn">Add Book</button>
-                                </div>
-                            </form>
-                        </div>
+                            </div>
+                                          <!-- Submit Button -->
+                    <div class="form-group mt-3">
+                        <button type="submit" class="btn btn-success" id="addBookBtn">Add Book</button>
                     </div>
+                        </div>
+
+
                 </form>
-                
-                    <!-- Tab 2: Contributors -->
-                    <div class="tab-pane fade" id="contributors" role="tabpanel" aria-labelledby="contributors-tab">
-                        <h4>Writers</h4>
 
-                        <div class="card shadow mb-4">
-                            <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                                <h6 class="m-0 font-weight-bold text-primary">Writers List</h6>
-                                <!-- Add Writer Button Inside Header -->
-                                <button class="btn btn-primary" data-toggle="modal" data-target="#addWriterModal">Add Writer</button>
+                      <!-- Tab 2: Contributors -->
+                        <div class="tab-pane fade" id="contributors" role="tabpanel" aria-labelledby="contributors-tab">
+                            <h4>Writers</h4>
+
+                            <div class="card shadow mb-4">
+                                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                                    <h6 class="m-0 font-weight-bold text-primary">Writers List</h6>
+                                    <!-- Add Writer Button Inside Header -->
+                                    <button class="btn btn-primary" data-toggle="modal" data-target="#addWriterModal">Add Writer</button>
+                                </div>
+
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                                            <thead>
+                                                <tr>
+                                                    <th>ID</th>
+                                                    <th>First Name</th>
+                                                    <th>Middle Initial</th>
+                                                    <th>Last Name</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php
+
+                                                    // Loop through the rows and display them in the table
+                                                    while ($row = $result->fetch_assoc()) {
+                                                        echo "<tr>
+                                                                <td>" . $row['id'] . "</td>
+                                                                <td>" . $row['firstname'] . "</td>
+                                                                <td>" . $row['middle_init'] . "</td>
+                                                                <td>" . $row['lastname'] . "</td>
+                                                            </tr>";
+                                                    }
+
+                                                ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
                             </div>
+                        </div>
+                             <!-- END Tab 2: Contributors -->
 
+
+                        <!-- Tab 3: Publisher Details -->
+                        <div class="tab-pane fade" id="publisher-details" role="tabpanel" aria-labelledby="publisher-details-tab">
+                            <h4>Publisher Details</h4>
+
+
+                            <div class="card shadow mb-4">
+                                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                                    <h6 class="m-0 font-weight-bold text-primary">Publisher Details</h6>
+                                    <!-- Add Writer Button Inside Header -->
+                                    <button class="btn btn-primary" data-toggle="modal" data-target="#addPublisherModal">Add Publisher</button>
+                                </div>
                             <div class="card-body">
-                                <div class="table-responsive">
-                                    <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
-                                        <thead>
-                                            <tr>
-                                                <th>ID</th>
-                                                <th>First Name</th>
-                                                <th>Middle Initial</th>
-                                                <th>Last Name</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <?php
-                                            if ($result->num_rows > 0) {
-                                                while ($row = $result->fetch_assoc()) {
-                                                    echo "<tr>
-                                                            <td>" . htmlspecialchars($row['id']) . "</td>
-                                                            <td>" . htmlspecialchars($row['firstname']) . "</td>
-                                                            <td>" . htmlspecialchars($row['middle_init']) . "</td>
-                                                            <td>" . htmlspecialchars($row['lastname']) . "</td>
-                                                        </tr>";
-                                                }
-                                            } else {
-                                                echo "<tr><td colspan='4'>No writers found</td></tr>";
-                                            }
-                                            ?>
-                                        </tbody>
-                                    </table>
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered" id="dataTable1" width="100%" cellspacing="0">
+                                            <thead>
+                                                <tr>
+                                                    <th>ID</th>
+                                                    <th>Company</th>
+                                                    <th>Place</th>
+
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php
+
+                                                    // Loop through the rows and display them in the table
+                                                    while ($row1 = $result1->fetch_assoc()) {
+                                                        echo "<tr>
+                                                                <td>" . $row1['id'] . "</td>
+                                                                <td>" . $row1['company'] . "</td>
+                                                                <td>" . $row1['place'] . "</td>
+
+                                                            </tr>";
+                                                    }
+
+                                                ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+
+
+
                     </div>
-                    <!-- END Tab 2: Contributors -->
-
-
-                    <!-- Tab 3: Publisher Details -->
-                    <div class="tab-pane fade" id="publisher-details" role="tabpanel" aria-labelledby="publisher-details-tab">
-                        <h4>Publisher Details</h4>
-
-
-                        <div class="card shadow mb-4">
-                            <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                                <h6 class="m-0 font-weight-bold text-primary">Publisher Details</h6>
-                                <!-- Add Writer Button Inside Header -->
-                                <button class="btn btn-primary" data-toggle="modal" data-target="#addPublisherModal">Add Publisher</button>
-                            </div>
-                        <div class="card-body">
-                                <div class="table-responsive">
-                                    <table class="table table-bordered" id="dataTable1" width="100%" cellspacing="0">
-                                        <thead>
-                                            <tr>
-                                                <th>ID</th>
-                                                <th>Company</th>
-                                                <th>Place</th>
-
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <?php
-                                            // Check if the query returned any rows
-                                            if ($result1->num_rows > 0) {
-                                                // Loop through the rows and display them in the table
-                                                while ($row1 = $result1->fetch_assoc()) {
-                                                    echo "<tr>
-                                                            <td>" . $row1['id'] . "</td>
-                                                            <td>" . $row1['company'] . "</td>
-                                                            <td>" . $row1['place'] . "</td>
-
-                                                        </tr>";
-                                                }
-                                            } else {
-                                                // If no data is found, display a message
-                                                echo "<tr><td colspan='4'>No writers found</td></tr>";
-                                            }
-                                            ?>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
+
     </div>
 </div>
 
