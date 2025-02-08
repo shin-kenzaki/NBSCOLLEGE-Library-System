@@ -6,69 +6,71 @@
     }
     require '../db.php'; // Database connection
 
-    // Initialize error message
-    $error_message = '';
+   // Initialize error message
+$error_message = '';
 
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        // Retrieve and sanitize input
-        $username = $_POST['username'];
-        $password = $_POST['password'];
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Retrieve and sanitize input
+    $username = $_POST['username'];
+    $password = $_POST['password'];
 
-        // Query to check if the user exists
-        $sql = "SELECT * FROM admins WHERE username = ?";
-        if ($stmt = $conn->prepare($sql)) {
-            $stmt->bind_param("s", $username);
-            $stmt->execute();
-            $result = $stmt->get_result();
+    // Query to check if the user exists
+    $sql = "SELECT * FROM admins WHERE username = ?";
+    if ($stmt = $conn->prepare($sql)) {
+        $stmt->bind_param("s", $username);
+        $stmt->execute();
+        $result = $stmt->get_result();
 
-            // If the username exists, check the password
-            if ($result->num_rows > 0) {
-                $admin = $result->fetch_assoc();
-                // Compare plain text passwords directly
-                if ($password === $admin['password']) {
-                    // Login successful, store session data
-                    $_SESSION['admin_id'] = $admin['id'];
-                    $_SESSION['admin_username'] = $admin['username'];
-                    $_SESSION['admin_firstname'] = $admin['firstname'];
-                    $_SESSION['admin_lastname'] = $admin['lastname'];
-                    // Store admin image in session (Convert binary data to base64)
-                    $_SESSION['admin_image'] = base64_encode($admin['image']);
-                    $_SESSION['role'] = strtolower($admin['role']); // Convert role to lowercase for consistency
-                    $_SESSION['admin_date_added'] = $admin['date_added'];
-                    $_SESSION['admin_status'] = $admin['status'];
-                    $_SESSION['admin_last_update'] = $admin['last_update'];
+        // If the username exists, check the password
+        if ($result->num_rows > 0) {
+            $admin = $result->fetch_assoc();
+            // Compare plain text passwords directly (Consider using password_hash for security)
+            if ($password === $admin['password']) {
+                // Login successful, store session data
+                $_SESSION['admin_id'] = $admin['id'];
+                $_SESSION['admin_username'] = $admin['username'];
+                $_SESSION['admin_firstname'] = $admin['firstname'];
+                $_SESSION['admin_lastname'] = $admin['lastname'];
 
-                    // Redirect based on role
-                    switch ($_SESSION['role']) {
-                        case 'admin':
-                            header("location: dashboard.php");
-                            break;
-                        case 'librarian':
-                            echo "<p style='color: green;'>Logging In... Redirecting to Librarian Page...</p>";
-                            header("refresh:3;url=librarian/librarian_dashboard.php");
-                            break;
-                        case 'assistant':
-                            echo "<p style='color: green;'>Logging In... Redirecting to Assistant Page...</p>";
-                            header("refresh:3;url=assistant/assistant_dashboard.php");
-                            break;
-                        default:
-                            $error_message = "Invalid role assigned.";
-                    }
-                    exit;
-                } else {
-                    $error_message = "Invalid password.";
+                // Store admin image in session (use default if empty)
+                $_SESSION['admin_image'] = !empty($admin['image']) ? $admin['image'] : 'upload/default-profile.png';
+
+                $_SESSION['role'] = strtolower($admin['role']); // Convert role to lowercase for consistency
+                $_SESSION['admin_date_added'] = $admin['date_added'];
+                $_SESSION['admin_status'] = $admin['status'];
+                $_SESSION['admin_last_update'] = $admin['last_update'];
+
+                // Redirect based on role
+                switch ($_SESSION['role']) {
+                    case 'admin':
+                        header("location: dashboard.php");
+                        break;
+                    case 'librarian':
+                        echo "<p style='color: green;'>Logging In... Redirecting to Librarian Page...</p>";
+                        header("refresh:3;url=librarian/librarian_dashboard.php");
+                        break;
+                    case 'assistant':
+                        echo "<p style='color: green;'>Logging In... Redirecting to Assistant Page...</p>";
+                        header("refresh:3;url=assistant/assistant_dashboard.php");
+                        break;
+                    default:
+                        $error_message = "Invalid role assigned.";
                 }
+                exit;
             } else {
-                $error_message = "No such admin found.";
+                $error_message = "Invalid password.";
             }
-
-            $stmt->close();
         } else {
-            $error_message = "Error preparing query: " . $conn->error;
+            $error_message = "No such admin found.";
         }
 
-        $conn->close();
+        $stmt->close();
+    } else {
+        $error_message = "Error preparing query: " . $conn->error;
     }
+
+    $conn->close();
+}
     ?>
 
 <!DOCTYPE html>
