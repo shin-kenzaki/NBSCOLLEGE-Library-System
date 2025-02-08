@@ -233,7 +233,7 @@ $result1 = $conn->query($sql1);
                                             <tbody>
                                                 <?php
                                                 // Check if the query returned any rows
-
+                                                if ($result->num_rows > 0) {
                                                     // Loop through the rows and display them in the table
                                                     while ($row = $result->fetch_assoc()) {
                                                         echo "<tr>
@@ -243,7 +243,10 @@ $result1 = $conn->query($sql1);
                                                                 <td>" . $row['lastname'] . "</td>
                                                             </tr>";
                                                     }
-
+                                                } else {
+                                                    // If no data is found, display a message
+                                                    echo "<tr><td colspan='4'>No writers found</td></tr>";
+                                                }
                                                 ?>
                                             </tbody>
                                         </table>
@@ -279,7 +282,7 @@ $result1 = $conn->query($sql1);
                                             <tbody>
                                                 <?php
                                                 // Check if the query returned any rows
-
+                                                if ($result1->num_rows > 0) {
                                                     // Loop through the rows and display them in the table
                                                     while ($row1 = $result1->fetch_assoc()) {
                                                         echo "<tr>
@@ -289,7 +292,10 @@ $result1 = $conn->query($sql1);
 
                                                             </tr>";
                                                     }
-
+                                                } else {
+                                                    // If no data is found, display a message
+                                                    echo "<tr><td colspan='4'>No writers found</td></tr>";
+                                                }
                                                 ?>
                                             </tbody>
                                         </table>

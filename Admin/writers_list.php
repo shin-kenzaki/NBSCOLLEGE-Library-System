@@ -41,7 +41,7 @@ $result = $conn->query($sql);
                     <tbody>
                     <?php
                             // Check if the query returned any rows
-
+                            if ($result->num_rows > 0) {
                                 // Loop through the rows and display them in the table
                                 while ($row = $result->fetch_assoc()) {
                                     echo "<tr>
@@ -51,7 +51,10 @@ $result = $conn->query($sql);
                                             <td>" . $row['lastname'] . "</td>
                                           </tr>";
                                 }
-
+                            } else {
+                                // If no data is found, display a message
+                                echo "<tr><td colspan='4'>No writers found</td></tr>";
+                            }
                             ?>
 
                                 </tbody>
