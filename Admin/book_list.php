@@ -28,6 +28,7 @@ include '../db.php'; // Database connection
                         <thead>
                             <tr>
                                 <th>ID</th>
+                                <th>Title Proper</th>
                                 <th>Title</th>
                                 <th>Preferred Title</th>
                                 <th>Parallel Title</th>
@@ -35,22 +36,23 @@ include '../db.php'; // Database connection
                                 <th>Back Image</th>
                                 <th>Height</th>
                                 <th>Width</th>
-                                <th>Series</th>
-                                <th>Volume</th>
-                                <th>Edition</th>
-                                <th>Copy Number</th>
                                 <th>Total Pages</th>
-                                <th>ISBN</th>
-                                <th>Content Type</th>
-                                <th>Media Type</th>
-                                <th>Carrier Type</th>
-                                <th>URL</th>
+                                <th>Call Number</th>
+                                <th>Copy Number</th>
                                 <th>Language</th>
                                 <th>Shelf Location</th>
                                 <th>Entered By</th>
                                 <th>Date Added</th>
                                 <th>Status</th>
                                 <th>Last Update</th>
+                                <th>Series</th>
+                                <th>Volume</th>
+                                <th>Edition</th>
+                                <th>Content Type</th>
+                                <th>Media Type</th>
+                                <th>Carrier Type</th>
+                                <th>ISBN</th>
+                                <th>URL</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -59,59 +61,57 @@ include '../db.php'; // Database connection
                             $query = "SELECT * FROM books ORDER BY id DESC";
                             $result = $conn->query($query);
 
-                            if ($result->num_rows > 0) {
                                 while ($row = $result->fetch_assoc()) {
                                     echo "<tr>
                                         <td>{$row['id']}</td>
+                                        <td>{$row['title_proper']}</td>
                                         <td>{$row['title']}</td>
                                         <td>{$row['preferred_title']}</td>
                                         <td>{$row['parallel_title']}</td>
                                         <td>";
                                     if (!empty($row['front_image'])) {
-                                        echo "<img src='../uploads/books/{$row['front_image']}' alt='Front Image' width='50'>";
+                                        echo "<img src='../inc/book-image/{$row['front_image']}' alt='Front Image' width='50'>";
                                     } else {
                                         echo "No Image";
                                     }
                                     echo "</td>
                                         <td>";
                                     if (!empty($row['back_image'])) {
-                                        echo "<img src='../uploads/books/{$row['back_image']}' alt='Back Image' width='50'>";
+                                        echo "<img src='../inc/book-image/{$row['back_image']}' alt='Back Image' width='50'>";
                                     } else {
                                         echo "No Image";
                                     }
                                     echo "</td>
                                         <td>{$row['height']}</td>
                                         <td>{$row['width']}</td>
-                                        <td>{$row['series']}</td>
-                                        <td>{$row['volume']}</td>
-                                        <td>{$row['edition']}</td>
-                                        <td>{$row['copy_number']}</td>
                                         <td>{$row['total_pages']}</td>
-                                        <td>{$row['ISBN']}</td>
-                                        <td>{$row['content_type']}</td>
-                                        <td>{$row['media_type']}</td>
-                                        <td>{$row['carrier_type']}</td>
-                                        <td>";
-                                    echo !empty($row['URL']) ? "<a href='{$row['URL']}' target='_blank'>View</a>" : "N/A";
-                                    echo "</td>
+                                        <td>{$row['call_number']}</td>
+                                        <td>{$row['copy_number']}</td>
                                         <td>{$row['language']}</td>
                                         <td>{$row['shelf_location']}</td>
                                         <td>{$row['entered_by']}</td>
                                         <td>{$row['date_added']}</td>
                                         <td>{$row['status']}</td>
                                         <td>{$row['last_update']}</td>
+                                        <td>{$row['series']}</td>
+                                        <td>{$row['volume']}</td>
+                                        <td>{$row['edition']}</td>
+                                        <td>{$row['content_type']}</td>
+                                        <td>{$row['media_type']}</td>
+                                        <td>{$row['carrier_type']}</td>
+                                        <td>{$row['ISBN']}</td>
+                                        <td>";
+                                    echo !empty($row['URL']) ? "<a href='{$row['URL']}' target='_blank'>View</a>" : "N/A";
+                                    echo "</td>
                                     </tr>";
                                 }
-                            } else {
-                                echo "<tr><td colspan='24' class='text-center'>No books found</td></tr>";
-                            }
+
                             ?>
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
-
     </div>
     <!-- /.container-fluid -->
 </div>
