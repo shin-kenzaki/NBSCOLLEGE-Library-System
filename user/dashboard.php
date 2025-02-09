@@ -1,13 +1,16 @@
 <?php
 session_start();
 
+
+
 // Check if the user is logged in
-if (!isset($_SESSION['admin_id'])) {
-    header("Location: index.php");
-    exit();
+if (!isset($_SESSION['schooluser_id']) && !isset($_SESSION['outsider_id'])) {
+    header("Location: ../index.php");
+
+    exit;
 }
 
-include '../admin/inc/header.php';
+include '../user/inc/header.php';
 ?>
             <!-- Main Content -->
             <div id="content" class="d-flex flex-column min-vh-100">

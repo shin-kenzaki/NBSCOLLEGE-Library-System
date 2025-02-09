@@ -55,27 +55,39 @@
             </div>
 
             <li class="nav-item">
-                <a class="nav-link" href="add-book.php">
+                <a class="nav-link" href="">
+                    <i class="fas fa-fw fa-chart-area"></i>
+                    <span>Add Book</span></a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" href="">
+                    <i class="fas fa-fw fa-chart-area"></i>
+                    <span>Add Book</span></a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" href="">
                     <i class="fas fa-fw fa-chart-area"></i>
                     <span>Add Book</span></a>
             </li>
 
                  <!-- Nav Item - Pages Collapse Menu -->
-                 <li class="nav-item">
+                <li class="nav-item">
                 <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseTwo"
                     aria-expanded="true" aria-controls="collapseTwo">
                     <i class="fas fa-fw fa-book"></i>
                     <span>book Management</span>
                 </a>
                 <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
-                    <div class="bg-white py-2 collapse-inner rounded">
-                        <h6 class="collapse-header">Book Module:</h6>
-                        <a class="collapse-item" href="book_list.php">Book List</a>
-                        <a class="collapse-item" href="writers_list.php">Writers List</a>
-                        <a class="collapse-item" href="publisher_list.php">Publihser List</a>
+                        <div class="bg-white py-2 collapse-inner rounded">
+                            <h6 class="collapse-header">Book Module:</h6>
+                            <a class="collapse-item" href="#">Book List</a>
+                            <a class="collapse-item" href="#">Writers List</a>
+                            <a class="collapse-item" href="#">Publihser List</a>
+                        </div>
                     </div>
-                </div>
-            </li>
+                </li>
 
             <li class="nav-item">
                     <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseUsers"
@@ -86,9 +98,9 @@
                     <div id="collapseUsers" class="collapse" aria-labelledby="headingUsers" data-parent="#accordionSidebar">
                         <div class="bg-white py-2 collapse-inner rounded">
                             <h6 class="collapse-header">Manage Users:</h6>
-                            <a class="collapse-item" href="admin_users.php">Admin Users</a>
-                            <a class="collapse-item" href="school_users.php">School Users</a>
-                            <a class="collapse-item" href="outside_users.php">Outside Users</a>
+                            <a class="collapse-item" href="#">Admin Users</a>
+                            <a class="collapse-item" href="#">School Users</a>
+                            <a class="collapse-item" href="#">Outside Users</a>
 
                         </div>
                     </div>
@@ -352,8 +364,28 @@
                         <li class="nav-item dropdown no-arrow">
                         <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
                                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <span class="mr-2 d-none d-lg-inline text-gray-600 small"><?php echo $_SESSION['admin_firstname'] . ' ' . $_SESSION['admin_lastname']; ?></span>
-                                <img class="img-profile rounded-circle" src="<?php echo $_SESSION['admin_image']?>" alt="Profile Image">
+                                <span class="mr-2 d-none d-lg-inline text-gray-600 small">
+                                    <?php
+                                        if (isset($_SESSION['schooluser_firstname']) && isset($_SESSION['schooluser_lastname'])) {
+                                            echo $_SESSION['schooluser_firstname'] . ' ' . $_SESSION['schooluser_lastname'];
+                                        } elseif (isset($_SESSION['outsider_firstname']) && isset($_SESSION['outsider_lastname'])) {
+                                            echo $_SESSION['outsider_firstname'] . ' ' . $_SESSION['outsider_lastname'];
+                                        } else {
+                                            echo 'Guest';
+                                        }
+                                    ?>
+                                </span>
+                                <img class="img-profile rounded-circle"
+                                    src="<?php
+                                        if (isset($_SESSION['schooluser_image'])) {
+                                            echo $_SESSION['schooluser_image'];
+                                        } elseif (isset($_SESSION['outsider_image'])) {
+                                            echo $_SESSION['outsider_image'];
+                                        } else {
+                                            echo 'default-profile.png'; // Gamitin kung walang profile image
+                                        }
+                                    ?>"
+                                    alt="Profile Image">
 
                                 </a>
                                 <!-- Dropdown - User Information -->
