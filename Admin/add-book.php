@@ -345,5 +345,24 @@ document.addEventListener("DOMContentLoaded", function() {
             tabTrigger.show();
         });
     });
+
+    // Handle form submission
+    document.getElementById('bookForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        var form = this;
+        var formData = new FormData(form);
+
+        fetch(form.action, {
+            method: form.method,
+            body: formData
+        }).then(response => response.text())
+          .then(data => {
+              alert('Book added successfully!');
+              form.reset();
+          }).catch(error => {
+              alert('An error occurred. Please try again.');
+          });
+    });
 });
 </script>

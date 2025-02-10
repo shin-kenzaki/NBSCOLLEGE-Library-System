@@ -23,8 +23,9 @@ include '../db.php'; // Database connection
                     <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
+                                <th><input type="checkbox" id="selectAll"></th>
                                 <th>ID</th>
-                                <th>Title Proper</th>
+                                <th>Accession</th>
                                 <th>Title</th>
                                 <th>Preferred Title</th>
                                 <th>Parallel Title</th>
@@ -57,51 +58,51 @@ include '../db.php'; // Database connection
                             $query = "SELECT * FROM books ORDER BY id DESC";
                             $result = $conn->query($query);
 
-                                while ($row = $result->fetch_assoc()) {
-                                    echo "<tr>
-                                        <td>{$row['id']}</td>
-                                        <td>{$row['title_proper']}</td>
-                                        <td>{$row['title']}</td>
-                                        <td>{$row['preferred_title']}</td>
-                                        <td>{$row['parallel_title']}</td>
-                                        <td>";
-                                    if (!empty($row['front_image'])) {
-                                        echo "<img src='../inc/book-image/{$row['front_image']}' alt='Front Image' width='50'>";
-                                    } else {
-                                        echo "No Image";
-                                    }
-                                    echo "</td>
-                                        <td>";
-                                    if (!empty($row['back_image'])) {
-                                        echo "<img src='../inc/book-image/{$row['back_image']}' alt='Back Image' width='50'>";
-                                    } else {
-                                        echo "No Image";
-                                    }
-                                    echo "</td>
-                                        <td>{$row['height']}</td>
-                                        <td>{$row['width']}</td>
-                                        <td>{$row['total_pages']}</td>
-                                        <td>{$row['call_number']}</td>
-                                        <td>{$row['copy_number']}</td>
-                                        <td>{$row['language']}</td>
-                                        <td>{$row['shelf_location']}</td>
-                                        <td>{$row['entered_by']}</td>
-                                        <td>{$row['date_added']}</td>
-                                        <td>{$row['status']}</td>
-                                        <td>{$row['last_update']}</td>
-                                        <td>{$row['series']}</td>
-                                        <td>{$row['volume']}</td>
-                                        <td>{$row['edition']}</td>
-                                        <td>{$row['content_type']}</td>
-                                        <td>{$row['media_type']}</td>
-                                        <td>{$row['carrier_type']}</td>
-                                        <td>{$row['ISBN']}</td>
-                                        <td>";
-                                    echo !empty($row['URL']) ? "<a href='{$row['URL']}' target='_blank'>View</a>" : "N/A";
-                                    echo "</td>
-                                    </tr>";
+                            while ($row = $result->fetch_assoc()) {
+                                echo "<tr>
+                                    <td><input type='checkbox' class='selectRow'></td>
+                                    <td>{$row['id']}</td>
+                                    <td>{$row['accession']}</td>
+                                    <td>{$row['title']}</td>
+                                    <td>{$row['preferred_title']}</td>
+                                    <td>{$row['parallel_title']}</td>
+                                    <td>";
+                                if (!empty($row['front_image'])) {
+                                    echo "<img src='../inc/book-image/{$row['front_image']}' alt='Front Image' width='50'>";
+                                } else {
+                                    echo "No Image";
                                 }
-
+                                echo "</td>
+                                    <td>";
+                                if (!empty($row['back_image'])) {
+                                    echo "<img src='../inc/book-image/{$row['back_image']}' alt='Back Image' width='50'>";
+                                } else {
+                                    echo "No Image";
+                                }
+                                echo "</td>
+                                    <td>{$row['height']}</td>
+                                    <td>{$row['width']}</td>
+                                    <td>{$row['total_pages']}</td>
+                                    <td>{$row['call_number']}</td>
+                                    <td>{$row['copy_number']}</td>
+                                    <td>{$row['language']}</td>
+                                    <td>{$row['shelf_location']}</td>
+                                    <td>{$row['entered_by']}</td>
+                                    <td>{$row['date_added']}</td>
+                                    <td>{$row['status']}</td>
+                                    <td>{$row['last_update']}</td>
+                                    <td>{$row['series']}</td>
+                                    <td>{$row['volume']}</td>
+                                    <td>{$row['edition']}</td>
+                                    <td>{$row['content_type']}</td>
+                                    <td>{$row['media_type']}</td>
+                                    <td>{$row['carrier_type']}</td>
+                                    <td>{$row['ISBN']}</td>
+                                    <td>";
+                                echo !empty($row['URL']) ? "<a href='{$row['URL']}' target='_blank'>View</a>" : "N/A";
+                                echo "</td>
+                                </tr>";
+                            }
                             ?>
                         </tbody>
                     </table>
@@ -139,10 +140,21 @@ $(document).ready(function () {
         .attr("placeholder", "Search...");
 
     $('#dataTable_filter input').wrap('<div class="input-group"></div>');
-    $('#dataTable_filter').append('<div class="input-group-append"><span class="input-group-text"><i class="fa fa-search"></i></span></div>');
-    $('#dataTable_filter').append('<label class="ml-2 font-weight-bold">Search</label>');
 
     $('.dataTables_paginate .paginate_button')
         .addClass('btn btn-sm btn-outline-primary mx-1');
+
+    // Select/Deselect all checkboxes
+    $('#selectAll').click(function() {
+        $('.selectRow').prop('checked', this.checked);
+    });
+
+    $('.selectRow').click(function() {
+        if ($('.selectRow:checked').length == $('.selectRow').length) {
+            $('#selectAll').prop('checked', true);
+        } else {
+            $('#selectAll').prop('checked', false);
+        }
+    });
 });
 </script>

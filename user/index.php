@@ -11,57 +11,53 @@ $error_message = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Retrieve and sanitize input
-    $username = $_POST['username'];
+    $user_id = $_POST['user_id'];
     $password = $_POST['password'];
 
     // Query to check if the user exists
-    $sql = "SELECT * FROM admins WHERE username = ?";
+    $sql = "SELECT * FROM users WHERE user_id = ?";
     if ($stmt = $conn->prepare($sql)) {
-        $stmt->bind_param("s", $username);
+        $stmt->bind_param("s", $user_id);
         $stmt->execute();
         $result = $stmt->get_result();
 
-        // If the username exists, check the password
+        // If the user_id exists, check the password
         if ($result->num_rows > 0) {
-            $admin = $result->fetch_assoc();
+            $user = $result->fetch_assoc();
             // Compare plain text passwords directly (Consider using password_hash for security)
-            if ($password === $admin['password']) {
+            if ($password === $user['password']) {
                 // Login successful, store session data
-                $_SESSION['admin_id'] = $admin['id'];
-                $_SESSION['admin_username'] = $admin['username'];
-                $_SESSION['admin_firstname'] = $admin['firstname'];
-                $_SESSION['admin_lastname'] = $admin['lastname'];
+                $_SESSION['user_id'] = $user['id'];
+                $_SESSION['user_id'] = $user['user_id'];
+                $_SESSION['user_firstname'] = $user['firstname'];
+                $_SESSION['user_lastname'] = $user['lastname'];
 
-                // Store admin image in session (use default if empty)
-                $_SESSION['admin_image'] = !empty($admin['image']) ? $admin['image'] : 'upload/default-profile.png';
+                // Store user image in session (use default if empty)
+                $_SESSION['user_image'] = !empty($user['image']) ? $user['image'] : 'upload/default-profile.png';
 
-                $_SESSION['role'] = strtolower($admin['role']); // Convert role to lowercase for consistency
-                $_SESSION['admin_date_added'] = $admin['date_added'];
-                $_SESSION['admin_status'] = $admin['status'];
-                $_SESSION['admin_last_update'] = $admin['last_update'];
+                $_SESSION['usertype'] = strtolower($user['usertype']); // Convert role to lowercase for consistency
+                $_SESSION['user_date_added'] = $user['date_added'];
+                $_SESSION['user_status'] = $user['status'];
+                $_SESSION['user_last_update'] = $user['last_update'];
 
-                // Redirect based on role
-                switch ($_SESSION['role']) {
-                    case 'admin':
+                // Redirect based on usertype
+                switch ($_SESSION['usertype']) {
+                    case 'student||faculty':
                         header("location: dashboard.php");
                         break;
-                    case 'librarian':
+                    case 'guest':
                         echo "<p style='color: green;'>Logging In... Redirecting to Librarian Page...</p>";
-                        header("refresh:3;url=librarian/librarian_dashboard.php");
-                        break;
-                    case 'assistant':
-                        echo "<p style='color: green;'>Logging In... Redirecting to Assistant Page...</p>";
-                        header("refresh:3;url=assistant/assistant_dashboard.php");
+                        header("refresh:3;url=guest.php");
                         break;
                     default:
-                        $error_message = "Invalid role assigned.";
+                        $error_message = "Invalid usertype assigned.";
                 }
                 exit;
             } else {
                 $error_message = "Invalid password.";
             }
         } else {
-            $error_message = "No such admin found.";
+            $error_message = "No such user found.";
         }
 
         $stmt->close();
@@ -127,8 +123,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <form class="user" method="POST" action="">
                                         <div class="form-group">
                                             <input type="text" class="form-control form-control-user"
-                                            placeholder="Username"
-                                            id="username" name="username" required
+                                            placeholder="user_id"
+                                            id="user_id" name="user_id" required
                                                 >
                                         </div>
                                         <div class="form-group">
