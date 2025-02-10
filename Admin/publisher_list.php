@@ -9,107 +9,199 @@ if (!isset($_SESSION['admin_id'])) {
 
 include '../admin/inc/header.php';
 include '../db.php';
-// Fetch writers data
-$sql = "SELECT id, company, place  FROM publishers";
+
+// Handle form submission to save publishers
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $companies = $_POST['company'];
+    $places = $_POST['place'];
+
+    $success = true;
+
+    for ($i = 0; $i < count($companies); $i++) {
+        $company = $conn->real_escape_string($companies[$i]);
+        $place = $conn->real_escape_string($places[$i]);
+
+        // Check if the company and place combination already exists
+        $checkSql = "SELECT * FROM publishers WHERE company = '$company' AND place = '$place'";
+        $checkResult = $conn->query($checkSql);
+
+        if ($checkResult->num_rows > 0) {
+            $success = false;
+            echo "<script>alert('The combination of company and place already exists: $company, $place');</script>";
+            break;
+        }
+
+        $sql = "INSERT INTO publishers (company, place) VALUES ('$company', '$place')";
+        if (!$conn->query($sql)) {
+            $success = false;
+            break;
+        }
+    }
+
+    if ($success) {
+        echo "<script>alert('Publishers saved successfully'); window.location.href='publisher_list.php';</script>";
+    } else {
+        echo "<script>alert('Failed to save publishers');</script>";
+    }
+}
+
+// Get the search query if it exists
+$searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
+
+// Fetch publishers data
+$sql = "SELECT id, company, place FROM publishers";
+if (!empty($searchQuery)) {
+    $sql .= " WHERE company LIKE '%$searchQuery%' OR place LIKE '%$searchQuery%'";
+}
 $result = $conn->query($sql);
-
-
 ?>
 
-
-            <!-- Main Content -->
-            <div id="content" class="d-flex flex-column min-vh-100">
-                <div class="container-fluid">
-
-                    <!-- Page Heading -->
-                    <h1 class="h3 mb-4 text-gray-800">Publishers List</h1>
-
-                    <div class="card shadow mb-4">
-        <div class="card-header py-3">
-            <h6 class="m-0 font-weight-bold text-primary">Publishers List</h6>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Company</th>
-                        <th>Place</th>
-                    </tr>
-                </thead>
-
-                    <tbody>
-                    <?php
-
+<!-- Main Content -->
+<div id="content" class="d-flex flex-column min-vh-100">
+    <div class="container-fluid">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">Publishers List</h6>
+                <button class="btn btn-primary" data-toggle="modal" data-target="#addPublisherModal">Add Publisher</button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <!-- Search Form -->
+                    <form method="GET" action="publisher_list.php" id="searchForm">
+                        <div class="input-group mb-3">
+                            <input type="text" name="search" class="form-control" placeholder="Search..." value="<?php echo htmlspecialchars($searchQuery); ?>">
+                            <div class="input-group-append">
+                                <button class="btn btn-primary" type="submit">Search</button>
+                            </div>
+                        </div>
+                    </form>
+                    <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Company</th>
+                                <th>Place</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php
+                            // Check if the query returned any rows
                             if ($result->num_rows > 0) {
-
-                                    while ($row = $result->fetch_assoc()) {
+                                // Loop through the rows and display them in the table
+                                while ($row = $result->fetch_assoc()) {
                                     echo "<tr>
                                             <td>" . $row['id'] . "</td>
                                             <td>" . $row['company'] . "</td>
                                             <td>" . $row['place'] . "</td>
-                                           </tr>";
-                                     }
-                                     }
-                                     else {
-
-                                        echo "<tr><td colspan='4'>No writers found</td></tr>";
-                                   }
-                    ?>
-
-
-
-                    </tbody>
-                </table>
+                                          </tr>";
+                                }
+                            } else {
+                                // If no data is found, display a message
+                                echo "<tr><td colspan='3'>No publishers found</td></tr>";
+                            }
+                            ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
+    <!-- /.container-fluid -->
+</div>
+<!-- End of Main Content -->
 
-                </div>
-                <!-- /.container-fluid -->
-
+<!-- Add Publisher Modal -->
+<div class="modal fade" id="addPublisherModal" tabindex="-1" role="dialog" aria-labelledby="addPublisherModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addPublisherModalLabel">Add Publishers</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
             </div>
-            <!-- End of Main Content -->
+            <div class="modal-body">
+                <form id="addPublishersForm" method="POST" action="publisher_list.php">
+                    <div id="publishersContainer">
+                        <div class="publisher-entry mb-3">
+                            <input type="text" name="company[]" class="form-control mb-2" placeholder="Company" required>
+                            <input type="text" name="place[]" class="form-control mb-2" placeholder="Place" required>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-secondary" id="addMorePublishers">Add More Publishers</button>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="savePublishers">Save Publishers</button>
+            </div>
+        </div>
+    </div>
+</div>
 
-            <!-- Footer -->
-            <?php include '../Admin/inc/footer.php'?>
-            <!-- End of Footer -->
+<!-- Footer -->
+<?php include '../Admin/inc/footer.php' ?>
+<!-- End of Footer -->
 
+<!-- Scroll to Top Button-->
+<a class="scroll-to-top rounded" href="#page-top">
+    <i class="fas fa-angle-up"></i>
+</a>
 
+<script>
+$(document).ready(function () {
+    var table = $('#dataTable').DataTable({
+        "dom": "<'row mb-3'<'col-sm-6'l><'col-sm-6 d-flex justify-content-end'>>" +
+               "<'row'<'col-sm-12'tr>>" +
+               "<'row mt-3'<'col-sm-5'i><'col-sm-7 d-flex justify-content-end'p>>",
+        "pagingType": "simple_numbers",
+        "language": {
+            "search": "" // Removes the default 'Search:' label
+        },
+        "columns": [
+            { "data": "id" },
+            { "data": "company" },
+            { "data": "place" }
+        ]
+    });
 
-    <!-- Scroll to Top Button-->
-    <a class="scroll-to-top rounded" href="#page-top">
-        <i class="fas fa-angle-up"></i>
-    </a>
+    // Remove the search input field
+    $('#dataTable_filter').remove();
 
+    // Fix pagination buttons styling & spacing
+    $('.dataTables_paginate .paginate_button')
+        .addClass('btn btn-sm btn-outline-primary mx-1');
 
-    <script>
-    $(document).ready(function () {
-        var table = $('#dataTable').DataTable({
-            "dom": "<'row mb-3'<'col-sm-6'l><'col-sm-6 d-flex justify-content-end'f>>" +
-                   "<'row'<'col-sm-12'tr>>" +
-                   "<'row mt-3'<'col-sm-5'i><'col-sm-7 d-flex justify-content-end'p>>",
-            "pagingType": "simple_numbers",
-            "language": {
-                "search": "Search:" // Keeps the default 'Search:' label
+    // Add more publishers functionality
+    $('#addMorePublishers').click(function() {
+        var publisherEntry = `
+            <div class="publisher-entry mb-3">
+                <input type="text" name="company[]" class="form-control mb-2" placeholder="Company" required>
+                <input type="text" name="place[]" class="form-control mb-2" placeholder="Place" required>
+            </div>`;
+        $('#publishersContainer').append(publisherEntry);
+    });
+
+    // Save publishers functionality
+    $('#savePublishers').click(function() {
+        $('#addPublishersForm').submit();
+    });
+
+    // Handle search form submission
+    $('form').submit(function(event) {
+        event.preventDefault();
+        var searchQuery = $('input[name="search"]').val();
+
+        $.ajax({
+            url: 'fetch_publishers.php',
+            type: 'GET',
+            data: {
+                search: searchQuery
+            },
+            success: function(response) {
+                $('#dataTable tbody').html(response);
             }
         });
-
-        // Style the search input with Bootstrap
-        $('#dataTable_filter input')
-            .addClass('form-control')
-            .attr("placeholder", "Search...");
-
-        // Add a trailing search icon inside the search field
-        $('#dataTable_filter input').wrap('<div class="input-group"></div>');  // Wrap input field with input group
-        $('#dataTable_filter').append('<div class="input-group-append"><span class="input-group-text"><i class="fa fa-search"></i></span></div>');
-
-        // Add a label next to the search field (without removing the default "Search:" label)
-        $('#dataTable_filter').append('<label class="ml-2 font-weight-bold">Search</label>');
-
-        // Fix pagination buttons styling & spacing
-        $('.dataTables_paginate .paginate_button')
-            .addClass('btn btn-sm btn-outline-primary mx-1');
     });
+});
 </script>

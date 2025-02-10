@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -65,14 +64,14 @@
                 <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseTwo"
                     aria-expanded="true" aria-controls="collapseTwo">
                     <i class="fas fa-fw fa-book"></i>
-                    <span>book Management</span>
+                    <span>Book Management</span>
                 </a>
                 <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
                     <div class="bg-white py-2 collapse-inner rounded">
                         <h6 class="collapse-header">Book Module:</h6>
-                        <a class="collapse-item" href="book_list.php">Book List</a>
-                        <a class="collapse-item" href="writers_list.php">Writers List</a>
-                        <a class="collapse-item" href="publisher_list.php">Publihser List</a>
+                        <a class="collapse-item" href="book_list.php" data-toggle="dropdown">Book List</a>
+                        <a class="collapse-item" href="writers_list.php" data-toggle="dropdown">Writers List</a>
+                        <a class="collapse-item" href="publisher_list.php" data-toggle="dropdown">Publisher List</a>
                     </div>
                 </div>
             </li>
@@ -434,20 +433,26 @@
     <!-- Page level plugins -->
     <script src="vendor/chart.js/Chart.min.js"></script>
 
-
-
-
-
     <script src="js/demo/chart-area-demo.js"></script>
     <script src="js/demo/chart-pie-demo.js"></script>
     <script src="js/demo/chart-bar-demo.js"></script>
 
     <script src="inc/assets/DataTables/datatables.min.js"></script>
 
+    <script>
+    $(document).ready(function() {
+        $('.collapse-item').on('click', function(e) {
+            e.stopPropagation();
+        });
 
-
-
-
+        // Prevent dropdown menu from closing when clicking on items in the Book Management section
+        $('#collapseTwo .collapse-item').on('click', function(e) {
+            e.preventDefault();
+            var target = $(this).attr('href');
+            window.location.href = target;
+        });
+    });
+    </script>
 
 </body>
 

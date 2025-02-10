@@ -9,6 +9,9 @@ if (!isset($_SESSION['admin_id'])) {
 
 include '../admin/inc/header.php';
 include '../db.php'; // Database connection
+
+// Get the search query if it exists
+$searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
 ?>
 
 <!-- Main Content -->
@@ -20,6 +23,20 @@ include '../db.php'; // Database connection
             </div>
             <div class="card-body">
                 <div class="table-responsive">
+                    <!-- Search Form -->
+                    <form method="GET" action="book_list.php" id="searchForm">
+                        <div class="input-group mb-3">
+                            <input type="text" name="search" class="form-control" placeholder="Search..." value="<?php echo htmlspecialchars($searchQuery); ?>">
+                            <div class="input-group-append">
+                                <button class="btn btn-primary" type="submit">Search</button>
+                            </div> 
+                        </div>
+                        <!-- Add Contributors Icons -->
+                        <div id="addContributorsIcons" class="d-none">
+                            <button class="btn btn-success btn-sm mx-1" id="addContributorsPerson"><i class="fas fa-user-plus"></i> Add Contributors</button>
+                            <button class="btn btn-success btn-sm mx-1"><i class="fas fa-building"></i> Add Publisher</button>
+                        </div>
+                    </form>
                     <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
@@ -55,7 +72,11 @@ include '../db.php'; // Database connection
                         <tbody>
                             <?php
                             // Fetch books from database
-                            $query = "SELECT * FROM books ORDER BY id DESC";
+                            $query = "SELECT * FROM books";
+                            if (!empty($searchQuery)) {
+                                $query .= " WHERE title LIKE '%$searchQuery%' OR preferred_title LIKE '%$searchQuery%' OR parallel_title LIKE '%$searchQuery%' OR ISBN LIKE '%$searchQuery%'";
+                            }
+                            $query .= " ORDER BY id DESC";
                             $result = $conn->query($query);
 
                             while ($row = $result->fetch_assoc()) {
@@ -114,6 +135,66 @@ include '../db.php'; // Database connection
 </div>
 <!-- End of Main Content -->
 
+<!-- Add Contributors Modal -->
+<div class="modal fade" id="addContributorsModal" tabindex="-1" role="dialog" aria-labelledby="addContributorsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addContributorsModalLabel">Add Contributors</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Search Form -->
+                <form id="searchContributorsForm" method="GET" action="book_list.php">
+                    <div class="input-group mb-3">
+                        <input type="text" id="searchContributors" name="search_contributors" class="form-control" placeholder="Search Contributors...">
+                        <div class="input-group-append">
+                            <button class="btn btn-primary" type="submit">Search</button>
+                        </div>
+                    </div>
+                </form>
+                <!-- Contributors List -->
+                <div class="table-responsive">
+                    <table class="table table-bordered" id="contributorsTable" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>First Name</th>
+                                <th>Middle Initial</th>
+                                <th>Last Name</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php
+                            // Fetch contributors from database
+                            $contributorsQuery = "SELECT * FROM writers";
+                            if (isset($_GET['search_contributors']) && !empty($_GET['search_contributors'])) {
+                                $searchContributors = $conn->real_escape_string($_GET['search_contributors']);
+                                $contributorsQuery .= " WHERE firstname LIKE '%$searchContributors%' OR middle_init LIKE '%$searchContributors%' OR lastname LIKE '%$searchContributors%'";
+                            }
+                            $contributorsResult = $conn->query($contributorsQuery);
+
+                            while ($contributor = $contributorsResult->fetch_assoc()) {
+                                echo "<tr>
+                                    <td>{$contributor['id']}</td>
+                                    <td>{$contributor['firstname']}</td>
+                                    <td>{$contributor['middle_init']}</td>
+                                    <td>{$contributor['lastname']}</td>
+                                    <td><button class='btn btn-success btn-sm addContributor' data-id='{$contributor['id']}'>Add</button></td>
+                                </tr>";
+                            }
+                            ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Footer -->
 <?php include '../Admin/inc/footer.php' ?>
 <!-- End of Footer -->
@@ -125,28 +206,13 @@ include '../db.php'; // Database connection
 
 <script>
 $(document).ready(function () {
-    var table = $('#dataTable').DataTable({
-        "dom": "<'row mb-3'<'col-sm-6'l><'col-sm-6 d-flex justify-content-end'f>>" +
-               "<'row'<'col-sm-12'tr>>" +
-               "<'row mt-3'<'col-sm-5'i><'col-sm-7 d-flex justify-content-end'p>>",
-        "pagingType": "simple_numbers",
-        "language": {
-            "search": "Search:"
-        }
-    });
-
-    $('#dataTable_filter input')
-        .addClass('form-control')
-        .attr("placeholder", "Search...");
-
-    $('#dataTable_filter input').wrap('<div class="input-group"></div>');
-
-    $('.dataTables_paginate .paginate_button')
-        .addClass('btn btn-sm btn-outline-primary mx-1');
+    var selectedBookIds = [];
 
     // Select/Deselect all checkboxes
     $('#selectAll').click(function() {
         $('.selectRow').prop('checked', this.checked);
+        updateSelectedBookIds();
+        toggleAddContributorsIcons();
     });
 
     $('.selectRow').click(function() {
@@ -155,6 +221,66 @@ $(document).ready(function () {
         } else {
             $('#selectAll').prop('checked', false);
         }
+        updateSelectedBookIds();
+        toggleAddContributorsIcons();
+    });
+
+    function updateSelectedBookIds() {
+        selectedBookIds = [];
+        $('.selectRow:checked').each(function() {
+            selectedBookIds.push($(this).closest('tr').find('td:nth-child(2)').text());
+        });
+        console.log(selectedBookIds); // For debugging purposes
+    }
+
+    function toggleAddContributorsIcons() {
+        if ($('.selectRow:checked').length > 0) {
+            $('#addContributorsIcons').removeClass('d-none');
+        } else {
+            $('#addContributorsIcons').addClass('d-none');
+        }
+    }
+
+    // Redirect to add_contributors.php when "Add Contributors (Person)" button is clicked
+    $('#addContributorsPerson').click(function (e) {
+        e.preventDefault();
+        var queryString = selectedBookIds.map(id => `book_ids[]=${id}`).join('&');
+        window.location.href = `add_contributors.php?${queryString}`;
+    });
+
+    // Add contributor to selected books
+    $(document).on('click', '.addContributor', function() {
+        var contributorId = $(this).data('id');
+        var bookId = selectedBookIds[0]; // Assuming only one book is selected at a time
+        var role = prompt("Enter role (Author, Co-Author, Editor):", "Author");
+
+        if (role) {
+            $.post('process_add_contributors.php', {
+                book_id: bookId,
+                writer_id: contributorId,
+                role: role
+            }, function(response) {
+                alert('Contributor added successfully!');
+                location.reload();
+            });
+        }
+    });
+
+    // Handle search form submission
+    $('form').submit(function(event) {
+        event.preventDefault();
+        var searchQuery = $('input[name="search"]').val();
+
+        $.ajax({
+            url: 'fetch_books.php',
+            type: 'GET',
+            data: {
+                search: searchQuery
+            },
+            success: function(response) {
+                $('#dataTable tbody').html(response);
+            }
+        });
     });
 });
 </script>
