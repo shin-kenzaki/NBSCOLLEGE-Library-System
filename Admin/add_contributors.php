@@ -128,10 +128,38 @@ $_SESSION['selected_writer_ids'] = $selectedWriterIds;
 
 <script>
 $(document).ready(function () {
+    var selectedWriterIds = <?php echo json_encode(isset($_SESSION['selectedWriterIds']) ? $_SESSION['selectedWriterIds'] : []); ?>;
+
+    // Function to update the selected writer IDs in the session
+    function updateSelectedWriterIds() {
+        selectedWriterIds = [];
+        $('.selectWriter:checked').each(function() {
+            var writerId = $(this).val();
+            if (!selectedWriterIds.includes(writerId)) {
+                selectedWriterIds.push(writerId);
+            }
+        });
+        console.log(selectedWriterIds); // For debugging purposes
+
+        // Store selected writer IDs in session
+        $.post('selected_writers.php', {
+            selectedWriterIds: selectedWriterIds
+        }, function(response) {
+            console.log(response); // For debugging purposes
+        }, 'json');
+    }
+
+    // Select/Deselect all checkboxes
     $('#selectAllWriters').click(function() {
         $('.selectWriter').prop('checked', this.checked);
+        updateSelectedWriterIds();
     });
 
+    $('.selectWriter').click(function() {
+        updateSelectedWriterIds();
+    });
+
+    // Handle search form submission
     $('form#searchForm').submit(function(event) {
         event.preventDefault();
         var searchQuery = $('input[name="search"]').val();
@@ -148,8 +176,21 @@ $(document).ready(function () {
             },
             success: function(response) {
                 $('#writersTable tbody').html(response);
+                updateSelectedWriterIds(); // Update the selected writer IDs after search results are loaded
             }
         });
     });
+
+    // Restore the selected state on page load
+    function restoreSelectedState() {
+        $('.selectWriter').each(function() {
+            var writerId = $(this).val();
+            if (selectedWriterIds.includes(writerId)) {
+                $(this).prop('checked', true);
+            }
+        });
+    }
+
+    restoreSelectedState();
 });
 </script>

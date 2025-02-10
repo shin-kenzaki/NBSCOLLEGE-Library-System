@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 // Insert the relationship into the database
                 $query = "INSERT INTO contributors (book_id, writer_id, role) VALUES ('$bookId', '$writerId', '$role')";
                 if ($conn->query($query) === TRUE) {
-                    echo "Contributor added successfully!";
+                    $_SESSION['success_message'] = "Contributor added successfully!";
                 } else {
                     echo "Error: " . $query . "<br>" . $conn->error;
                 }
