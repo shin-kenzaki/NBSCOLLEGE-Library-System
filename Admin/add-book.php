@@ -10,22 +10,65 @@ if (!isset($_SESSION['admin_id'])) {
 include '../admin/inc/header.php';
 include '../db.php';
 
-// Fetch writers data
-$sql = "SELECT id, firstname, middle_init, lastname FROM writers";
-$result = $conn->query($sql);
+$accession_error = '';
 
-if (!$result) {
-    die("Error retrieving writers: " . $conn->error);
+// Handle form submission
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $accession = $_POST['accession'];
+    $title = $_POST['title'];
+    $preferred_title = $_POST['preferred_title'];
+    $parallel_title = $_POST['parallel_title'];
+    $front_image = $_FILES['front_image']['name'];
+    $back_image = $_FILES['back_image']['name'];
+    $height = $_POST['height'];
+    $width = $_POST['width'];
+    $total_pages = $_POST['total_pages'];
+    $call_number = $_POST['call_number'];
+    $copy_number = $_POST['copy_number'];
+    $language = $_POST['language'];
+    $shelf_location = $_POST['shelf_location'];
+    $entered_by = $_POST['entered_by'];
+    $date_added = $_POST['date_added'];
+    $status = $_POST['status'];
+    $last_update = $_POST['last_update'];
+    $series = $_POST['series'];
+    $volume = $_POST['volume'];
+    $edition = $_POST['edition'];
+    $isbn = $_POST['isbn'];
+    $url = $_POST['url'];
+    $content_type = $_POST['content_type'];
+    $media_type = $_POST['media_type'];
+    $carrier_type = $_POST['carrier_type'];
+
+    // Check if the accession number already exists
+    $check_query = "SELECT * FROM books WHERE accession = '$accession'";
+    $result = mysqli_query($conn, $check_query);
+
+    if (mysqli_num_rows($result) > 0) {
+        $accession_error = "A book with the same accession number already exists.";
+    } else {
+        // Move uploaded files to the desired directory
+        move_uploaded_file($_FILES['front_image']['tmp_name'], "../uploads/" . $front_image);
+        move_uploaded_file($_FILES['back_image']['tmp_name'], "../uploads/" . $back_image);
+
+        // Insert data into the 'books' table
+        $query = "INSERT INTO books (id, accession, title, preferred_title, parallel_title, front_image, back_image, height, width, total_pages, call_number, copy_number, language, shelf_location, entered_by, date_added, status, last_update, series, volume, edition, isbn, url, content_type, media_type, carrier_type) 
+                  VALUES (NULL, '$accession', '$title', '$preferred_title', '$parallel_title', '$front_image', '$back_image', '$height', '$width', '$total_pages', '$call_number', '$copy_number', '$language', '$shelf_location', '$entered_by', '$date_added', '$status', '$last_update', '$series', '$volume', '$edition', '$isbn', '$url', '$content_type', '$media_type', '$carrier_type')";
+
+        if (mysqli_query($conn, $query)) {
+            echo "Book added successfully!";
+        } else {
+            echo "Error: " . $query . "<br>" . mysqli_error($conn);
+        }
+    }
 }
 
-$sql1 = "SELECT id, company, place FROM publishers";
-$result1 = $conn->query($sql1);
 ?>
 
 <!-- Main Content -->
 <div id="content" class="d-flex flex-column min-vh-100">
     <div class="container-fluid">
-        <form id="bookForm" action="../Admin/inc/add-book-process.php" method="POST" enctype="multipart/form-data">
+        <form id="bookForm" action="add-book.php" method="POST" enctype="multipart/form-data">
             <div class="container-fluid d-flex justify-content-between align-items-center">
                 <h1 class="h3 mb-2 text-gray-800">Book Management</h1>
                 <button type="submit" class="btn btn-success">Add Book</button>
@@ -99,8 +142,11 @@ $result1 = $conn->query($sql1);
                                     <div class="row">
                                         <div class="col-md-6">
                                             <div class="form-group">
-                                                <label>ID</label>
-                                                <input type="text" class="form-control" name="id" required>
+                                                <label>Accession</label>
+                                                <input type="text" class="form-control" name="accession" required>
+                                                <?php if ($accession_error): ?>
+                                                    <small class="text-danger"><?php echo $accession_error; ?></small>
+                                                <?php endif; ?>
                                             </div>
                                         </div>
                                         <div class="col-md-6">
@@ -277,9 +323,6 @@ $result1 = $conn->query($sql1);
                         </div>
                     </div>
                 </div>
-
-
-
         </form>
     </div>
 </div>
