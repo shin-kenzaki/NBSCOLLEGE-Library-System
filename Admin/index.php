@@ -11,24 +11,24 @@ $error_message = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Retrieve and sanitize input
-    $username = $_POST['username'];
+    $employee_id = $_POST['employee_id'];
     $password = $_POST['password'];
 
     // Query to check if the user exists
-    $sql = "SELECT * FROM admins WHERE username = ?";
+    $sql = "SELECT * FROM admins WHERE employee_id = ?";
     if ($stmt = $conn->prepare($sql)) {
-        $stmt->bind_param("s", $username);
+        $stmt->bind_param("s", $employee_id);
         $stmt->execute();
         $result = $stmt->get_result();
 
-        // If the username exists, check the password
+        // If the employee_id exists, check the password
         if ($result->num_rows > 0) {
             $admin = $result->fetch_assoc();
             // Compare plain text passwords directly (Consider using password_hash for security)
             if ($password === $admin['password']) {
                 // Login successful, store session data
-                $_SESSION['admin_id'] = $admin['id'];
-                $_SESSION['admin_username'] = $admin['username'];
+                $_SESSION['admin_id'] = $admin['employee_id'];
+                $_SESSION['admin_email'] = $admin['email'];
                 $_SESSION['admin_firstname'] = $admin['firstname'];
                 $_SESSION['admin_lastname'] = $admin['lastname'];
 
@@ -127,8 +127,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <form class="user" method="POST" action="">
                                         <div class="form-group">
                                             <input type="text" class="form-control form-control-user"
-                                            placeholder="Username"
-                                            id="username" name="username" required
+                                            placeholder="ID"
+                                            id="employee_id" name="employee_id" required
                                                 >
                                         </div>
                                         <div class="form-group">
@@ -161,7 +161,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         <a class="small" href="forgot-password.html">Forgot Password?</a>
                                     </div>
                                     <div class="text-center">
-                                        <a class="small" href="register.php">Create an Account!</a>
+                                        <a class="small" href="admin_registration.php">Create an Account!</a>
                                     </div>
                                 </div>
                             </div>

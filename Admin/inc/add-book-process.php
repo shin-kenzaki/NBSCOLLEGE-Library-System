@@ -4,7 +4,7 @@ include '../../db.php'; // Include database connection
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Collect form data
-    $id = $_POST['id']; // Starting ID (this should be the latest book ID in the database)
+    $accession = $_POST['accession']; 
     $title = $_POST['title'];
     $preferred_title = $_POST['preferred_title'] ?? null;
     $parallel_title = $_POST['parallel_title'] ?? null;
@@ -52,16 +52,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 
     // Prepare SQL query
-    $sql = "INSERT INTO books (id, title, preferred_title, parallel_title, front_image, back_image, height, width, series, volume, edition, copy_number, total_pages, ISBN, content_type, media_type, carrier_type, URL, language, shelf_location, entered_by, date_added, status, last_update) 
+    $sql = "INSERT INTO books (accession, title, preferred_title, parallel_title, front_image, back_image, height, width, series, volume, edition, copy_number, total_pages, ISBN, content_type, media_type, carrier_type, URL, language, shelf_location, entered_by, date_added, status, last_update) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     if ($stmt = $conn->prepare($sql)) {
         for ($i = 0; $i < $copies; $i++) {
-            $current_id = $id + $i; // Increment ID for each copy
+            $current_accession = $accession + $i; // Increment ID for each copy
             $copy_number = $i + 1; // Copy number starts from 1
 
             $stmt->bind_param("ssssssddsisssissssssssss", 
-                $current_id, $title, $preferred_title, $parallel_title, 
+                $current_accession, $title, $preferred_title, $parallel_title, 
                 $front_image, $back_image, 
                 $height, $width, 
                 $series, $volume, $edition, $copy_number, 

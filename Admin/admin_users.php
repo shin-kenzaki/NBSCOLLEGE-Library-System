@@ -14,7 +14,7 @@ $errors = [
     'id' => '',
     'firstname' => '',
     'lastname' => '',
-    'username' => '',
+    'email' => '',
     'password' => '',
     'role' => ''
 ];
@@ -24,7 +24,7 @@ $values = [
     'firstname' => '',
     'middle_init' => '',
     'lastname' => '',
-    'username' => '',
+    'email' => '',
     'password' => '',
     'role' => ''
 ];

@@ -2,8 +2,8 @@
     session_start();
 
     $errors = [
-        'id' => '',
-        'username' => '',
+        'employee_id' => '',
+        'email' => '',
         'password' => '',
         'firstname' => '',
         'lastname' => ''
@@ -13,11 +13,11 @@
         require '../db.php'; // Database connection
 
         // Retrieve and sanitize form input
-        $id = $_POST['id'];
+        $employee_id = $_POST['employee_id'];
         $firstname = trim($_POST['firstname']);
         $middle_init = $_POST['middle_init'] ?? NULL; // Optional field
         $lastname = trim($_POST['lastname']);
-        $username = $_POST['username'];
+        $email = $_POST['email'];
         $password = $_POST['password']; // Raw password input
         $role = $_POST['role'];
         $status = "Active"; // Automatically set to Active
@@ -33,22 +33,22 @@
             $image = file_get_contents($_FILES['image']['tmp_name']);
         }
 
-        // Check for duplicate ID, username, or (firstname + lastname)
-        $sql_check = "SELECT id, username, firstname, lastname FROM admins
-                      WHERE id = ? OR username = ? OR (firstname = ? AND lastname = ?)";
+        // Check for duplicate ID, email, or (firstname + lastname)
+        $sql_check = "SELECT employee_id, email, firstname, lastname FROM admins
+                      WHERE employee_id = ? OR email = ? OR (firstname = ? AND lastname = ?)";
 
         if ($stmt_check = $conn->prepare($sql_check)) {
-            $stmt_check->bind_param("isss", $id, $username, $firstname, $lastname);
+            $stmt_check->bind_param("isss", $employee_id, $email, $firstname, $lastname);
             $stmt_check->execute();
             $result_check = $stmt_check->get_result();
 
             if ($result_check->num_rows > 0) {
                 while ($row = $result_check->fetch_assoc()) {
-                    if ($row['id'] == $id) {
-                        $errors['id'] = "This ID is already in use.";
+                    if ($row['employee_id'] == $employee_id) {
+                        $errors['employee_id'] = "This ID is already in use.";
                     }
-                    if ($row['username'] == $username) {
-                        $errors['username'] = "This username is already taken.";
+                    if ($row['email'] == $email) {
+                        $errors['email'] = "This email is already taken.";
                     }
                     if ($row['firstname'] == $firstname && $row['lastname'] == $lastname) {
                         $errors['firstname'] = "An account with this First Name already exists.";
@@ -57,17 +57,17 @@
                 }
             } else {
                 // Proceed if no errors exist
-                if (empty($errors['id']) && empty($errors['username']) && empty($errors['password']) && empty($errors['firstname']) && empty($errors['lastname'])) {
+                if (empty($errors['employee_id']) && empty($errors['email']) && empty($errors['password']) && empty($errors['firstname']) && empty($errors['lastname'])) {
                     // Insert the new admin into the database
-                    $sql = "INSERT INTO admins (id, firstname, middle_init, lastname, username, password, image, role, status, date_added)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+                    $sql = "INSERT INTO admins (id, employee_id, firstname, middle_init, lastname, email, password, image, role, status, date_added)
+                            VALUES (Null, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
 
                     if ($stmt = $conn->prepare($sql)) {
-                        $stmt->bind_param("issssssss", $id, $firstname, $middle_init, $lastname, $username, $password, $image, $role, $status);
+                        $stmt->bind_param("issssssss", $employee_id, $firstname, $middle_init, $lastname, $email, $password, $image, $role, $status);
 
                         if ($stmt->execute()) {
                             echo "<p style='color:green;'>Admin registered successfully! Redirecting to login...</p>";
-                            header("refresh:3;url=index.php");
+                            header("refresh:3;url=admin_login.php");
                             exit;
                         } else {
                             echo "<p style='color:red;'>Error: " . $stmt->error . "</p>";
@@ -88,9 +88,6 @@
         $conn->close();
     }
 ?>
-
-
-
 
 <!DOCTYPE html>
 <html lang="en">
@@ -116,8 +113,8 @@
 
     <style>
         .bg-login-image {
-    background: url('inc/img/bg-login.JPG') center center no-repeat;
-    background-size: cover;
+            background: url('inc/img/bg-login.JPG') center center no-repeat;
+            background-size: cover;
         }
 
         /* Style for the select dropdown with larger size */
@@ -148,9 +145,6 @@
             box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
             outline: none;
         }
-
-
-
     </style>
 
 </head>
@@ -174,8 +168,8 @@
                             <form class="user" action="" method="POST" enctype="multipart/form-data">
                                 <div class="form-group row">
                                     <div class="col-sm-6 mb-3 mb-sm-0">
-                                        <input type="text" class="form-control form-control-user" id="id" name="id" placeholder="ID" value="<?= htmlspecialchars($_POST['id'] ?? '') ?>" required>
-                                        <span style="color:red;"><?= $errors['id'] ?></span>
+                                        <input type="text" class="form-control form-control-user" employee_id="employee_id" name="employee_id" placeholder="ID" value="<?= htmlspecialchars($_POST['employee_id'] ?? '') ?>" required>
+                                        <span style="color:red;"><?= $errors['employee_id'] ?></span>
                                     </div>
                                     <div class="col-sm-6">
                                         <input type="text" class="form-control form-control-user" name="firstname" placeholder="First Name" value="<?= htmlspecialchars($_POST['firstname'] ?? '') ?>" required>
@@ -194,8 +188,8 @@
                                 </div>
 
                                 <div class="form-group">
-                                    <input type="text" class="form-control form-control-user" name="username" placeholder="Username" value="<?= htmlspecialchars($_POST['username'] ?? '') ?>" required>
-                                    <span style="color:red;"><?= $errors['username'] ?></span>
+                                    <input type="text" class="form-control form-control-user" name="email" placeholder="Email" value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" required>
+                                    <span style="color:red;"><?= $errors['email'] ?></span>
                                 </div>
 
                                 <div class="form-group row">
@@ -220,7 +214,6 @@
                                 <hr>
 
                             </form>
-
 
                             <div class="text-center">
                                 <a class="small" href="forgot-password.html">Forgot Password?</a>
