@@ -17,15 +17,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     if (!empty($bookIds) && !empty($publisherIds)) {
         foreach ($bookIds as $bookId) {
-            foreach ($publisherIds as $index => $publisherId) {
-                $publishDate = isset($publishDates[$index]) ? $publishDates[$index] : date('Y-m-d'); // Default to today's date if not provided
-                // Insert the relationship into the database
-                $query = "INSERT INTO publications (book_id, publisher_id, publish_date) VALUES ('$bookId', '$publisherId', '$publishDate')";
-                if ($conn->query($query) === TRUE) {
-                    $_SESSION['success_message'] = "Publication added successfully!";
-                } else {
-                    echo "Error: " . $query . "<br>" . $conn->error;
+            // Check if the book already has a publisher
+            $checkQuery = "SELECT * FROM publications WHERE book_id = '$bookId'";
+            $checkResult = $conn->query($checkQuery);
+
+            if ($checkResult->num_rows == 0) {
+                foreach ($publisherIds as $index => $publisherId) {
+                    $publishDate = isset($publishDates[$index]) ? $publishDates[$index] : date('Y-m-d'); // Default to today's date if not provided
+                    // Insert the relationship into the database
+                    $query = "INSERT INTO publications (book_id, publisher_id, publish_date) VALUES ('$bookId', '$publisherId', '$publishDate')";
+                    if ($conn->query($query) === TRUE) {
+                        $_SESSION['success_message'] = "Publication added successfully!";
+                    } else {
+                        echo "Error: " . $query . "<br>" . $conn->error;
+                    }
                 }
+            } else {
+                $_SESSION['success_message'] = "Some books already have a publisher.";
             }
         }
     } else {
@@ -35,3 +43,4 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     header("Location: book_list.php");
     exit();
 }
+?>

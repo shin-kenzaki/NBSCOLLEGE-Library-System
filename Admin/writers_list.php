@@ -144,6 +144,47 @@ $result = $conn->query($sql);
     </div>
 </div>
 
+<!-- Update Writer Modal -->
+<div class="modal fade" id="updateWriterModal" tabindex="-1" role="dialog" aria-labelledby="updateWriterModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="updateWriterModalLabel">Update Writer</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="updateWriterForm" method="POST" action="update_writer.php">
+                    <input type="hidden" name="writer_id" id="updateWriterId">
+                    <div class="form-group">
+                        <label for="updateFirstName">First Name</label>
+                        <input type="text" class="form-control" name="firstname" id="updateFirstName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="updateMiddleInit">Middle Initial</label>
+                        <input type="text" class="form-control" name="middle_init" id="updateMiddleInit">
+                    </div>
+                    <div class="form-group">
+                        <label for="updateLastName">Last Name</label>
+                        <input type="text" class="form-control" name="lastname" id="updateLastName" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="saveUpdatedWriter">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Context Menu -->
+<div id="contextMenu" class="dropdown-menu" style="display:none; position:absolute;">
+    <a class="dropdown-item" href="#" id="updateWriter">Update</a>
+    <a class="dropdown-item" href="#" id="deleteWriter">Delete</a>
+</div>
+
 <!-- Footer -->
 <?php include '../Admin/inc/footer.php' ?>
 <!-- End of Footer -->
@@ -210,5 +251,58 @@ $(document).ready(function () {
             }
         });
     });
+
+    var selectedWriterId;
+
+    // Show context menu on right-click
+    $('#dataTable tbody').on('contextmenu', 'tr', function(e) {
+        e.preventDefault();
+        $('#dataTable tbody tr').removeClass('context-menu-active');
+        $(this).addClass('context-menu-active');
+        selectedWriterId = $(this).find('td:nth-child(1)').text();
+        $('#contextMenu').css({
+            display: 'block',
+            left: e.pageX,
+            top: e.pageY
+        });
+        return false;
+    });
+
+    // Hide context menu on click outside
+    $(document).click(function() {
+        $('#contextMenu').hide();
+    });
+
+    // Handle context menu actions
+    $('#updateWriter').click(function() {
+        console.log('Update writer clicked');
+        window.location.href = `update_writer.php?writer_id=${selectedWriterId}`;
+    });
+
+    $('#deleteWriter').click(function() {
+        var row = $('#dataTable tbody tr.context-menu-active');
+        var writerId = row.find('td:nth-child(1)').text();
+        var firstName = row.find('td:nth-child(2)').text();
+        var lastName = row.find('td:nth-child(4)').text();
+
+        if (confirm(`Are you sure you want to delete this writer?\n\nID: ${writerId}\nName: ${firstName} ${lastName}`)) {
+            $.post('delete_writer.php', { writer_id: writerId }, function(response) {
+                alert(response.message);
+                location.reload();
+            }, 'json');
+        }
+    });
+
+    // Save updated writer functionality
+    $('#saveUpdatedWriter').click(function() {
+        $('#updateWriterForm').submit();
+    });
+
+    // Display success message if available
+    var successMessage = "<?php echo isset($_SESSION['success_message']) ? $_SESSION['success_message'] : ''; ?>";
+    if (successMessage) {
+        alert(successMessage);
+        <?php unset($_SESSION['success_message']); ?>
+    }
 });
 </script>

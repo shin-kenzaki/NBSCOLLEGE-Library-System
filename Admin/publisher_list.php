@@ -139,6 +139,12 @@ $result = $conn->query($sql);
     </div>
 </div>
 
+<!-- Context Menu -->
+<div id="contextMenu" class="dropdown-menu" style="display:none; position:absolute;">
+    <a class="dropdown-item" href="#" id="updatePublisher">Update</a>
+    <a class="dropdown-item" href="#" id="deletePublisher">Delete</a>
+</div>
+
 <!-- Footer -->
 <?php include '../Admin/inc/footer.php' ?>
 <!-- End of Footer -->
@@ -203,5 +209,58 @@ $(document).ready(function () {
             }
         });
     });
+
+    var selectedPublisherId;
+
+    // Show context menu on right-click
+    $('#dataTable tbody').on('contextmenu', 'tr', function(e) {
+        e.preventDefault();
+        $('#dataTable tbody tr').removeClass('context-menu-active');
+        $(this).addClass('context-menu-active');
+        selectedPublisherId = $(this).find('td:nth-child(1)').text();
+        $('#contextMenu').css({
+            display: 'block',
+            left: e.pageX,
+            top: e.pageY
+        });
+        return false;
+    });
+
+    // Hide context menu on click outside
+    $(document).click(function() {
+        $('#contextMenu').hide();
+    });
+
+    // Handle context menu actions
+    $('#updatePublisher').click(function() {
+        console.log('Update publisher clicked');
+        window.location.href = `update_publisher.php?publisher_id=${selectedPublisherId}`;
+    });
+
+    $('#deletePublisher').click(function() {
+        var row = $('#dataTable tbody tr.context-menu-active');
+        var publisherId = row.find('td:nth-child(1)').text();
+        var company = row.find('td:nth-child(2)').text();
+        var place = row.find('td:nth-child(3)').text();
+
+        if (confirm(`Are you sure you want to delete this publisher?\n\nID: ${publisherId}\nCompany: ${company}\nPlace: ${place}`)) {
+            $.post('delete_publisher.php', { publisher_id: publisherId }, function(response) {
+                alert(response.message);
+                location.reload();
+            }, 'json');
+        }
+    });
+
+    // Save updated publisher functionality
+    $('#saveUpdatedPublisher').click(function() {
+        $('#updatePublisherForm').submit();
+    });
+
+    // Display success message if available
+    var successMessage = "<?php echo isset($_SESSION['success_message']) ? $_SESSION['success_message'] : ''; ?>";
+    if (successMessage) {
+        alert(successMessage);
+        <?php unset($_SESSION['success_message']); ?>
+    }
 });
 </script>

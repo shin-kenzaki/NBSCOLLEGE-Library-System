@@ -70,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <div class="container-fluid">
         <form id="bookForm" action="add-book.php" method="POST" enctype="multipart/form-data">
             <div class="container-fluid d-flex justify-content-between align-items-center">
-                <h1 class="h3 mb-2 text-gray-800">Book Management</h1>
+                <h1 class="h3 mb-2 text-gray-800">Add Book</h1>
                 <button type="submit" class="btn btn-success">Add Book</button>
             </div>
 

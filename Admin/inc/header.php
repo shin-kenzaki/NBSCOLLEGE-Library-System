@@ -447,9 +447,6 @@
 
         // Prevent dropdown menu from closing when clicking on items in the Book Management section
         $('#collapseTwo .collapse-item').on('click', function(e) {
-            e.preventDefault();
-            var target = $(this).attr('href');
-            window.location.href = target;
         });
     });
     </script>

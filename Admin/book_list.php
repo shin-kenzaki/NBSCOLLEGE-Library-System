@@ -8,6 +8,26 @@ if (!isset($_SESSION['admin_id'])) {
 
 include '../db.php'; // Database connection
 
+// Handle book deletion
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_book_id'])) {
+    $bookId = intval($_POST['delete_book_id']);
+
+    // Delete the book from the database
+    $query = "DELETE FROM books WHERE id = ?";
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param('i', $bookId);
+    $stmt->execute();
+
+    if ($stmt->affected_rows > 0) {
+        $response = ['message' => 'Book deleted successfully!'];
+    } else {
+        $response = ['message' => 'Failed to delete the book.'];
+    }
+
+    echo json_encode($response);
+    exit();
+}
+
 // Check for success message
 $successMessage = '';
 if (isset($_SESSION['success_message'])) {
@@ -207,6 +227,13 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
         </div>
     </div>
 
+    <!-- Context Menu -->
+    <div id="contextMenu" class="dropdown-menu" style="display:none; position:absolute;">
+        <a class="dropdown-item" href="#" id="viewBook">View Book</a>
+        <a class="dropdown-item" href="#" id="updateBook">Update</a>
+        <a class="dropdown-item" href="#" id="deleteBook">Delete</a>
+    </div>
+
     <!-- Footer -->
     <?php include '../Admin/inc/footer.php' ?>
     <!-- End of Footer -->
@@ -321,6 +348,48 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
         $('#searchForm').submit(function(event) {
             event.preventDefault();
             fetchBooks();
+        });
+    });
+    </script>
+    <script>
+    $(document).ready(function () {
+        var selectedBookId;
+
+        // Show context menu on right-click
+        $('#dataTable tbody').on('contextmenu', 'tr', function(e) {
+            e.preventDefault();
+            $('#dataTable tbody tr').removeClass('context-menu-active');
+            $(this).addClass('context-menu-active');
+            selectedBookId = $(this).find('td:nth-child(2)').text();
+            $('#contextMenu').css({
+                display: 'block',
+                left: e.pageX,
+                top: e.pageY
+            });
+            return false;
+        });
+
+        // Hide context menu on click outside
+        $(document).click(function() {
+            $('#contextMenu').hide();
+        });
+
+        // Handle context menu actions
+        $('#viewBook').click(function() {
+            window.location.href = `opac.php?book_id=${selectedBookId}`;
+        });
+
+        $('#updateBook').click(function() {
+            window.location.href = `update_book.php?book_id=${selectedBookId}`;
+        });
+
+        $('#deleteBook').click(function() {
+            if (confirm('Are you sure you want to delete this book?')) {
+                $.post('book_list.php', { delete_book_id: selectedBookId }, function(response) {
+                    alert(response.message);
+                    location.reload();
+                }, 'json');
+            }
         });
     });
     </script>

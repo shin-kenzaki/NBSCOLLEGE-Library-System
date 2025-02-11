@@ -19,12 +19,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         foreach ($bookIds as $bookId) {
             foreach ($writerIds as $index => $writerId) {
                 $role = isset($roles[$index]) ? $roles[$index] : 'Author'; // Default role to 'Author' if not provided
-                // Insert the relationship into the database
-                $query = "INSERT INTO contributors (book_id, writer_id, role) VALUES ('$bookId', '$writerId', '$role')";
-                if ($conn->query($query) === TRUE) {
-                    $_SESSION['success_message'] = "Contributor added successfully!";
+                
+                // Check if the writer is already associated with the book
+                $checkQuery = "SELECT * FROM contributors WHERE book_id = '$bookId' AND writer_id = '$writerId'";
+                $checkResult = $conn->query($checkQuery);
+                
+                if ($checkResult->num_rows == 0) {
+                    // Insert the relationship into the database
+                    $query = "INSERT INTO contributors (book_id, writer_id, role) VALUES ('$bookId', '$writerId', '$role')";
+                    if ($conn->query($query) === TRUE) {
+                        $_SESSION['success_message'] = "Contributor added successfully!";
+                    } else {
+                        echo "Error: " . $query . "<br>" . $conn->error;
+                    }
                 } else {
-                    echo "Error: " . $query . "<br>" . $conn->error;
+                    $_SESSION['success_message'] = "Some contributors were already added to the book.";
                 }
             }
         }
