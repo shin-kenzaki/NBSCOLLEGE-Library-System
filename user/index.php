@@ -1,73 +1,4 @@
-<?php
-    session_start();
-    if (isset($_SESSION['admin_id'])) {
-        header("Location: dashboard.php");
-        exit;
-    }
-    require '../db.php'; // Database connection
 
-   // Initialize error message
-$error_message = '';
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Retrieve and sanitize input
-    $user_id = $_POST['user_id'];
-    $password = $_POST['password'];
-
-    // Query to check if the user exists
-    $sql = "SELECT * FROM users WHERE user_id = ?";
-    if ($stmt = $conn->prepare($sql)) {
-        $stmt->bind_param("s", $user_id);
-        $stmt->execute();
-        $result = $stmt->get_result();
-
-        // If the user_id exists, check the password
-        if ($result->num_rows > 0) {
-            $user = $result->fetch_assoc();
-            // Compare plain text passwords directly (Consider using password_hash for security)
-            if ($password === $user['password']) {
-                // Login successful, store session data
-                $_SESSION['user_id'] = $user['id'];
-                $_SESSION['user_id'] = $user['user_id'];
-                $_SESSION['user_firstname'] = $user['firstname'];
-                $_SESSION['user_lastname'] = $user['lastname'];
-
-                // Store user image in session (use default if empty)
-                $_SESSION['user_image'] = !empty($user['image']) ? $user['image'] : 'upload/default-profile.png';
-
-                $_SESSION['usertype'] = strtolower($user['usertype']); // Convert role to lowercase for consistency
-                $_SESSION['user_date_added'] = $user['date_added'];
-                $_SESSION['user_status'] = $user['status'];
-                $_SESSION['user_last_update'] = $user['last_update'];
-
-                // Redirect based on usertype
-                switch ($_SESSION['usertype']) {
-                    case 'student||faculty':
-                        header("location: dashboard.php");
-                        break;
-                    case 'guest':
-                        echo "<p style='color: green;'>Logging In... Redirecting to Librarian Page...</p>";
-                        header("refresh:3;url=guest.php");
-                        break;
-                    default:
-                        $error_message = "Invalid usertype assigned.";
-                }
-                exit;
-            } else {
-                $error_message = "Invalid password.";
-            }
-        } else {
-            $error_message = "No such user found.";
-        }
-
-        $stmt->close();
-    } else {
-        $error_message = "Error preparing query: " . $conn->error;
-    }
-
-    $conn->close();
-}
-    ?>
 
 <!DOCTYPE html>
 <html lang="en">
@@ -89,11 +20,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         rel="stylesheet">
 
     <!-- Custom styles for this template-->
-    <link href="inc/css/sb-admin-2.min.css" rel="stylesheet">
+    <link href="../user/inc/css/sb-admin-2.min.css" rel="stylesheet">
 
     <style>
         .bg-login-image {
-    background: url('inc/img/bg-login.JPG') center center no-repeat;
+    background: url('../user/inc/img/bg-login.JPG') center center no-repeat;
     background-size: cover;
 }
     </style>
@@ -123,8 +54,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <form class="user" method="POST" action="">
                                         <div class="form-group">
                                             <input type="text" class="form-control form-control-user"
-                                            placeholder="user_id"
-                                            id="user_id" name="user_id" required
+                                            placeholder="Email"
+                                            id="email" name="email" required
                                                 >
                                         </div>
                                         <div class="form-group">
@@ -140,6 +71,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                 <label class="custom-control-label" for="customCheck">Remember Me</label>
                                             </div>
                                         </div>
+
+                               
                                         <button type="submit" class="btn btn-primary btn-user btn-block">
                                             Login
                                         </button>
@@ -154,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     </form>
                                     <hr>
                                     <div class="text-center">
-                                        <a class="small" href="forgot-password.html">Forgot Password?</a>
+                                        <a class="small" href="forgot-password.php">Forgot Password?</a>
                                     </div>
                                     <div class="text-center">
                                         <a class="small" href="register.php">Create an Account!</a>
@@ -179,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
 
     <!-- Custom scripts for all pages-->
-    <script src="inc/js/sb-admin-2.min.js"></script>
+    <script src="../../user/inc/js/sb-admin-2.min.js"></script>
 
 </body>
 
