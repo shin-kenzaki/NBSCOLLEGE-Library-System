@@ -3,12 +3,6 @@ session_start();
 
 
 
-// Check if the user is logged in
-if (!isset($_SESSION['schooluser_id']) && !isset($_SESSION['outsider_id'])) {
-    header("Location: ../index.php");
-
-    exit;
-}
 
 include '../user/inc/header.php';
 ?>
