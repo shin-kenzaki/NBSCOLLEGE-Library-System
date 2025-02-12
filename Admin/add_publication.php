@@ -25,6 +25,8 @@ $selectedPublisherIds = isset($_GET['selected_publisher_ids']) ? $_GET['selected
 // Store selected publisher IDs in session
 $_SESSION['selected_publisher_ids'] = $selectedPublisherIds;
 
+// Get the current date
+$currentDate = date('Y-m-d');
 ?>
 
 <!-- Main Content -->
@@ -58,7 +60,7 @@ $_SESSION['selected_publisher_ids'] = $selectedPublisherIds;
                         <table class="table table-bordered" id="publishersTable" width="100%" cellspacing="0">
                             <thead>
                                 <tr>
-                                    <th><input type="checkbox" id="selectAllPublishers"></th>
+                                    <th>Select</th>
                                     <th>ID</th>
                                     <th>Company</th>
                                     <th>Place</th>
@@ -85,18 +87,13 @@ $_SESSION['selected_publisher_ids'] = $selectedPublisherIds;
 
                                 if ($publishersResult->num_rows > 0) {
                                     while ($publisher = $publishersResult->fetch_assoc()) {
-                                        $selectedPublishers[$publisher['id']] = $publisher;
-                                    }
-                                }
-
-                                if (!empty($selectedPublishers)) {
-                                    foreach ($selectedPublishers as $publisher) {
+                                        $selected = in_array($publisher['id'], $selectedPublisherIds) ? " checked" : "";
                                         echo "<tr>
-                                            <td><input type='checkbox' class='selectPublisher' name='publisher_ids[]' value='{$publisher['id']}'" . (in_array($publisher['id'], $selectedPublisherIds) ? " checked" : "") . "></td>
+                                            <td><input type='radio' class='selectPublisher' name='publisher_ids[]' value='{$publisher['id']}'{$selected}></td>
                                             <td>{$publisher['id']}</td>
                                             <td>{$publisher['company']}</td>
                                             <td>{$publisher['place']}</td>
-                                            <td><input type='date' name='publish_dates[]' class='form-control' required></td>
+                                            <td><input type='date' name='publish_dates[]' class='form-control' value='{$currentDate}' required></td>
                                         </tr>";
                                     }
                                 } else {
@@ -125,12 +122,24 @@ $(document).ready(function () {
     // Function to update the selected publisher IDs in the session
     function updateSelectedPublisherIds() {
         selectedPublisherIds = [];
+        var publisherSelected = false;
+
         $('.selectPublisher:checked').each(function() {
             var publisherId = $(this).val();
+
+            if (publisherSelected) {
+                alert('Only one publisher can be selected per book.');
+                $(this).prop('checked', false);
+                return;
+            }
+
+            publisherSelected = true;
+
             if (!selectedPublisherIds.includes(publisherId)) {
                 selectedPublisherIds.push(publisherId);
             }
         });
+
         console.log(selectedPublisherIds); // For debugging purposes
 
         // Store selected publisher IDs in session
@@ -140,12 +149,6 @@ $(document).ready(function () {
             console.log(response); // For debugging purposes
         }, 'json');
     }
-
-    // Select/Deselect all checkboxes
-    $('#selectAllPublishers').click(function() {
-        $('.selectPublisher').prop('checked', this.checked);
-        updateSelectedPublisherIds();
-    });
 
     $('.selectPublisher').click(function() {
         updateSelectedPublisherIds();

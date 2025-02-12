@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     }
                 }
             } else {
-                $_SESSION['success_message'] = "Some books already have a publisher.";
+                $_SESSION['success_message'] = "Book ID $bookId already has a publisher.";
             }
         }
     } else {

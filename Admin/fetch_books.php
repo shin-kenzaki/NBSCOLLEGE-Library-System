@@ -2,6 +2,11 @@
 include '../db.php'; // Database connection
 session_start();
 
+// Clear the session array when the page is refreshed
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    $_SESSION['selectedBookIds'] = [];
+}
+
 $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
 $selectedBookIds = isset($_SESSION['selectedBookIds']) ? $_SESSION['selectedBookIds'] : [];
 
@@ -30,11 +35,13 @@ if (!empty($searchQuery)) {
 $query .= " ORDER BY id DESC";
 $result = $conn->query($query);
 
+echo "<div id='bookList'>";
+
 // Display selected books first
 foreach ($selectedBooks as $row) {
     $isChecked = in_array($row['id'], $selectedBookIds) ? 'checked' : '';
     echo "<tr>
-        <td><input type='checkbox' class='selectRow' $isChecked></td>
+        <td><input type='checkbox' class='selectRow' data-id='{$row['id']}' $isChecked></td>
         <td>{$row['id']}</td>
         <td>{$row['accession']}</td>
         <td>{$row['title']}</td>
@@ -82,7 +89,7 @@ foreach ($selectedBooks as $row) {
 while ($row = $result->fetch_assoc()) {
     $isChecked = in_array($row['id'], $selectedBookIds) ? 'checked' : '';
     echo "<tr>
-        <td><input type='checkbox' class='selectRow' $isChecked></td>
+        <td><input type='checkbox' class='selectRow' data-id='{$row['id']}' $isChecked></td>
         <td>{$row['id']}</td>
         <td>{$row['accession']}</td>
         <td>{$row['title']}</td>
@@ -125,4 +132,6 @@ while ($row = $result->fetch_assoc()) {
     echo "</td>
     </tr>";
 }
+
+echo "</div>";
 ?>

@@ -133,12 +133,26 @@ $(document).ready(function () {
     // Function to update the selected writer IDs in the session
     function updateSelectedWriterIds() {
         selectedWriterIds = [];
+        var authorSelected = false;
+
         $('.selectWriter:checked').each(function() {
             var writerId = $(this).val();
+            var role = $(this).closest('tr').find('select[name="roles[]"]').val();
+
+            if (role === 'Author') {
+                if (authorSelected) {
+                    alert('Only one author can be selected per book.');
+                    $(this).prop('checked', false);
+                    return;
+                }
+                authorSelected = true;
+            }
+
             if (!selectedWriterIds.includes(writerId)) {
                 selectedWriterIds.push(writerId);
             }
         });
+
         console.log(selectedWriterIds); // For debugging purposes
 
         // Store selected writer IDs in session

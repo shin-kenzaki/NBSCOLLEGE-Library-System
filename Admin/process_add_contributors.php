@@ -21,13 +21,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $authorCheckQuery = "SELECT * FROM contributors WHERE book_id = '$bookId' AND role = 'Author'";
             $authorCheckResult = $conn->query($authorCheckQuery);
 
-            if ($authorCheckResult->num_rows > 0) {
-                $_SESSION['success_message'] = "Book ID $bookId already has an author.";
-                continue; // Skip adding another author for this book
-            }
+            $hasAuthor = $authorCheckResult->num_rows > 0;
 
             foreach ($writerIds as $index => $writerId) {
                 $role = isset($roles[$index]) ? $roles[$index] : 'Author'; // Default role to 'Author' if not provided
+
+                if ($role == 'Author' && $hasAuthor) {
+                    $_SESSION['success_message'] = "Book ID $bookId already has an author.";
+                    continue; // Skip adding another author for this book
+                }
 
                 // Check if the writer is already associated with the book
                 $checkQuery = "SELECT * FROM contributors WHERE book_id = '$bookId' AND writer_id = '$writerId'";
@@ -38,6 +40,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $query = "INSERT INTO contributors (book_id, writer_id, role) VALUES ('$bookId', '$writerId', '$role')";
                     if ($conn->query($query) === TRUE) {
                         $_SESSION['success_message'] = "Contributor added successfully!";
+                        if ($role == 'Author') {
+                            $hasAuthor = true; // Mark that the book now has an author
+                        }
                     } else {
                         echo "Error: " . $query . "<br>" . $conn->error;
                     }
