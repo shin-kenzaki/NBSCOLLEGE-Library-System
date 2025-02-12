@@ -209,7 +209,10 @@ $(document).ready(function () {
             { "data": "firstname" },
             { "data": "middle_init" },
             { "data": "lastname" }
-        ]
+        ],
+        "error": function (settings, helpPage, message) {
+            console.log('DataTables error:', message);
+        }
     });
 
     // Remove the search input field
@@ -233,23 +236,6 @@ $(document).ready(function () {
     // Save writers functionality
     $('#saveWriters').click(function() {
         $('#addWritersForm').submit();
-    });
-
-    // Handle search form submission
-    $('form#searchForm').submit(function(event) {
-        event.preventDefault();
-        var searchQuery = $('input[name="search"]').val();
-
-        $.ajax({
-            url: 'fetch_writers.php',
-            type: 'GET',
-            data: {
-                search: searchQuery
-            },
-            success: function(response) {
-                $('#dataTable tbody').html(response);
-            }
-        });
     });
 
     var selectedWriterId;

@@ -199,7 +199,7 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
                             <table class="table table-bordered" id="contributorsTable" width="100%" cellspacing="0">
                                 <thead>
                                     <tr>
-                                        <th>ID</th>
+                                        <th>Writer ID</th>
                                         <th>First Name</th>
                                         <th>Middle Initial</th>
                                         <th>Last Name</th>

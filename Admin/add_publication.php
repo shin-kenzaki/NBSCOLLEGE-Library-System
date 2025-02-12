@@ -62,9 +62,9 @@ $currentDate = date('Y-m-d');
                                 <tr>
                                     <th>Select</th>
                                     <th>ID</th>
-                                    <th>Company</th>
-                                    <th>Place</th>
-                                    <th>Publish Date</th>
+                                    <th>Publisher</th>
+                                    <th>Place of Publication</th>
+                                    <th>Date of Publication</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -72,7 +72,7 @@ $currentDate = date('Y-m-d');
                                 // Fetch publishers from database
                                 $publishersQuery = "SELECT * FROM publishers";
                                 if (!empty($searchQuery)) {
-                                    $publishersQuery .= " WHERE company LIKE '%$searchQuery%' OR place LIKE '%$searchQuery%'";
+                                    $publishersQuery .= " WHERE publisher LIKE '%$searchQuery%' OR place LIKE '%$searchQuery%'";
                                 }
                                 $publishersResult = $conn->query($publishersQuery);
 
@@ -91,7 +91,7 @@ $currentDate = date('Y-m-d');
                                         echo "<tr>
                                             <td><input type='radio' class='selectPublisher' name='publisher_ids[]' value='{$publisher['id']}'{$selected}></td>
                                             <td>{$publisher['id']}</td>
-                                            <td>{$publisher['company']}</td>
+                                            <td>{$publisher['publisher']}</td>
                                             <td>{$publisher['place']}</td>
                                             <td><input type='date' name='publish_dates[]' class='form-control' value='{$currentDate}' required></td>
                                         </tr>";

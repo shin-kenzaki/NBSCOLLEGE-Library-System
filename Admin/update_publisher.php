@@ -11,12 +11,12 @@ include '../db.php';
 $publisherId = isset($_GET['publisher_id']) ? intval($_GET['publisher_id']) : 0;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $company = $_POST['company'];
+    $publisher = $_POST['publisher'];
     $place = $_POST['place'];
 
-    $query = "UPDATE publishers SET company = ?, place = ? WHERE id = ?";
+    $query = "UPDATE publishers SET publisher = ?, place = ? WHERE id = ?";
     $stmt = $conn->prepare($query);
-    $stmt->bind_param('ssi', $company, $place, $publisherId);
+    $stmt->bind_param('ssi', $publisher, $place, $publisherId);
     $stmt->execute();
 
     $_SESSION['success_message'] = "Publisher updated successfully!";
@@ -50,8 +50,8 @@ include '../admin/inc/header.php';
                 <form id="updatePublisherForm" method="POST" action="update_publisher.php?publisher_id=<?php echo $publisherId; ?>">
                     <input type="hidden" name="publisher_id" value="<?php echo $publisher['id']; ?>">
                     <div class="form-group">
-                        <label for="updateCompany">Company</label>
-                        <input type="text" class="form-control" name="company" id="updateCompany" value="<?php echo htmlspecialchars($publisher['company']); ?>" required>
+                        <label for="updatepublisher">Publisher</label>
+                        <input type="text" class="form-control" name="publisher" id="updatepublisher" value="<?php echo htmlspecialchars($publisher['publisher']); ?>" required>
                     </div>
                     <div class="form-group">
                         <label for="updatePlace">Place</label>

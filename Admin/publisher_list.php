@@ -12,26 +12,26 @@ include '../db.php';
 
 // Handle form submission to save publishers
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $companies = $_POST['company'];
+    $companies = $_POST['publisher'];
     $places = $_POST['place'];
 
     $success = true;
 
     for ($i = 0; $i < count($companies); $i++) {
-        $company = $conn->real_escape_string($companies[$i]);
+        $publisher = $conn->real_escape_string($companies[$i]);
         $place = $conn->real_escape_string($places[$i]);
 
-        // Check if the company and place combination already exists
-        $checkSql = "SELECT * FROM publishers WHERE company = '$company' AND place = '$place'";
+        // Check if the publisher and place combination already exists
+        $checkSql = "SELECT * FROM publishers WHERE publisher = '$publisher' AND place = '$place'";
         $checkResult = $conn->query($checkSql);
 
         if ($checkResult->num_rows > 0) {
             $success = false;
-            echo "<script>alert('The combination of company and place already exists: $company, $place');</script>";
+            echo "<script>alert('The combination of publisher and place already exists: $publisher, $place');</script>";
             break;
         }
 
-        $sql = "INSERT INTO publishers (company, place) VALUES ('$company', '$place')";
+        $sql = "INSERT INTO publishers (publisher, place) VALUES ('$publisher', '$place')";
         if (!$conn->query($sql)) {
             $success = false;
             break;
@@ -49,9 +49,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
 
 // Fetch publishers data
-$sql = "SELECT id, company, place FROM publishers";
+$sql = "SELECT id, publisher, place FROM publishers";
 if (!empty($searchQuery)) {
-    $sql .= " WHERE company LIKE '%$searchQuery%' OR place LIKE '%$searchQuery%'";
+    $sql .= " WHERE publisher LIKE '%$searchQuery%' OR place LIKE '%$searchQuery%'";
 }
 $result = $conn->query($sql);
 ?>
@@ -79,8 +79,8 @@ $result = $conn->query($sql);
                         <thead>
                             <tr>
                                 <th>ID</th>
-                                <th>Company</th>
-                                <th>Place</th>
+                                <th>Publisher</th>
+                                <th>Place of Publication</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -91,7 +91,7 @@ $result = $conn->query($sql);
                                 while ($row = $result->fetch_assoc()) {
                                     echo "<tr>
                                             <td>" . $row['id'] . "</td>
-                                            <td>" . $row['company'] . "</td>
+                                            <td>" . $row['publisher'] . "</td>
                                             <td>" . $row['place'] . "</td>
                                           </tr>";
                                 }
@@ -124,7 +124,7 @@ $result = $conn->query($sql);
                 <form id="addPublishersForm" method="POST" action="publisher_list.php">
                     <div id="publishersContainer">
                         <div class="publisher-entry mb-3">
-                            <input type="text" name="company[]" class="form-control mb-2" placeholder="Company" required>
+                            <input type="text" name="publisher[]" class="form-control mb-2" placeholder="Publisher" required>
                             <input type="text" name="place[]" class="form-control mb-2" placeholder="Place" required>
                         </div>
                     </div>
@@ -166,9 +166,12 @@ $(document).ready(function () {
         },
         "columns": [
             { "data": "id" },
-            { "data": "company" },
+            { "data": "publisher" },
             { "data": "place" }
-        ]
+        ],
+        "error": function (settings, helpPage, message) {
+            console.log('DataTables error:', message);
+        }
     });
 
     // Remove the search input field
@@ -182,7 +185,7 @@ $(document).ready(function () {
     $('#addMorePublishers').click(function() {
         var publisherEntry = `
             <div class="publisher-entry mb-3">
-                <input type="text" name="company[]" class="form-control mb-2" placeholder="Company" required>
+                <input type="text" name="publisher[]" class="form-control mb-2" placeholder="Publisher" required>
                 <input type="text" name="place[]" class="form-control mb-2" placeholder="Place" required>
             </div>`;
         $('#publishersContainer').append(publisherEntry);
@@ -191,23 +194,6 @@ $(document).ready(function () {
     // Save publishers functionality
     $('#savePublishers').click(function() {
         $('#addPublishersForm').submit();
-    });
-
-    // Handle search form submission
-    $('form').submit(function(event) {
-        event.preventDefault();
-        var searchQuery = $('input[name="search"]').val();
-
-        $.ajax({
-            url: 'fetch_publishers.php',
-            type: 'GET',
-            data: {
-                search: searchQuery
-            },
-            success: function(response) {
-                $('#dataTable tbody').html(response);
-            }
-        });
     });
 
     var selectedPublisherId;
@@ -240,10 +226,10 @@ $(document).ready(function () {
     $('#deletePublisher').click(function() {
         var row = $('#dataTable tbody tr.context-menu-active');
         var publisherId = row.find('td:nth-child(1)').text();
-        var company = row.find('td:nth-child(2)').text();
+        var publisher = row.find('td:nth-child(2)').text();
         var place = row.find('td:nth-child(3)').text();
 
-        if (confirm(`Are you sure you want to delete this publisher?\n\nID: ${publisherId}\nCompany: ${company}\nPlace: ${place}`)) {
+        if (confirm(`Are you sure you want to delete this publisher?\n\nID: ${publisherId}\npublisher: ${publisher}\nPlace: ${place}`)) {
             $.post('delete_publisher.php', { publisher_id: publisherId }, function(response) {
                 alert(response.message);
                 location.reload();

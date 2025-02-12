@@ -18,7 +18,7 @@ if (!empty($selectedPublisherIds)) {
 // Fetch other publishers
 $query = "SELECT * FROM publishers";
 if (!empty($searchQuery)) {
-    $query .= " WHERE (company LIKE '%$searchQuery%' OR place LIKE '%$searchQuery%')";
+    $query .= " WHERE (publisher LIKE '%$searchQuery%' OR place LIKE '%$searchQuery%')";
     if (!empty($selectedPublisherIds)) {
         $query .= " AND id NOT IN (" . implode(',', array_map('intval', $selectedPublisherIds)) . ")";
     }
@@ -36,7 +36,7 @@ foreach ($selectedPublishers as $row) {
     echo "<tr>
         <td><input type='checkbox' class='selectPublisher' name='publisher_ids[]' value='{$row['id']}' $isChecked></td>
         <td>{$row['id']}</td>
-        <td>{$row['company']}</td>
+        <td>{$row['publisher']}</td>
         <td>{$row['place']}</td>
     </tr>";
 }
@@ -47,7 +47,7 @@ while ($row = $result->fetch_assoc()) {
     echo "<tr>
         <td><input type='checkbox' class='selectPublisher' name='publisher_ids[]' value='{$row['id']}' $isChecked></td>
         <td>{$row['id']}</td>
-        <td>{$row['company']}</td>
+        <td>{$row['publisher']}</td>
         <td>{$row['place']}</td>
     </tr>";
 }
