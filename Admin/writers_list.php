@@ -17,11 +17,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $lastnames = $_POST['lastname'];
 
     $success = true;
+    $valid_entries = 0;
 
     for ($i = 0; $i < count($firstnames); $i++) {
-        $firstname = $conn->real_escape_string($firstnames[$i]);
-        $middle_init = $conn->real_escape_string($middle_inits[$i]);
-        $lastname = $conn->real_escape_string($lastnames[$i]);
+        $firstname = trim($conn->real_escape_string($firstnames[$i]));
+        $middle_init = trim($conn->real_escape_string($middle_inits[$i]));
+        $lastname = trim($conn->real_escape_string($lastnames[$i]));
+
+        // Skip entries without firstname or lastname
+        if (empty($firstname) || empty($lastname)) {
+            continue;
+        }
 
         // Check if the full name already exists
         $checkSql = "SELECT * FROM writers WHERE firstname = '$firstname' AND middle_init = '$middle_init' AND lastname = '$lastname'";
@@ -34,14 +40,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
         $sql = "INSERT INTO writers (firstname, middle_init, lastname) VALUES ('$firstname', '$middle_init', '$lastname')";
-        if (!$conn->query($sql)) {
+        if ($conn->query($sql)) {
+            $valid_entries++;
+        } else {
             $success = false;
             break;
         }
     }
 
-    if ($success) {
-        echo "<script>alert('Writers saved successfully'); window.location.href='writers_list.php';</script>";
+    if ($success && $valid_entries > 0) {
+        echo "<script>alert('$valid_entries writer(s) saved successfully'); window.location.href='writers_list.php';</script>";
+    } elseif ($valid_entries === 0) {
+        echo "<script>alert('No valid writers to save. Please provide both firstname and lastname.');</script>";
     } else {
         echo "<script>alert('Failed to save writers');</script>";
     }
@@ -99,9 +109,6 @@ $result = $conn->query($sql);
                                             <td>" . $row['lastname'] . "</td>
                                           </tr>";
                                 }
-                            } else {
-                                // If no data is found, display a message
-                                echo "<tr><td colspan='4'>No writers found</td></tr>";
                             }
                             ?>
                         </tbody>
@@ -128,9 +135,14 @@ $result = $conn->query($sql);
                 <form id="addWritersForm" method="POST" action="writers_list.php">
                     <div id="writersContainer">
                         <div class="writer-entry mb-3">
-                            <input type="text" name="firstname[]" class="form-control mb-2" placeholder="First Name" required>
-                            <input type="text" name="middle_init[]" class="form-control mb-2" placeholder="Middle Initial">
-                            <input type="text" name="lastname[]" class="form-control mb-2" placeholder="Last Name" required>
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <input type="text" name="firstname[]" class="form-control mb-2" placeholder="First Name" required>
+                                    <input type="text" name="middle_init[]" class="form-control mb-2" placeholder="Middle Initial">
+                                    <input type="text" name="lastname[]" class="form-control mb-2" placeholder="Last Name" required>
+                                </div>
+                                <button type="button" class="btn btn-danger ml-2 remove-writer" style="height: 38px;">×</button>
+                            </div>
                         </div>
                     </div>
                     <button type="button" class="btn btn-secondary" id="addMoreWriters">Add More Writers</button>
@@ -209,10 +221,7 @@ $(document).ready(function () {
             { "data": "firstname" },
             { "data": "middle_init" },
             { "data": "lastname" }
-        ],
-        "error": function (settings, helpPage, message) {
-            console.log('DataTables error:', message);
-        }
+        ]
     });
 
     // Remove the search input field
@@ -226,16 +235,25 @@ $(document).ready(function () {
     $('#addMoreWriters').click(function() {
         var writerEntry = `
             <div class="writer-entry mb-3">
-                <input type="text" name="firstname[]" class="form-control mb-2" placeholder="First Name" required>
-                <input type="text" name="middle_init[]" class="form-control mb-2" placeholder="Middle Initial">
-                <input type="text" name="lastname[]" class="form-control mb-2" placeholder="Last Name" required>
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        <input type="text" name="firstname[]" class="form-control mb-2" placeholder="First Name" required>
+                        <input type="text" name="middle_init[]" class="form-control mb-2" placeholder="Middle Initial">
+                        <input type="text" name="lastname[]" class="form-control mb-2" placeholder="Last Name" required>
+                    </div>
+                    <button type="button" class="btn btn-danger ml-2 remove-writer" style="height: 38px;">×</button>
+                </div>
             </div>`;
         $('#writersContainer').append(writerEntry);
     });
 
-    // Save writers functionality
-    $('#saveWriters').click(function() {
-        $('#addWritersForm').submit();
+    // Remove writer functionality
+    $(document).on('click', '.remove-writer', function() {
+        if ($('.writer-entry').length > 1) {
+            $(this).closest('.writer-entry').remove();
+        } else {
+            alert('At least one writer entry must remain.');
+        }
     });
 
     var selectedWriterId;
@@ -290,5 +308,29 @@ $(document).ready(function () {
         alert(successMessage);
         <?php unset($_SESSION['success_message']); ?>
     }
+
+    // Update the save writers functionality
+    $('#saveWriters').click(function(e) {
+        e.preventDefault();
+        
+        // Validate that at least one writer has both firstname and lastname
+        var hasValidWriter = false;
+        $('.writer-entry').each(function() {
+            var firstname = $(this).find('input[name="firstname[]"]').val().trim();
+            var lastname = $(this).find('input[name="lastname[]"]').val().trim();
+            if (firstname && lastname) {
+                hasValidWriter = true;
+                return false; // break the loop
+            }
+        });
+
+        if (!hasValidWriter) {
+            alert('Please provide at least one writer with both firstname and lastname.');
+            return;
+        }
+
+        // Submit the form
+        $('#addWritersForm').submit();
+    });
 });
 </script>

@@ -16,30 +16,50 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $places = $_POST['place'];
 
     $success = true;
+    $valid_entries = 0;
+    $existing_combinations = [];
 
     for ($i = 0; $i < count($companies); $i++) {
-        $publisher = $conn->real_escape_string($companies[$i]);
-        $place = $conn->real_escape_string($places[$i]);
+        $publisher = trim($conn->real_escape_string($companies[$i]));
+        $place = trim($conn->real_escape_string($places[$i]));
 
-        // Check if the publisher and place combination already exists
+        // Skip entries without publisher name or place
+        if (empty($publisher) || empty($place)) {
+            continue;
+        }
+
+        // Check for duplicate entries within the current submission
+        $combination = $publisher . '|' . $place;
+        if (in_array($combination, $existing_combinations)) {
+            $success = false;
+            echo "<script>alert('Duplicate entry found: $publisher in $place');</script>";
+            break;
+        }
+        $existing_combinations[] = $combination;
+
+        // Check if the exact publisher and place combination already exists in database
         $checkSql = "SELECT * FROM publishers WHERE publisher = '$publisher' AND place = '$place'";
         $checkResult = $conn->query($checkSql);
 
         if ($checkResult->num_rows > 0) {
             $success = false;
-            echo "<script>alert('The combination of publisher and place already exists: $publisher, $place');</script>";
+            echo "<script>alert('This publisher already exists in this location: $publisher in $place');</script>";
             break;
         }
 
         $sql = "INSERT INTO publishers (publisher, place) VALUES ('$publisher', '$place')";
-        if (!$conn->query($sql)) {
+        if ($conn->query($sql)) {
+            $valid_entries++;
+        } else {
             $success = false;
             break;
         }
     }
 
-    if ($success) {
-        echo "<script>alert('Publishers saved successfully'); window.location.href='publisher_list.php';</script>";
+    if ($success && $valid_entries > 0) {
+        echo "<script>alert('$valid_entries publisher(s) saved successfully'); window.location.href='publisher_list.php';</script>";
+    } elseif ($valid_entries === 0) {
+        echo "<script>alert('No valid publishers to save. Please provide both publisher name and place.');</script>";
     } else {
         echo "<script>alert('Failed to save publishers');</script>";
     }
@@ -95,9 +115,6 @@ $result = $conn->query($sql);
                                             <td>" . $row['place'] . "</td>
                                           </tr>";
                                 }
-                            } else {
-                                // If no data is found, display a message
-                                echo "<tr><td colspan='3'>No publishers found</td></tr>";
                             }
                             ?>
                         </tbody>
@@ -124,8 +141,13 @@ $result = $conn->query($sql);
                 <form id="addPublishersForm" method="POST" action="publisher_list.php">
                     <div id="publishersContainer">
                         <div class="publisher-entry mb-3">
-                            <input type="text" name="publisher[]" class="form-control mb-2" placeholder="Publisher" required>
-                            <input type="text" name="place[]" class="form-control mb-2" placeholder="Place" required>
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <input type="text" name="publisher[]" class="form-control mb-2" placeholder="Publisher" required>
+                                    <input type="text" name="place[]" class="form-control mb-2" placeholder="Place" required>
+                                </div>
+                                <button type="button" class="btn btn-danger ml-2 remove-publisher" style="height: 38px;">×</button>
+                            </div>
                         </div>
                     </div>
                     <button type="button" class="btn btn-secondary" id="addMorePublishers">Add More Publishers</button>
@@ -168,10 +190,7 @@ $(document).ready(function () {
             { "data": "id" },
             { "data": "publisher" },
             { "data": "place" }
-        ],
-        "error": function (settings, helpPage, message) {
-            console.log('DataTables error:', message);
-        }
+        ]
     });
 
     // Remove the search input field
@@ -185,15 +204,24 @@ $(document).ready(function () {
     $('#addMorePublishers').click(function() {
         var publisherEntry = `
             <div class="publisher-entry mb-3">
-                <input type="text" name="publisher[]" class="form-control mb-2" placeholder="Publisher" required>
-                <input type="text" name="place[]" class="form-control mb-2" placeholder="Place" required>
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        <input type="text" name="publisher[]" class="form-control mb-2" placeholder="Publisher" required>
+                        <input type="text" name="place[]" class="form-control mb-2" placeholder="Place" required>
+                    </div>
+                    <button type="button" class="btn btn-danger ml-2 remove-publisher" style="height: 38px;">×</button>
+                </div>
             </div>`;
         $('#publishersContainer').append(publisherEntry);
     });
 
-    // Save publishers functionality
-    $('#savePublishers').click(function() {
-        $('#addPublishersForm').submit();
+    // Remove publisher functionality
+    $(document).on('click', '.remove-publisher', function() {
+        if ($('.publisher-entry').length > 1) {
+            $(this).closest('.publisher-entry').remove();
+        } else {
+            alert('At least one publisher entry must remain.');
+        }
     });
 
     var selectedPublisherId;
@@ -248,5 +276,29 @@ $(document).ready(function () {
         alert(successMessage);
         <?php unset($_SESSION['success_message']); ?>
     }
+
+    // Update the save publishers functionality
+    $('#savePublishers').click(function(e) {
+        e.preventDefault();
+        
+        // Validate that at least one publisher has both name and place
+        var hasValidPublisher = false;
+        $('.publisher-entry').each(function() {
+            var publisher = $(this).find('input[name="publisher[]"]').val().trim();
+            var place = $(this).find('input[name="place[]"]').val().trim();
+            if (publisher && place) {
+                hasValidPublisher = true;
+                return false; // break the loop
+            }
+        });
+
+        if (!hasValidPublisher) {
+            alert('Please provide at least one publisher with both name and place.');
+            return;
+        }
+
+        // Submit the form
+        $('#addPublishersForm').submit();
+    });
 });
 </script>
