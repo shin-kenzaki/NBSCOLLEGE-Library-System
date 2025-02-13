@@ -1,4 +1,7 @@
 <?php
+// Start output buffering
+ob_start();
+
 session_start();
 
 if (!isset($_SESSION['admin_id'])) {
@@ -6,18 +9,26 @@ if (!isset($_SESSION['admin_id'])) {
     exit();
 }
 
-include '../admin/inc/header.php';
-include '../db.php';
-
+// Get book ID before includes
 $bookId = isset($_GET['book_id']) ? intval($_GET['book_id']) : 0;
 
+// Database connection first
+include '../db.php';
+
+// Process form submission before any output
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // First, get the current book data before updating
+    $getCurrentBook = "SELECT * FROM books WHERE id = ?";
+    $stmt = $conn->prepare($getCurrentBook);
+    $stmt->bind_param('i', $bookId);
+    $stmt->execute();
+    $oldBookData = $stmt->get_result()->fetch_assoc();
+
+    // Get the new data from POST
     $accession = $_POST['accession'];
     $title = $_POST['title'];
     $preferredTitle = $_POST['preferred_title'];
     $parallelTitle = $_POST['parallel_title'];
-    $frontImage = $_FILES['front_image']['name'];
-    $backImage = $_FILES['back_image']['name'];
     $height = $_POST['height'];
     $width = $_POST['width'];
     $totalPages = $_POST['total_pages'];
@@ -38,24 +49,89 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $mediaType = $_POST['media_type'];
     $carrierType = $_POST['carrier_type'];
 
-    // Move uploaded files to the desired directory
-    if (!empty($frontImage)) {
+    // Handle image uploads
+    $frontImage = !empty($_FILES['front_image']['name']) ? $_FILES['front_image']['name'] : $oldBookData['front_image'];
+    $backImage = !empty($_FILES['back_image']['name']) ? $_FILES['back_image']['name'] : $oldBookData['back_image'];
+
+    // Upload new images if provided
+    if (!empty($_FILES['front_image']['name'])) {
         move_uploaded_file($_FILES['front_image']['tmp_name'], "../uploads/" . $frontImage);
     }
-    if (!empty($backImage)) {
+    if (!empty($_FILES['back_image']['name'])) {
         move_uploaded_file($_FILES['back_image']['tmp_name'], "../uploads/" . $backImage);
     }
 
-    // Update data in the 'books' table
-    $query = "UPDATE books SET accession = ?, title = ?, preferred_title = ?, parallel_title = ?, front_image = ?, back_image = ?, height = ?, width = ?, total_pages = ?, call_number = ?, copy_number = ?, language = ?, shelf_location = ?, entered_by = ?, date_added = ?, status = ?, last_update = ?, series = ?, volume = ?, edition = ?, ISBN = ?, URL = ?, content_type = ?, media_type = ?, carrier_type = ? WHERE id = ?";
-    $stmt = $conn->prepare($query);
-    $stmt->bind_param('ssssssiiisiissssssssssssssi', $accession, $title, $preferredTitle, $parallelTitle, $frontImage, $backImage, $height, $width, $totalPages, $callNumber, $copyNumber, $language, $shelfLocation, $enteredBy, $dateAdded, $status, $lastUpdate, $series, $volume, $edition, $isbn, $url, $contentType, $mediaType, $carrierType, $bookId);
-    $stmt->execute();
+    // Begin transaction
+    $conn->begin_transaction();
 
-    $_SESSION['success_message'] = "Book updated successfully!";
+    try {
+        // Update the current book first
+        $query = "UPDATE books SET 
+                  accession = ?, title = ?, preferred_title = ?, parallel_title = ?, 
+                  front_image = ?, 
+                  back_image = ?, 
+                  height = ?, width = ?, total_pages = ?, 
+                  call_number = ?, copy_number = ?, language = ?, shelf_location = ?, 
+                  entered_by = ?, date_added = ?, status = ?, last_update = NOW(), 
+                  series = ?, volume = ?, edition = ?, ISBN = ?, URL = ?, 
+                  content_type = ?, media_type = ?, carrier_type = ? 
+                  WHERE id = ?";
+                  
+        $stmt = $conn->prepare($query);
+        $stmt->bind_param('ssssssiiisiissssssssssssi', 
+            $accession, $title, $preferredTitle, $parallelTitle, 
+            $frontImage, $backImage, 
+            $height, $width, $totalPages, $callNumber, $copyNumber, 
+            $language, $shelfLocation, $enteredBy, $dateAdded, $status, 
+            $series, $volume, $edition, $isbn, $url, 
+            $contentType, $mediaType, $carrierType, $bookId
+        );
+        $stmt->execute();
+
+        // Now update all similar books (excluding the current book)
+        $updateSimilarBooks = "UPDATE books SET 
+                             title = ?,
+                             preferred_title = ?,
+                             parallel_title = ?,
+                             series = ?,
+                             volume = ?,
+                             edition = ?,
+                             ISBN = ?,
+                             content_type = ?,
+                             media_type = ?,
+                             carrier_type = ?,
+                             last_update = NOW()
+                             WHERE title = ? 
+                             AND id != ?";
+
+        $stmt = $conn->prepare($updateSimilarBooks);
+        $stmt->bind_param('sssssssssssi', 
+            $title, $preferredTitle, $parallelTitle,
+            $series, $volume, $edition, $isbn,
+            $contentType, $mediaType, $carrierType,
+            $oldBookData['title'], // Use the old title to find similar books
+            $bookId
+        );
+        $stmt->execute();
+        
+        $affectedRows = $stmt->affected_rows;
+
+        $conn->commit();
+        $_SESSION['success_message'] = "Book updated successfully! {$affectedRows} similar books were also updated.";
+        
+    } catch (Exception $e) {
+        $conn->rollback();
+        $_SESSION['error_message'] = "Error updating books: " . $e->getMessage();
+    }
+
+    // Clear output buffer and redirect
+    ob_end_clean();
     header("Location: book_list.php");
     exit();
 }
+
+// Now include header since we're sure we won't redirect
+include '../admin/inc/header.php';
 
 $query = "SELECT * FROM books WHERE id = ?";
 $stmt = $conn->prepare($query);
@@ -334,25 +410,6 @@ document.addEventListener("DOMContentLoaded", function() {
             event.preventDefault();
             tabTrigger.show();
         });
-    });
-
-    // Handle form submission
-    document.getElementById('bookForm').addEventListener('submit', function(event) {
-        event.preventDefault();
-
-        var form = this;
-        var formData = new FormData(form);
-
-        fetch(form.action, {
-            method: form.method,
-            body: formData
-        }).then(response => response.text())
-          .then(data => {
-              alert('Book updated successfully!');
-              window.location.href = 'book_list.php';
-          }).catch(error => {
-              alert('An error occurred. Please try again.');
-          });
     });
 });
 </script>
