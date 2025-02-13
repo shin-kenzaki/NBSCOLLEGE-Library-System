@@ -130,7 +130,7 @@ if ($bookId > 0) {
                         <p><span class="label">Total Pages:</span> <?php echo htmlspecialchars($book['total_pages']); ?></p>
                     </div>
                     <div class="row">
-                        <p><span class="label">Database Call Number:</span> <?php echo htmlspecialchars($book['call_number']); ?></p>
+                        <p><span class="label">Call Number:</span> <?php echo htmlspecialchars($book['call_number']); ?></p>
                         <p><span class="label">Generated Call Number:</span> <?php echo htmlspecialchars($generatedCallNumber); ?></p>
                     </div>
                     <div class="row">

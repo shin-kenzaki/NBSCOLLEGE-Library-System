@@ -12,16 +12,94 @@ include '../db.php'; // Database connection
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_book_id'])) {
     $bookId = intval($_POST['delete_book_id']);
 
-    // Delete the book from the database
-    $query = "DELETE FROM books WHERE id = ?";
-    $stmt = $conn->prepare($query);
-    $stmt->bind_param('i', $bookId);
-    $stmt->execute();
+    // Start transaction
+    $conn->begin_transaction();
+    try {
+        // Delete related contributors first
+        $contribQuery = "DELETE FROM contributors WHERE book_id = ?";
+        $contribStmt = $conn->prepare($contribQuery);
+        $contribStmt->bind_param('i', $bookId);
+        $contribStmt->execute();
 
-    if ($stmt->affected_rows > 0) {
-        $response = ['message' => 'Book deleted successfully!'];
-    } else {
-        $response = ['message' => 'Failed to delete the book.'];
+        // Delete related publications first
+        $pubQuery = "DELETE FROM publications WHERE book_id = ?";
+        $pubStmt = $conn->prepare($pubQuery);
+        $pubStmt->bind_param('i', $bookId);
+        $pubStmt->execute();
+
+        // Delete the book
+        $bookQuery = "DELETE FROM books WHERE id = ?";
+        $bookStmt = $conn->prepare($bookQuery);
+        $bookStmt->bind_param('i', $bookId);
+        $bookStmt->execute();
+
+        if ($bookStmt->affected_rows > 0) {
+            $conn->commit();
+            $response = ['message' => 'Book and all related records deleted successfully!'];
+        } else {
+            $conn->rollback();
+            $response = ['message' => 'Failed to delete the book.'];
+        }
+    } catch (Exception $e) {
+        $conn->rollback();
+        $response = ['message' => 'Error: ' . $e->getMessage()];
+    }
+
+    echo json_encode($response);
+    exit();
+}
+
+// Handle batch book deletion
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['batch_delete'])) {
+    $bookIds = json_decode($_POST['book_ids']);
+    $success = true;
+    $deleted = 0;
+
+    // Start transaction
+    $conn->begin_transaction();
+    try {
+        foreach ($bookIds as $bookId) {
+            // Delete related contributors first
+            $contribQuery = "DELETE FROM contributors WHERE book_id = ?";
+            $contribStmt = $conn->prepare($contribQuery);
+            $contribStmt->bind_param('i', $bookId);
+            $contribStmt->execute();
+
+            // Delete related publications first
+            $pubQuery = "DELETE FROM publications WHERE book_id = ?";
+            $pubStmt = $conn->prepare($pubQuery);
+            $pubStmt->bind_param('i', $bookId);
+            $pubStmt->execute();
+
+            // Delete the book
+            $bookQuery = "DELETE FROM books WHERE id = ?";
+            $bookStmt = $conn->prepare($bookQuery);
+            $bookStmt->bind_param('i', $bookId);
+            $bookStmt->execute();
+            
+            if ($bookStmt->affected_rows > 0) {
+                $deleted++;
+            } else {
+                $success = false;
+            }
+        }
+
+        if ($success && $deleted > 0) {
+            $conn->commit();
+        } else {
+            $conn->rollback();
+        }
+
+        $response = [
+            'success' => $success,
+            'message' => $deleted . " book(s) and all related records deleted successfully!"
+        ];
+    } catch (Exception $e) {
+        $conn->rollback();
+        $response = [
+            'success' => false,
+            'message' => 'Error: ' . $e->getMessage()
+        ];
     }
 
     echo json_encode($response);
@@ -78,6 +156,7 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
                             <div class="mb-3" id="addContributorsIcons">
                                 <button class="btn btn-success btn-sm mx-1" id="addContributorsPerson"><i class="fas fa-user-plus"></i> Add Contributors</button>
                                 <button class="btn btn-success btn-sm mx-1" id="addPublisher"><i class="fas fa-building"></i> Add Publication</button>
+                                <button class="btn btn-danger btn-sm mx-1" id="batchDelete"><i class="fas fa-trash"></i> Delete Selected</button>
                             </div>
                         </form>
                         <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
@@ -348,6 +427,33 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
                 e.preventDefault();
                 var queryString = selectedBookIds.map(id => `book_ids[]=${id}`).join('&');
                 window.location.href = `add_publication.php?${queryString}`;
+            });
+
+            // Handle batch delete
+            $('#batchDelete').click(function() {
+                if (selectedBookIds.length === 0) {
+                    alert('Please select books to delete.');
+                    return;
+                }
+
+                if (confirm('Are you sure you want to delete ' + selectedBookIds.length + ' selected book(s)?')) {
+                    $.ajax({
+                        url: 'book_list.php',
+                        type: 'POST',
+                        data: {
+                            batch_delete: true,
+                            book_ids: JSON.stringify(selectedBookIds)
+                        },
+                        dataType: 'json',
+                        success: function(response) {
+                            alert(response.message);
+                            location.reload();
+                        },
+                        error: function() {
+                            alert('Error occurred while deleting books.');
+                        }
+                    });
+                }
             });
 
             // Handle search form submission
