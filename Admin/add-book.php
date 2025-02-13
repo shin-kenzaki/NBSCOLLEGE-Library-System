@@ -15,7 +15,12 @@ $accession_error = '';
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $accession = $_POST['accession'];
+    $number_of_copies = (int)$_POST['number_of_copies'];
     $title = $_POST['title'];
+    // Set copy_number to 1 if empty or invalid
+    $copy_number = !empty($_POST['copy_number']) ? (int)$_POST['copy_number'] : 1;
+    
+    // Other form fields
     $preferred_title = $_POST['preferred_title'];
     $parallel_title = $_POST['parallel_title'];
     $front_image = $_FILES['front_image']['name'];
@@ -24,7 +29,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $width = $_POST['width'];
     $total_pages = $_POST['total_pages'];
     $call_number = $_POST['call_number'];
-    $copy_number = $_POST['copy_number'];
     $language = $_POST['language'];
     $shelf_location = $_POST['shelf_location'];
     $entered_by = $_POST['entered_by'];
@@ -47,18 +51,71 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (mysqli_num_rows($result) > 0) {
         $accession_error = "A book with the same accession number already exists.";
     } else {
-        // Move uploaded files to the desired directory
-        move_uploaded_file($_FILES['front_image']['tmp_name'], "../uploads/" . $front_image);
-        move_uploaded_file($_FILES['back_image']['tmp_name'], "../uploads/" . $back_image);
+        // Get all existing copy numbers for this title
+        $existing_copies_query = "SELECT copy_number FROM books WHERE title = '$title' ORDER BY copy_number";
+        $existing_copies_result = mysqli_query($conn, $existing_copies_query);
+        $taken_copy_numbers = array();
+        while($row = mysqli_fetch_assoc($existing_copies_result)) {
+            $taken_copy_numbers[] = (int)$row['copy_number'];
+        }
 
-        // Insert data into the 'books' table
-        $query = "INSERT INTO books (id, accession, title, preferred_title, parallel_title, front_image, back_image, height, width, total_pages, call_number, copy_number, language, shelf_location, entered_by, date_added, status, last_update, series, volume, edition, isbn, url, content_type, media_type, carrier_type) 
-                  VALUES (NULL, '$accession', '$title', '$preferred_title', '$parallel_title', '$front_image', '$back_image', '$height', '$width', '$total_pages', '$call_number', '$copy_number', '$language', '$shelf_location', '$entered_by', '$date_added', '$status', '$last_update', '$series', '$volume', '$edition', '$isbn', '$url', '$content_type', '$media_type', '$carrier_type')";
-
-        if (mysqli_query($conn, $query)) {
-            echo "Book added successfully!";
+        // Determine the starting copy number
+        if (!empty($_POST['copy_number'])) {
+            $copy_number = (int)$_POST['copy_number'];
         } else {
-            echo "Error: " . $query . "<br>" . mysqli_error($conn);
+            $copy_number = empty($taken_copy_numbers) ? 1 : max($taken_copy_numbers) + 1;
+        }
+
+        // Move uploaded files to the desired directory
+        $front_image_filename = "";
+        $back_image_filename = "";
+        if($_FILES['front_image']['name']) {
+            $front_image_filename = time() . '_' . $_FILES['front_image']['name'];
+            move_uploaded_file($_FILES['front_image']['tmp_name'], "../uploads/" . $front_image_filename);
+        }
+        if($_FILES['back_image']['name']) {
+            $back_image_filename = time() . '_' . $_FILES['back_image']['name'];
+            move_uploaded_file($_FILES['back_image']['tmp_name'], "../uploads/" . $back_image_filename);
+        }
+
+        $success_count = 0;
+        $assigned_copies = array();
+        $current_copy = $copy_number;
+        
+        // Insert multiple copies while skipping taken numbers
+        for ($i = 0; $i < $number_of_copies; $i++) {
+            // Find next available copy number
+            while (in_array($current_copy, $taken_copy_numbers)) {
+                $current_copy++;
+            }
+            
+            $current_accession = $accession + $i;
+            $assigned_copies[] = $current_copy;
+            
+            $query = "INSERT INTO books (accession, title, preferred_title, parallel_title, front_image, back_image, 
+                     height, width, total_pages, call_number, copy_number, language, shelf_location, entered_by, 
+                     date_added, status, last_update, series, volume, edition, isbn, url, content_type, media_type, carrier_type) 
+                     VALUES ('$current_accession', '$title', '$preferred_title', '$parallel_title', '$front_image_filename', 
+                     '$back_image_filename', '$height', '$width', '$total_pages', '$call_number', '$current_copy', 
+                     '$language', '$shelf_location', '$entered_by', '$date_added', '$status', '$last_update', '$series', 
+                     '$volume', '$edition', '$isbn', '$url', '$content_type', '$media_type', '$carrier_type')";
+
+            if (mysqli_query($conn, $query)) {
+                $success_count++;
+            }
+            
+            $current_copy++;
+        }
+
+        if ($success_count == $number_of_copies) {
+            $copy_numbers_str = implode(", ", $assigned_copies);
+            echo "<script>
+                alert('Successfully added " . $success_count . " copies of the book!\\n" .
+                "Accession numbers: " . $accession . " to " . ($accession + $number_of_copies - 1) . "\\n" .
+                "Copy numbers: " . $copy_numbers_str . "');
+            </script>";
+        } else {
+            echo "<script>alert('Error: Only " . $success_count . " out of " . $number_of_copies . " copies were added.');</script>";
         }
     }
 }
@@ -163,7 +220,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                         <div class="col-md-6">
                                             <div class="form-group">
                                                 <label>Copy Number</label>
-                                                <input type="number" class="form-control" name="copy_number">
+                                                <input type="number" class="form-control" name="copy_number" min="1" placeholder="Leave empty to start from 1">
+                                                <small class="text-muted">If left empty, copy number will start from 1</small>
                                             </div>
                                         </div>
                                         <div class="col-md-6">
@@ -177,7 +235,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                         </div>
                                     </div>
                                     <!--  -->
-
 
                                     <!--  -->
                                     <div class="row">
@@ -228,6 +285,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                             <div class="form-group">
                                                 <label>Last Update</label>
                                                 <input type="text" class="form-control" name="last_update" value="<?php echo date('Y-m-d'); ?>" readonly>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label>Number of Copies</label>
+                                                <input type="number" class="form-control" name="number_of_copies" min="1" value="1" required>
+                                                <small class="text-muted">This will create multiple entries with incremented accession and copy numbers</small>
                                             </div>
                                         </div>
                                     </div>

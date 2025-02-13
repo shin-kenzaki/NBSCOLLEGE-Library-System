@@ -1,5 +1,29 @@
+<?php
+session_start();
+include('../connection.php');
 
-
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $email = mysqli_real_escape_string($con, $_POST['email']);
+    $password = mysqli_real_escape_string($con, $_POST['password']);
+    
+    $query = "SELECT * FROM admins WHERE email = '$email'";
+    $result = mysqli_query($con, $query);
+    
+    if (mysqli_num_rows($result) == 1) {
+        $row = mysqli_fetch_assoc($result);
+        if (password_verify($password, $row['password'])) {
+            $_SESSION['admin_id'] = $row['id'];
+            $_SESSION['admin_email'] = $row['email'];
+            header("Location: dashboard.php");
+            exit();
+        } else {
+            $error = "Invalid password";
+        }
+    } else {
+        $error = "Invalid email";
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -51,6 +75,11 @@
                                     <div class="text-center">
                                         <h1 class="h4 text-gray-900 mb-4">Welcome Back!</h1>
                                     </div>
+                                    <?php if(isset($error)): ?>
+                                        <div class="alert alert-danger">
+                                            <?php echo $error; ?>
+                                        </div>
+                                    <?php endif; ?>
                                     <form class="user" method="POST" action="">
                                         <div class="form-group">
                                             <input type="text" class="form-control form-control-user"
