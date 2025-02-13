@@ -7,17 +7,26 @@ if (!isset($_SESSION['admin_id'])) {
 }
 
 include '../db.php'; // Database connection
+include '../includes/lcc_generator.php'; // Add this line
 
 // Get the book ID from the query parameters
 $bookId = isset($_GET['book_id']) ? intval($_GET['book_id']) : 0;
 
 if ($bookId > 0) {
     // Fetch book details from the database
-    $query = "SELECT * FROM books WHERE id = $bookId";
-    $result = $conn->query($query);
+    $query = "SELECT * FROM books WHERE id = ?";
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param("i", $bookId);
+    $stmt->execute();
+    $result = $stmt->get_result();
 
-    if ($result->num_rows > 0) {
+    if ($result && $result->num_rows > 0) {
         $book = $result->fetch_assoc();
+        
+        // Only generate call number for display
+        $generatedCallNumber = generateCallNumber($book);
+        
+        // Remove the auto-update logic, just keep the display
     } else {
         $error = "Book not found.";
     }
@@ -30,8 +39,20 @@ if ($bookId > 0) {
         $contributors[] = $row;
     }
 
+    // Add this debug code after fetching contributors
+    if (!empty($contributors)) {
+        echo "<!-- Debug: Primary Author: ";
+        foreach ($contributors as $contributor) {
+            if ($contributor['role'] === 'Author') {
+                echo htmlspecialchars($contributor['lastname']);
+                break;
+            }
+        }
+        echo " -->";
+    }
+
     // Fetch publications from the database
-    $publicationsQuery = "SELECT p.*, pub.company, pub.place FROM publications p JOIN publishers pub ON p.publisher_id = pub.id WHERE p.book_id = $bookId";
+    $publicationsQuery = "SELECT p.*, pub.publisher, pub.place FROM publications p JOIN publishers pub ON p.publisher_id = pub.id WHERE p.book_id = $bookId";
     $publicationsResult = $conn->query($publicationsQuery);
     $publications = [];
     while ($row = $publicationsResult->fetch_assoc()) {
@@ -109,7 +130,10 @@ if ($bookId > 0) {
                         <p><span class="label">Total Pages:</span> <?php echo htmlspecialchars($book['total_pages']); ?></p>
                     </div>
                     <div class="row">
-                        <p><span class="label">Call Number:</span> <?php echo htmlspecialchars($book['call_number']); ?></p>
+                        <p><span class="label">Database Call Number:</span> <?php echo htmlspecialchars($book['call_number']); ?></p>
+                        <p><span class="label">Generated Call Number:</span> <?php echo htmlspecialchars($generatedCallNumber); ?></p>
+                    </div>
+                    <div class="row">
                         <p><span class="label">Copy Number:</span> <?php echo htmlspecialchars($book['copy_number']); ?></p>
                     </div>
                     <div class="row">
@@ -158,7 +182,7 @@ if ($bookId > 0) {
                     <?php if (!empty($publications)): ?>
                         <ul>
                             <?php foreach ($publications as $publication): ?>
-                                <li><?php echo htmlspecialchars($publication['company'] . ' (' . $publication['place'] . ') - ' . $publication['publish_date']); ?></li>
+                                <li><?php echo htmlspecialchars($publication['publisher'] . ' (' . $publication['place'] . ') - ' . $publication['publish_date'] . ''); ?></li>
                             <?php endforeach; ?>
                         </ul>
                     <?php else: ?>

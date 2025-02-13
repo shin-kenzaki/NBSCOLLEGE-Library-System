@@ -27,7 +27,28 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $back_image = $_FILES['back_image']['name'];
     $height = $_POST['height'];
     $width = $_POST['width'];
-    $total_pages = $_POST['total_pages'];
+    $prefix_pages = $_POST['prefix_pages'];
+    $main_pages = $_POST['total_pages'];
+    $bibliography_pages = $_POST['bibliography_pages'];
+    $index_pages = $_POST['index_pages'];
+    $glossary_pages = $_POST['glossary_pages'];
+    
+    // Combine the page information
+    $total_pages = '';
+    if (!empty($prefix_pages)) {
+        $total_pages .= $prefix_pages . ', ';
+    }
+    $total_pages .= $main_pages;
+    if (!empty($bibliography_pages)) {
+        $total_pages .= ' + ' . $bibliography_pages . ' p. bibl.';
+    }
+    if (!empty($index_pages)) {
+        $total_pages .= ' + ' . $index_pages . ' p. index';
+    }
+    if (!empty($glossary_pages)) {
+        $total_pages .= ' + ' . $glossary_pages . ' p. gloss.';
+    }
+    
     $call_number = $_POST['call_number'];
     $language = $_POST['language'];
     $shelf_location = $_POST['shelf_location'];
@@ -125,10 +146,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <!-- Main Content -->
 <div id="content" class="d-flex flex-column min-vh-100">
     <div class="container-fluid">
-        <form id="bookForm" action="add-book.php" method="POST" enctype="multipart/form-data">
+        <!-- Fix: Remove enctype if not needed -->
+        <form id="bookForm" action="add-book.php" method="POST" enctype="multipart/form-data" class="h-100">
             <div class="container-fluid d-flex justify-content-between align-items-center">
                 <h1 class="h3 mb-2 text-gray-800">Add Book</h1>
-                <button type="submit" class="btn btn-success">Add Book</button>
+                <!-- Fix: Change button type to submit -->
+                <button type="submit" name="submit" class="btn btn-success">Add Book</button>
             </div>
 
             <div class="row">
@@ -180,15 +203,55 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             </div>
                             <div class="form-group">
                                 <label>Height (cm)</label>
-                                <input type="number" class="form-control" name="height">
+                                <input type="number" step="0.01" class="form-control" name="height">
                             </div>
                             <div class="form-group">
                                 <label>Width (cm)</label>
-                                <input type="number" class="form-control" name="width">
+                                <input type="number" step="0.01" class="form-control" name="width">
                             </div>
                             <div class="form-group">
-                                <label>Total Pages</label>
-                                <input type="number" class="form-control" name="total_pages">
+                                <label>Pages</label>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <label class="small">Prefix (Roman)</label>
+                                        <input type="text" class="form-control" name="prefix_pages" placeholder="e.g. xvi">
+                                        <small class="text-muted">Use roman numerals</small>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="small">Main Pages</label>
+                                        <input type="text" class="form-control" name="total_pages" placeholder="e.g. 234a">
+                                        <small class="text-muted">Can include letters (e.g. 123a, 456b)</small>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="small">Bibliography Pages</label>
+                                        <div class="input-group">
+                                            <input type="number" class="form-control" name="bibliography_pages">
+                                            <div class="input-group-append">
+                                                <span class="input-group-text">p. bibl.</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt-2">
+                                    <div class="col-md-6">
+                                        <label class="small">Index Pages</label>
+                                        <div class="input-group">
+                                            <input type="number" class="form-control" name="index_pages">
+                                            <div class="input-group-append">
+                                                <span class="input-group-text">p. index</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="small">Glossary Pages</label>
+                                        <div class="input-group">
+                                            <input type="number" class="form-control" name="glossary_pages">
+                                            <div class="input-group-append">
+                                                <span class="input-group-text">p. gloss.</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -387,7 +450,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         </div>
                     </div>
                 </div>
-        </form>
+            </div>
+        </form> <!-- Fix: Moved form closing tag here -->
     </div>
 </div>
 
@@ -408,25 +472,6 @@ document.addEventListener("DOMContentLoaded", function() {
             event.preventDefault();
             tabTrigger.show();
         });
-    });
-
-    // Handle form submission
-    document.getElementById('bookForm').addEventListener('submit', function(event) {
-        event.preventDefault();
-
-        var form = this;
-        var formData = new FormData(form);
-
-        fetch(form.action, {
-            method: form.method,
-            body: formData
-        }).then(response => response.text())
-          .then(data => {
-              alert('Book added successfully!');
-              form.reset();
-          }).catch(error => {
-              alert('An error occurred. Please try again.');
-          });
     });
 });
 </script>

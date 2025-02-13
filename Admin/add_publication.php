@@ -25,8 +25,8 @@ $selectedPublisherIds = isset($_GET['selected_publisher_ids']) ? $_GET['selected
 // Store selected publisher IDs in session
 $_SESSION['selected_publisher_ids'] = $selectedPublisherIds;
 
-// Get the current date
-$currentDate = date('Y-m-d');
+// Change current date to current year
+$currentYear = date('Y');
 ?>
 
 <!-- Main Content -->
@@ -41,9 +41,6 @@ $currentDate = date('Y-m-d');
                 <form method="GET" action="add_publication.php" id="searchForm">
                     <?php foreach ($bookIds as $bookId): ?>
                         <input type="hidden" name="book_ids[]" value="<?php echo htmlspecialchars($bookId); ?>">
-                    <?php endforeach; ?>
-                    <?php foreach ($selectedPublisherIds as $publisherId): ?>
-                        <input type="hidden" name="selected_publisher_ids[]" value="<?php echo htmlspecialchars($publisherId); ?>">
                     <?php endforeach; ?>
                     <div class="input-group mb-3">
                         <input type="text" name="search" class="form-control" placeholder="Search Publishers..." value="<?php echo htmlspecialchars($searchQuery); ?>">
@@ -93,7 +90,7 @@ $currentDate = date('Y-m-d');
                                             <td>{$publisher['id']}</td>
                                             <td>{$publisher['publisher']}</td>
                                             <td>{$publisher['place']}</td>
-                                            <td><input type='date' name='publish_dates[]' class='form-control' value='{$currentDate}' required></td>
+                                            <td><input type='number' name='publish_dates[]' class='form-control' value='{$currentYear}' min='1800' max='{$currentYear}' required></td>
                                         </tr>";
                                     }
                                 } else {
@@ -126,54 +123,17 @@ $(document).ready(function () {
 
         $('.selectPublisher:checked').each(function() {
             var publisherId = $(this).val();
-
-            if (publisherSelected) {
-                alert('Only one publisher can be selected per book.');
-                $(this).prop('checked', false);
-                return;
-            }
-
-            publisherSelected = true;
-
-            if (!selectedPublisherIds.includes(publisherId)) {
-                selectedPublisherIds.push(publisherId);
-            }
+            selectedPublisherIds.push(publisherId);
         });
-
-        console.log(selectedPublisherIds); // For debugging purposes
 
         // Store selected publisher IDs in session
         $.post('selected_publishers.php', {
             selectedPublisherIds: selectedPublisherIds
-        }, function(response) {
-            console.log(response); // For debugging purposes
-        }, 'json');
+        });
     }
 
     $('.selectPublisher').click(function() {
         updateSelectedPublisherIds();
-    });
-
-    // Handle search form submission
-    $('form#searchForm').submit(function(event) {
-        event.preventDefault();
-        var searchQuery = $('input[name="search"]').val();
-        var selectedPublisherIds = $('input[name="selected_publisher_ids[]"]').map(function() {
-            return $(this).val();
-        }).get();
-
-        $.ajax({
-            url: 'fetch_publishers.php',
-            type: 'GET',
-            data: {
-                search: searchQuery,
-                selected_publisher_ids: selectedPublisherIds
-            },
-            success: function(response) {
-                $('#publishersTable tbody').html(response);
-                updateSelectedPublisherIds(); // Update the selected publisher IDs after search results are loaded
-            }
-        });
     });
 
     // Restore the selected state on page load
