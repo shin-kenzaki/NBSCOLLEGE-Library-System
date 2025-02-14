@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -54,61 +53,49 @@
                 Admin Operation
             </div>
 
+            <!-- Nav Item - Search Book -->
             <li class="nav-item">
-                <a class="nav-link" href="">
-                    <i class="fas fa-fw fa-chart-area"></i>
-                    <span>Add Book</span></a>
-            </li>
-
-            <li class="nav-item">
-                <a class="nav-link" href="">
-                    <i class="fas fa-fw fa-chart-area"></i>
-                    <span>Add Book</span></a>
-            </li>
-
-            <li class="nav-item">
-                <a class="nav-link" href="">
-                    <i class="fas fa-fw fa-chart-area"></i>
-                    <span>Add Book</span></a>
-            </li>
-
-                 <!-- Nav Item - Pages Collapse Menu -->
-                <li class="nav-item">
-                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseTwo"
-                    aria-expanded="true" aria-controls="collapseTwo">
-                    <i class="fas fa-fw fa-book"></i>
-                    <span>book Management</span>
+                <a class="nav-link" href="search_book.php">
+                    <i class="fas fa-fw fa-search"></i>
+                    <span>Search Book</span>
                 </a>
-                <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
-                        <div class="bg-white py-2 collapse-inner rounded">
-                            <h6 class="collapse-header">Book Module:</h6>
-                            <a class="collapse-item" href="#">Book List</a>
-                            <a class="collapse-item" href="#">Writers List</a>
-                            <a class="collapse-item" href="#">Publihser List</a>
-                        </div>
-                    </div>
-                </li>
-
-            <li class="nav-item">
-                    <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseUsers"
-                        aria-expanded="true" aria-controls="collapseUsers">
-                        <i class="fas fa-users"></i>
-                        <span>User Management</span>
-                    </a>
-                    <div id="collapseUsers" class="collapse" aria-labelledby="headingUsers" data-parent="#accordionSidebar">
-                        <div class="bg-white py-2 collapse-inner rounded">
-                            <h6 class="collapse-header">Manage Users:</h6>
-                            <a class="collapse-item" href="#">Admin Users</a>
-                            <a class="collapse-item" href="#">School Users</a>
-                            <a class="collapse-item" href="#">Outside Users</a>
-
-                        </div>
-                    </div>
             </li>
 
+            <!-- Nav Item - Book Reservation -->
+            <li class="nav-item">
+                <a class="nav-link" href="book_reservation.php">
+                    <i class="fas fa-fw fa-bookmark"></i>
+                    <span>Book Reservation</span>
+                </a>
+            </li>
 
-                        <!-- Nav Item - Charts -->
-                        <li class="nav-item">
+            <!-- Nav Item - Book Borrowing -->
+            <li class="nav-item">
+                <a class="nav-link" href="book_borrowing.php">
+                    <i class="fas fa-fw fa-book"></i>
+                    <span>Book Borrowing</span>
+                </a>
+            </li>
+
+            <!-- Nav Item - Histories -->
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseHistories"
+                    aria-expanded="true" aria-controls="collapseHistories">
+                    <i class="fas fa-fw fa-history"></i>
+                    <span>Histories</span>
+                </a>
+                <div id="collapseHistories" class="collapse" aria-labelledby="headingHistories"
+                    data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <h6 class="collapse-header">History Types:</h6>
+                        <a class="collapse-item" href="borrowing_history.php">Borrowing History</a>
+                        <a class="collapse-item" href="reservation_history.php">Reservation History</a>
+                    </div>
+                </div>
+            </li>
+
+            <!-- Nav Item - Charts -->
+            <li class="nav-item">
                 <a class="nav-link" href="charts.php">
                     <i class="fas fa-fw fa-chart-area"></i>
                     <span>Charts</span></a>
@@ -120,9 +107,6 @@
                     <i class="fas fa-fw fa-table"></i>
                     <span>Tables</span></a>
             </li>
-
-
-
 
             <!-- Divider -->
             <hr class="sidebar-divider">
@@ -365,28 +349,17 @@
                         <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
                                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 <span class="mr-2 d-none d-lg-inline text-gray-600 small">
-                                    <?php
-                                        if (isset($_SESSION['schooluser_firstname']) && isset($_SESSION['schooluser_lastname'])) {
-                                            echo $_SESSION['schooluser_firstname'] . ' ' . $_SESSION['schooluser_lastname'];
-                                        } elseif (isset($_SESSION['outsider_firstname']) && isset($_SESSION['outsider_lastname'])) {
-                                            echo $_SESSION['outsider_firstname'] . ' ' . $_SESSION['outsider_lastname'];
-                                        } else {
-                                            echo 'Guest';
-                                        }
+                                    <?php 
+                                    if(isset($_SESSION['firstname']) && isset($_SESSION['lastname'])) {
+                                        echo $_SESSION['firstname'] . ' ' . $_SESSION['lastname'];
+                                    } else {
+                                        echo 'User';
+                                    }
                                     ?>
                                 </span>
                                 <img class="img-profile rounded-circle"
-                                    src="<?php
-                                        if (isset($_SESSION['schooluser_image'])) {
-                                            echo $_SESSION['schooluser_image'];
-                                        } elseif (isset($_SESSION['outsider_image'])) {
-                                            echo $_SESSION['outsider_image'];
-                                        } else {
-                                            echo 'default-profile.png'; // Gamitin kung walang profile image
-                                        }
-                                    ?>"
-                                    alt="Profile Image">
-
+                                    src="<?php echo isset($_SESSION['user_image']) && !empty($_SESSION['user_image']) ? $_SESSION['user_image'] : 'img/undraw_profile_1.svg'; ?>"
+                                    alt="">
                                 </a>
                                 <!-- Dropdown - User Information -->
                                 <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in"
