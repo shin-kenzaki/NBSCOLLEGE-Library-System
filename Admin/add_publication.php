@@ -49,7 +49,7 @@ $currentYear = date('Y');
                         </div>
                     </div>
                 </form>
-                <form method="POST" action="process_add_publication.php">
+                <form method="POST" action="process_add_publication.php" id="publicationForm">
                     <?php foreach ($bookIds as $bookId): ?>
                         <input type="hidden" name="book_ids[]" value="<?php echo htmlspecialchars($bookId); ?>">
                     <?php endforeach; ?>
@@ -147,5 +147,31 @@ $(document).ready(function () {
     }
 
     restoreSelectedState();
+
+    // Handle form submission
+    $('#publicationForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        if (!$('.selectPublisher:checked').length) {
+            alert('Please select a publisher');
+            return;
+        }
+
+        $.ajax({
+            url: $(this).attr('action'),
+            type: 'POST',
+            data: $(this).serialize(),
+            dataType: 'json',
+            success: function(response) {
+                alert(response.message);
+                if (response.success) {
+                    window.location.href = 'publications_list.php';
+                }
+            },
+            error: function() {
+                alert('An error occurred while processing your request.');
+            }
+        });
+    });
 });
 </script>
