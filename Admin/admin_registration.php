@@ -15,12 +15,12 @@
         // Retrieve and sanitize form input
         $employee_id = $_POST['employee_id'];
         $firstname = trim($_POST['firstname']);
-        $middle_init = $_POST['middle_init'] ?? NULL; // Optional field
+        $middle_init = $_POST['middle_init'] ?? NULL;
         $lastname = trim($_POST['lastname']);
         $email = $_POST['email'];
-        $password = $_POST['password']; // Raw password input
+        $password = $_POST['password'];
         $role = $_POST['role'];
-        $status = "Active"; // Automatically set to Active
+        $status = Null;
         $image = 'inc/upload/default-avatar.jpg'; // Default value if no image is uploaded
 
         // Validate password length

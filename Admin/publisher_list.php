@@ -86,15 +86,6 @@ $result = $conn->query($sql);
             </div>
             <div class="card-body">
                 <div class="table-responsive">
-                    <!-- Search Form -->
-                    <form method="GET" action="publisher_list.php" id="searchForm">
-                        <div class="input-group mb-3">
-                            <input type="text" name="search" class="form-control" placeholder="Search..." value="<?php echo htmlspecialchars($searchQuery); ?>">
-                            <div class="input-group-append">
-                                <button class="btn btn-primary" type="submit">Search</button>
-                            </div>
-                        </div>
-                    </form>
                     <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
@@ -179,26 +170,22 @@ $result = $conn->query($sql);
 <script>
 $(document).ready(function () {
     var table = $('#dataTable').DataTable({
-        "dom": "<'row mb-3'<'col-sm-6'l><'col-sm-6 d-flex justify-content-end'>>" +
+        "dom": "<'row mb-3'<'col-sm-6'l><'col-sm-6 d-flex justify-content-end'f>>" +
                "<'row'<'col-sm-12'tr>>" +
                "<'row mt-3'<'col-sm-5'i><'col-sm-7 d-flex justify-content-end'p>>",
-        "pagingType": "simple_numbers",
+        "pageLength": 10,
+        "responsive": true,
         "language": {
-            "search": "" // Removes the default 'Search:' label
+            "search": "_INPUT_",
+            "searchPlaceholder": "Search..."
         },
-        "columns": [
-            { "data": "id" },
-            { "data": "publisher" },
-            { "data": "place" }
-        ]
+        "initComplete": function() {
+            $('#dataTable_filter input').addClass('form-control form-control-sm');
+            $('#dataTable_filter').addClass('d-flex align-items-center');
+            $('#dataTable_filter label').append('<i class="fas fa-search ml-2"></i>');
+            $('.dataTables_paginate .paginate_button').addClass('btn btn-sm btn-outline-primary mx-1');
+        }
     });
-
-    // Remove the search input field
-    $('#dataTable_filter').remove();
-
-    // Fix pagination buttons styling & spacing
-    $('.dataTables_paginate .paginate_button')
-        .addClass('btn btn-sm btn-outline-primary mx-1');
 
     // Add more publishers functionality
     $('#addMorePublishers').click(function() {

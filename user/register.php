@@ -11,6 +11,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
   $email = mysqli_real_escape_string($conn, $_POST['email']);
   $password = $_POST['password'];
   $usertype = mysqli_real_escape_string($conn, $_POST['usertype']);
+  $image = 'inc/upload/default-avatar.jpg';
   
   // Check if school_id already exists
   $check_id_query = "SELECT school_id FROM users WHERE school_id = ?";
@@ -38,12 +39,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
           } else {
               // If all checks pass, proceed with insert
               $sql = "INSERT INTO users (school_id, firstname, middle_init, lastname, email, password, 
-                      usertype, date_added) 
-                      VALUES (?, ?, ?, ?, ?, ?, ?, NOW())";
+                      user_image, usertype, date_added) 
+                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())";
               
               if($stmt = $conn->prepare($sql)) {
-                  $stmt->bind_param("sssssss", 
-                      $school_id, $firstname, $middle_init, $lastname, $email, $password, $usertype);
+                  $stmt->bind_param("ssssssss", 
+                      $school_id, $firstname, $middle_init, $lastname, $email, $password, $image, $usertype);
                   
                   if($stmt->execute()) {
                       $_SESSION['success'] = "Registration successful! You can now login with your School ID and password.";

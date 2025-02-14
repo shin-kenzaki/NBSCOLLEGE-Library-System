@@ -20,36 +20,49 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         if ($result->num_rows > 0) {
             $user = $result->fetch_assoc();
-            // Compare plain text passwords (Consider using password_hash for security)
-            if ($password === $user['password']) {
-                if ($user['status'] === 'active' || $user['status'] === null) {
-                    // If status is null, update it to active
-                    if ($user['status'] === null) {
-                        $update_query = "UPDATE users SET status = 'active' WHERE id = ?";
-                        if ($update_stmt = $conn->prepare($update_query)) {
-                            $update_stmt->bind_param("i", $user['id']);
-                            $update_stmt->execute();
-                            $update_stmt->close();
+            
+            // First check the account status
+            switch ($user['status']) {
+                case 'Banned':
+                    $error = "This account has been banned. Please contact the administrator.";
+                    break;
+                case 'Disabled':
+                    $error = "This account has been disabled. Please contact the administrator.";
+                    break;
+                case 'Active':
+                case 'Inactive':
+                case null:
+                    // Only validate password if account status is acceptable
+                    if ($password === $user['password']) {
+                        // Log the successful login in updates table
+                        $log_query = "INSERT INTO updates (user_id, role, status, `update`) VALUES (?, ?, ?, NOW())";
+                        if ($log_stmt = $conn->prepare($log_query)) {
+                            // Set status based on account status (null is treated as inactive)
+                            $login_status = ($user['status'] === 'Active') ? "Active Login" : "Inactive Login";
+                            $log_stmt->bind_param("sss", $user['school_id'], $user['usertype'], $login_status);
+                            $log_stmt->execute();
+                            $log_stmt->close();
                         }
+
+                        // Set session variables
+                        $_SESSION['user_id'] = $user['id'];
+                        $_SESSION['school_id'] = $user['school_id'];
+                        $_SESSION['firstname'] = $user['firstname'];
+                        $_SESSION['lastname'] = $user['lastname'];
+                        $_SESSION['email'] = $user['email'];
+                        $_SESSION['user_image'] = !empty($user['user_image']) ? $user['user_image'] : 'upload/default-profile.png';
+                        $_SESSION['usertype'] = $user['usertype'];
+                        $_SESSION['status'] = $user['status'];
+                        
+                        header("Location: dashboard.php");
+                        exit();
+                    } else {
+                        $error = "Invalid password";
                     }
-                    
-                    // Set session variables
-                    $_SESSION['user_id'] = $user['id'];
-                    $_SESSION['school_id'] = $user['school_id'];
-                    $_SESSION['firstname'] = $user['firstname'];
-                    $_SESSION['lastname'] = $user['lastname'];
-                    $_SESSION['email'] = $user['email'];
-                    $_SESSION['user_image'] = !empty($user['user_image']) ? $user['user_image'] : 'upload/default-profile.png';
-                    $_SESSION['usertype'] = $user['usertype'];
-                    $_SESSION['status'] = 'active';
-                    
-                    header("Location: dashboard.php");
-                    exit();
-                } else if ($user['status'] === 'inactive') {
-                    $error = "Your account is not active. Please contact the administrator.";
-                }
-            } else {
-                $error = "Invalid password";
+                    break;
+                default:
+                    $error = "Invalid account status";
+                    break;
             }
         } else {
             $error = "School ID not found";

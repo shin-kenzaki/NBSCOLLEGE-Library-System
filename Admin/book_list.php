@@ -144,21 +144,12 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <!-- Search Form -->
-                        <form method="GET" action="book_list.php" id="searchForm">
-                            <div class="input-group mb-3">
-                                <input type="text" name="search" class="form-control" placeholder="Search..." value="<?php echo htmlspecialchars($searchQuery); ?>">
-                                <div class="input-group-append">
-                                    <button class="btn btn-primary" type="submit">Search</button>
-                                </div> 
-                            </div>
-                            <!-- Add Contributors Icons -->
-                            <div class="mb-3" id="addContributorsIcons">
-                                <button class="btn btn-success btn-sm mx-1" id="addContributorsPerson"><i class="fas fa-user-plus"></i> Add Contributors</button>
-                                <button class="btn btn-success btn-sm mx-1" id="addPublisher"><i class="fas fa-building"></i> Add Publication</button>
-                                <button class="btn btn-danger btn-sm mx-1" id="batchDelete"><i class="fas fa-trash"></i> Delete Selected</button>
-                            </div>
-                        </form>
+                        <!-- Remove the custom search form and keep only the action buttons -->
+                        <div class="mb-3" id="addContributorsIcons">
+                            <button class="btn btn-success btn-sm mx-1" id="addContributorsPerson"><i class="fas fa-user-plus"></i> Add Contributors</button>
+                            <button class="btn btn-success btn-sm mx-1" id="addPublisher"><i class="fas fa-building"></i> Add Publication</button>
+                            <button class="btn btn-danger btn-sm mx-1" id="batchDelete"><i class="fas fa-trash"></i> Delete Selected</button>
+                        </div>
                         <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                             <thead>
                                 <tr>
@@ -503,6 +494,28 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
                     }, 'json');
                 }
             });
+        });
+        </script>
+        <script>
+        $(document).ready(function () {
+            var table = $('#dataTable').DataTable({
+                "dom": "<'row mb-3'<'col-sm-6'l><'col-sm-6 d-flex justify-content-end'f>>" +
+                       "<'row'<'col-sm-12'tr>>" +
+                       "<'row mt-3'<'col-sm-5'i><'col-sm-7 d-flex justify-content-end'p>>",
+                "pageLength": 10,
+                "responsive": true,
+                "language": {
+                    "search": "_INPUT_",
+                    "searchPlaceholder": "Search..."
+                },
+                "initComplete": function() {
+                    $('#dataTable_filter input').addClass('form-control form-control-sm');
+                    $('#dataTable_filter').addClass('d-flex align-items-center');
+                    $('#dataTable_filter label').append('<i class="fas fa-search ml-2"></i>');
+                    $('.dataTables_paginate .paginate_button').addClass('btn btn-sm btn-outline-primary mx-1');
+                }
+            });
+            // ...rest of your existing script...
         });
         </script>
     </div>

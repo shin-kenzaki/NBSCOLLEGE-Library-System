@@ -1,12 +1,12 @@
 <?php
-    session_start();
-    if (isset($_SESSION['admin_id'])) {
-        header("Location: dashboard.php");
-        exit;
-    }
-    require '../db.php'; // Database connection
+session_start();
+if (isset($_SESSION['admin_id'])) {
+    header("Location: dashboard.php");
+    exit;
+}
+require '../db.php'; // Database connection
 
-   // Initialize error message
+// Initialize error message
 $error_message = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -24,41 +24,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // If the employee_id exists, check the password
         if ($result->num_rows > 0) {
             $admin = $result->fetch_assoc();
-            // Compare plain text passwords directly (Consider using password_hash for security)
-            if ($password === $admin['password']) {
-                // Login successful, store session data
-                $_SESSION['admin_id'] = $admin['employee_id'];
-                $_SESSION['admin_email'] = $admin['email'];
-                $_SESSION['admin_firstname'] = $admin['firstname'];
-                $_SESSION['admin_lastname'] = $admin['lastname'];
+            
+            // First check the account status
+            switch ($admin['status']) {
+                case 'Disabled':
+                    $error_message = "This account has been disabled. Please contact the administrator.";
+                    break;
+                case 'Active':
+                case 'Inactive':
+                case Null:
+                    // Only validate password if account status is acceptable
+                    if ($password === $admin['password']) {
+                        // Log the successful login in updates table
+                        $log_query = "INSERT INTO updates (user_id, role, status, `update`) VALUES (?, ?, ?, NOW())";
+                        if ($log_stmt = $conn->prepare($log_query)) {
+                            // Set status based on account status (null is treated as inactive)
+                            $login_status = ($admin['status'] === 'Active') ? "Active login" : "Inactive login";
+                            $log_stmt->bind_param("sss", $admin['employee_id'], $admin['role'], $login_status);
+                            $log_stmt->execute();
+                            $log_stmt->close();
+                        }
 
-                // Store admin image in session (use default if empty)
-                $_SESSION['admin_image'] = !empty($admin['image']) ? $admin['image'] : 'upload/default-profile.png';
+                        // Set session variables
+                        $_SESSION['admin_id'] = $admin['employee_id'];
+                        $_SESSION['admin_email'] = $admin['email'];
+                        $_SESSION['admin_firstname'] = $admin['firstname'];
+                        $_SESSION['admin_lastname'] = $admin['lastname'];
+                        $_SESSION['admin_image'] = !empty($admin['image']) ? $admin['image'] : 'upload/default-profile.png';
+                        $_SESSION['role'] = strtolower($admin['role']);
+                        $_SESSION['admin_date_added'] = $admin['date_added'];
+                        $_SESSION['admin_status'] = $admin['status'];
+                        $_SESSION['admin_last_update'] = $admin['last_update'];
 
-                $_SESSION['role'] = strtolower($admin['role']); // Convert role to lowercase for consistency
-                $_SESSION['admin_date_added'] = $admin['date_added'];
-                $_SESSION['admin_status'] = $admin['status'];
-                $_SESSION['admin_last_update'] = $admin['last_update'];
-
-                // Redirect based on role
-                switch ($_SESSION['role']) {
-                    case 'admin':
-                        header("location: dashboard.php");
-                        break;
-                    case 'librarian':
-                        echo "<p style='color: green;'>Logging In... Redirecting to Librarian Page...</p>";
-                        header("refresh:3;url=librarian/librarian_dashboard.php");
-                        break;
-                    case 'assistant':
-                        echo "<p style='color: green;'>Logging In... Redirecting to Assistant Page...</p>";
-                        header("refresh:3;url=assistant/assistant_dashboard.php");
-                        break;
-                    default:
-                        $error_message = "Invalid role assigned.";
-                }
-                exit;
-            } else {
-                $error_message = "Invalid password.";
+                        // Redirect based on role
+                        switch ($_SESSION['role']) {
+                            case 'admin':
+                                header("Location: dashboard.php");
+                                break;
+                            case 'librarian':
+                                header("Location: librarian/librarian_dashboard.php");
+                                break;
+                            case 'assistant':
+                                header("Location: assistant/assistant_dashboard.php");
+                                break;
+                            default:
+                                $error_message = "Invalid role assigned.";
+                                break;
+                        }
+                        exit;
+                    } else {
+                        $error_message = "Invalid password";
+                    }
+                    break;
+                default:
+                    $error_message = "Invalid account status";
+                    break;
             }
         } else {
             $error_message = "No such admin found.";
@@ -71,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $conn->close();
 }
-    ?>
+?>
 
 <!DOCTYPE html>
 <html lang="en">
@@ -124,20 +144,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <div class="text-center">
                                         <h1 class="h4 text-gray-900 mb-4">Welcome Back!</h1>
                                     </div>
+                                    <?php if(!empty($error_message)): ?>
+                                        <div class="alert alert-danger">
+                                            <?php echo $error_message; ?>
+                                        </div>
+                                    <?php endif; ?>
                                     <form class="user" method="POST" action="">
                                         <div class="form-group">
                                             <input type="text" class="form-control form-control-user"
                                             placeholder="ID"
-                                            id="employee_id" name="employee_id" required
-                                                >
+                                            id="employee_id" name="employee_id" required>
                                         </div>
                                         <div class="form-group">
                                             <input type="password" class="form-control form-control-user"
                                                 id="exampleInputPassword" placeholder="Password" name="password" required>
                                         </div>
-
-
-
                                         <div class="form-group">
                                             <div class="custom-control custom-checkbox small">
                                                 <input type="checkbox" class="custom-control-input" id="customCheck">
@@ -147,14 +168,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         <button type="submit" class="btn btn-primary btn-user btn-block">
                                             Login
                                         </button>
-                                    </form>
-
-                                        <!-- <a href="index.html" class="btn btn-google btn-user btn-block">
-                                            <i class="fab fa-google fa-fw"></i> Login with Google
-                                        </a>
-                                        <a href="index.html" class="btn btn-facebook btn-user btn-block">
-                                            <i class="fab fa-facebook-f fa-fw"></i> Login with Facebook
-                                        </a> -->
                                     </form>
                                     <hr>
                                     <div class="text-center">
