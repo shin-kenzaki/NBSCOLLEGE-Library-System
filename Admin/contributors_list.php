@@ -34,6 +34,7 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
                                 <th>Book Title</th>
                                 <th>Contributor</th>
                                 <th>Role</th>
+                                <th>Total Books</th>
                             </tr>
                         </thead>
                         <tbody id="contributorsTableBody">
@@ -67,7 +68,26 @@ $(document).ready(function() {
             { "data": "id_ranges" },
             { "data": "book_title" },
             { "data": "writer_name" },
-            { "data": "role" }
+            { "data": "role" },
+            { 
+                "data": "id_ranges",
+                "render": function(data, type, row) {
+                    let total = 0;
+                    const ranges = data.split(',').map(r => r.trim());
+                    
+                    ranges.forEach(range => {
+                        if(range.includes('-')) {
+                            const [start, end] = range.split('-').map(Number);
+                            total += (end - start + 1);
+                        } else {
+                            total += 1;
+                        }
+                    });
+                    
+                    // Example: "1-30, 81-90" would return 40 (30 + 10 books)
+                    return total;
+                }
+            }
         ]
     });
 

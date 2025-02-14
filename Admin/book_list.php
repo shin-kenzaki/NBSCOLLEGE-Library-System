@@ -503,7 +503,15 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
                        "<'row'<'col-sm-12'tr>>" +
                        "<'row mt-3'<'col-sm-5'i><'col-sm-7 d-flex justify-content-end'p>>",
                 "pageLength": 10,
-                "responsive": true,
+                "responsive": false, // Disable responsive feature
+                "scrollX": true,    // Enable horizontal scroll
+                "columnDefs": [
+                    { 
+                        "orderable": false, 
+                        "searchable": false,
+                        "targets": 0 
+                    }
+                ],
                 "language": {
                     "search": "_INPUT_",
                     "searchPlaceholder": "Search..."
@@ -515,7 +523,6 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
                     $('.dataTables_paginate .paginate_button').addClass('btn btn-sm btn-outline-primary mx-1');
                 }
             });
-            // ...rest of your existing script...
         });
         </script>
     </div>

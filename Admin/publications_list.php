@@ -35,6 +35,7 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
                                 <th>Publisher</th>
                                 <th>Place</th>
                                 <th>Year</th>
+                                <th>Total Books</th>
                             </tr>
                         </thead>
                         <tbody id="publicationsTableBody">
@@ -69,7 +70,26 @@ $(document).ready(function() {
             { "data": "book_title" },
             { "data": "publisher" },
             { "data": "place" },
-            { "data": "publish_date" }
+            { "data": "publish_date" },
+            { 
+                "data": "id",
+                "render": function(data, type, row) {
+                    let total = 0;
+                    const ranges = data.split(',').map(r => r.trim());
+                    
+                    ranges.forEach(range => {
+                        if(range.includes('-')) {
+                            const [start, end] = range.split('-').map(Number);
+                            total += (end - start + 1);
+                        } else {
+                            total += 1;
+                        }
+                    });
+                    
+                    // Example: "1-30, 81-90" would return 40 (30 + 10 books)
+                    return total;
+                }
+            }
         ],
         "order": [[2, "asc"], [5, "asc"]] // Sort by book title then year
     });
