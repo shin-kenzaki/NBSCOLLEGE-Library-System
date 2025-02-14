@@ -1,27 +1,62 @@
 <?php
 session_start();
-include('../connection.php');
+// Check if user is already logged in
+if (isset($_SESSION['user_id'])) {
+    header("Location: dashboard.php");
+    exit;
+}
+
+include('../db.php');
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $email = mysqli_real_escape_string($con, $_POST['email']);
-    $password = mysqli_real_escape_string($con, $_POST['password']);
+    $school_id = $_POST['school_id'];
+    $password = $_POST['password'];
     
-    $query = "SELECT * FROM admins WHERE email = '$email'";
-    $result = mysqli_query($con, $query);
-    
-    if (mysqli_num_rows($result) == 1) {
-        $row = mysqli_fetch_assoc($result);
-        if (password_verify($password, $row['password'])) {
-            $_SESSION['admin_id'] = $row['id'];
-            $_SESSION['admin_email'] = $row['email'];
-            header("Location: dashboard.php");
-            exit();
+    $query = "SELECT * FROM users WHERE school_id = ?";
+    if ($stmt = $conn->prepare($query)) {
+        $stmt->bind_param("s", $school_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        if ($result->num_rows > 0) {
+            $user = $result->fetch_assoc();
+            // Compare plain text passwords (Consider using password_hash for security)
+            if ($password === $user['password']) {
+                if ($user['status'] === 'active' || $user['status'] === null) {
+                    // If status is null, update it to active
+                    if ($user['status'] === null) {
+                        $update_query = "UPDATE users SET status = 'active' WHERE id = ?";
+                        if ($update_stmt = $conn->prepare($update_query)) {
+                            $update_stmt->bind_param("i", $user['id']);
+                            $update_stmt->execute();
+                            $update_stmt->close();
+                        }
+                    }
+                    
+                    // Set session variables
+                    $_SESSION['user_id'] = $user['id'];
+                    $_SESSION['school_id'] = $user['school_id'];
+                    $_SESSION['firstname'] = $user['firstname'];
+                    $_SESSION['lastname'] = $user['lastname'];
+                    $_SESSION['email'] = $user['email'];
+                    $_SESSION['user_image'] = !empty($user['user_image']) ? $user['user_image'] : 'upload/default-profile.png';
+                    $_SESSION['usertype'] = $user['usertype'];
+                    $_SESSION['status'] = 'active';
+                    
+                    header("Location: dashboard.php");
+                    exit();
+                } else if ($user['status'] === 'inactive') {
+                    $error = "Your account is not active. Please contact the administrator.";
+                }
+            } else {
+                $error = "Invalid password";
+            }
         } else {
-            $error = "Invalid password";
+            $error = "School ID not found";
         }
-    } else {
-        $error = "Invalid email";
+        $stmt->close();
     }
+    $conn->close();
 }
 ?>
 <!DOCTYPE html>
@@ -35,7 +70,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title>SB Admin 2 - Login</title>
+    <title>Library System - User Login</title>
 
     <!-- Custom fonts for this template-->
     <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
@@ -73,23 +108,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                             <div class="col-lg-6">
                                 <div class="p-5">
                                     <div class="text-center">
-                                        <h1 class="h4 text-gray-900 mb-4">Welcome Back!</h1>
+                                    <h1 class="h4 text-gray-900 mb-4">Welcome Back!</h1>
                                     </div>
                                     <?php if(isset($error)): ?>
                                         <div class="alert alert-danger">
                                             <?php echo $error; ?>
                                         </div>
                                     <?php endif; ?>
-                                    <form class="user" method="POST" action="">
+                                    <form class="user" method="POST" action=""> 
                                         <div class="form-group">
                                             <input type="text" class="form-control form-control-user"
-                                            placeholder="Email"
-                                            id="email" name="email" required
-                                                >
+                                            placeholder="School ID"
+                                            id="school_id" name="school_id" required>
                                         </div>
                                         <div class="form-group">
                                             <input type="password" class="form-control form-control-user"
-                                                id="exampleInputPassword" placeholder="Password" name="password" required>
+                                                placeholder="Password" name="password" required>
                                         </div>
 
 

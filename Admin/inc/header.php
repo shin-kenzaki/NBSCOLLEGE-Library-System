@@ -86,9 +86,7 @@
                         <div class="bg-white py-2 collapse-inner rounded">
                             <h6 class="collapse-header">Manage Users:</h6>
                             <a class="collapse-item" href="admin_users.php">Admin Users</a>
-                            <a class="collapse-item" href="school_users.php">School Users</a>
-                            <a class="collapse-item" href="outside_users.php">Outside Users</a>
-
+                            <a class="collapse-item" href="users.php">Users</a>
                         </div>
                     </div>
             </li>

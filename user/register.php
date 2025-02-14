@@ -1,5 +1,66 @@
 <?php
-    session_start();
+session_start();
+require '../db.php';
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+  // Sanitize and get form data
+  $school_id = mysqli_real_escape_string($conn, $_POST['school_id']);
+  $firstname = mysqli_real_escape_string($conn, $_POST['firstname']);
+  $middle_init = mysqli_real_escape_string($conn, $_POST['middle_init']);
+  $lastname = mysqli_real_escape_string($conn, $_POST['lastname']);
+  $email = mysqli_real_escape_string($conn, $_POST['email']);
+  $password = $_POST['password'];
+  $usertype = mysqli_real_escape_string($conn, $_POST['usertype']);
+  
+  // Check if school_id already exists
+  $check_id_query = "SELECT school_id FROM users WHERE school_id = ?";
+  $stmt = $conn->prepare($check_id_query);
+  $stmt->bind_param("s", $school_id);
+  $stmt->execute();
+  if($stmt->get_result()->num_rows > 0) {
+      $error = "School ID is already registered!";
+  } else {
+      // Check if full name already exists
+      $check_name_query = "SELECT id FROM users WHERE firstname = ? AND lastname = ?";
+      $stmt = $conn->prepare($check_name_query);
+      $stmt->bind_param("ss", $firstname, $lastname);
+      $stmt->execute();
+      if($stmt->get_result()->num_rows > 0) {
+          $error = "A user with this name already exists!";
+      } else {
+          // Check if email already exists
+          $check_email_query = "SELECT id FROM users WHERE email = ?";
+          $stmt = $conn->prepare($check_email_query);
+          $stmt->bind_param("s", $email);
+          $stmt->execute();
+          if($stmt->get_result()->num_rows > 0) {
+              $error = "Email address is already registered!";
+          } else {
+              // If all checks pass, proceed with insert
+              $sql = "INSERT INTO users (school_id, firstname, middle_init, lastname, email, password, 
+                      usertype, date_added) 
+                      VALUES (?, ?, ?, ?, ?, ?, ?, NOW())";
+              
+              if($stmt = $conn->prepare($sql)) {
+                  $stmt->bind_param("sssssss", 
+                      $school_id, $firstname, $middle_init, $lastname, $email, $password, $usertype);
+                  
+                  if($stmt->execute()) {
+                      $_SESSION['success'] = "Registration successful! You can now login with your School ID and password.";
+                      echo "<script>
+                          alert('Registration successful! You will be redirected to the login page.');
+                          window.location.href = 'index.php';
+                      </script>";
+                      exit();
+                  } else {
+                      $error = "Something went wrong! Please try again.";
+                  }
+              }
+          }
+      }
+  }
+  $stmt->close();
+}
 ?>
 
 <!DOCTYPE html>
@@ -77,24 +138,21 @@
             <div class="col-lg-7">
               <div class="p-5">
                 <div class="text-center">
-                  <h1 class="h4 text-gray-900 mb-4">School Registration!</h1>
+                  <h1 class="h4 text-gray-900 mb-4">Create User Account</h1>
                 </div>
 
-                <form
-                  class="user"
-                  action=""
-                  method="POST"
-                  enctype="multipart/form-data"
-                >
+                <?php if(isset($error)): ?>
+                  <div class="alert alert-danger"><?php echo $error; ?></div>
+                <?php endif; ?>
+                
+                <form class="user" method="POST" action="">
                   <div class="form-group row">
                     <div class="col-sm-6 mb-3 mb-sm-0">
                       <input
                         type="text"
                         class="form-control form-control-user"
-                        id="id"
-                        name="id"
-                        placeholder="ID"
-                        value="<?= htmlspecialchars($_POST['id'] ?? '') ?>"
+                        name="school_id"
+                        placeholder="School ID"
                         required
                       />
                     </div>
@@ -104,7 +162,6 @@
                         class="form-control form-control-user"
                         name="firstname"
                         placeholder="First Name"
-                        value="<?= htmlspecialchars($_POST['firstname'] ?? '') ?>"
                         required
                       />
                     </div>
@@ -117,10 +174,7 @@
                         class="form-control form-control-user"
                         name="middle_init"
                         placeholder="Middle Initial"
-                        value=""
                         maxlength="1"
-                        pattern="[A-Za-z]"
-                        title="Only one letter is allowed"
                       />
                     </div>
 
@@ -130,7 +184,6 @@
                         class="form-control form-control-user"
                         name="lastname"
                         placeholder="Last Name"
-                        value=""
                         required
                       />
                     </div>
@@ -138,11 +191,10 @@
 
                   <div class="form-group">
                     <input
-                      type="text"
+                      type="email"
                       class="form-control form-control-user"
                       name="email"
-                      placeholder="School Email"
-                      value=""
+                      placeholder="School Email Address"
                       required
                     />
                   </div>
@@ -160,20 +212,19 @@
                     <div class="col-sm-6">
                       <select
                         name="usertype"
-                        class="form-control user select-dropdown"
+                        class="form-control select-dropdown"
                         required
                       >
-                        <option value="">Select Role</option>
-                        <option value="Student">Student</option>
-                        <option value="Faculty">Faculty</option>
-                        <option value="Employee">Employee</option>
+                        <option value="">Select User Type</option>
+                        <option value="student">Student</option>
+                        <option value="faculty">Faculty</option>
+                        <option value="staff">Staff</option>
                       </select>
                     </div>
                   </div>
 
                   <button
                     type="submit"
-                    name="submit"
                     class="btn btn-primary btn-user btn-block"
                   >
                     Register Account
@@ -181,13 +232,14 @@
                   <hr />
                 </form>
 
+                <hr />
                 <div class="text-center">
                   <a class="small" href="forgot-password.php"
                     >Forgot Password?</a
                   >
                 </div>
                 <div class="text-center">
-                  <a class="small" href="../user/"
+                  <a class="small" href="index.php"
                     >Already have an account? Login!</a
                   >
                 </div>
