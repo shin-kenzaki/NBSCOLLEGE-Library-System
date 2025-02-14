@@ -90,7 +90,7 @@ $currentYear = date('Y');
                                             <td>{$publisher['id']}</td>
                                             <td>{$publisher['publisher']}</td>
                                             <td>{$publisher['place']}</td>
-                                            <td><input type='number' name='publish_dates[]' class='form-control' value='{$currentYear}' min='1800' max='{$currentYear}' required></td>
+                                            <td><input type='number' name='publish_dates[{$publisher['id']}]' class='form-control' value='{$currentYear}' min='1800' max='{$currentYear}' required></td>
                                         </tr>";
                                     }
                                 } else {

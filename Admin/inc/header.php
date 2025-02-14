@@ -72,6 +72,8 @@
                         <a class="collapse-item" href="book_list.php" data-toggle="dropdown">Book List</a>
                         <a class="collapse-item" href="writers_list.php" data-toggle="dropdown">Writers List</a>
                         <a class="collapse-item" href="publisher_list.php" data-toggle="dropdown">Publisher List</a>
+                        <a class="collapse-item" href="publications_list.php" data-toggle="dropdown">Publications List</a>
+                        <a class="collapse-item" href="contributors_list.php" data-toggle="dropdown">Contributors List</a>
                     </div>
                 </div>
             </li>
