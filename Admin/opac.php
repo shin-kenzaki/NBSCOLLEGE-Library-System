@@ -7,7 +7,7 @@ if (!isset($_SESSION['admin_id'])) {
 }
 
 include '../db.php'; // Database connection
-include '../includes/lcc_generator.php'; // Add this line
+include 'lcc_generator.php'; // Add this line
 
 // Get the book ID from the query parameters
 $bookId = isset($_GET['book_id']) ? intval($_GET['book_id']) : 0;
