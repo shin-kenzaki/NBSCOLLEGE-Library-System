@@ -14,11 +14,11 @@ $accession_error = '';
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $accession = $_POST['accession'];
-    $number_of_copies = (int)$_POST['number_of_copies'];
+    $accessions = $_POST['accession'];
+    $number_of_copies_array = $_POST['number_of_copies'];
+    $call_numbers = $_POST['call_number'];
+    $isbns = isset($_POST['isbn']) ? $_POST['isbn'] : array();
     $title = $_POST['title'];
-    // Set copy_number to 1 if empty or invalid
-    $copy_number = !empty($_POST['copy_number']) ? (int)$_POST['copy_number'] : 1;
     
     // Other form fields
     $preferred_title = $_POST['preferred_title'];
@@ -59,20 +59,38 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $series = $_POST['series'];
     $volume = $_POST['volume'];
     $edition = $_POST['edition'];
-    $isbn = $_POST['isbn'];
     $url = $_POST['url'];
     $content_type = $_POST['content_type'];
     $media_type = $_POST['media_type'];
     $carrier_type = $_POST['carrier_type'];
 
-    // Check if the accession number already exists
-    $check_query = "SELECT * FROM books WHERE accession = '$accession'";
-    $result = mysqli_query($conn, $check_query);
+    $success_count = 0;
+    $error_messages = array();
+    $isbn_index = 0;
 
-    if (mysqli_num_rows($result) > 0) {
-        $accession_error = "A book with the same accession number already exists.";
-    } else {
-        // Get all existing copy numbers for this title
+    // Process each accession number and its copies
+    for ($i = 0; $i < count($accessions); $i++) {
+        $base_accession = $accessions[$i];
+        $copies_for_this_accession = (int)$number_of_copies_array[$i];
+
+        // Check if the accession range is available
+        $conflict_found = false;
+        for ($j = 0; $j < $copies_for_this_accession; $j++) {
+            $current_accession = $base_accession + $j;
+            $check_query = "SELECT * FROM books WHERE accession = '$current_accession'";
+            $result = mysqli_query($conn, $check_query);
+            if (mysqli_num_rows($result) > 0) {
+                $error_messages[] = "Accession number $current_accession already exists.";
+                $conflict_found = true;
+                break;
+            }
+        }
+
+        if ($conflict_found) {
+            continue;
+        }
+
+        // Get existing copy numbers for this title
         $existing_copies_query = "SELECT copy_number FROM books WHERE title = '$title' ORDER BY copy_number";
         $existing_copies_result = mysqli_query($conn, $existing_copies_query);
         $taken_copy_numbers = array();
@@ -81,63 +99,45 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
         // Determine the starting copy number
-        if (!empty($_POST['copy_number'])) {
-            $copy_number = (int)$_POST['copy_number'];
-        } else {
-            $copy_number = empty($taken_copy_numbers) ? 1 : max($taken_copy_numbers) + 1;
-        }
+        $current_copy = empty($taken_copy_numbers) ? 1 : max($taken_copy_numbers) + 1;
 
-        // Move uploaded files to the desired directory
-        $front_image_filename = "";
-        $back_image_filename = "";
-        if($_FILES['front_image']['name']) {
-            $front_image_filename = time() . '_' . $_FILES['front_image']['name'];
-            move_uploaded_file($_FILES['front_image']['tmp_name'], "../uploads/" . $front_image_filename);
-        }
-        if($_FILES['back_image']['name']) {
-            $back_image_filename = time() . '_' . $_FILES['back_image']['name'];
-            move_uploaded_file($_FILES['back_image']['tmp_name'], "../uploads/" . $back_image_filename);
-        }
+        // Insert copies for this accession
+        for ($j = 0; $j < $copies_for_this_accession; $j++) {
+            $current_accession = $base_accession + $j;
 
-        $success_count = 0;
-        $assigned_copies = array();
-        $current_copy = $copy_number;
-        
-        // Insert multiple copies while skipping taken numbers
-        for ($i = 0; $i < $number_of_copies; $i++) {
             // Find next available copy number
             while (in_array($current_copy, $taken_copy_numbers)) {
                 $current_copy++;
             }
-            
-            $current_accession = $accession + $i;
-            $assigned_copies[] = $current_copy;
-            
+
+            // Get corresponding ISBN and call number
+            $current_isbn = isset($isbns[$isbn_index]) ? $isbns[$isbn_index] : '';
+            $current_call_number = isset($call_numbers[$isbn_index]) ? $call_numbers[$isbn_index] : '';
+            $isbn_index++;
+
             $query = "INSERT INTO books (accession, title, preferred_title, parallel_title, front_image, back_image, 
                      height, width, total_pages, call_number, copy_number, language, shelf_location, entered_by, 
                      date_added, status, last_update, series, volume, edition, isbn, url, content_type, media_type, carrier_type) 
-                     VALUES ('$current_accession', '$title', '$preferred_title', '$parallel_title', '$front_image_filename', 
-                     '$back_image_filename', '$height', '$width', '$total_pages', '$call_number', '$current_copy', 
+                     VALUES ('$current_accession', '$title', '$preferred_title', '$parallel_title', '$front_image', 
+                     '$back_image', '$height', '$width', '$total_pages', '$current_call_number', '$current_copy', 
                      '$language', '$shelf_location', '$entered_by', '$date_added', '$status', '$last_update', '$series', 
-                     '$volume', '$edition', '$isbn', '$url', '$content_type', '$media_type', '$carrier_type')";
+                     '$volume', '$edition', '$current_isbn', '$url', '$content_type', '$media_type', '$carrier_type')";
 
             if (mysqli_query($conn, $query)) {
                 $success_count++;
+                $taken_copy_numbers[] = $current_copy;
             }
             
             $current_copy++;
         }
+    }
 
-        if ($success_count == $number_of_copies) {
-            $copy_numbers_str = implode(", ", $assigned_copies);
-            echo "<script>
-                alert('Successfully added " . $success_count . " copies of the book!\\n" .
-                "Accession numbers: " . $accession . " to " . ($accession + $number_of_copies - 1) . "\\n" .
-                "Copy numbers: " . $copy_numbers_str . "');
-            </script>";
-        } else {
-            echo "<script>alert('Error: Only " . $success_count . " out of " . $number_of_copies . " copies were added.');</script>";
-        }
+    // Display results
+    if (!empty($error_messages)) {
+        echo "<script>alert('Errors occurred:\\n" . implode("\\n", $error_messages) . "');</script>";
+    }
+    if ($success_count > 0) {
+        echo "<script>alert('Successfully added " . $success_count . " books in total!');</script>";
     }
 }
 
@@ -258,35 +258,41 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         <!-- Local Information Tab -->
                         <div class="tab-pane fade" id="local-info" role="tabpanel">
                             <h4>Local Information</h4>
-                                    <!--  -->
                                     <div class="row">
-                                        <div class="col-md-6">
-                                            <div class="form-group">
-                                                <label>Accession</label>
-                                                <input type="text" class="form-control" name="accession" required>
-                                                <?php if ($accession_error): ?>
-                                                    <small class="text-danger"><?php echo $accession_error; ?></small>
-                                                <?php endif; ?>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="form-group">
-                                                <label>Call Number</label>
-                                                <input type="text" class="form-control" name="call_number">
+                                        <div class="col-md-12">
+                                            <div id="accessionContainer">
+                                                <div class="accession-group mb-3">
+                                                    <div class="row">
+                                                        <div class="col-md-8">
+                                                            <div class="form-group">
+                                                                <label>Accession (Copy 1)</label>
+                                                                <input type="text" class="form-control accession-input" name="accession[]" 
+                                                                    placeholder="e.g., 2023-0001 (will auto-increment based on copies)" required>
+                                                                <small class="text-muted">If you enter 2023-0001 and set 3 copies, it will create: 2023-0001, 2023-0002, 2023-0003</small>
+                                                                <?php if ($accession_error): ?>
+                                                                    <small class="text-danger"><?php echo $accession_error; ?></small>
+                                                                <?php endif; ?>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-2">
+                                                            <div class="form-group">
+                                                                <label>Number of Copies</label>
+                                                                <input type="number" class="form-control copies-input" name="number_of_copies[]" min="1" value="1" required>
+                                                                <small class="text-muted">Auto-increments accession</small>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-2">
+                                                            <label>&nbsp;</label>
+                                                            <button type="button" class="btn btn-primary btn-block w-100 add-accession">Add Another</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                    <!--  -->
 
                                     <!--  -->
                                     <div class="row">
-                                        <div class="col-md-6">
-                                            <div class="form-group">
-                                                <label>Copy Number</label>
-                                                <input type="number" class="form-control" name="copy_number" min="1" placeholder="Leave empty to start from 1">
-                                                <small class="text-muted">If left empty, copy number will start from 1</small>
-                                            </div>
-                                        </div>
                                         <div class="col-md-6">
                                             <div class="form-group">
                                                 <label>Language</label>
@@ -296,11 +302,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                                 </select>
                                             </div>
                                         </div>
-                                    </div>
-                                    <!--  -->
-
-                                    <!--  -->
-                                    <div class="row">
                                         <div class="col-md-6">
                                             <div class="form-group">
                                                 <label>Shelf Location</label>
@@ -312,12 +313,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                                 </select>
                                             </div>
                                         </div>
-                                        <div class="col-md-6">
-                                            <div class="form-group">
-                                                <label>Entered By</label>
-                                                <input type="text" class="form-control" name="entered_by" value="<?php echo $_SESSION['admin_id']; ?>" readonly>
-                                            </div>
-                                        </div>
                                     </div>
                                     <!--  -->
 
@@ -325,10 +320,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                     <div class="row">
                                         <div class="col-md-6">
                                             <div class="form-group">
+                                                <label>Entered By</label>
+                                                <input type="text" class="form-control" name="entered_by" value="<?php echo $_SESSION['admin_id']; ?>" readonly>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
                                                 <label>Date Added</label>
                                                 <input type="text" class="form-control" name="date_added" value="<?php echo date('Y-m-d'); ?>" readonly>
                                             </div>
                                         </div>
+                                    </div>
+                                    <!--  -->
+
+                                    <!--  -->
+                                    <div class="row">
                                         <div class="col-md-6">
                                             <div class="form-group">
                                                 <label>Status</label>
@@ -339,22 +345,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                                 </select>
                                             </div>
                                         </div>
-                                    </div>
-                                    <!--  -->
-
-                                    <!--  -->
-                                    <div class="row">
                                         <div class="col-md-6">
                                             <div class="form-group">
                                                 <label>Last Update</label>
                                                 <input type="text" class="form-control" name="last_update" value="<?php echo date('Y-m-d'); ?>" readonly>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="form-group">
-                                                <label>Number of Copies</label>
-                                                <input type="number" class="form-control" name="number_of_copies" min="1" value="1" required>
-                                                <small class="text-muted">This will create multiple entries with incremented accession and copy numbers</small>
                                             </div>
                                         </div>
                                     </div>
@@ -392,8 +386,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="form-group">
-                                                    <label>ISBN</label>
-                                                    <input type="text" class="form-control" name="isbn">
+                                                    <label>ISBN & Call Number</label>
+                                                    <div id="isbnContainer">
+                                                        <div class="input-group mb-2">
+                                                            <input type="text" class="form-control" name="isbn[]" 
+                                                                placeholder="Enter ISBN for Copy 1">
+                                                            <input type="text" class="form-control" name="call_number[]" 
+                                                                placeholder="Enter call number for Copy 1">
+                                                        </div>
+                                                    </div>
+                                                    <small class="text-muted">Each copy needs unique ISBN and call number</small>
                                                 </div>
                                             </div>
                                         </div>
@@ -474,4 +476,129 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     });
 });
+
+document.addEventListener('DOMContentLoaded', function() {
+    const numberOfCopiesInput = document.querySelector('input[name="number_of_copies"]');
+    const isbnContainer = document.getElementById('isbnContainer');
+
+    function updateISBNFields() {
+        const numberOfCopies = parseInt(numberOfCopiesInput.value) || 1;
+        const currentFields = isbnContainer.getElementsByTagName('input').length;
+
+        // Add fields if needed
+        for (let i = currentFields + 1; i <= numberOfCopies; i++) {
+            const div = document.createElement('div');
+            div.className = 'input-group mb-2';
+            
+            const isbnInput = document.createElement('input');
+            isbnInput.type = 'text';
+            isbnInput.className = 'form-control';
+            isbnInput.name = 'isbn[]';
+            isbnInput.placeholder = `Enter ISBN for Copy ${i}`;
+            
+            const callNumberInput = document.createElement('input');
+            callNumberInput.type = 'text';
+            callNumberInput.className = 'form-control';
+            callNumberInput.name = 'call_number[]';
+            callNumberInput.placeholder = `Enter call number for Copy ${i}`;
+            
+            div.appendChild(isbnInput);
+            div.appendChild(callNumberInput);
+            isbnContainer.appendChild(div);
+        }
+
+        // Remove excess fields if needed
+        while (isbnContainer.getElementsByTagName('input').length > numberOfCopies) {
+            isbnContainer.removeChild(isbnContainer.lastChild);
+        }
+    }
+
+    numberOfCopiesInput.addEventListener('change', updateISBNFields);
+    numberOfCopiesInput.addEventListener('input', updateISBNFields);
+});
+
+const accessionContainer = document.getElementById('accessionContainer');
+
+document.addEventListener('click', function(e) {
+    if (e.target && e.target.classList.contains('add-accession')) {
+        const groupCount = document.querySelectorAll('.accession-group').length + 1;
+        const newGroup = document.createElement('div');
+        newGroup.className = 'accession-group mb-3';
+        newGroup.innerHTML = `
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="form-group">
+                        <label>Accession (Copy ${groupCount})</label>
+                        <input type="text" class="form-control accession-input" name="accession[]" 
+                            placeholder="e.g., 2023-0001" required>
+                        <small class="text-muted">Format: YYYY-NNNN</small>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label>Number of Copies</label>
+                        <input type="number" class="form-control copies-input" name="number_of_copies[]" min="1" value="1" required>
+                        <small class="text-muted">Auto-increments accession</small>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <label>&nbsp;</label>
+                    <button type="button" class="btn btn-danger btn-block w-100 remove-accession">Remove</button>
+                </div>
+            </div>
+        `;
+        accessionContainer.appendChild(newGroup);
+        updateISBNFields();
+    }
+
+    if (e.target && e.target.classList.contains('remove-accession')) {
+        e.target.closest('.accession-group').remove();
+        updateISBNFields();
+    }
+});
+
+function updateISBNFields() {
+    const isbnContainer = document.getElementById('isbnContainer');
+    const totalCopies = Array.from(document.querySelectorAll('.copies-input'))
+        .reduce((sum, input) => sum + parseInt(input.value || 0), 0);
+
+    isbnContainer.innerHTML = '';
+    
+    for (let i = 1; i <= totalCopies; i++) {
+        const div = document.createElement('div');
+        div.className = 'input-group mb-2';
+        
+        const isbnInput = document.createElement('input');
+        isbnInput.type = 'text';
+        isbnInput.className = 'form-control';
+        isbnInput.name = 'isbn[]';
+        isbnInput.placeholder = `Enter ISBN for Copy ${i}`;
+        
+        const callNumberInput = document.createElement('input');
+        callNumberInput.type = 'text';
+        callNumberInput.className = 'form-control';
+        callNumberInput.name = 'call_number[]';
+        callNumberInput.placeholder = `Enter call number for Copy ${i}`;
+        
+        div.appendChild(isbnInput);
+        div.appendChild(callNumberInput);
+        isbnContainer.appendChild(div);
+    }
+}
+
+document.addEventListener('input', function(e) {
+    if (e.target && e.target.classList.contains('copies-input')) {
+        updateISBNFields();
+    }
+});
+
+function getAccessionBase(index) {
+    const accessionInput = document.querySelector('.accession-input');
+    if (!accessionInput || !accessionInput.value) return `copy ${index + 1}`;
+    
+    const base = accessionInput.value.replace(/\d+$/, '');
+    const num = parseInt(accessionInput.value.match(/\d+$/)[0] || '0');
+    const newNum = (num + index).toString().padStart(4, '0');
+    return base + newNum;
+}
 </script>

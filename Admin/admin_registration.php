@@ -67,7 +67,7 @@
 
                         if ($stmt->execute()) {
                             echo "<p style='color:green;'>Admin registered successfully! Redirecting to login...</p>";
-                            header("refresh:3;url=admin_login.php");
+                            header("refresh:3;url=index.php");
                             exit;
                         } else {
                             echo "<p style='color:red;'>Error: " . $stmt->error . "</p>";
