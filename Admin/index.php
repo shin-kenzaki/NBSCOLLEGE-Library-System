@@ -2,7 +2,7 @@
 session_start();
 if (isset($_SESSION['admin_id'])) {
     header("Location: dashboard.php");
-    exit;
+    exit();
 }
 require '../db.php'; // Database connection
 
@@ -25,63 +25,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($result->num_rows > 0) {
             $admin = $result->fetch_assoc();
             
-            // First check the account status
-            switch ($admin['status']) {
-                case 'Disabled':
-                    $error_message = "This account has been disabled. Please contact the administrator.";
-                    break;
-                case 'Active':
-                case 'Inactive':
-                case Null:
-                    // Only validate password if account status is acceptable
-                    if ($password === $admin['password']) {
-                        // Log the successful login in updates table
-                        $log_query = "INSERT INTO updates (user_id, role, status, `update`) VALUES (?, ?, ?, NOW())";
-                        if ($log_stmt = $conn->prepare($log_query)) {
-                            // Set status based on account status (null is treated as inactive)
-                            $login_status = ($admin['status'] === 'Active') ? "Active login" : "Inactive login";
-                            $log_stmt->bind_param("sss", $admin['employee_id'], $admin['role'], $login_status);
-                            $log_stmt->execute();
-                            $log_stmt->close();
-                        }
-
-                        // Set session variables
-                        $_SESSION['admin_id'] = $admin['employee_id'];
-                        $_SESSION['admin_email'] = $admin['email'];
-                        $_SESSION['admin_firstname'] = $admin['firstname'];
-                        $_SESSION['admin_lastname'] = $admin['lastname'];
-                        $_SESSION['admin_image'] = !empty($admin['image']) ? $admin['image'] : 'upload/default-profile.png';
-                        $_SESSION['role'] = strtolower($admin['role']);
-                        $_SESSION['admin_date_added'] = $admin['date_added'];
-                        $_SESSION['admin_status'] = $admin['status'];
-                        $_SESSION['admin_last_update'] = $admin['last_update'];
-
-                        // Redirect based on role
-                        switch ($_SESSION['role']) {
-                            case 'admin':
-                                header("Location: dashboard.php");
-                                break;
-                            case 'librarian':
-                                header("Location: librarian/librarian_dashboard.php");
-                                break;
-                            case 'assistant':
-                                header("Location: assistant/assistant_dashboard.php");
-                                break;
-                            default:
-                                $error_message = "Invalid role assigned.";
-                                break;
-                        }
-                        exit;
-                    } else {
-                        $error_message = "Invalid password";
+            // Check status first
+            if ($admin['status'] === 'Disabled') {
+                $error_message = "This account has been disabled. Please contact the administrator.";
+            } else {
+                // Use password_verify for hashed password comparison
+                if (password_verify($password, $admin['password'])) {
+                    // Log the successful login in updates table
+                    $log_query = "INSERT INTO updates (user_id, role, status, `update`) VALUES (?, ?, ?, NOW())";
+                    if ($log_stmt = $conn->prepare($log_query)) {
+                        $login_status = "Active login";
+                        $log_stmt->bind_param("sss", $admin['employee_id'], $admin['role'], $login_status);
+                        $log_stmt->execute();
+                        $log_stmt->close();
                     }
-                    break;
-                default:
-                    $error_message = "Invalid account status";
-                    break;
+
+                    // Set session variables
+                    $_SESSION['admin_id'] = $admin['employee_id'];
+                    $_SESSION['admin_email'] = $admin['email'];
+                    $_SESSION['admin_firstname'] = $admin['firstname'];
+                    $_SESSION['admin_lastname'] = $admin['lastname'];
+                    $_SESSION['admin_image'] = !empty($admin['image']) ? $admin['image'] : 'upload/default-profile.png';
+                    $_SESSION['role'] = $admin['role'];  // Will now be 1 or 0
+                    $_SESSION['admin_date_added'] = $admin['date_added'];
+                    $_SESSION['admin_status'] = $admin['status'];
+                    $_SESSION['admin_last_update'] = $admin['last_update'];
+
+                    // Redirect based on role
+                    if ($admin['role'] === 'Admin') {
+                        header("Location: dashboard.php");
+                    } else if ($admin['role'] === 'Librarian' || $admin['role'] === 'Assistant') {
+                        header("Location: librarian/librarian_dashboard.php");
+                    } else if ($admin['role'] === 'Encoder') {
+                        header("Location: encoder/encoder_dashboard.php");
+                    } else {
+                        $error_message = "Invalid role assigned.";
+                    }
+                    exit();
+                } else {
+                    $error_message = "Invalid credentials"; 
+                }
             }
         } else {
-            $error_message = "No such admin found.";
+            $error_message = "Invalid credentials"; 
         }
 
         $stmt->close();

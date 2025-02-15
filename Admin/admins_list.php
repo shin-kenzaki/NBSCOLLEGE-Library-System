@@ -74,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         } else {
             // ✅ **INSERT NEW USER**
-            $hashed_password = $password;
+            $hashed_password = password_hash($password, PASSWORD_DEFAULT); // Hash the password
             $sql = "INSERT INTO admins (employee_id, firstname, middle_init, lastname, email, password, image, role, status, date_added) 
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
             $stmt = $conn->prepare($sql);

@@ -58,16 +58,18 @@
             } else {
                 // Proceed if no errors exist
                 if (empty($errors['employee_id']) && empty($errors['email']) && empty($errors['password']) && empty($errors['firstname']) && empty($errors['lastname'])) {
-                    // Insert the new admin into the database
+                    // Hash the password before storing
+                    $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+                    
+                    // Insert the new admin into the database with hashed password
                     $sql = "INSERT INTO admins (id, employee_id, firstname, middle_init, lastname, email, password, image, role, status, date_added)
                             VALUES (Null, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
 
                     if ($stmt = $conn->prepare($sql)) {
-                        $stmt->bind_param("issssssss", $employee_id, $firstname, $middle_init, $lastname, $email, $password, $image, $role, $status);
+                        $stmt->bind_param("issssssss", $employee_id, $firstname, $middle_init, $lastname, $email, $hashed_password, $image, $role, $status);
 
                         if ($stmt->execute()) {
-                            echo "<p style='color:green;'>Admin registered successfully! Redirecting to login...</p>";
-                            header("refresh:3;url=index.php");
+                            header("Location: index.php");
                             exit;
                         } else {
                             echo "<p style='color:red;'>Error: " . $stmt->error . "</p>";
@@ -202,6 +204,7 @@
                                             <option value="">Select Role</option>
                                             <option value="Admin" <?= isset($_POST['role']) && $_POST['role'] == "Admin" ? "selected" : "" ?>>Admin</option>
                                             <option value="Librarian" <?= isset($_POST['role']) && $_POST['role'] == "Librarian" ? "selected" : "" ?>>Librarian</option>
+                                            <option value="Assistant" <?= isset($_POST['role']) && $_POST['role'] == "Assistant" ? "selected" : "" ?>>Assistant</option>
                                             <option value="Encoder" <?= isset($_POST['role']) && $_POST['role'] == "Encoder" ? "selected" : "" ?>>Encoder</option>
                                         </select>
                                     </div>

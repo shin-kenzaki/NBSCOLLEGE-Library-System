@@ -9,9 +9,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
   $middle_init = mysqli_real_escape_string($conn, $_POST['middle_init']);
   $lastname = mysqli_real_escape_string($conn, $_POST['lastname']);
   $email = mysqli_real_escape_string($conn, $_POST['email']);
-  $password = $_POST['password'];
+  // Hash the password
+  $hashed_password = password_hash($_POST['password'], PASSWORD_DEFAULT);
   $usertype = mysqli_real_escape_string($conn, $_POST['usertype']);
-  $image = 'inc/upload/default-avatar.jpg';
+  $image = '../Admin/inc/upload/default-avatar.jpg'; // Default value if no image is uploaded
   
   // Check if school_id already exists
   $check_id_query = "SELECT school_id FROM users WHERE school_id = ?";
@@ -44,7 +45,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
               
               if($stmt = $conn->prepare($sql)) {
                   $stmt->bind_param("ssssssss", 
-                      $school_id, $firstname, $middle_init, $lastname, $email, $password, $image, $usertype);
+                      $school_id, $firstname, $middle_init, $lastname, $email, $hashed_password, $image, $usertype);
                   
                   if($stmt->execute()) {
                       $_SESSION['success'] = "Registration successful! You can now login with your School ID and password.";

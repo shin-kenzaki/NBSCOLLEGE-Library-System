@@ -23,22 +23,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             
             // First check the account status
             switch ($user['status']) {
-                case 'Banned':
+                case 2: // Banned
                     $error = "This account has been banned. Please contact the administrator.";
                     break;
-                case 'Disabled':
+                case 3: // Disabled
                     $error = "This account has been disabled. Please contact the administrator.";
                     break;
-                case 'Active':
-                case 'Inactive':
-                case null:
+                case 1: // Active
+                case 0: // Inactive
+                case null: // Treat null as inactive
                     // Only validate password if account status is acceptable
-                    if ($password === $user['password']) {
+                    if (password_verify($password, $user['password'])) {
                         // Log the successful login in updates table
                         $log_query = "INSERT INTO updates (user_id, role, status, `update`) VALUES (?, ?, ?, NOW())";
                         if ($log_stmt = $conn->prepare($log_query)) {
-                            // Set status based on account status (null is treated as inactive)
-                            $login_status = ($user['status'] === 'Active') ? "Active Login" : "Inactive Login";
+                            // Set status based on account status (0 and null are treated as inactive)
+                            $login_status = ($user['status'] === 1) ? "Active Login" : "Inactive Login";
                             $log_stmt->bind_param("sss", $user['school_id'], $user['usertype'], $login_status);
                             $log_stmt->execute();
                             $log_stmt->close();
