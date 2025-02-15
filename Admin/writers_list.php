@@ -276,10 +276,26 @@ $(document).ready(function () {
         var lastName = row.find('td:nth-child(4)').text();
 
         if (confirm(`Are you sure you want to delete this writer?\n\nID: ${writerId}\nName: ${firstName} ${lastName}`)) {
-            $.post('delete_writer.php', { writer_id: writerId }, function(response) {
-                alert(response.message);
-                location.reload();
-            }, 'json');
+            $.ajax({
+                url: 'delete_writer.php',
+                type: 'POST',
+                data: { writer_id: writerId },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        row.remove();
+                        $('#contextMenu').hide();
+                        alert(response.message);
+                    } else {
+                        alert(response.message || 'Error deleting writer');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Delete request failed:', error);
+                    console.error('Server response:', xhr.responseText);
+                    alert('An error occurred while trying to delete the writer. Please check the console for details.');
+                }
+            });
         }
     });
 
