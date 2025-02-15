@@ -11,48 +11,75 @@ include '../db.php'; // Database connection
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $writerIds = isset($_POST['writer_ids']) ? $_POST['writer_ids'] : [];
     $roles = isset($_POST['roles']) ? $_POST['roles'] : [];
-
-    // Retrieve selected book IDs from session
     $bookIds = isset($_SESSION['selected_book_ids']) ? $_SESSION['selected_book_ids'] : [];
 
     if (!empty($bookIds) && !empty($writerIds)) {
-        foreach ($bookIds as $bookId) {
-            // Check if the book already has an author
-            $authorCheckQuery = "SELECT * FROM contributors WHERE book_id = '$bookId' AND role = 'Author'";
-            $authorCheckResult = $conn->query($authorCheckQuery);
+        $conn->begin_transaction(); // Start transaction
+        $success = true;
+        $authorTracker = []; // Track which books already have authors
 
-            $hasAuthor = $authorCheckResult->num_rows > 0;
+        try {
+            // First, get existing authors for all selected books
+            $authorCheckQuery = "SELECT book_id FROM contributors WHERE book_id IN (" . 
+                implode(',', array_map('intval', $bookIds)) . ") AND role = 'Author'";
+            $authorResult = $conn->query($authorCheckQuery);
+            while ($row = $authorResult->fetch_assoc()) {
+                $authorTracker[$row['book_id']] = true;
+            }
 
-            foreach ($writerIds as $index => $writerId) {
-                $role = isset($roles[$index]) ? $roles[$index] : 'Author'; // Default role to 'Author' if not provided
+            // Process one writer at a time for all books
+            for ($i = 0; $i < count($writerIds); $i++) {
+                $writerId = $writerIds[$i];
+                $role = $roles[$i];
+                $isAuthorRole = ($role === 'Author');
 
-                if ($role == 'Author' && $hasAuthor) {
-                    $_SESSION['success_message'] = "Book ID $bookId already has an author.";
-                    continue; // Skip adding another author for this book
-                }
+                // Process all books for this writer
+                foreach ($bookIds as $bookId) {
+                    // Check if this combination already exists
+                    $checkQuery = "SELECT * FROM contributors WHERE book_id = ? AND writer_id = ?";
+                    $stmt = $conn->prepare($checkQuery);
+                    $stmt->bind_param('ii', $bookId, $writerId);
+                    $stmt->execute();
+                    $exists = $stmt->get_result()->num_rows > 0;
+                    $stmt->close();
 
-                // Check if the writer is already associated with the book
-                $checkQuery = "SELECT * FROM contributors WHERE book_id = '$bookId' AND writer_id = '$writerId'";
-                $checkResult = $conn->query($checkQuery);
-
-                if ($checkResult->num_rows == 0) {
-                    // Insert the relationship into the database
-                    $query = "INSERT INTO contributors (book_id, writer_id, role) VALUES ('$bookId', '$writerId', '$role')";
-                    if ($conn->query($query) === TRUE) {
-                        $_SESSION['success_message'] = "Contributor added successfully!";
-                        if ($role == 'Author') {
-                            $hasAuthor = true; // Mark that the book now has an author
+                    if (!$exists) {
+                        // Skip if trying to add author to book that already has one
+                        if ($isAuthorRole && isset($authorTracker[$bookId])) {
+                            continue;
                         }
-                    } else {
-                        echo "Error: " . $query . "<br>" . $conn->error;
+
+                        // Insert the new contributor
+                        $insertQuery = "INSERT INTO contributors (book_id, writer_id, role) VALUES (?, ?, ?)";
+                        $stmt = $conn->prepare($insertQuery);
+                        $stmt->bind_param('iis', $bookId, $writerId, $role);
+                        
+                        if ($stmt->execute()) {
+                            if ($isAuthorRole) {
+                                $authorTracker[$bookId] = true;
+                            }
+                        } else {
+                            $success = false;
+                            throw new Exception("Error adding contributor: " . $conn->error);
+                        }
+                        $stmt->close();
                     }
-                } else {
-                    $_SESSION['success_message'] = "Some contributors were already added to the book.";
                 }
             }
+
+            if ($success) {
+                $conn->commit();
+                $_SESSION['success_message'] = "Contributors added successfully!";
+            } else {
+                $conn->rollback();
+                $_SESSION['error_message'] = "Some contributors could not be added.";
+            }
+        } catch (Exception $e) {
+            $conn->rollback();
+            $_SESSION['error_message'] = $e->getMessage();
         }
     } else {
-        echo "Book IDs and Writer IDs are required.";
+        $_SESSION['error_message'] = "Book IDs and Writer IDs are required.";
     }
 
     header("Location: book_list.php");

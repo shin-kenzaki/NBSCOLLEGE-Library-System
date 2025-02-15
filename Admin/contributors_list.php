@@ -17,12 +17,8 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
 <div id="content" class="d-flex flex-column min-vh-100">
     <div class="container-fluid">
         <div class="card shadow mb-4">
-            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <div class="card-header py-3">
                 <h6 class="m-0 font-weight-bold text-primary">Contributors List</h6>
-                <div class="bulk-actions">
-                    <button class="btn btn-primary" id="editSelected">Edit Selected</button>
-                    <button class="btn btn-danger" id="deleteSelected">Delete Selected</button>
-                </div>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
@@ -47,6 +43,30 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
     </div>
 </div>
 
+<!-- Context Menu -->
+<div id="contextMenu" class="context-menu" style="display: none; position: fixed; z-index: 1000;">
+    <ul class="context-menu-list list-unstyled m-0">
+        <li class="context-menu-item" data-action="edit"><i class="fas fa-edit"></i> Update</li>
+        <li class="context-menu-item" data-action="delete"><i class="fas fa-trash"></i> Delete</li>
+    </ul>
+</div>
+
+<style>
+.context-menu {
+    background: #ffffff;
+    border: 1px solid #cccccc;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    padding: 5px 0;
+}
+.context-menu-item {
+    padding: 8px 15px;
+    cursor: pointer;
+}
+.context-menu-item:hover {
+    background-color: #f0f0f0;
+}
+</style>
+
 <?php include '../Admin/inc/footer.php'; ?>
 
 <script>
@@ -63,7 +83,8 @@ $(document).ready(function() {
                 "defaultContent": "",
                 "render": function (data, type, row) {
                     return '<input type="checkbox" class="row-checkbox" value="' + row.id_ranges + '">';
-                }
+                },
+                "orderable": false
             },
             { "data": "id_ranges" },
             { "data": "book_title" },
@@ -74,29 +95,70 @@ $(document).ready(function() {
                 "render": function(data, type, row) {
                     let total = 0;
                     const ranges = data.split(',').map(r => r.trim());
-                    
                     ranges.forEach(range => {
-                        if(range.includes('-')) {
+                        if (range.includes('-')) {
                             const [start, end] = range.split('-').map(Number);
                             total += (end - start + 1);
                         } else {
                             total += 1;
                         }
                     });
-                    
-                    // Example: "1-30, 81-90" would return 40 (30 + 10 books)
                     return total;
                 }
             }
         ]
     });
 
-    // Handle select all checkbox
+    // Context menu handling
+    let selectedRow = null;
+    
+    // Hide context menu on document click
+    $(document).on('click', function() {
+        $('#contextMenu').hide();
+    });
+
+    // Prevent context menu on table rows
+    $('#dataTable tbody').on('contextmenu', 'tr', function(e) {
+        e.preventDefault();
+        selectedRow = table.row(this).data();
+        
+        $('#contextMenu')
+            .css({
+                top: e.pageY + 'px',
+                left: e.pageX + 'px'
+            })
+            .show();
+    });
+
+    // Handle context menu actions
+    $('.context-menu-item').on('click', function() {
+        const action = $(this).data('action');
+        
+        if (!selectedRow) return;
+        
+        if (action === 'edit') {
+            window.location.href = 'update_contributors.php?ids=' + selectedRow.id_ranges;
+        } else if (action === 'delete') {
+            if (confirm('Are you sure you want to delete all contributors with these IDs: ' + selectedRow.id_ranges + '?')) {
+                $.post('delete_contributors.php', {
+                    ids: selectedRow.id_ranges  // Pass the full ID ranges string
+                }, function(response) {
+                    if (response.success) {
+                        table.ajax.reload();
+                    }
+                    alert(response.message);
+                }, 'json');
+            }
+        }
+        
+        $('#contextMenu').hide();
+    });
+
+    // Keep checkbox functionality
     $('#selectAll').change(function() {
         $('.row-checkbox').prop('checked', $(this).prop('checked'));
     });
 
-    // Handle individual checkbox changes
     $('#dataTable tbody').on('change', '.row-checkbox', function() {
         if (!$(this).prop('checked')) {
             $('#selectAll').prop('checked', false);
@@ -106,45 +168,6 @@ $(document).ready(function() {
                 if (!$(this).prop('checked')) allChecked = false;
             });
             $('#selectAll').prop('checked', allChecked);
-        }
-    });
-
-    // Handle bulk edit button
-    $('#editSelected').click(function() {
-        var selectedIds = [];
-        $('.row-checkbox:checked').each(function() {
-            var ids = $(this).val().split(',');
-            selectedIds = selectedIds.concat(ids);
-        });
-        
-        if (selectedIds.length > 0) {
-            window.location.href = 'edit_contributor.php?ids=' + selectedIds.join(',');
-        } else {
-            alert('Please select at least one contributor to edit.');
-        }
-    });
-
-    // Handle bulk delete button
-    $('#deleteSelected').click(function() {
-        var selectedIds = [];
-        $('.row-checkbox:checked').each(function() {
-            var ids = $(this).val().split(',');
-            selectedIds = selectedIds.concat(ids);
-        });
-        
-        if (selectedIds.length > 0) {
-            if (confirm('Are you sure you want to delete the selected contributors?')) {
-                $.post('delete_contributors.php', {
-                    ids: selectedIds
-                }, function(response) {
-                    if (response.success) {
-                        table.ajax.reload();
-                    }
-                    alert(response.message);
-                });
-            }
-        } else {
-            alert('Please select at least one contributor to delete.');
         }
     });
 });

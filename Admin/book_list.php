@@ -503,6 +503,7 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
                        "<'row'<'col-sm-12'tr>>" +
                        "<'row mt-3'<'col-sm-5'i><'col-sm-7 d-flex justify-content-end'p>>",
                 "pageLength": 10,
+                "lengthMenu": [[10, 25, 50, 100, 500], [10, 25, 50, 100, 500]],
                 "responsive": false, // Disable responsive feature
                 "scrollX": true,    // Enable horizontal scroll
                 "columnDefs": [

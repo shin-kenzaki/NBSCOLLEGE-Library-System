@@ -17,12 +17,8 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
 <div id="content" class="d-flex flex-column min-vh-100">
     <div class="container-fluid">
         <div class="card shadow mb-4">
-            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <div class="card-header py-3">
                 <h6 class="m-0 font-weight-bold text-primary">Publications List</h6>
-                <div class="bulk-actions">
-                    <button class="btn btn-primary" id="editSelected">Edit Selected</button>
-                    <button class="btn btn-danger" id="deleteSelected">Delete Selected</button>
-                </div>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
@@ -48,6 +44,30 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
     </div>
 </div>
 
+<!-- Context Menu -->
+<div id="contextMenu" class="context-menu" style="display: none; position: fixed; z-index: 1000;">
+    <ul class="context-menu-list list-unstyled m-0">
+        <li class="context-menu-item" data-action="edit"><i class="fas fa-edit"></i> Update</li>
+        <li class="context-menu-item" data-action="delete"><i class="fas fa-trash"></i> Delete</li>
+    </ul>
+</div>
+
+<style>
+.context-menu {
+    background: #ffffff;
+    border: 1px solid #cccccc;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    padding: 5px 0;
+}
+.context-menu-item {
+    padding: 8px 15px;
+    cursor: pointer;
+}
+.context-menu-item:hover {
+    background-color: #f0f0f0;
+}
+</style>
+
 <?php include '../Admin/inc/footer.php'; ?>
 
 <script>
@@ -64,7 +84,8 @@ $(document).ready(function() {
                 "defaultContent": "",
                 "render": function (data, type, row) {
                     return '<input type="checkbox" class="row-checkbox" value="' + row.id + '">';
-                }
+                },
+                "orderable": false
             },
             { "data": "id" },
             { "data": "book_title" },
@@ -85,8 +106,6 @@ $(document).ready(function() {
                             total += 1;
                         }
                     });
-                    
-                    // Example: "1-30, 81-90" would return 40 (30 + 10 books)
                     return total;
                 }
             }
@@ -112,43 +131,49 @@ $(document).ready(function() {
         }
     });
 
-    // Handle bulk edit button
-    $('#editSelected').click(function() {
-        var selectedIds = [];
-        $('.row-checkbox:checked').each(function() {
-            var ids = $(this).val().split(',');
-            selectedIds = selectedIds.concat(ids);
-        });
-        
-        if (selectedIds.length > 0) {
-            window.location.href = 'edit_publication.php?ids=' + selectedIds.join(',');
-        } else {
-            alert('Please select at least one publication to edit.');
-        }
+    // Context menu handling
+    let selectedRow = null;
+    
+    // Hide context menu on document click
+    $(document).on('click', function() {
+        $('#contextMenu').hide();
     });
 
-    // Handle bulk delete button
-    $('#deleteSelected').click(function() {
-        var selectedIds = [];
-        $('.row-checkbox:checked').each(function() {
-            var ids = $(this).val().split(',');
-            selectedIds = selectedIds.concat(ids);
-        });
+    // Prevent context menu on table rows
+    $('#dataTable tbody').on('contextmenu', 'tr', function(e) {
+        e.preventDefault();
+        selectedRow = table.row(this).data();
         
-        if (selectedIds.length > 0) {
-            if (confirm('Are you sure you want to delete the selected publications?')) {
+        $('#contextMenu')
+            .css({
+                top: e.pageY + 'px',
+                left: e.pageX + 'px'
+            })
+            .show();
+    });
+
+    // Handle context menu actions
+    $('.context-menu-item').on('click', function() {
+        const action = $(this).data('action');
+        
+        if (!selectedRow) return;
+        
+        if (action === 'edit') {
+            window.location.href = 'update_publications.php?ids=' + selectedRow.id;
+        } else if (action === 'delete') {
+            if (confirm('Are you sure you want to delete all publications with these IDs: ' + selectedRow.id + '?')) {
                 $.post('delete_publications.php', {
-                    ids: selectedIds
+                    ids: selectedRow.id  // This now contains the ID ranges
                 }, function(response) {
                     if (response.success) {
                         table.ajax.reload();
                     }
                     alert(response.message);
-                });
+                }, 'json');
             }
-        } else {
-            alert('Please select at least one publication to delete.');
         }
+        
+        $('#contextMenu').hide();
     });
 });
 </script>
