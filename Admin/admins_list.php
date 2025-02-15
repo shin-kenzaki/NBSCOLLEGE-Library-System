@@ -14,7 +14,7 @@ include '../inc/status_helper.php';
 $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
 
 $errors = [
-    'id' => '',
+    'employee_id' => '',
     'firstname' => '',
     'lastname' => '',
     'email' => '',
@@ -22,7 +22,7 @@ $errors = [
     'role' => '',
 ];
 $values = [
-    'id' => '',
+    'employee_id' => '',
     'firstname' => '',
     'middle_init' => '',
     'lastname' => '',
@@ -34,22 +34,20 @@ $values = [
 
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $id = $_POST['id'];
-    $employee_id = $_POST['employee_id']; // Add employee_id
+    $employee_id = $_POST['employee_id']; 
     $firstname = trim($_POST['firstname']);
     $middle_init = trim($_POST['middle_init']) ?? NULL;
     $lastname = trim($_POST['lastname']);
-    $email = $_POST['email']; // Change username to email
+    $email = $_POST['email']; 
     $password = $_POST['password'];
     $role = $_POST['role'];
-    $status = 1; // Change "Active" to 1 to match the database
-    $image = '/upload/nbs-login.jpg'; // Default image
+    $status = null;
+    $image = '/upload/nbs-login.jpg';
 
     // Store values to retain input data
-    $values = compact('id', 'employee_id', 'firstname', 'middle_init', 'lastname', 'email', 'password', 'role');
+    $values = compact('employee_id', 'firstname', 'middle_init', 'lastname', 'email', 'password', 'role');
 
     // ✅ **VALIDATION RULES**
-    if (empty($id)) $errors['id'] = "ID is required.";
     if (empty($employee_id)) $errors['employee_id'] = "Employee ID is required.";
     if (empty($firstname)) $errors['firstname'] = "First name is required.";
     if (empty($lastname)) $errors['lastname'] = "Last name is required.";
@@ -59,15 +57,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // ✅ **CHECK FOR DUPLICATES**
     if (!array_filter($errors)) { // Proceed ONLY if no validation errors
-        $sql_check = "SELECT id, email, firstname, lastname FROM admins WHERE id = ? OR email = ? OR (firstname = ? AND lastname = ?)";
+        $sql_check = "SELECT employee_id, email, firstname, lastname FROM admins WHERE employee_id = ? OR email = ? OR (firstname = ? AND lastname = ?)";
         $stmt_check = $conn->prepare($sql_check);
-        $stmt_check->bind_param("isss", $id, $email, $firstname, $lastname);
+        $stmt_check->bind_param("ssss", $employee_id, $email, $firstname, $lastname);
         $stmt_check->execute();
         $result_check = $stmt_check->get_result();
 
         if ($result_check->num_rows > 0) {
             while ($row = $result_check->fetch_assoc()) {
-                if ($row['id'] == $id) $errors['id'] = "This ID is already in use.";
+                if ($row['employee_id'] == $employee_id) $errors['employee_id'] = "This Employee ID is already in use.";
                 if ($row['email'] == $email) $errors['email'] = "This email is already taken.";
                 if ($row['firstname'] == $firstname && $row['lastname'] == $lastname) {
                     $errors['firstname'] = "An account with this name already exists.";
@@ -77,15 +75,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             // ✅ **INSERT NEW USER**
             $hashed_password = $password;
-            $sql = "INSERT INTO admins (id, employee_id, firstname, middle_init, lastname, email, password, image, role, status, date_added) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+            $sql = "INSERT INTO admins (employee_id, firstname, middle_init, lastname, email, password, image, role, status, date_added) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
             $stmt = $conn->prepare($sql);
-            $stmt->bind_param("issssssssi", $id, $employee_id, $firstname, $middle_init, $lastname, $email, $hashed_password, $image, $role, $status);
+            $stmt->bind_param("ssssssssi", $employee_id, $firstname, $middle_init, $lastname, $email, $hashed_password, $image, $role, $status);
 
             if ($stmt->execute()) {
-                // Set the session variable for success message
-                $_SESSION['successMessage'] = "User has been added successfully.";
-                echo "<script>window.location.href='admin_users.php';</script>"; // Redirect after success
+                echo "<script>
+                    alert('User has been added successfully.');
+                    window.location.href='admins_list.php';
+                </script>";
                 exit;
             } else {
                 echo "<script>alert('Error adding user.');</script>";
@@ -113,20 +112,7 @@ $result = mysqli_query($conn, $query);
             <!-- Main Content -->
             <div id="content" class="d-flex flex-column min-vh-100">
                 <div class="container-fluid">
-
-                    <!-- Page Heading -->
-                    <h1 class="h3 mb-4 text-gray-800">Admin Users</h1>
-
-                    <?php if (!empty(array_filter($errors))) : ?>
-    <div class="alert alert-danger mx-3 mt-2">
-        <strong>Error!</strong> Failed to add user. Please check the form for errors and try again.
-    </div>
-<?php elseif (isset($_SESSION['successMessage'])) : ?>
-    <div class="alert alert-success mx-3 mt-2">
-        <strong>Success!</strong> <?= $_SESSION['successMessage'] ?>
-    </div>
-    <?php unset($_SESSION['successMessage']); // Unset the session variable after displaying the message ?>
-<?php endif; ?>
+                    
 
 
 
@@ -215,7 +201,7 @@ $result = mysqli_query($conn, $query);
     </a>
 
 <!-- Add User Modal -->
-<div class="modal fade <?php if ($formSubmitted) echo 'show d-block'; ?>" id="addUserModal" tabindex="-1" role="dialog" aria-labelledby="addUserModalLabel" aria-hidden="true">
+<div class="modal fade <?php if (isset($formSubmitted) && $formSubmitted) echo 'show d-block'; ?>" id="addUserModal" tabindex="-1" role="dialog" aria-labelledby="addUserModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
@@ -225,59 +211,53 @@ $result = mysqli_query($conn, $query);
                 </button>
             </div>
             <form id="addUserForm" action="" method="POST">
-
                 <div class="modal-body">
                     <div class="form-group">
-                        <label>ID</label>
-                        <input type="number" name="id" class="form-control" value="<?= $values['id'] ?>">
-                        <small class="text-danger"><?= $errors['id'] ?></small>
-                    </div>
-                    <div class="form-group">
                         <label>Employee ID</label>
-                        <input type="text" name="employee_id" class="form-control" value="<?= $values['employee_id'] ?>">
-                        <small class="text-danger"><?= $errors['employee_id'] ?></small>
+                        <input type="text" name="employee_id" class="form-control" value="<?= htmlspecialchars($values['employee_id'] ?? '') ?>">
+                        <small class="text-danger"><?= $errors['employee_id'] ?? '' ?></small>
                     </div>
                     <div class="form-group">
                         <label>First Name</label>
-                        <input type="text" name="firstname" class="form-control" value="<?= $values['firstname'] ?>">
-                        <small class="text-danger"><?= $errors['firstname'] ?></small>
+                        <input type="text" name="firstname" class="form-control" value="<?= htmlspecialchars($values['firstname'] ?? '') ?>">
+                        <small class="text-danger"><?= $errors['firstname'] ?? '' ?></small>
                     </div>
                     <div class="form-group">
                         <label>Middle Initial</label>
-                        <input type="text" name="middle_init" class="form-control" value="<?= $values['middle_init'] ?>">
+                        <input type="text" name="middle_init" class="form-control" value="<?= htmlspecialchars($values['middle_init'] ?? '') ?>">
                     </div>
                     <div class="form-group">
                         <label>Last Name</label>
-                        <input type="text" name="lastname" class="form-control" value="<?= $values['lastname'] ?>">
-                        <small class="text-danger"><?= $errors['lastname'] ?></small>
+                        <input type="text" name="lastname" class="form-control" value="<?= htmlspecialchars($values['lastname'] ?? '') ?>">
+                        <small class="text-danger"><?= $errors['lastname'] ?? '' ?></small>
                     </div>
                     <div class="form-group">
                         <label>Email</label>
-                        <input type="text" name="email" class="form-control" value="<?= $values['email'] ?>">
-                        <small class="text-danger"><?= $errors['email'] ?></small>
+                        <input type="email" name="email" class="form-control" value="<?= htmlspecialchars($values['email'] ?? '') ?>">
+                        <small class="text-danger"><?= $errors['email'] ?? '' ?></small>
                     </div>
                     <div class="form-group">
                         <label>Password</label>
                         <input type="password" name="password" class="form-control">
-                        <small class="text-danger"><?= $errors['password'] ?></small>
+                        <small class="text-danger"><?= $errors['password'] ?? '' ?></small>
                     </div>
                     <div class="form-group">
                         <label>Role</label>
                         <select name="role" class="form-control">
                             <option value="" disabled <?= empty($values['role']) ? 'selected' : '' ?>>Select Role</option>
-                            <option value="Admin" <?= $values['role'] == 'Admin' ? 'selected' : '' ?>>Admin</option>
-                            <option value="Librarian" <?= $values['role'] == 'Librarian' ? 'selected' : '' ?>>Librarian</option>
-                            <option value="Encoder" <?= $values['role'] == 'Encoder' ? 'selected' : '' ?>>Encoder</option>
+                            <option value="Admin" <?= ($values['role'] ?? '') == 'Admin' ? 'selected' : '' ?>>Admin</option>
+                            <option value="Librarian" <?= ($values['role'] ?? '') == 'Librarian' ? 'selected' : '' ?>>Librarian</option>
+                            <option value="Encoder" <?= ($values['role'] ?? '') == 'Encoder' ? 'selected' : '' ?>>Encoder</option>
                         </select>
-                        <small class="text-danger"><?= $errors['role'] ?></small>
+                        <small class="text-danger"><?= $errors['role'] ?? '' ?></small>
                     </div>
                     <div class="form-group">
                         <label>Status</label>
                         <select name="status" class="form-control">
+                            <option value="0" selected>Inactive</option>
                             <option value="1">Active</option>
-                            <option value="0">Inactive</option>
-                            <option value="Banned">Banned</option>
-                            <option value="Disabled">Disabled</option>
+                            <option value="2">Banned</option>
+                            <option value="3">Disabled</option>
                         </select>
                     </div>
                 </div>
@@ -398,7 +378,20 @@ $(document).ready(function() {
 
     $('#deleteAdmin').click(function() {
         if (confirm('Are you sure you want to delete this admin?')) {
-            window.location.href = `delete_admin.php?id=${selectedAdminId}`;
+            $.ajax({
+                url: `delete_admin.php?id=${selectedAdminId}`,
+                method: 'GET',
+                dataType: 'json',
+                success: function(response) {
+                    alert(response.message);
+                    if (response.status === 'success') {
+                        location.reload();
+                    }
+                },
+                error: function() {
+                    alert('Error occurred while deleting admin');
+                }
+            });
         }
     });
 
