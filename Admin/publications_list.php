@@ -25,7 +25,7 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
                     <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
-                                <th><input type="checkbox" id="selectAll"></th>
+                                <th style="cursor: pointer;" id="checkboxHeader"><input type="checkbox" id="selectAll"></th>
                                 <th>ID</th>
                                 <th>Book Title</th>
                                 <th>Publisher</th>
@@ -113,9 +113,19 @@ $(document).ready(function() {
         "order": [[2, "asc"], [5, "asc"]] // Sort by book title then year
     });
 
-    // Handle select all checkbox
-    $('#selectAll').change(function() {
-        $('.row-checkbox').prop('checked', $(this).prop('checked'));
+    // Handle select all checkbox and header click
+    $('#selectAll, #checkboxHeader').on('click', function(e) {
+        if ($(this).is('th')) {
+            // If clicking the header cell, toggle the checkbox
+            const checkbox = $('#selectAll');
+            checkbox.prop('checked', !checkbox.prop('checked'));
+        }
+        // Apply the checkbox state to all row checkboxes
+        $('.row-checkbox').prop('checked', $('#selectAll').prop('checked'));
+        // Prevent event bubbling when clicking the checkbox itself
+        if ($(this).is('input')) {
+            e.stopPropagation();
+        }
     });
 
     // Handle individual checkbox changes
@@ -174,6 +184,45 @@ $(document).ready(function() {
         }
         
         $('#contextMenu').hide();
+    });
+
+    // Modified checkbox handling
+    // Header cell click handler
+    $(document).on('click', 'thead th:first-child', function(e) {
+        // If the click was directly on the checkbox, don't execute this handler
+        if (e.target.type === 'checkbox') return;
+        
+        // Find and click the checkbox
+        var checkbox = $('#selectAll');
+        checkbox.prop('checked', !checkbox.prop('checked'));
+        $('.row-checkbox').prop('checked', checkbox.prop('checked'));
+    });
+
+    // Keep the original checkbox change handlers
+    $('#selectAll').change(function() {
+        $('.row-checkbox').prop('checked', $(this).prop('checked'));
+    });
+
+    $('#dataTable tbody').on('change', '.row-checkbox', function() {
+        if (!$(this).prop('checked')) {
+            $('#selectAll').prop('checked', false);
+        } else {
+            var allChecked = true;
+            $('.row-checkbox').each(function() {
+                if (!$(this).prop('checked')) allChecked = false;
+            });
+            $('#selectAll').prop('checked', allChecked);
+        }
+    });
+
+    // Add cell click handler for the checkbox column
+    $('#dataTable tbody').on('click', 'td:first-child', function(e) {
+        // If the click was directly on the checkbox, don't execute this handler
+        if (e.target.type === 'checkbox') return;
+        
+        // Find the checkbox within this cell and toggle it
+        var checkbox = $(this).find('.row-checkbox');
+        checkbox.prop('checked', !checkbox.prop('checked')).trigger('change');
     });
 });
 </script>

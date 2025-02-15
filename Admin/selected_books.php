@@ -3,13 +3,20 @@ session_start();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['selectedBookIds'])) {
-        $_SESSION['selectedBookIds'] = $_POST['selectedBookIds'];
-        echo json_encode(['status' => 'success']);
+        // Ensure we only store valid numeric IDs
+        $selectedIds = array_map(function($id) {
+            return is_numeric($id) ? (string)$id : null;
+        }, $_POST['selectedBookIds']);
+        
+        // Remove any null values
+        $selectedIds = array_filter($selectedIds);
+        
+        $_SESSION['selectedBookIds'] = array_values($selectedIds);
+        echo json_encode(['status' => 'success', 'count' => count($selectedIds)]);
     } else {
         echo json_encode(['status' => 'error', 'message' => 'No book IDs provided']);
     }
 } else {
-    // Clear the session array when the user refreshes the page
     $_SESSION['selectedBookIds'] = [];
     echo json_encode(['status' => 'error', 'message' => 'Invalid request method']);
 }

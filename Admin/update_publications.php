@@ -37,55 +37,58 @@ $query = "SELECT
 $result = $conn->query($query);
 ?>
 
-<div class="container-fluid">
-    <div class="card shadow mb-4">
-        <div class="card-header py-3 d-flex justify-content-between align-items-center">
-            <h6 class="m-0 font-weight-bold text-primary">Update Publications</h6>
-            <div class="d-flex align-items-center">
-                <span class="text-muted mr-3">Total Books: <?= count($ids) ?></span>
-                <button type="button" class="btn btn-primary btn-sm" id="updateAll">Update All</button>
-            </div>
-        </div>
-        <div class="card-body">
-            <form id="updateForm">
-                <div class="table-responsive">
-                    <table class="table table-bordered">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Book ID</th>
-                                <th>Book Title</th>
-                                <th>Publisher ID</th>
-                                <th>Publisher</th>
-                                <th>Place</th>
-                                <th>Year</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php while ($row = $result->fetch_assoc()): ?>
-                            <tr data-id="<?= $row['id'] ?>">
-                                <td><?= $row['id'] ?></td>
-                                <td><?= $row['book_id'] ?></td>
-                                <td><?= $row['book_title'] ?></td>
-                                <td><?= $row['publisher_id'] ?></td>
-                                <td>
-                                    <input type="text" class="form-control auto-save" name="publisher_<?= $row['id'] ?>" 
-                                           value="<?= $row['publisher'] ?>">
-                                </td>
-                                <td>
-                                    <input type="text" class="form-control auto-save" name="place_<?= $row['id'] ?>" 
-                                           value="<?= $row['place'] ?>">
-                                </td>
-                                <td>
-                                    <input type="number" class="form-control auto-save" name="year_<?= $row['id'] ?>"
-                                           value="<?= $row['publish_date'] ?>" min="1900" max="<?= date('Y') ?>">
-                                </td>
-                            </tr>
-                            <?php endwhile; ?>
-                        </tbody>
-                    </table>
+<!-- Main Content -->
+<div id="content" class="d-flex flex-column min-vh-100">
+    <div class="container-fluid">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">Update Publications</h6>
+                <div class="d-flex align-items-center">
+                    <span class="text-muted mr-3">Total Books: <?= count($ids) ?></span>
+                    <button type="button" class="btn btn-primary btn-sm" id="updateAll">Update All</button>
                 </div>
-            </form>
+            </div>
+            <div class="card-body">
+                <form id="updateForm">
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Book ID</th>
+                                    <th>Book Title</th>
+                                    <th>Publisher ID</th>
+                                    <th>Publisher</th>
+                                    <th>Place</th>
+                                    <th>Year</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php while ($row = $result->fetch_assoc()): ?>
+                                <tr data-id="<?= $row['id'] ?>">
+                                    <td><?= $row['id'] ?></td>
+                                    <td><?= $row['book_id'] ?></td>
+                                    <td><?= $row['book_title'] ?></td>
+                                    <td><?= $row['publisher_id'] ?></td>
+                                    <td>
+                                        <input type="text" class="form-control auto-save" name="publisher_<?= $row['id'] ?>" 
+                                               value="<?= $row['publisher'] ?>">
+                                    </td>
+                                    <td>
+                                        <input type="text" class="form-control auto-save" name="place_<?= $row['id'] ?>" 
+                                               value="<?= $row['place'] ?>">
+                                    </td>
+                                    <td>
+                                        <input type="number" class="form-control auto-save" name="year_<?= $row['id'] ?>"
+                                               value="<?= $row['publish_date'] ?>" min="1900" max="<?= date('Y') ?>">
+                                    </td>
+                                </tr>
+                                <?php endwhile; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </div>

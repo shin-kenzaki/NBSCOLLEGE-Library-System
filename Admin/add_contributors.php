@@ -25,6 +25,16 @@ $selectedWriterIds = isset($_GET['selected_writer_ids']) ? $_GET['selected_write
 // Store selected writer IDs in session
 $_SESSION['selected_writer_ids'] = $selectedWriterIds;
 
+// After database connection, add this:
+$bookDetails = [];
+if (!empty($bookIds)) {
+    $bookQuery = "SELECT id, title FROM books WHERE id IN (" . implode(',', array_map('intval', $bookIds)) . ")";
+    $bookResult = $conn->query($bookQuery);
+    while ($book = $bookResult->fetch_assoc()) {
+        $bookDetails[$book['id']] = $book['title'];
+    }
+}
+
 ?>
 
 <!-- Main Content -->
@@ -32,7 +42,15 @@ $_SESSION['selected_writer_ids'] = $selectedWriterIds;
     <div class="container-fluid">
         <div class="card shadow mb-4">
             <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-primary">Add Contributors</h6>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="m-0 font-weight-bold text-primary">Add Contributors</h6>
+                        <small class="text-muted">
+                            (<?php echo count($bookIds); ?> books selected)
+                        </small>
+                    </div>
+                    <small class="text-muted" id="selectedWritersCount">(0 writers selected)</small>
+                </div>
             </div>
             <div class="card-body">
                 <!-- Search Form -->
@@ -92,8 +110,9 @@ $_SESSION['selected_writer_ids'] = $selectedWriterIds;
 
                                 if (!empty($selectedWriters)) {
                                     foreach ($selectedWriters as $writer) {
+                                        $isChecked = in_array($writer['id'], $selectedWriterIds) ? " checked" : "";
                                         echo "<tr>
-                                            <td><input type='checkbox' class='selectWriter' name='writer_ids[]' value='{$writer['id']}'" . (in_array($writer['id'], $selectedWriterIds) ? " checked" : "") . "></td>
+                                            <td><input type='checkbox' class='selectWriter' name='writer_ids[]' value='{$writer['id']}' data-writer-id='{$writer['id']}'{$isChecked}></td>
                                             <td>{$writer['id']}</td>
                                             <td>{$writer['firstname']}</td>
                                             <td>{$writer['middle_init']}</td>
@@ -126,9 +145,47 @@ $_SESSION['selected_writer_ids'] = $selectedWriterIds;
 <?php include '../Admin/inc/footer.php' ?>
 <!-- End of Footer -->
 
+<!-- Add this hidden input after the search form -->
+<input type="hidden" id="bookDetails" value="<?php echo htmlspecialchars(json_encode($bookDetails)); ?>">
+
 <script>
 $(document).ready(function () {
-    var selectedWriterIds = <?php echo json_encode(isset($_SESSION['selectedWriterIds']) ? $_SESSION['selectedWriterIds'] : []); ?>;
+    var selectedWriterIds = <?php echo json_encode(isset($_SESSION['selected_writer_ids']) ? $_SESSION['selected_writer_ids'] : []); ?>;
+    var bookDetails = JSON.parse($('#bookDetails').val());
+    var isInitialLoad = true; // Add this flag
+
+    function showAssignmentAlert() {
+        // Skip alert on initial page load
+        if (isInitialLoad) {
+            isInitialLoad = false;
+            return;
+        }
+
+        let assignments = {};
+        $('.selectWriter:checked').each(function() {
+            let writerName = $(this).closest('tr').find('td:eq(2)').text() + ' ' + 
+                            $(this).closest('tr').find('td:eq(4)').text();
+            let role = $(this).closest('tr').find('select[name="roles[]"]').val();
+            
+            if (!assignments[writerName]) {
+                assignments[writerName] = {};
+            }
+            if (!assignments[writerName][role]) {
+                assignments[writerName][role] = [];
+            }
+            assignments[writerName][role] = Object.keys(bookDetails);
+        });
+
+        let message = "Assignment Summary:\n\n";
+        for (let writer in assignments) {
+            for (let role in assignments[writer]) {
+                message += `Assigned "${writer}" to ${assignments[writer][role].length} books as ${role}\n`;
+                message += `Books: ${assignments[writer][role].map(id => bookDetails[id]).join(', ')}\n\n`;
+            }
+        }
+        
+        alert(message);
+    }
 
     // Function to update the selected writer IDs in the session
     function updateSelectedWriterIds() {
@@ -136,75 +193,150 @@ $(document).ready(function () {
         var authorSelected = false;
 
         $('.selectWriter:checked').each(function() {
-            var writerId = $(this).val();
+            var writerId = $(this).data('writer-id').toString();
             var role = $(this).closest('tr').find('select[name="roles[]"]').val();
 
             if (role === 'Author') {
                 if (authorSelected) {
                     alert('Only one author can be selected per book.');
                     $(this).prop('checked', false);
-                    return;
+                    return false;
                 }
                 authorSelected = true;
             }
 
-            if (!selectedWriterIds.includes(writerId)) {
-                selectedWriterIds.push(writerId);
-            }
+            selectedWriterIds.push(writerId);
         });
 
-        console.log(selectedWriterIds); // For debugging purposes
+        // Update the counter display immediately
+        $('#selectedWritersCount').text(`(${selectedWriterIds.length} writers selected)`);
 
         // Store selected writer IDs in session
         $.post('selected_writers.php', {
             selectedWriterIds: selectedWriterIds
-        }, function(response) {
-            console.log(response); // For debugging purposes
-        }, 'json');
+        });
+
+        // Update select all checkbox state
+        var totalWriters = $('.selectWriter').length;
+        var selectedWriters = $('.selectWriter:checked').length;
+        $('#selectAllWriters').prop('checked', totalWriters > 0 && totalWriters === selectedWriters);
+
+        // Only show alert if it's not the initial load
+        if (!isInitialLoad) {
+            showAssignmentAlert();
+        }
     }
 
     // Select/Deselect all checkboxes
     $('#selectAllWriters').click(function() {
+        if(this.checked) {
+            var canSelectAll = true;
+            var authorCount = 0;
+            $('.selectWriter').each(function() {
+                var role = $(this).closest('tr').find('select[name="roles[]"]').val();
+                if(role === 'Author') authorCount++;
+                if(authorCount > 1) {
+                    canSelectAll = false;
+                    return false;
+                }
+            });
+
+            if(!canSelectAll) {
+                alert('Cannot select all - multiple authors detected');
+                this.checked = false;
+                return;
+            }
+        }
         $('.selectWriter').prop('checked', this.checked);
         updateSelectedWriterIds();
     });
 
-    $('.selectWriter').click(function() {
+    // Handle individual checkbox changes
+    $(document).on('change', '.selectWriter', function() {
         updateSelectedWriterIds();
     });
 
-    // Handle search form submission
-    $('form#searchForm').submit(function(event) {
-        event.preventDefault();
-        var searchQuery = $('input[name="search"]').val();
-        var selectedWriterIds = $('input[name="selected_writer_ids[]"]').map(function() {
-            return $(this).val();
-        }).get();
-
-        $.ajax({
-            url: 'fetch_writers.php',
-            type: 'GET',
-            data: {
-                search: searchQuery,
-                selected_writer_ids: selectedWriterIds
-            },
-            success: function(response) {
-                $('#writersTable tbody').html(response);
-                updateSelectedWriterIds(); // Update the selected writer IDs after search results are loaded
-            }
-        });
+    // Handle role changes
+    $(document).on('change', 'select[name="roles[]"]', function() {
+        updateSelectedWriterIds();
     });
 
     // Restore the selected state on page load
     function restoreSelectedState() {
         $('.selectWriter').each(function() {
-            var writerId = $(this).val();
+            var writerId = $(this).data('writer-id').toString();
             if (selectedWriterIds.includes(writerId)) {
                 $(this).prop('checked', true);
             }
         });
+        updateSelectedWriterIds();
     }
 
+    // Initialize selections
     restoreSelectedState();
+
+    // Update checkbox click handler to work with cell click
+    $(document).on('click', 'td:first-child', function(e) {
+        // If the click was directly on the checkbox, don't execute this handler
+        if (e.target.type === 'checkbox') return;
+        
+        // Find the checkbox within this cell and toggle it
+        var checkbox = $(this).find('.selectWriter');
+        
+        // Check if selecting would create multiple authors
+        if (!checkbox.prop('checked')) {
+            var role = $(this).closest('tr').find('select[name="roles[]"]').val();
+            if (role === 'Author') {
+                var authorCount = $('.selectWriter:checked').filter(function() {
+                    return $(this).closest('tr').find('select[name="roles[]"]').val() === 'Author';
+                }).length;
+                if (authorCount >= 1) {
+                    alert('Only one author can be selected per book.');
+                    return;
+                }
+            }
+        }
+        
+        checkbox.prop('checked', !checkbox.prop('checked'));
+        updateSelectedWriterIds();
+    });
+
+    // Keep the original checkbox click handler for direct checkbox clicks
+    $(document).on('click', '.selectWriter', function(e) {
+        // Stop propagation to prevent the td click handler from firing
+        e.stopPropagation();
+        updateSelectedWriterIds();
+    });
+
+    // Update header cell click handler
+    $(document).on('click', 'thead th:first-child', function(e) {
+        // If the click was directly on the checkbox, don't execute this handler
+        if (e.target.type === 'checkbox') return;
+        
+        // Find and click the checkbox
+        var checkbox = $('#selectAllWriters');
+        checkbox.prop('checked', !checkbox.prop('checked'));
+        
+        if(checkbox.prop('checked')) {
+            var canSelectAll = true;
+            var authorCount = 0;
+            $('.selectWriter').each(function() {
+                var role = $(this).closest('tr').find('select[name="roles[]"]').val();
+                if(role === 'Author') authorCount++;
+                if(authorCount > 1) {
+                    canSelectAll = false;
+                    return false;
+                }
+            });
+
+            if(!canSelectAll) {
+                alert('Cannot select all - multiple authors detected');
+                checkbox.prop('checked', false);
+                return;
+            }
+        }
+        $('.selectWriter').prop('checked', checkbox.prop('checked'));
+        updateSelectedWriterIds();
+    });
 });
 </script>

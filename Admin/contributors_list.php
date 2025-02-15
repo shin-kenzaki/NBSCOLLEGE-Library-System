@@ -154,7 +154,19 @@ $(document).ready(function() {
         $('#contextMenu').hide();
     });
 
-    // Keep checkbox functionality
+    // Modified checkbox handling
+    // Header cell click handler
+    $(document).on('click', 'thead th:first-child', function(e) {
+        // If the click was directly on the checkbox, don't execute this handler
+        if (e.target.type === 'checkbox') return;
+        
+        // Find and click the checkbox
+        var checkbox = $('#selectAll');
+        checkbox.prop('checked', !checkbox.prop('checked'));
+        $('.row-checkbox').prop('checked', checkbox.prop('checked'));
+    });
+
+    // Keep the original checkbox change handlers
     $('#selectAll').change(function() {
         $('.row-checkbox').prop('checked', $(this).prop('checked'));
     });
@@ -169,6 +181,16 @@ $(document).ready(function() {
             });
             $('#selectAll').prop('checked', allChecked);
         }
+    });
+
+    // Add cell click handler for the checkbox column
+    $('#dataTable tbody').on('click', 'td:first-child', function(e) {
+        // If the click was directly on the checkbox, don't execute this handler
+        if (e.target.type === 'checkbox') return;
+        
+        // Find the checkbox within this cell and toggle it
+        var checkbox = $(this).find('.row-checkbox');
+        checkbox.prop('checked', !checkbox.prop('checked')).trigger('change');
     });
 });
 </script>

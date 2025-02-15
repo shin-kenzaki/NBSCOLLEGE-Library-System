@@ -139,7 +139,10 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
         <div class="container-fluid">
             <div class="card shadow mb-4">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 font-weight-bold text-primary">Book List</h6>
+                    <div>
+                        <h6 class="m-0 font-weight-bold text-primary">Book List</h6>
+                        <small id="selectedCount" class="text-muted">(0 books selected)</small>
+                    </div>
                     <a href="add-book.php" class="btn btn-primary">Add Book</a>
                 </div>
                 <div class="card-body">
@@ -194,7 +197,7 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
 
                                 while ($row = $result->fetch_assoc()) {
                                     echo "<tr>
-                                        <td><input type='checkbox' class='selectRow'></td>
+                                        <td><input type='checkbox' class='selectRow' value='{$row['id']}'></td>
                                         <td>{$row['id']}</td>
                                         <td>{$row['accession']}</td>
                                         <td>{$row['title']}</td>
@@ -327,25 +330,52 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
             // Function to update the selected book IDs in the session
             function updateSelectedBookIds() {
                 selectedBookIds = [];
-                $('.selectRow').each(function() {
-                    var bookId = $(this).closest('tr').find('td:nth-child(2)').text();
-                    if ($(this).is(':checked')) {
-                        if (!selectedBookIds.includes(bookId)) {
-                            selectedBookIds.push(bookId);
-                        }
-                    }
+                $('.selectRow:checked').each(function() {
+                    selectedBookIds.push($(this).val());
                 });
-                console.log(selectedBookIds); // For debugging purposes
-
+                
+                // Update the counter display
+                $('#selectedCount').text(`(${selectedBookIds.length} books selected)`);
+                
                 // Store selected book IDs in session
                 $.post('selected_books.php', {
                     selectedBookIds: selectedBookIds
-                }, function(response) {
-                    console.log(response); // For debugging purposes
-                    fetchBooks(); // Reload the table data after updating the selected book IDs
-                    toggleAddContributorsIcons(); // Ensure the icons are toggled correctly
-                }, 'json');
+                });
+
+                // Update select all checkbox state
+                updateSelectAllState();
             }
+
+            // Function to update select all checkbox state
+            function updateSelectAllState() {
+                var totalCheckboxes = $('.selectRow').length;
+                var checkedCheckboxes = $('.selectRow:checked').length;
+                $('#selectAll').prop('checked', totalCheckboxes > 0 && totalCheckboxes === checkedCheckboxes);
+            }
+
+            // Select/Deselect all checkboxes
+            $('#selectAll').click(function() {
+                $('.selectRow').prop('checked', this.checked);
+                updateSelectedBookIds();
+            });
+
+            // Individual checkbox click handler
+            $(document).on('click', '.selectRow', function() {
+                updateSelectedBookIds();
+            });
+
+            // Restore the selected state on page load
+            function restoreSelectedState() {
+                $('.selectRow').each(function() {
+                    var bookId = $(this).val();
+                    $(this).prop('checked', selectedBookIds.includes(bookId));
+                });
+                updateSelectAllState();
+                $('#selectedCount').text(`(${selectedBookIds.length} books selected)`);
+            }
+
+            // Call restoreSelectedState on page load
+            restoreSelectedState();
 
             // Function to fetch and reload the table data
             function fetchBooks() {
@@ -371,40 +401,6 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
                 //     $('#addContributorsIcons').addClass('d-none');
                 // }
             }
-
-            // Function to restore the selected state of checkboxes
-            function restoreSelectedState() {
-                var allChecked = true;
-                $('.selectRow').each(function() {
-                    var bookId = $(this).closest('tr').find('td:nth-child(2)').text();
-                    if (selectedBookIds.includes(bookId)) {
-                        $(this).prop('checked', true);
-                    } else {
-                        $(this).prop('checked', false);
-                        allChecked = false;
-                    }
-                });
-                $('#selectAll').prop('checked', allChecked);
-                toggleAddContributorsIcons();
-            }
-
-            // Select/Deselect all checkboxes
-            $('#selectAll').click(function() {
-                $('.selectRow').prop('checked', this.checked);
-                updateSelectedBookIds();
-            });
-
-            $('.selectRow').click(function() {
-                updateSelectedBookIds();
-                if ($('.selectRow:checked').length == $('.selectRow').length) {
-                    $('#selectAll').prop('checked', true);
-                } else {
-                    $('#selectAll').prop('checked', false);
-                }
-            });
-
-            // Restore the selected state on page load
-            restoreSelectedState();
 
             // Redirect to add_contributors.php when "Add Contributors (Person)" button is clicked
             $('#addContributorsPerson').click(function (e) {
@@ -523,6 +519,36 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
                     $('#dataTable_filter label').append('<i class="fas fa-search ml-2"></i>');
                     $('.dataTables_paginate .paginate_button').addClass('btn btn-sm btn-outline-primary mx-1');
                 }
+            });
+
+            // Update checkbox click handler to work with cell click
+            $(document).on('click', 'td:first-child', function(e) {
+                // If the click was directly on the checkbox, don't execute this handler
+                if (e.target.type === 'checkbox') return;
+                
+                // Find the checkbox within this cell and toggle it
+                var checkbox = $(this).find('.selectRow');
+                checkbox.prop('checked', !checkbox.prop('checked'));
+                updateSelectedBookIds();
+            });
+
+            // Add header cell click handler
+            $(document).on('click', 'thead th:first-child', function(e) {
+                // If the click was directly on the checkbox, don't execute this handler
+                if (e.target.type === 'checkbox') return;
+                
+                // Find and click the checkbox
+                var checkbox = $('#selectAll');
+                checkbox.prop('checked', !checkbox.prop('checked'));
+                $('.selectRow').prop('checked', checkbox.prop('checked'));
+                updateSelectedBookIds();
+            });
+
+            // Keep the original checkbox click handler for direct checkbox clicks
+            $(document).on('click', '.selectRow', function(e) {
+                // Stop propagation to prevent the td click handler from firing
+                e.stopPropagation();
+                updateSelectedBookIds();
             });
         });
         </script>
