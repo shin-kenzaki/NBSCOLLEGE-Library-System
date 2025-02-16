@@ -247,6 +247,7 @@ $result = mysqli_query($conn, $query);
                             <option value="" disabled <?= empty($values['role']) ? 'selected' : '' ?>>Select Role</option>
                             <option value="Admin" <?= ($values['role'] ?? '') == 'Admin' ? 'selected' : '' ?>>Admin</option>
                             <option value="Librarian" <?= ($values['role'] ?? '') == 'Librarian' ? 'selected' : '' ?>>Librarian</option>
+                            <option value="Assistant" <?= ($values['role'] ?? '') == 'Assistant' ? 'selected' : '' ?>>Assistant</option>
                             <option value="Encoder" <?= ($values['role'] ?? '') == 'Encoder' ? 'selected' : '' ?>>Encoder</option>
                         </select>
                         <small class="text-danger"><?= $errors['role'] ?? '' ?></small>

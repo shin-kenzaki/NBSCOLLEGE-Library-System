@@ -40,6 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $lastname = trim($_POST['lastname']);
     $email = $_POST['email'];
     $contact_no = $_POST['contact_no']; // Changed from contact_number
+    $usertype = $_POST['usertype'];
     $status = $_POST['status'];
     
     // Validation
@@ -71,13 +72,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             middle_init = ?,
             lastname = ?,
             email = ?,
-            contact_no = ?, // Changed from contact_number
+            contact_no = ?,
+            usertype = ?, 
             status = ?,
             last_update = NOW()
             WHERE id = ?";
             
         $stmt_update = $conn->prepare($update_sql);
-        $stmt_update->bind_param("ssssssii", $school_id, $firstname, $middle_init, $lastname, $email, $contact_no, $status, $user_id);
+        $stmt_update->bind_param("sssssssii", $school_id, $firstname, $middle_init, $lastname, $email, $contact_no, $usertype, $status, $user_id);
 
         if ($stmt_update->execute()) {
             echo "<script>
@@ -145,6 +147,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="form-group">
                         <label>Contact Number</label>
                         <input type="text" name="contact_no" class="form-control" value="<?= htmlspecialchars($user['contact_no'] ?? '') ?>">
+                    </div>
+
+                    <div class="form-group">
+                        <label>User Type</label>
+                        <select name="usertype" class="form-control">
+                            <option value="" disabled>Select User Type</option>
+                            <option value="student" <?= $user['usertype'] == 'student' ? 'selected' : '' ?>>Student</option>
+                            <option value="faculty" <?= $user['usertype'] == 'faculty' ? 'selected' : '' ?>>Faculty</option>
+                            <option value="staff" <?= $user['usertype'] == 'staff' ? 'selected' : '' ?>>Staff</option>
+                            <option value="visitor" <?= $user['usertype'] == 'visitor' ? 'selected' : '' ?>>Visitor</option>
+                        </select>
                     </div>
 
                     <div class="form-group">

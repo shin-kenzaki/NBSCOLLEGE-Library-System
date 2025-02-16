@@ -1,9 +1,27 @@
 <?php
 session_start();
-if (isset($_SESSION['admin_id'])) {
-    header("Location: dashboard.php");
+
+// Prevent caching
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Expires: Sat, 26 Jul 1997 05:00:00 GMT");
+
+// Check if user is already logged in, redirect to appropriate dashboard
+if (isset($_SESSION['role'])) {
+    switch($_SESSION['role']) {
+        case 'Admin':
+            header("Location: dashboard.php");
+            break;
+        case 'Librarian':
+        case 'Assistant':
+            header("Location: librarian/librarian_dashboard.php");
+            break;
+        case 'Encoder':
+            header("Location: encoder/encoder_dashboard.php");
+            break;
+    }
     exit();
 }
+
 require '../db.php'; // Database connection
 
 // Initialize error message
@@ -31,15 +49,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 // Use password_verify for hashed password comparison
                 if (password_verify($password, $admin['password'])) {
-                    // Log the successful login in updates table
-                    $log_query = "INSERT INTO updates (user_id, role, status, `update`) VALUES (?, ?, ?, NOW())";
-                    if ($log_stmt = $conn->prepare($log_query)) {
-                        $login_status = "Active login";
-                        $log_stmt->bind_param("sss", $admin['employee_id'], $admin['role'], $login_status);
-                        $log_stmt->execute();
-                        $log_stmt->close();
-                    }
-
                     // Set session variables
                     $_SESSION['admin_id'] = $admin['employee_id'];
                     $_SESSION['admin_email'] = $admin['email'];
@@ -51,15 +60,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['admin_status'] = $admin['status'];
                     $_SESSION['admin_last_update'] = $admin['last_update'];
 
+                    // Log the successful login in updates table
+                    $log_query = "INSERT INTO updates (user_id, role, status, `update`) VALUES (?, ?, ?, NOW())";
+                    if ($log_stmt = $conn->prepare($log_query)) {
+                        $login_status = "Active login";
+                        $log_stmt->bind_param("sss", $admin['employee_id'], $admin['role'], $login_status);
+                        $log_stmt->execute();
+                        $log_stmt->close();
+                    }
+
                     // Redirect based on role
-                    if ($admin['role'] === 'Admin') {
-                        header("Location: dashboard.php");
-                    } else if ($admin['role'] === 'Librarian' || $admin['role'] === 'Assistant') {
-                        header("Location: librarian/librarian_dashboard.php");
-                    } else if ($admin['role'] === 'Encoder') {
-                        header("Location: encoder/encoder_dashboard.php");
-                    } else {
-                        $error_message = "Invalid role assigned.";
+                    switch($admin['role']) {
+                        case 'Admin':
+                            header("Location: dashboard.php");
+                            break;
+                        case 'Librarian':
+                        case 'Assistant':
+                            header("Location: librarian_dashboard.php");
+                            break;
+                        case 'Encoder':
+                            header("Location: encoder_dashboard.php");
+                            break;
+                        default:
+                            $error_message = "Invalid role assigned.";
+                            break;
                     }
                     exit();
                 } else {

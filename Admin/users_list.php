@@ -28,6 +28,7 @@ $values = [
     'email' => '',
     'password' => '',
     'contact_no' => '',
+    'usertype' => '', // Add this line
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -38,11 +39,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = $_POST['email']; 
     $password = $_POST['password'];
     $contact_no = $_POST['contact_no'];
+    $usertype = $_POST['usertype']; // Add this line
     $status = $_POST['status'] ?? 0;
     
     // Default values
     $user_image = '/upload/default-avatar.png';
-    $usertype = 'student'; // default user type
+    // Remove or comment out this line since usertype is now from input
+    // $usertype = 'student'; 
     $borrowed_books = 0;
     $returned_books = 0;
     $damaged_books = 0;
@@ -52,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id_image = '/upload/default-id.png';
 
     // Store values to retain input data
-    $values = compact('school_id', 'firstname', 'middle_init', 'lastname', 'email', 'password', 'contact_no');
+    $values = compact('school_id', 'firstname', 'middle_init', 'lastname', 'email', 'password', 'contact_no', 'usertype');
 
     // Validation
     if (empty($school_id)) $errors['school_id'] = "School ID is required.";
@@ -214,6 +217,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="form-group">
                         <label>Contact Number</label>
                         <input type="text" name="contact_no" class="form-control" value="<?= htmlspecialchars($values['contact_no'] ?? '') ?>">
+                    </div>
+                    <div class="form-group">
+                        <label>User Type</label>
+                        <select name="usertype" class="form-control">
+                            <option value="" disabled <?= empty($values['usertype']) ? 'selected' : '' ?>>Select User Type</option>
+                            <option value="student" <?= ($values['usertype'] ?? '') == 'student' ? 'selected' : '' ?>>Student</option>
+                            <option value="faculty" <?= ($values['usertype'] ?? '') == 'faculty' ? 'selected' : '' ?>>Faculty</option>
+                            <option value="staff" <?= ($values['usertype'] ?? '') == 'staff' ? 'selected' : '' ?>>Staff</option>
+                            <option value="visitor" <?= ($values['usertype'] ?? '') == 'visitor' ? 'selected' : '' ?>>Visitor</option>
+                        </select>
                     </div>
                     <div class="form-group">
                         <label>Status</label>

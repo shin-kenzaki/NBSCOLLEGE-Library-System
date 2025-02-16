@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -56,17 +55,18 @@
 
             <!-- Nav Item - Search Book -->
             <li class="nav-item">
-                <a class="nav-link" href="book_reservation.php">
-                    <i class="fas fa-fw fa-bookmark"></i>
-                    <span>Book Reservation</span>
+                <a class="nav-link" href="">
+                    <i class="fas fa-fw fa-search"></i>
+                    <span>Search Book</span>
                 </a>
             </li>
 
             <!-- Nav Item - Book Reservation -->
             <li class="nav-item">
-                <a class="nav-link" href="">
-                    <i class="fas fa-fw fa-chart-area"></i>
-                    <span>Add Book</span></a>
+                <a class="nav-link" href="book_reservation.php">
+                    <i class="fas fa-fw fa-bookmark"></i>
+                    <span>Book Reservation</span>
+                </a>
             </li>
 
             <!-- Nav Item - Book Borrowing -->

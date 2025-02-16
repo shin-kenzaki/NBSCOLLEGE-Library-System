@@ -9,6 +9,8 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
+    <link rel="icon" type="image/x-icon" href="img/nbslogo.png">
+
     <title>NBS College Library</title>
 
     <!-- Custom fonts for this template-->
@@ -28,7 +30,15 @@
         <!-- Sidebar -->
         <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
             <!-- Sidebar - Brand -->
-            <a class="sidebar-brand d-flex align-items-center justify-content-center" href="dashboard.php">
+            <a class="sidebar-brand d-flex align-items-center justify-content-center" href="<?php
+                if ($_SESSION['role'] === 'Admin') {
+                    echo 'dashboard.php';
+                } elseif ($_SESSION['role'] === 'Librarian' || $_SESSION['role'] === 'Assistant') {
+                    echo 'librarian_dashboard.php';
+                } elseif ($_SESSION['role'] === 'Encoder') {
+                    echo 'encoder_dashboard.php';
+                }
+            ?>">
                 <div class="sidebar-brand-icon rotate-n-15">
                     <!-- <img src="img/nbs-icon.png" alt="Library Logo" width="30" height="50"> -->
                 </div>
@@ -40,7 +50,15 @@
 
             <!-- Nav Item - Dashboard -->
             <li class="nav-item active">
-                <a class="nav-link" href="dashboard.php">
+                <a class="nav-link" href="<?php
+                    if ($_SESSION['role'] === 'Admin') {
+                        echo 'dashboard.php';
+                    } elseif ($_SESSION['role'] === 'Librarian' || $_SESSION['role'] === 'Assistant') {
+                        echo 'librarian_dashboard.php';
+                    } elseif ($_SESSION['role'] === 'Encoder') {
+                        echo 'encoder_dashboard.php';
+                    }
+                ?>">
                     <i class="fas fa-fw fa-tachometer-alt"></i>
                     <span>Dashboard</span></a>
             </li>
@@ -53,14 +71,16 @@
                 Admin Operation
             </div>
 
+            <?php if($_SESSION['role'] === 'Admin'): ?>
+            <!-- Full management menu for admin -->
             <li class="nav-item">
                 <a class="nav-link" href="add-book.php">
-                    <i class="fas fa-fw fa-chart-area"></i>
-                    <span>Add Book</span></a>
+                    <i class="fas fa-fw fa-book"></i>
+                    <span>Add Book</span>
+                </a>
             </li>
 
-                 <!-- Nav Item - Pages Collapse Menu -->
-                 <li class="nav-item">
+            <li class="nav-item">
                 <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseTwo"
                     aria-expanded="true" aria-controls="collapseTwo">
                     <i class="fas fa-fw fa-book"></i>
@@ -79,23 +99,50 @@
             </li>
 
             <li class="nav-item">
-                    <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseUsers"
-                        aria-expanded="true" aria-controls="collapseUsers">
-                        <i class="fas fa-users"></i>
-                        <span>User Management</span>
-                    </a>
-                    <div id="collapseUsers" class="collapse" aria-labelledby="headingUsers" data-parent="#accordionSidebar">
-                        <div class="bg-white py-2 collapse-inner rounded">
-                            <h6 class="collapse-header">Manage Users:</h6>
-                            <a class="collapse-item" href="admins_list.php">Admin Users</a>
-                            <a class="collapse-item" href="users_list.php">Users</a>
-                        </div>
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseUsers"
+                    aria-expanded="true" aria-controls="collapseUsers">
+                    <i class="fas fa-users"></i>
+                    <span>User Management</span>
+                </a>
+                <div id="collapseUsers" class="collapse" aria-labelledby="headingUsers" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <h6 class="collapse-header">Manage Users:</h6>
+                        <a class="collapse-item" href="admins_list.php">Admin Users</a>
+                        <a class="collapse-item" href="users_list.php">Users</a>
                     </div>
+                </div>
             </li>
 
+            <?php else: ?>
+            <!-- Limited menu for librarian -->
+            <li class="nav-item">
+                <a class="nav-link" href="add-book.php">
+                    <i class="fas fa-fw fa-book"></i>
+                    <span>Add Book</span>
+                </a>
+            </li>
 
-                        <!-- Nav Item - Charts -->
-                        <li class="nav-item">
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseTwo"
+                    aria-expanded="true" aria-controls="collapseTwo">
+                    <i class="fas fa-fw fa-book"></i>
+                    <span>Book Management</span>
+                </a>
+                <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <h6 class="collapse-header">Book Module:</h6>
+                        <a class="collapse-item" href="book_list.php" data-toggle="dropdown">Book List</a>
+                        <a class="collapse-item" href="writers_list.php" data-toggle="dropdown">Writers List</a>
+                        <a class="collapse-item" href="publisher_list.php" data-toggle="dropdown">Publisher List</a>
+                        <a class="collapse-item" href="publications_list.php" data-toggle="dropdown">Publications List</a>
+                        <a class="collapse-item" href="contributors_list.php" data-toggle="dropdown">Contributors List</a>
+                    </div>
+                </div>
+            </li>
+            <?php endif; ?>
+
+            <!-- Nav Item - Charts -->
+            <li class="nav-item">
                 <a class="nav-link" href="charts.php">
                     <i class="fas fa-fw fa-chart-area"></i>
                     <span>Charts</span></a>
@@ -108,9 +155,6 @@
                     <span>Tables</span></a>
             </li>
 
-
-
-
             <!-- Divider -->
             <hr class="sidebar-divider">
 
@@ -118,26 +162,6 @@
             <div class="sidebar-heading">
                 Addons
             </div>
-
-
-                        <!-- Nav Item - Utilities Collapse Menu -->
-                        <!-- <li class="nav-item">
-                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseUtilities"
-                    aria-expanded="true" aria-controls="collapseUtilities">
-                    <i class="fas fa-fw fa-wrench"></i>
-                    <span>Utilities</span>
-                </a>
-                <div id="collapseUtilities" class="collapse" aria-labelledby="headingUtilities"
-                    data-parent="#accordionSidebar">
-                    <div class="bg-white py-2 collapse-inner rounded">
-                        <h6 class="collapse-header">Custom Utilities:</h6>
-                        <a class="collapse-item" href="utilities-color.html">Colors</a>
-                        <a class="collapse-item" href="utilities-border.html">Borders</a>
-                        <a class="collapse-item" href="utilities-animation.html">Animations</a>
-                        <a class="collapse-item" href="utilities-other.html">Other</a>
-                    </div>
-                </div>
-            </li> -->
 
             <!-- Nav Item - Pages Collapse Menu -->
             <li class="nav-item">
@@ -167,8 +191,6 @@
             <div class="text-center d-none d-md-inline">
                 <button class="rounded-circle border-0" id="sidebarToggle"></button>
             </div>
-
-
 
         </ul>
         <!-- End of Sidebar -->
