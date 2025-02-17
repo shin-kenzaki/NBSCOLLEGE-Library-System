@@ -8,5 +8,5 @@ session_unset();
 session_destroy();
 
 // Redirect to the determined URL
-header("Location: ../user/");
+header("Location: ../");
 exit();

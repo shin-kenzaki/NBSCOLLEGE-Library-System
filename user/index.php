@@ -1,12 +1,20 @@
 <?php
 session_start();
+
+// Prevent caching
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Expires: Sat, 26 Jul 1997 05:00:00 GMT");
+
 // Check if user is already logged in
 if (isset($_SESSION['user_id'])) {
     header("Location: dashboard.php");
-    exit;
+    exit();
 }
 
 include('../db.php');
+
+// Initialize error message
+$error = '';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $school_id = $_POST['school_id'];
@@ -35,12 +43,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     // Only validate password if account status is acceptable
                     if (password_verify($password, $user['password'])) {
                         // Log the successful login in updates table
-                        $log_query = "INSERT INTO updates (user_id, role, status, `update`) VALUES (?, ?, ?, NOW())";
+                        $log_query = "INSERT INTO updates (user_id, role, status, `update`) VALUES (?, ?, ?, CURRENT_TIMESTAMP)";
                         if ($log_stmt = $conn->prepare($log_query)) {
-                            // Set status based on account status (0 and null are treated as inactive)
-                            $login_status = ($user['status'] === 1) ? "Active Login" : "Inactive Login";
+                            $login_status = ($user['status'] == 1) ? "Active Login" : "Inactive Login";
                             $log_stmt->bind_param("sss", $user['school_id'], $user['usertype'], $login_status);
-                            $log_stmt->execute();
+                            
+                            if (!$log_stmt->execute()) {
+                                // Handle logging error if needed
+                                error_log("Failed to log login attempt: " . $log_stmt->error);
+                            }
                             $log_stmt->close();
                         }
 
@@ -74,9 +85,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -87,79 +96,56 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     <!-- Custom fonts for this template-->
     <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
-    <link
-        href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet">
 
     <!-- Custom styles for this template-->
-    <link href="../user/inc/css/sb-admin-2.min.css" rel="stylesheet">
+    <link href="inc/css/sb-admin-2.min.css" rel="stylesheet">
 
     <style>
         .bg-login-image {
-    background: url('../user/inc/img/bg-login.JPG') center center no-repeat;
-    background-size: cover;
-}
+            background: url('inc/img/bg-login.JPG') center center no-repeat;
+            background-size: cover;
+        }
     </style>
-
 </head>
 
 <body class="bg-gradient-primary">
-
     <div class="container">
-
-        <!-- Outer Row -->
         <div class="row justify-content-center">
-
             <div class="col-xl-10 col-lg-12 col-md-9">
-
                 <div class="card o-hidden border-0 shadow-lg my-5">
                     <div class="card-body p-0">
-                        <!-- Nested Row within Card Body -->
-
                         <div class="row">
-                        <div class="col-lg-6 d-none d-lg-block bg-login-image"></div>
+                            <div class="col-lg-6 d-none d-lg-block bg-login-image"></div>
                             <div class="col-lg-6">
                                 <div class="p-5">
                                     <div class="text-center">
-                                    <h1 class="h4 text-gray-900 mb-4">Welcome Back!</h1>
+                                        <h1 class="h4 text-gray-900 mb-4">Welcome Back!</h1>
                                     </div>
-                                    <?php if(isset($error)): ?>
+                                    <?php if(!empty($error)): ?>
                                         <div class="alert alert-danger">
                                             <?php echo $error; ?>
                                         </div>
                                     <?php endif; ?>
-                                    <form class="user" method="POST" action=""> 
+                                    <form class="user" method="POST" action="">
                                         <div class="form-group">
                                             <input type="text" class="form-control form-control-user"
-                                            placeholder="School ID"
-                                            id="school_id" name="school_id" required>
+                                                placeholder="School ID"
+                                                id="school_id" name="school_id" required>
                                         </div>
                                         <div class="form-group">
                                             <input type="password" class="form-control form-control-user"
-                                                placeholder="Password" name="password" required>
+                                                id="exampleInputPassword" placeholder="Password" name="password" required>
                                         </div>
-
-
-
                                         <div class="form-group">
                                             <div class="custom-control custom-checkbox small">
                                                 <input type="checkbox" class="custom-control-input" id="customCheck">
                                                 <label class="custom-control-label" for="customCheck">Remember Me</label>
                                             </div>
                                         </div>
-
-                               
                                         <button type="submit" class="btn btn-primary btn-user btn-block">
                                             Login
                                         </button>
-                                    </form>
-
-                                        <!-- <a href="index.html" class="btn btn-google btn-user btn-block">
-                                            <i class="fab fa-google fa-fw"></i> Login with Google
-                                        </a>
-                                        <a href="index.html" class="btn btn-facebook btn-user btn-block">
-                                            <i class="fab fa-facebook-f fa-fw"></i> Login with Facebook
-                                        </a> -->
                                     </form>
                                     <hr>
                                     <div class="text-center">
@@ -173,11 +159,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         </div>
                     </div>
                 </div>
-
             </div>
-
         </div>
-
     </div>
 
     <!-- Bootstrap core JavaScript-->
@@ -188,8 +171,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
 
     <!-- Custom scripts for all pages-->
-    <script src="../../user/inc/js/sb-admin-2.min.js"></script>
-
+    <script src="inc/js/sb-admin-2.min.js"></script>
 </body>
-
 </html>

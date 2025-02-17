@@ -415,112 +415,9 @@ if ($bookId > 0) {
                                 padding-bottom: 8px;
                                 border-bottom: 2px solid #eee;
                             }
-                            .marc-legend {
-                                margin-bottom: 20px;
-                                padding: 15px;
-                                background: #f8f9fa;
-                                border-radius: 5px;
-                            }
-                            .marc-legend-title {
-                                font-weight: bold;
-                                color: #004085;
-                                margin-bottom: 10px;
-                            }
-                            .marc-legend-item {
-                                display: flex;
-                                margin-bottom: 5px;
-                            }
-                            .marc-legend-tag {
-                                width: 50px;
-                                font-weight: bold;
-                                color: #004085;
-                            }
                         </style>
 
                         <?php if (!isset($error)): ?>
-                        <!-- Add MARC Legend Section -->
-                        <div class="marc-legend">
-                            <div class="marc-legend-title">MARC Field Descriptions:</div>
-                            <div class="accordion" id="marcLegendAccordion">
-                                <?php
-                                $fieldGroups = [
-                                    'Control Fields' => [
-                                        'LDR' => 'Record Leader - Contains basic information about the record',
-                                        '001' => 'Control Number - Unique identifier for the record',
-                                        '005' => 'Date/Time of Last Transaction',
-                                        '008' => 'Fixed-Length Data Elements - Various coded information about the record'
-                                    ],
-                                    'Main Entry Fields' => [
-                                        '100' => 'Main Entry - Personal Name (Primary Author)',
-                                        '110' => 'Main Entry - Corporate Name',
-                                        '111' => 'Main Entry - Meeting Name'
-                                    ],
-                                    'Title & Title-Related Fields' => [
-                                        '245' => 'Title Statement - Title and statement of responsibility',
-                                        '246' => 'Varying Form of Title - Alternative titles',
-                                        '250' => 'Edition Statement',
-                                        '260' => 'Publication Information - Publisher, place, date'
-                                    ],
-                                    'Physical Description Fields' => [
-                                        '300' => 'Physical Description - Pages, size, format',
-                                        '336' => 'Content Type',
-                                        '337' => 'Media Type',
-                                        '338' => 'Carrier Type'
-                                    ],
-                                    'Series Fields' => [
-                                        '490' => 'Series Statement'
-                                    ],
-                                    'Note Fields' => [
-                                        '500' => 'General Note',
-                                        '505' => 'Formatted Contents Note',
-                                        '520' => 'Summary Note'
-                                    ],
-                                    'Subject Access Fields' => [
-                                        '650' => 'Subject Added Entry - Topical Term',
-                                        '651' => 'Subject Added Entry - Geographic Name'
-                                    ],
-                                    'Added Entry Fields' => [
-                                        '700' => 'Added Entry - Personal Name (Additional Authors)',
-                                        '710' => 'Added Entry - Corporate Name'
-                                    ],
-                                    'Holdings Fields' => [
-                                        '852' => 'Location/Call Number',
-                                        '856' => 'Electronic Location and Access'
-                                    ],
-                                    'Local Fields' => [
-                                        '902' => 'Local Information - Status, processing info'
-                                    ]
-                                ];
-
-                                $i = 0;
-                                foreach ($fieldGroups as $groupName => $fields): ?>
-                                    <div class="accordion-item">
-                                        <h2 class="accordion-header" id="heading<?= $i ?>">
-                                            <button class="accordion-button <?= ($i !== 0) ? 'collapsed' : '' ?>" type="button" 
-                                                    data-bs-toggle="collapse" data-bs-target="#collapse<?= $i ?>" 
-                                                    aria-expanded="<?= ($i === 0) ? 'true' : 'false' ?>" 
-                                                    aria-controls="collapse<?= $i ?>">
-                                                <?= htmlspecialchars($groupName) ?>
-                                            </button>
-                                        </h2>
-                                        <div id="collapse<?= $i ?>" class="accordion-collapse collapse <?= ($i === 0) ? 'show' : '' ?>" 
-                                             aria-labelledby="heading<?= $i ?>" data-bs-parent="#marcLegendAccordion">
-                                            <div class="accordion-body">
-                                                <?php foreach ($fields as $tag => $description): ?>
-                                                    <div class="marc-legend-item">
-                                                        <span class="marc-legend-tag"><?= htmlspecialchars($tag) ?></span>
-                                                        <span><?= htmlspecialchars($description) ?></span>
-                                                    </div>
-                                                <?php endforeach; ?>
-                                            </div>
-                                        </div>
-                                    </div>
-                                <?php 
-                                $i++;
-                                endforeach; ?>
-                            </div>
-                        </div>
-
                         <div class="marc-record">
                             <?php
                             // Helper function to format MARC values
@@ -601,10 +498,8 @@ if ($bookId > 0) {
                                 ['650', '##', 'a', $book['subject_category'],
                                            'x', $book['subject_specification'],
                                            'y', $book['subject_detail']],
-                                // Update the 852 field to use call_number instead of accession
                                 ['852', '##', 'a', $book['shelf_location'],
-                                           'h', $book['call_number'],      // Changed from 'p' to 'h' and using call_number
-                                           'p', $book['accession']],       // Keep accession as copy identifier
+                                           'p', $book['accession']],
                                 ['856', '40', 'u', $book['URL'],
                                            'z', 'Online access'],
                                 ['902', '##', 'a', 'Status: ' . $book['status'],

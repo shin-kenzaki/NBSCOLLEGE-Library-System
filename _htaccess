@@ -13,5 +13,5 @@ RewriteBase /library-system/
 RewriteRule ^..\index\.php$ - [L]
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule .... /library-system/User/School/index.php [L]
+RewriteRule .... /library-system/User/index.php [L]
 </IfModule>
