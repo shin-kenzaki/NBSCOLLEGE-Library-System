@@ -478,16 +478,20 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 });
 
-document.addEventListener('DOMContentLoaded', function() {
-    const numberOfCopiesInput = document.querySelector('input[name="number_of_copies"]');
+function updateISBNFields() {
     const isbnContainer = document.getElementById('isbnContainer');
-
-    function updateISBNFields() {
-        const numberOfCopies = parseInt(numberOfCopiesInput.value) || 1;
-        const currentFields = isbnContainer.getElementsByTagName('input').length;
-
-        // Add fields if needed
-        for (let i = currentFields + 1; i <= numberOfCopies; i++) {
+    isbnContainer.innerHTML = '';
+    
+    // Get all accession groups
+    const accessionGroups = document.querySelectorAll('.accession-group');
+    
+    accessionGroups.forEach((group) => {
+        const accessionInput = group.querySelector('.accession-input').value;
+        const copiesCount = parseInt(group.querySelector('.copies-input').value) || 1;
+        
+        for (let i = 0; i < copiesCount; i++) {
+            const currentAccession = calculateAccession(accessionInput, i);
+            
             const div = document.createElement('div');
             div.className = 'input-group mb-2';
             
@@ -495,31 +499,46 @@ document.addEventListener('DOMContentLoaded', function() {
             isbnInput.type = 'text';
             isbnInput.className = 'form-control';
             isbnInput.name = 'isbn[]';
-            isbnInput.placeholder = `Enter ISBN for Copy ${i}`;
+            isbnInput.placeholder = `Enter ISBN for Accession ${currentAccession}`;
             
             const callNumberInput = document.createElement('input');
             callNumberInput.type = 'text';
             callNumberInput.className = 'form-control';
             callNumberInput.name = 'call_number[]';
-            callNumberInput.placeholder = `Enter call number for Copy ${i}`;
+            callNumberInput.placeholder = `Enter call number for Accession ${currentAccession}`;
             
             div.appendChild(isbnInput);
             div.appendChild(callNumberInput);
             isbnContainer.appendChild(div);
         }
+    });
+}
 
-        // Remove excess fields if needed
-        while (isbnContainer.getElementsByTagName('input').length > numberOfCopies) {
-            isbnContainer.removeChild(isbnContainer.lastChild);
-        }
+function calculateAccession(baseAccession, increment) {
+    if (!baseAccession) return '(undefined)';
+    
+    // Handle formats like "2023-0001" or "2023-001" or just "0001"
+    const match = baseAccession.match(/^(.*?)(\d+)$/);
+    if (!match) return baseAccession;
+    
+    const prefix = match[1]; // Everything before the number
+    const num = parseInt(match[2]); // The number part
+    const width = match[2].length; // Original width of the number
+    
+    // Calculate new number and pad with zeros to maintain original width
+    const newNum = (num + increment).toString().padStart(width, '0');
+    
+    return prefix + newNum;
+}
+
+// Event listeners for accession changes
+document.addEventListener('input', function(e) {
+    if (e.target && (e.target.classList.contains('copies-input') || e.target.classList.contains('accession-input'))) {
+        updateISBNFields();
     }
-
-    numberOfCopiesInput.addEventListener('change', updateISBNFields);
-    numberOfCopiesInput.addEventListener('input', updateISBNFields);
 });
 
-const accessionContainer = document.getElementById('accessionContainer');
-
+// Modified add-accession handler
 document.addEventListener('click', function(e) {
     if (e.target && e.target.classList.contains('add-accession')) {
         const groupCount = document.querySelectorAll('.accession-group').length + 1;
@@ -557,49 +576,4 @@ document.addEventListener('click', function(e) {
         updateISBNFields();
     }
 });
-
-function updateISBNFields() {
-    const isbnContainer = document.getElementById('isbnContainer');
-    const totalCopies = Array.from(document.querySelectorAll('.copies-input'))
-        .reduce((sum, input) => sum + parseInt(input.value || 0), 0);
-
-    isbnContainer.innerHTML = '';
-    
-    for (let i = 1; i <= totalCopies; i++) {
-        const div = document.createElement('div');
-        div.className = 'input-group mb-2';
-        
-        const isbnInput = document.createElement('input');
-        isbnInput.type = 'text';
-        isbnInput.className = 'form-control';
-        isbnInput.name = 'isbn[]';
-        isbnInput.placeholder = `Enter ISBN for Copy ${i}`;
-        
-        const callNumberInput = document.createElement('input');
-        callNumberInput.type = 'text';
-        callNumberInput.className = 'form-control';
-        callNumberInput.name = 'call_number[]';
-        callNumberInput.placeholder = `Enter call number for Copy ${i}`;
-        
-        div.appendChild(isbnInput);
-        div.appendChild(callNumberInput);
-        isbnContainer.appendChild(div);
-    }
-}
-
-document.addEventListener('input', function(e) {
-    if (e.target && e.target.classList.contains('copies-input')) {
-        updateISBNFields();
-    }
-});
-
-function getAccessionBase(index) {
-    const accessionInput = document.querySelector('.accession-input');
-    if (!accessionInput || !accessionInput.value) return `copy ${index + 1}`;
-    
-    const base = accessionInput.value.replace(/\d+$/, '');
-    const num = parseInt(accessionInput.value.match(/\d+$/)[0] || '0');
-    const newNum = (num + index).toString().padStart(4, '0');
-    return base + newNum;
-}
 </script>
