@@ -1,7 +1,7 @@
 <?php
 session_start();
 include '../db.php';
-include '../inc/status_helper.php';
+include 'inc/status_helper.php';
 
 // Check if admin is logged in
 if (!isset($_SESSION['admin_id'])) {

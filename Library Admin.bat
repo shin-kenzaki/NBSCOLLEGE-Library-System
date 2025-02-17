@@ -1,3 +1,4 @@
 @echo off
-start http://<host ip>:8080
+cd C:\xampp\htdocs\Library-System\Admin
+php -S localhost:8080
 exit

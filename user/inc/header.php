@@ -55,7 +55,7 @@
 
             <!-- Nav Item - Search Book -->
             <li class="nav-item">
-                <a class="nav-link" href="">
+                <a class="nav-link" href="searchbook.php">
                     <i class="fas fa-fw fa-search"></i>
                     <span>Search Book</span>
                 </a>

@@ -9,7 +9,7 @@ if (!isset($_SESSION['admin_id'])) {
 
 include '../admin/inc/header.php';
 include '../db.php';
-include '../inc/status_helper.php';
+include 'inc/status_helper.php';
 
 $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
 

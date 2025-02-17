@@ -1,70 +1,35 @@
 <?php
 session_start();
+include '../db.php';
 
-if (!isset($_SESSION['admin_id'])) {
-    header("Location: index.php");
-    exit();
-}
+// Get the book title from the query parameters
+$bookTitle = isset($_GET['title']) ? $_GET['title'] : '';
 
-include '../db.php'; // Database connection
-include 'lcc_generator.php'; // Add this line
-
-// Get the book ID from the query parameters
-$bookId = isset($_GET['book_id']) ? intval($_GET['book_id']) : 0;
-
-if ($bookId > 0) {
-    // Fetch book details from the database
-    $query = "SELECT * FROM books WHERE id = ?";
+if (!empty($bookTitle)) {
+    // Fetch book details
+    $query = "SELECT * FROM books WHERE title = ?";
     $stmt = $conn->prepare($query);
-    $stmt->bind_param("i", $bookId);
+    $stmt->bind_param("s", $bookTitle);
     $stmt->execute();
     $result = $stmt->get_result();
+    $book = $result->fetch_assoc();
 
-    if ($result && $result->num_rows > 0) {
-        $book = $result->fetch_assoc();
-        
-        // Fetch total copies and in-shelf count
-        $copiesQuery = "SELECT COUNT(*) as total_copies, SUM(CASE WHEN status = 'in-shelf' THEN 1 ELSE 0 END) as in_shelf FROM books WHERE title = ?";
-        $stmt = $conn->prepare($copiesQuery);
-        $stmt->bind_param("s", $book['title']);
-        $stmt->execute();
-        $copiesResult = $stmt->get_result();
-        $copies = $copiesResult->fetch_assoc();
-        $totalCopies = $copies['total_copies'];
-        $inShelf = $copies['in_shelf'];
-
-        // Only generate call number for display
-        $generatedCallNumber = generateCallNumber($book);
-        
-        // Remove the auto-update logic, just keep the display
-    } else {
-        $error = "Book not found.";
-    }
-
-    // Modify the contributors query to properly join with writers table and get author
-    $contributorsQuery = "SELECT c.*, w.firstname, w.middle_init, w.lastname, c.role 
-                         FROM contributors c 
-                         JOIN writers w ON c.writer_id = w.id 
-                         WHERE c.book_id = ? AND c.role = 'Author'
-                         LIMIT 1";
-    $stmt = $conn->prepare($contributorsQuery);
-    $stmt->bind_param("i", $bookId);
+    // Fetch total copies and in-shelf count
+    $copiesQuery = "SELECT COUNT(*) as total_copies, SUM(CASE WHEN status = 'inshelf' THEN 1 ELSE 0 END) as in_shelf FROM books WHERE title = ?";
+    $stmt = $conn->prepare($copiesQuery);
+    $stmt->bind_param("s", $bookTitle);
     $stmt->execute();
-    $contributorResult = $stmt->get_result();
-    $primaryAuthor = '';
+    $copiesResult = $stmt->get_result();
+    $copies = $copiesResult->fetch_assoc();
+    $totalCopies = $copies['total_copies'];
+    $inShelf = $copies['in_shelf'];
 
-    if ($contributorResult && $contributorResult->num_rows > 0) {
-        $author = $contributorResult->fetch_assoc();
-        $primaryAuthor = $author['lastname'] . ', ' . $author['firstname'] . ' ' . $author['middle_init'];
-    }
-
-    // Then get all contributors for the full list
-    $allContributorsQuery = "SELECT c.*, w.firstname, w.middle_init, w.lastname 
-                            FROM contributors c 
-                            JOIN writers w ON c.writer_id = w.id 
-                            WHERE c.book_id = ?";
-    $stmt = $conn->prepare($allContributorsQuery);
-    $stmt->bind_param("i", $bookId);
+    // Fetch contributors
+    $contributorsQuery = "SELECT w.* FROM contributors c 
+                         JOIN writers w ON c.writer_id = w.id 
+                         WHERE c.book_id = ?";
+    $stmt = $conn->prepare($contributorsQuery);
+    $stmt->bind_param("i", $book['id']);
     $stmt->execute();
     $contributorsResult = $stmt->get_result();
     $contributors = [];
@@ -72,27 +37,30 @@ if ($bookId > 0) {
         $contributors[] = $row;
     }
 
-    // Add this debug code after fetching contributors
-    if (!empty($contributors)) {
-        echo "<!-- Debug: Primary Author: ";
-        foreach ($contributors as $contributor) {
-            if ($contributor['role'] === 'Author') {
-                echo htmlspecialchars($contributor['lastname']);
-                break;
-            }
-        }
-        echo " -->";
-    }
-
-    // Fetch publications from the database
-    $publicationsQuery = "SELECT p.*, pub.publisher, pub.place FROM publications p JOIN publishers pub ON p.publisher_id = pub.id WHERE p.book_id = $bookId";
-    $publicationsResult = $conn->query($publicationsQuery);
+    // Fetch publication details
+    $publicationsQuery = "SELECT p.*, pub.publisher, pub.place 
+                         FROM publications p 
+                         JOIN publishers pub ON p.publisher_id = pub.id 
+                         WHERE p.book_id = ?";
+    $stmt = $conn->prepare($publicationsQuery);
+    $stmt->bind_param("i", $book['id']);
+    $stmt->execute();
+    $publicationsResult = $stmt->get_result();
     $publications = [];
     while ($row = $publicationsResult->fetch_assoc()) {
         $publications[] = $row;
     }
-} else {
-    $error = "Invalid book ID.";
+
+    // Fetch all copies of the book
+    $allCopiesQuery = "SELECT * FROM books WHERE title = ?";
+    $stmt = $conn->prepare($allCopiesQuery);
+    $stmt->bind_param("s", $bookTitle);
+    $stmt->execute();
+    $allCopiesResult = $stmt->get_result();
+    $allCopies = [];
+    while ($row = $allCopiesResult->fetch_assoc()) {
+        $allCopies[] = $row;
+    }
 }
 ?>
 
@@ -100,8 +68,36 @@ if ($bookId > 0) {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>OPAC - Book Details</title>
+    <title>Book Details</title>
     <style>
+        .isbd-record {
+            width: 100%;
+            background-color: #ffffff;
+            padding: 30px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+            font-family: "Times New Roman", Times, serif;
+            line-height: 1.8;
+        }
+        .isbd-area {
+            margin-bottom: 1.5em;
+            text-indent: -1em;
+            padding-left: 1em;
+        }
+        .isbd-punctuation {
+            color: #666;
+            font-weight: bold;
+        }
+        .isbd-date {
+            margin: 1em 0;
+            font-style: italic;
+        }
+        .isbd-subjects {
+            margin-top: 2em;
+        }
+        .isbd-accession {
+            margin-top: 1em;
+            font-weight: bold;
+        }
         .book-details {
             width: 100%;
             padding: 30px;
@@ -190,12 +186,12 @@ if ($bookId > 0) {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 </head>
 <body>
-    <?php include '../admin/inc/header.php'; ?>
+    <?php include '../user/inc/header.php'; ?>
 
     <!-- Main Content -->
     <div id="content" class="d-flex flex-column min-vh-100">
         <div class="container-fluid px-4">
-            <!-- Update tab navigation -->
+            <!-- Tab navigation -->
             <ul class="nav nav-tabs mb-3" id="bookDetailsTabs" role="tablist">
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="details-tab" data-bs-toggle="tab" data-bs-target="#details" type="button" role="tab" aria-controls="details" aria-selected="true">
@@ -212,15 +208,18 @@ if ($bookId > 0) {
                         ISBD View
                     </button>
                 </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="holdings-tab" data-bs-toggle="tab" data-bs-target="#holdings" type="button" role="tab" aria-controls="holdings" aria-selected="false">
+                        Holdings
+                    </button>
+                </li>
             </ul>
 
             <div class="tab-content" id="bookDetailsContent">
                 <!-- Standard View Tab -->
                 <div class="tab-pane fade show active" id="details" role="tabpanel">
                     <div class="book-details">
-                        <?php if (isset($error)): ?>
-                            <div class="alert alert-danger"><?php echo $error; ?></div>
-                        <?php else: ?>
+                        <?php if (isset($book)): ?>
                             <h2><?php echo htmlspecialchars($book['title']); ?></h2>
                             
                             <div class="book-images">
@@ -244,9 +243,6 @@ if ($bookId > 0) {
                                 </div>
                                 <div class="info-item">
                                     <span class="label">Call Number:</span> <?php echo htmlspecialchars($book['call_number']); ?>
-                                </div>
-                                <div class="info-item">
-                                    <span class="label">Generated Call Number:</span> <?php echo htmlspecialchars($generatedCallNumber); ?>
                                 </div>
                                 <div class="info-item">
                                     <span class="label">Copy Number:</span> <?php echo htmlspecialchars($book['copy_number']); ?>
@@ -346,7 +342,12 @@ if ($bookId > 0) {
                             <?php if (!empty($contributors)): ?>
                                 <ul>
                                     <?php foreach ($contributors as $contributor): ?>
-                                        <li><?php echo htmlspecialchars($contributor['firstname'] . ' ' . $contributor['middle_init'] . ' ' . $contributor['lastname'] . ' (' . $contributor['role'] . ')'); ?></li>
+                                        <li>
+                                            <?php echo htmlspecialchars($contributor['firstname'] . ' ' . $contributor['middle_init'] . ' ' . $contributor['lastname']); ?>
+                                            <?php if (isset($contributor['role'])): ?>
+                                                (<?php echo htmlspecialchars($contributor['role']); ?>)
+                                            <?php endif; ?>
+                                        </li>
                                     <?php endforeach; ?>
                                 </ul>
                             <?php else: ?>
@@ -364,6 +365,8 @@ if ($bookId > 0) {
                             <?php else: ?>
                                 <p>No publications found.</p>
                             <?php endif; ?>
+                        <?php else: ?>
+                            <div class="alert alert-danger">Book not found.</div>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -433,7 +436,7 @@ if ($bookId > 0) {
                             }
                         </style>
 
-                        <?php if (!isset($error)): ?>
+                        <?php if (isset($book)): ?>
                         <div class="marc-record">
                             <?php
                             // Helper function to format MARC values
@@ -445,7 +448,7 @@ if ($bookId > 0) {
                             $primaryAuthor = '';
                             if (!empty($contributors)) {
                                 foreach ($contributors as $contributor) {
-                                    if ($contributor['role'] === 'Author') {
+                                    if (isset($contributor['role']) && $contributor['role'] === 'Author') {
                                         $primaryAuthor = $contributor['lastname'] . ', ' . 
                                                        $contributor['firstname'] . ' ' . 
                                                        $contributor['middle_init'];
@@ -524,8 +527,8 @@ if ($bookId > 0) {
                                 // Add additional author entries for other contributors
                                 ['700', '1#', 'a', $primaryAuthor,
                                            'e', 'author'],
-                                ['999', '##', 'a', 'Total Copies: ' . htmlspecialchars($totalCopies),
-                                           'b', 'In-Shelf: ' . htmlspecialchars($inShelf)],
+                                ['999', '##', 'a', 'Total Copies: ' . $totalCopies,
+                                           'b', 'In-Shelf: ' . $inShelf],
                             ];
 
                             // Define MARC field descriptions
@@ -591,6 +594,8 @@ if ($bookId > 0) {
                             }
                             ?>
                         </div>
+                        <?php else: ?>
+                            <div class="alert alert-danger">Book not found.</div>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -598,38 +603,7 @@ if ($bookId > 0) {
                 <!-- ISBD View Tab -->
                 <div class="tab-pane fade" id="isbd" role="tabpanel">
                     <div class="isbd-details p-4">
-                        <style>
-                            .isbd-record {
-                                width: 100%;
-                                background-color: #ffffff;
-                                padding: 30px;
-                                box-shadow: 0 0 15px rgba(0,0,0,0.1);
-                                font-family: "Times New Roman", Times, serif;
-                                line-height: 1.8;
-                            }
-                            .isbd-area {
-                                margin-bottom: 1.5em;
-                                text-indent: -1em;
-                                padding-left: 1em;
-                            }
-                            .isbd-punctuation {
-                                color: #666;
-                                font-weight: bold;
-                            }
-                            .isbd-date {
-                                margin: 1em 0;
-                                font-style: italic;
-                            }
-                            .isbd-subjects {
-                                margin-top: 2em;
-                            }
-                            .isbd-accession {
-                                margin-top: 1em;
-                                font-weight: bold;
-                            }
-                        </style>
-
-                        <?php if (!isset($error)): ?>
+                        <?php if (isset($book)): ?>
                         <div class="isbd-record">
                             <?php
                             // Title and Statement of Responsibility Area
@@ -647,7 +621,8 @@ if ($bookId > 0) {
                             echo '</div>';
 
                             // Publication, Distribution, etc. Area
-                            if ($publication) {
+                            if (!empty($publications)) {
+                                $publication = $publications[0];
                                 echo '<div class="isbd-area">';
                                 $pubInfo = [];
                                 
@@ -711,17 +686,51 @@ if ($bookId > 0) {
                                 <span class="label">In-Shelf:</span> <?php echo htmlspecialchars($inShelf); ?>
                             </div>
                         </div>
+                        <?php else: ?>
+                            <div class="alert alert-danger">Book not found.</div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <!-- Holdings Tab -->
+                <div class="tab-pane fade" id="holdings" role="tabpanel">
+                    <div class="holdings-details p-4">
+                        <?php if (!empty($allCopies)): ?>
+                            <div class="table-responsive">
+                                <table class="table table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Accession</th>
+                                            <th>Call Number</th>
+                                            <th>Copy Number</th>
+                                            <th>Status</th>
+                                            <th>Location</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($allCopies as $copy): ?>
+                                            <tr>
+                                                <td><?php echo htmlspecialchars($copy['accession']); ?></td>
+                                                <td><?php echo htmlspecialchars($copy['call_number']); ?></td>
+                                                <td><?php echo htmlspecialchars($copy['copy_number']); ?></td>
+                                                <td><?php echo htmlspecialchars($copy['status']); ?></td>
+                                                <td><?php echo htmlspecialchars($copy['shelf_location']); ?></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php else: ?>
+                            <div class="alert alert-danger">No copies found.</div>
                         <?php endif; ?>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    <!-- End of Main Content -->
 
     <!-- Footer -->
     <?php include '../Admin/inc/footer.php' ?>
-    <!-- End of Footer -->
 
     <!-- Scroll to Top Button-->
     <a class="scroll-to-top rounded" href="#page-top">

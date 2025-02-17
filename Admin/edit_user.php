@@ -8,7 +8,7 @@ if (!isset($_SESSION['admin_id'])) {
 
 include '../admin/inc/header.php';
 include '../db.php';
-include '../inc/status_helper.php';
+include 'inc/status_helper.php';
 
 $user_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 

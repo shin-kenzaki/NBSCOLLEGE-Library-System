@@ -19,18 +19,17 @@ cd \xampp\htdocs\Library-System
 echo Starting Library System...
 echo This will start both Admin (port 8080) and User (port 8081) servers.
 
-echo Set WShell = CreateObject("WScript.Shell") > "%temp%\invisible.vbs"
-echo WShell.Run """" ^& WScript.Arguments(0) ^& """", 0, False >> "%temp%\invisible.vbs"
-echo WScript.Sleep 2000 >> "%temp%\invisible.vbs"
-echo WShell.Run "http://localhost:8080", 1, False >> "%temp%\invisible.vbs"
-echo WShell.Run "http://localhost:8081", 1, False >> "%temp%\invisible.vbs"
-echo WScript.Sleep 1000 >> "%temp%\invisible.vbs"
-echo WShell.Run "taskkill /F /IM cmd.exe", 0, True >> "%temp%\invisible.vbs"
+echo Starting Admin Server...
+start "Admin Server" cmd /c "Library Admin.bat"
+timeout /t 3 /nobreak > nul
 
-wscript.exe "%temp%\invisible.vbs" "Library Admin.bat"
-wscript.exe "%temp%\invisible.vbs" "Library User.bat"
+echo Starting User Server...
+start "User Server" cmd /c "Library User.bat"
+timeout /t 3 /nobreak > nul
 
-del "%temp%\invisible.vbs"
+echo Opening web browsers...
+start http://localhost:8080
+start http://localhost:8081
 
 echo Library System is ready!
 timeout /t 3 /nobreak > nul

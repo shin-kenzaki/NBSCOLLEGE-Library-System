@@ -1,3 +1,3 @@
 @echo off
-start http://<host ip>:8081
-exit
+cd C:\xampp\htdocs\Library-System\User
+php -S localhost:8081

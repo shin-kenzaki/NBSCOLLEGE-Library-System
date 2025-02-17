@@ -15,28 +15,48 @@ $subject_options = array(
     "Topical",
     "Personal",
     "Corporate",
-    "Geographical"
+    "Geographical",
+    "Scientific",
+    "Historical",
+    "Literary",
+    "Artistic"
 );
 
 // Add this after the existing $subject_options array
 $specific_subjects = array(
     "Topical" => array(
         "Philosophy", "Psychology", "Religion", "Social Sciences",
-        "Language", "Natural Sciences", "Technology", "Arts",
-        "Literature", "History", "Geography"
+        "Library Sciences", "Language", "Natural Sciences", "Technology", "Arts",
+        "Literature", "History", "Geography", "Mathematics", "Physics", "Chemistry", "Biology"
     ),
     "Personal" => array(
         "Author", "Artist", "Musician", "Scientist",
-        "Historical Figure", "Political Figure"
+        "Historical Figure", "Political Figure", "Athlete", "Actor"
     ),
     "Corporate" => array(
         "Government Agency", "Educational Institution",
         "Business Organization", "Non-profit Organization",
-        "Religious Institution"
+        "Religious Institution", "Media Company", "Tech Company"
     ),
     "Geographical" => array(
         "Continent", "Country", "City", "Region",
-        "Landmark", "Geographic Feature"
+        "Landmark", "Geographic Feature", "Ocean", "Mountain"
+    ),
+    "Scientific" => array(
+        "Astronomy", "Biology", "Chemistry", "Physics",
+        "Earth Science", "Environmental Science", "Computer Science"
+    ),
+    "Historical" => array(
+        "Ancient History", "Medieval History", "Modern History",
+        "World Wars", "Revolutions", "Historical Events"
+    ),
+    "Literary" => array(
+        "Poetry", "Novels", "Short Stories", "Drama",
+        "Essays", "Biographies", "Autobiographies"
+    ),
+    "Artistic" => array(
+        "Painting", "Sculpture", "Photography", "Architecture",
+        "Music", "Dance", "Theater", "Film"
     )
 );
 
@@ -398,10 +418,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                                 <div class="form-group">
                                                     <label>Shelf Location</label>
                                                     <select class="form-control" name="shelf_location">
-                                                        <option value="A1">A1</option>
-                                                        <option value="B2">B2</option>
-                                                        <option value="C3">C3</option>
-                                                        <option value="D4">D4</option>
+                                                        <option value="GC">General Circulation</option>
+                                                        <option value="TR">Teachers Reference</option>
+                                                        <option value="FIL">Filipiniana</option>
+                                                        <option value="CIR">Circulation</option>
+                                                        <option value="REF">Reference</option>
+                                                        <option value="SC">Special Collection</option>
+                                                        <option value="BIO">Biography</option>
+                                                        <option value="RES">Reserve</option>
+                                                        <option value="SCH">Scholastic</option>
+                                                        <option value="EAS">Easy</option>
+                                                        <option value="FIC">Fiction</option>
                                                     </select>
                                                 </div>
                                             </div>

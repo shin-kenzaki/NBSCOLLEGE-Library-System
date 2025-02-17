@@ -521,29 +521,6 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
                 }
             });
 
-            // Update checkbox click handler to work with cell click
-            $(document).on('click', 'td:first-child', function(e) {
-                // If the click was directly on the checkbox, don't execute this handler
-                if (e.target.type === 'checkbox') return;
-                
-                // Find the checkbox within this cell and toggle it
-                var checkbox = $(this).find('.selectRow');
-                checkbox.prop('checked', !checkbox.prop('checked'));
-                updateSelectedBookIds();
-            });
-
-            // Add header cell click handler
-            $(document).on('click', 'thead th:first-child', function(e) {
-                // If the click was directly on the checkbox, don't execute this handler
-                if (e.target.type === 'checkbox') return;
-                
-                // Find and click the checkbox
-                var checkbox = $('#selectAll');
-                checkbox.prop('checked', !checkbox.prop('checked'));
-                $('.selectRow').prop('checked', checkbox.prop('checked'));
-                updateSelectedBookIds();
-            });
-
             // Keep the original checkbox click handler for direct checkbox clicks
             $(document).on('click', '.selectRow', function(e) {
                 // Stop propagation to prevent the td click handler from firing
