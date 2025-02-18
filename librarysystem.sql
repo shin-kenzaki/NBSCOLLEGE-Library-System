@@ -195,9 +195,10 @@ CREATE TABLE `reservations` (
   `id` int(225) NOT NULL,
   `user_id` int(225) NOT NULL,
   `book_id` int(225) NOT NULL,
-  `reserve_date` date NOT NULL,
-  `cancel_date` date NOT NULL,
-  `recieved_date` date NOT NULL
+  `reserve_date` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `cancel_date` timestamp NULL DEFAULT NULL,
+  `recieved_date` timestamp NULL DEFAULT NULL,
+  `status` boolean NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------

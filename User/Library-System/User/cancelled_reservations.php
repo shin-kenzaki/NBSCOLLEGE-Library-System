@@ -10,16 +10,11 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-// Fetch reservation history for the logged-in user where either recieved_date or cancel_date is not null
-$query = "SELECT r.id, b.title, r.reserve_date, r.recieved_date, r.cancel_date,
-          CASE
-              WHEN r.recieved_date IS NOT NULL THEN 'Received'
-              WHEN r.cancel_date IS NOT NULL THEN 'Cancelled'
-              ELSE 'Unknown'
-          END AS status_text
-          FROM reservations r
-          JOIN books b ON r.book_id = b.id
-          WHERE r.user_id = ? AND (r.recieved_date IS NOT NULL OR r.cancel_date IS NOT NULL)";
+// Fetch reservation history for the logged-in user
+$query = "SELECT r.id, b.title, r.reserve_date, r.cancel_date, r.recieved_date, r.status 
+          FROM reservations r 
+          JOIN books b ON r.book_id = b.id 
+          WHERE r.user_id = ? AND (r.cancel_date IS NOT NULL OR r.recieved_date IS NOT NULL)";
 $stmt = $conn->prepare($query);
 $stmt->bind_param('i', $user_id);
 $stmt->execute();
@@ -44,8 +39,8 @@ include 'inc/header.php';
                                 <th>ID</th>
                                 <th>Title</th>
                                 <th>Reserve Date</th>
-                                <th>Received Date</th>
                                 <th>Cancel Date</th>
+                                <th>Received Date</th>
                                 <th>Status</th>
                             </tr>
                         </thead>
@@ -56,9 +51,9 @@ include 'inc/header.php';
                                         <td><?php echo $row['id']; ?></td>
                                         <td><?php echo $row['title']; ?></td>
                                         <td><?php echo $row['reserve_date']; ?></td>
-                                        <td><?php echo $row['recieved_date'] ? $row['recieved_date'] : 'N/A'; ?></td>
                                         <td><?php echo $row['cancel_date'] ? $row['cancel_date'] : 'N/A'; ?></td>
-                                        <td><?php echo $row['status_text']; ?></td>
+                                        <td><?php echo $row['recieved_date'] ? $row['recieved_date'] : 'N/A'; ?></td>
+                                        <td><?php echo $row['status'] ? 'Active' : 'Inactive'; ?></td>
                                     </tr>
                                 <?php endwhile; ?>
                             <?php else: ?>

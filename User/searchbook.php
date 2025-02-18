@@ -52,6 +52,7 @@ include '../db.php';
                                     <th>Total Copies</th>
                                     <th>Total In-Shelf</th>
                                     <th>Total Borrowed</th>
+                                    <th>Actions</th> <!-- Added Actions column -->
                                 </tr>
                             </thead>
                             <tbody>
@@ -81,6 +82,14 @@ include '../db.php';
                                         <td>" . htmlspecialchars($row['total_copies']) . "</td>
                                         <td>" . htmlspecialchars($row['total_in_shelf']) . "</td>
                                         <td>" . htmlspecialchars($row['total_borrowed']) . "</td>
+                                        <td>
+                                            <button class='btn btn-primary btn-sm add-to-cart' data-title='" . htmlspecialchars($row['title']) . "' title='Add to Cart'>
+                                                <i class='fas fa-cart-plus'></i> <!-- Add to Cart icon -->
+                                            </button>
+                                            <button class='btn btn-success btn-sm borrow-book' data-title='" . htmlspecialchars($row['title']) . "' title='Borrow'>
+                                                <i class='fas fa-book'></i> <!-- Borrow icon -->
+                                            </button>
+                                        </td>
                                     </tr>";
                                 }
                                 ?>
@@ -121,6 +130,62 @@ include '../db.php';
         // Add click event listener to table rows
         $('#dataTable tbody').on('click', 'tr.clickable-row', function() {
             window.location.href = $(this).data('href');
+        });
+
+        // Function to add book to cart
+        function addToCart(title) {
+            if (confirm('Are you sure you want to add "' + title + '" to the cart?')) {
+                $.ajax({
+                    url: 'add_to_cart.php',
+                    type: 'POST',
+                    data: { title: title },
+                    success: function(response) {
+                        var res = JSON.parse(response);
+                        alert(res.message);
+                        if (res.success) {
+                            location.reload();
+                        }
+                    },
+                    error: function() {
+                        alert('Failed to add "' + title + '" to cart.');
+                    }
+                });
+            }
+        }
+
+        // Function to borrow book
+        function borrowBook(title) {
+            if (confirm('Are you sure you want to borrow "' + title + '"?')) {
+                $.ajax({
+                    url: 'borrow_book.php',
+                    type: 'POST',
+                    data: { title: title },
+                    success: function(response) {
+                        var res = JSON.parse(response);
+                        alert(res.message);
+                        if (res.success) {
+                            location.reload();
+                        }
+                    },
+                    error: function() {
+                        alert('Failed to borrow "' + title + '".');
+                    }
+                });
+            }
+        }
+
+        // Add click event listener to 'Add to Cart' buttons
+        $('.add-to-cart').on('click', function(event) {
+            event.stopPropagation();
+            var title = $(this).data('title');
+            addToCart(title);
+        });
+
+        // Add click event listener to 'Borrow' buttons
+        $('.borrow-book').on('click', function(event) {
+            event.stopPropagation();
+            var title = $(this).data('title');
+            borrowBook(title);
         });
     });
     </script>

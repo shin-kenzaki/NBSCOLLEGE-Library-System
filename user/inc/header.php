@@ -61,9 +61,17 @@
                 </a>
             </li>
 
+            <!-- Nav Item - Cart -->
+            <li class="nav-item">
+                <a class="nav-link" href="cart.php">
+                    <i class="fas fa-fw fa-shopping-cart"></i>
+                    <span>Cart</span>
+                </a>
+            </li>
+
             <!-- Nav Item - Book Reservation -->
             <li class="nav-item">
-                <a class="nav-link" href="book_reservation.php">
+                <a class="nav-link" href="book_reservations.php">
                     <i class="fas fa-fw fa-bookmark"></i>
                     <span>Book Reservation</span>
                 </a>
@@ -93,6 +101,13 @@
                 </div>
             </li>
 
+            <!-- Nav Item - Cancelled Book Reservations -->
+            <li class="nav-item">
+                <a class="nav-link" href="cancelled_reservations.php">
+                    <i class="fas fa-fw fa-times-circle"></i>
+                    <span>Cancelled Reservations</span>
+                </a>
+            </li>
 
             <!-- Nav Item - Charts -->
             <li class="nav-item">
