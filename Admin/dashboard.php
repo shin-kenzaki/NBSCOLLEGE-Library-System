@@ -1,5 +1,6 @@
 <?php
 session_start();
+include '../db.php';
 
 // Prevent caching
 header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
@@ -28,6 +29,47 @@ if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > 
 }
 $_SESSION['last_activity'] = time();
 
+// Fetch analytics data
+$today = date('Y-m-d');
+
+// Total active borrowings
+$result = mysqli_query($conn, "SELECT COUNT(*) as count FROM borrowings WHERE status = 'borrowed'");
+$row = mysqli_fetch_assoc($result);
+$active_borrowings = $row['count'];
+
+// Total overdue books
+$result = mysqli_query($conn, "SELECT COUNT(*) as count FROM borrowings WHERE status = 'borrowed' AND due_date < '$today'");
+$row = mysqli_fetch_assoc($result);
+$overdue_books = $row['count'];
+
+// Total reservations
+$result = mysqli_query($conn, "SELECT COUNT(*) as count FROM reservations WHERE status = 'pending'");
+$row = mysqli_fetch_assoc($result);
+$pending_reservations = $row['count'];
+
+// Total active users
+$result = mysqli_query($conn, "SELECT COUNT(*) as count FROM users WHERE status = 'active' AND usertype = 'Student'");
+$row = mysqli_fetch_assoc($result);
+$active_users = $row['count'];
+
+// Total pending fines
+$result = mysqli_query($conn, "SELECT SUM(amount) as total FROM fines WHERE status = 'unpaid'");
+$row = mysqli_fetch_assoc($result);
+$pending_fines = $row['total'] ?: 0;
+
+// Get book status distribution for pie chart
+$result = mysqli_query($conn, "SELECT 
+    SUM(CASE WHEN status = 'borrowed' THEN 1 ELSE 0 END) as borrowed,
+    SUM(CASE WHEN status = 'overdue' THEN 1 ELSE 0 END) as overdue,
+    SUM(CASE WHEN status = 'returned' THEN 1 ELSE 0 END) as returned
+    FROM borrowings");
+$book_stats = mysqli_fetch_assoc($result);
+
+// Add hidden inputs for pie chart data
+echo "<input type='hidden' id='borrowed' value='" . $book_stats['borrowed'] . "'>";
+echo "<input type='hidden' id='overdue' value='" . $book_stats['overdue'] . "'>";
+echo "<input type='hidden' id='returned' value='" . $book_stats['returned'] . "'>";
+
 include '../admin/inc/header.php';
 ?>
             <!-- Main Content -->
@@ -37,7 +79,7 @@ include '../admin/inc/header.php';
 
                     <!-- Page Heading -->
                     <div class="d-sm-flex align-items-center justify-content-between mb-4">
-                        <h1 class="h3 mb-0 text-gray-800">Dashboard</h1>
+                        <h1 class="h3 mb-0 text-gray-800">Library Dashboard</h1>
                         <a href="#" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm"><i
                                 class="fas fa-download fa-sm text-white-50"></i> Generate Report</a>
                     </div>
@@ -45,163 +87,78 @@ include '../admin/inc/header.php';
                     <!-- Content Row -->
                     <div class="row">
 
-                        <!-- Earnings (Monthly) Card Example -->
+                        <!-- Active Borrowings Card -->
                         <div class="col-xl-3 col-md-6 mb-4">
                             <div class="card border-left-primary shadow h-100 py-2">
                                 <div class="card-body">
                                     <div class="row no-gutters align-items-center">
                                         <div class="col mr-2">
                                             <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                                Earnings (Monthly)</div>
-                                            <div class="h5 mb-0 font-weight-bold text-gray-800">$40,000</div>
+                                                Active Borrowings</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo $active_borrowings; ?></div>
                                         </div>
                                         <div class="col-auto">
-                                            <i class="fas fa-calendar fa-2x text-gray-300"></i>
+                                            <i class="fas fa-book fa-2x text-gray-300"></i>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Earnings (Monthly) Card Example -->
+                        <!-- Overdue Books Card -->
                         <div class="col-xl-3 col-md-6 mb-4">
-                            <div class="card border-left-success shadow h-100 py-2">
+                            <div class="card border-left-danger shadow h-100 py-2">
                                 <div class="card-body">
                                     <div class="row no-gutters align-items-center">
                                         <div class="col mr-2">
-                                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                                Earnings (Annual)</div>
-                                            <div class="h5 mb-0 font-weight-bold text-gray-800">$215,000</div>
+                                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                                Overdue Books</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo $overdue_books; ?></div>
                                         </div>
                                         <div class="col-auto">
-                                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                                            <i class="fas fa-clock fa-2x text-gray-300"></i>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Earnings (Monthly) Card Example -->
+                        <!-- Pending Reservations Card -->
                         <div class="col-xl-3 col-md-6 mb-4">
                             <div class="card border-left-info shadow h-100 py-2">
                                 <div class="card-body">
                                     <div class="row no-gutters align-items-center">
                                         <div class="col mr-2">
-                                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Tasks
-                                            </div>
-                                            <div class="row no-gutters align-items-center">
-                                                <div class="col-auto">
-                                                    <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800">50%</div>
-                                                </div>
-                                                <div class="col">
-                                                    <div class="progress progress-sm mr-2">
-                                                        <div class="progress-bar bg-info" role="progressbar"
-                                                            style="width: 50%" aria-valuenow="50" aria-valuemin="0"
-                                                            aria-valuemax="100"></div>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                                Pending Reservations</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo $pending_reservations; ?></div>
                                         </div>
                                         <div class="col-auto">
-                                            <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
+                                            <i class="fas fa-bookmark fa-2x text-gray-300"></i>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Pending Requests Card Example -->
+                        <!-- Pending Fines Card -->
                         <div class="col-xl-3 col-md-6 mb-4">
                             <div class="card border-left-warning shadow h-100 py-2">
                                 <div class="card-body">
                                     <div class="row no-gutters align-items-center">
                                         <div class="col mr-2">
                                             <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                                Pending Requests</div>
-                                            <div class="h5 mb-0 font-weight-bold text-gray-800">18</div>
+                                                Pending Fines</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">₱<?php echo number_format($pending_fines, 2); ?></div>
                                         </div>
                                         <div class="col-auto">
-                                            <i class="fas fa-comments fa-2x text-gray-300"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                                                <!-- Pending Requests Card Example -->
-                                                <div class="col-xl-3 col-md-6 mb-4">
-                            <div class="card border-left-warning shadow h-100 py-2">
-                                <div class="card-body">
-                                    <div class="row no-gutters align-items-center">
-                                        <div class="col mr-2">
-                                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                                Pending Requests</div>
-                                            <div class="h5 mb-0 font-weight-bold text-gray-800">18</div>
-                                        </div>
-                                        <div class="col-auto">
-                                            <i class="fas fa-comments fa-2x text-gray-300"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                                                <!-- Pending Requests Card Example -->
-                                                <div class="col-xl-3 col-md-6 mb-4">
-                            <div class="card border-left-warning shadow h-100 py-2">
-                                <div class="card-body">
-                                    <div class="row no-gutters align-items-center">
-                                        <div class="col mr-2">
-                                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                                Pending Requests</div>
-                                            <div class="h5 mb-0 font-weight-bold text-gray-800">18</div>
-                                        </div>
-                                        <div class="col-auto">
-                                            <i class="fas fa-comments fa-2x text-gray-300"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                                                <!-- Pending Requests Card Example -->
-                                                <div class="col-xl-3 col-md-6 mb-4">
-                            <div class="card border-left-warning shadow h-100 py-2">
-                                <div class="card-body">
-                                    <div class="row no-gutters align-items-center">
-                                        <div class="col mr-2">
-                                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                                Pending Requests</div>
-                                            <div class="h5 mb-0 font-weight-bold text-gray-800">18</div>
-                                        </div>
-                                        <div class="col-auto">
-                                            <i class="fas fa-comments fa-2x text-gray-300"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                                                <!-- Pending Requests Card Example -->
-                                                <div class="col-xl-3 col-md-6 mb-4">
-                            <div class="card border-left-warning shadow h-100 py-2">
-                                <div class="card-body">
-                                    <div class="row no-gutters align-items-center">
-                                        <div class="col mr-2">
-                                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                                Pending Requests</div>
-                                            <div class="h5 mb-0 font-weight-bold text-gray-800">18</div>
-                                        </div>
-                                        <div class="col-auto">
-                                            <i class="fas fa-comments fa-2x text-gray-300"></i>
+                                            <i class="fas fa-money-bill fa-2x text-gray-300"></i>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-
-
 
                     <!-- Content Row -->
 

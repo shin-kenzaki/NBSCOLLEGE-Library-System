@@ -29,6 +29,8 @@ include '../db.php';
             cursor: pointer;
         }
     </style>
+    <!-- Include SweetAlert CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 </head>
 <body>
     <?php include '../user/inc/header.php'; ?>
@@ -50,7 +52,7 @@ include '../db.php';
                                     <th>Author</th>
                                     <th>Call Number</th>
                                     <th>Total Copies</th>
-                                    <th>Total In-Shelf</th>
+                                    <th>Total Available</th>
                                     <th>Total Borrowed</th>
                                     <th>Actions</th> <!-- Added Actions column -->
                                 </tr>
@@ -61,8 +63,8 @@ include '../db.php';
                                 $query = "SELECT b.title, 
                                                 (SELECT call_number FROM books ORDER BY id LIMIT 1) as call_number,
                                                 COUNT(*) as total_copies,
-                                                SUM(CASE WHEN b.status = 'inshelf' THEN 1 ELSE 0 END) as total_in_shelf,
-                                                SUM(CASE WHEN b.status = 'borrowed' THEN 1 ELSE 0 END) as total_borrowed,
+                                                SUM(CASE WHEN b.status = 'Available' THEN 1 ELSE 0 END) as total_in_shelf,
+                                                SUM(CASE WHEN b.status = 'Borrowed' THEN 1 ELSE 0 END) as total_borrowed,
                                                 (SELECT CONCAT(w.firstname, ' ', w.lastname) 
                                                  FROM contributors c 
                                                  JOIN writers w ON c.writer_id = w.id 
@@ -109,6 +111,8 @@ include '../db.php';
         <i class="fas fa-angle-up"></i>
     </a>
 
+    <!-- Include SweetAlert JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
     <script>
     $(document).ready(function() {
         $('#dataTable').DataTable({
@@ -134,44 +138,64 @@ include '../db.php';
 
         // Function to add book to cart
         function addToCart(title) {
-            if (confirm('Are you sure you want to add "' + title + '" to the cart?')) {
-                $.ajax({
-                    url: 'add_to_cart.php',
-                    type: 'POST',
-                    data: { title: title },
-                    success: function(response) {
-                        var res = JSON.parse(response);
-                        alert(res.message);
-                        if (res.success) {
-                            location.reload();
+            Swal.fire({
+                title: 'Are you sure?',
+                text: 'Do you want to add "' + title + '" to the cart?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, add it!',
+                cancelButtonText: 'No, cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: 'add_to_cart.php',
+                        type: 'POST',
+                        data: { title: title },
+                        success: function(response) {
+                            var res = JSON.parse(response);
+                            Swal.fire('Added!', res.message, 'success').then(() => {
+                                if (res.success) {
+                                    location.reload();
+                                }
+                            });
+                        },
+                        error: function() {
+                            Swal.fire('Failed!', 'Failed to add "' + title + '" to cart.', 'error');
                         }
-                    },
-                    error: function() {
-                        alert('Failed to add "' + title + '" to cart.');
-                    }
-                });
-            }
+                    });
+                }
+            });
         }
 
         // Function to borrow book
         function borrowBook(title) {
-            if (confirm('Are you sure you want to borrow "' + title + '"?')) {
-                $.ajax({
-                    url: 'borrow_book.php',
-                    type: 'POST',
-                    data: { title: title },
-                    success: function(response) {
-                        var res = JSON.parse(response);
-                        alert(res.message);
-                        if (res.success) {
-                            location.reload();
+            Swal.fire({
+                title: 'Are you sure?',
+                text: 'Do you want to borrow "' + title + '"?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, borrow it!',
+                cancelButtonText: 'No, cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: 'reserve_book.php',
+                        type: 'POST',
+                        data: { title: title },
+                        success: function(response) {
+                            var res = JSON.parse(response);
+                            Swal.fire('Reserved!', res.message, 'success').then(() => {
+                                if (res.success) {
+                                    location.reload();
+                                }
+                            });
+                        },
+                        error: function() {
+                            Swal.fire('Failed!', 'Failed to reserve "' + title + '".', 'error');
                         }
-                    },
-                    error: function() {
-                        alert('Failed to borrow "' + title + '".');
-                    }
-                });
-            }
+                    });
+                }
+            });
         }
 
         // Add click event listener to 'Add to Cart' buttons

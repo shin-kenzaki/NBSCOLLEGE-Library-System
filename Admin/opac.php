@@ -23,8 +23,8 @@ if ($bookId > 0) {
     if ($result && $result->num_rows > 0) {
         $book = $result->fetch_assoc();
         
-        // Fetch total copies and in-shelf count
-        $copiesQuery = "SELECT COUNT(*) as total_copies, SUM(CASE WHEN status = 'in-shelf' THEN 1 ELSE 0 END) as in_shelf FROM books WHERE title = ?";
+        // Fetch total copies and Available count
+        $copiesQuery = "SELECT COUNT(*) as total_copies, SUM(CASE WHEN status = 'Available' THEN 1 ELSE 0 END) as in_shelf FROM books WHERE title = ?";
         $stmt = $conn->prepare($copiesQuery);
         $stmt->bind_param("s", $book['title']);
         $stmt->execute();
@@ -90,6 +90,17 @@ if ($bookId > 0) {
     $publications = [];
     while ($row = $publicationsResult->fetch_assoc()) {
         $publications[] = $row;
+    }
+
+    // Fetch all copies of the book
+    $allCopiesQuery = "SELECT * FROM books WHERE title = ?";
+    $stmt = $conn->prepare($allCopiesQuery);
+    $stmt->bind_param("s", $book['title']);
+    $stmt->execute();
+    $allCopiesResult = $stmt->get_result();
+    $allCopies = [];
+    while ($row = $allCopiesResult->fetch_assoc()) {
+        $allCopies[] = $row;
     }
 } else {
     $error = "Invalid book ID.";
@@ -212,6 +223,11 @@ if ($bookId > 0) {
                         ISBD View
                     </button>
                 </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="holdings-tab" data-bs-toggle="tab" data-bs-target="#holdings" type="button" role="tab" aria-controls="holdings" aria-selected="false">
+                        Holdings
+                    </button>
+                </li>
             </ul>
 
             <div class="tab-content" id="bookDetailsContent">
@@ -276,7 +292,7 @@ if ($bookId > 0) {
                                     <span class="label">Total Copies:</span> <?php echo htmlspecialchars($totalCopies); ?>
                                 </div>
                                 <div class="info-item">
-                                    <span class="label">In-Shelf:</span> <?php echo htmlspecialchars($inShelf); ?>
+                                    <span class="label">Available:</span> <?php echo htmlspecialchars($inShelf); ?>
                                 </div>
                             </div>
 
@@ -525,7 +541,7 @@ if ($bookId > 0) {
                                 ['700', '1#', 'a', $primaryAuthor,
                                            'e', 'author'],
                                 ['999', '##', 'a', 'Total Copies: ' . htmlspecialchars($totalCopies),
-                                           'b', 'In-Shelf: ' . htmlspecialchars($inShelf)],
+                                           'b', 'Available: ' . htmlspecialchars($inShelf)],
                             ];
 
                             // Define MARC field descriptions
@@ -708,9 +724,43 @@ if ($bookId > 0) {
                             ?>
                             <div class="isbd-area">
                                 <span class="label">Total Copies:</span> <?php echo htmlspecialchars($totalCopies); ?>
-                                <span class="label">In-Shelf:</span> <?php echo htmlspecialchars($inShelf); ?>
+                                <span class="label">Available:</span> <?php echo htmlspecialchars($inShelf); ?>
                             </div>
                         </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <!-- Holdings Tab -->
+                <div class="tab-pane fade" id="holdings" role="tabpanel">
+                    <div class="holdings-details p-4">
+                        <?php if (!empty($allCopies)): ?>
+                            <div class="table-responsive">
+                                <table class="table table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Accession</th>
+                                            <th>Call Number</th>
+                                            <th>Copy Number</th>
+                                            <th>Status</th>
+                                            <th>Location</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($allCopies as $copy): ?>
+                                            <tr>
+                                                <td><?php echo htmlspecialchars($copy['accession']); ?></td>
+                                                <td><?php echo htmlspecialchars($copy['call_number']); ?></td>
+                                                <td><?php echo htmlspecialchars($copy['copy_number']); ?></td>
+                                                <td><?php echo htmlspecialchars($copy['status']); ?></td>
+                                                <td><?php echo htmlspecialchars($copy['shelf_location']); ?></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php else: ?>
+                            <div class="alert alert-danger">No copies found.</div>
                         <?php endif; ?>
                     </div>
                 </div>

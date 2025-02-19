@@ -113,7 +113,7 @@
                 </div>
             </li>
 
-            <?php else: ?>
+            <?php elseif($_SESSION['role'] === 'Librarian'): ?>
             <!-- Limited menu for librarian -->
             <li class="nav-item">
                 <a class="nav-link" href="add-book.php">
@@ -141,11 +141,28 @@
             </li>
             <?php endif; ?>
 
-            <!-- Nav Item - Charts -->
+            <?php if($_SESSION['role'] === 'Admin' || $_SESSION['role'] === 'Librarian'): ?>
+            <!-- Book reservations nav removed -->
+            <?php endif; ?>
+
+            <!-- Nav Item - Books Menu -->
             <li class="nav-item">
-                <a class="nav-link" href="charts.php">
-                    <i class="fas fa-fw fa-chart-area"></i>
-                    <span>Charts</span></a>
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseBooks"
+                    aria-expanded="true" aria-controls="collapseBooks">
+                    <i class="fas fa-book"></i>
+                    <span>Borrowing Management</span>
+                </a>
+                <div id="collapseBooks" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <h6 class="collapse-header">Borrowing Management:</h6>
+                        <a class="collapse-item" href="book_reservations.php">Book Reservations</a>
+                        <a class="collapse-item" href="../borrowed_books.php">Borrowed Books</a>
+                        <a class="collapse-item" href="borrowing_history.php">Borrowing History</a>
+                        <a class="collapse-item" href="fines.php">Manage Fines</a>
+                        <a class="collapse-item" href="lost_books.php">Lost Book Records</a>
+                        <a class="collapse-item" href="damaged_books.php">Damaged Book Records</a>
+                    </div>
+                </div>
             </li>
 
             <!-- Nav Item - Tables -->

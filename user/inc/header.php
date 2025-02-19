@@ -71,7 +71,7 @@
 
             <!-- Nav Item - Book Reservation -->
             <li class="nav-item">
-                <a class="nav-link" href="book_reservations.php">
+                <a class="nav-link" href="../book_reservations.php">
                     <i class="fas fa-fw fa-bookmark"></i>
                     <span>Book Reservation</span>
                 </a>
@@ -83,6 +83,7 @@
                     <i class="fas fa-fw fa-book"></i>
                     <span>Book Borrowing</span>
                 </a>
+            </li>
 
             <!-- Nav Item - Histories -->
             <li class="nav-item">
@@ -99,14 +100,6 @@
                         <a class="collapse-item" href="reservation_history.php">Reservation History</a>
                     </div>
                 </div>
-            </li>
-
-            <!-- Nav Item - Cancelled Book Reservations -->
-            <li class="nav-item">
-                <a class="nav-link" href="cancelled_reservations.php">
-                    <i class="fas fa-fw fa-times-circle"></i>
-                    <span>Cancelled Reservations</span>
-                </a>
             </li>
 
             <!-- Nav Item - Charts -->

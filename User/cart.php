@@ -2,6 +2,12 @@
 session_start();
 include '../db.php';
 
+// Check if user is logged in
+if (!isset($_SESSION['user_id'])) {
+    header('Location: login.php');
+    exit();
+}
+
 $user_id = $_SESSION['user_id'];
 
 $query = "SELECT b.title, c.date, 
@@ -38,6 +44,8 @@ $result = $stmt->get_result();
             background-color: #f0f8ff; /* Light blue background for selected rows */
         }
     </style>
+    <!-- Include SweetAlert CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 </head>
 <body>
     <?php include '../user/inc/header.php'; ?>
@@ -98,6 +106,8 @@ $result = $stmt->get_result();
         <i class="fas fa-angle-up"></i>
     </a>
 
+    <!-- Include SweetAlert JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
     <script>
     $(document).ready(function() {
         $('#dataTable').DataTable({
@@ -139,23 +149,33 @@ $result = $stmt->get_result();
         $('.remove-from-cart').on('click', function(event) {
             event.stopPropagation();
             var title = $(this).data('title');
-            if (confirm('Are you sure you want to remove "' + title + '" from the cart?')) {
-                $.ajax({
-                    url: 'remove_from_cart.php',
-                    type: 'POST',
-                    data: { title: title },
-                    success: function(response) {
-                        var res = JSON.parse(response);
-                        alert(res.message);
-                        if (res.success) {
-                            location.reload();
+            Swal.fire({
+                title: 'Are you sure?',
+                text: 'You won\'t be able to revert this!',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, remove it!',
+                cancelButtonText: 'No, keep it'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: 'remove_from_cart.php',
+                        type: 'POST',
+                        data: { title: title },
+                        success: function(response) {
+                            var res = JSON.parse(response);
+                            Swal.fire('Removed!', res.message, 'success').then(() => {
+                                if (res.success) {
+                                    location.reload();
+                                }
+                            });
+                        },
+                        error: function() {
+                            Swal.fire('Failed!', 'Failed to remove "' + title + '" from cart.', 'error');
                         }
-                    },
-                    error: function() {
-                        alert('Failed to remove "' + title + '" from cart.');
-                    }
-                });
-            }
+                    });
+                }
+            });
         });
 
         // Add bulk remove functionality
@@ -166,25 +186,35 @@ $result = $stmt->get_result();
             });
 
             if (titles.length > 0) {
-                if (confirm('Are you sure you want to remove the selected items from the cart?')) {
-                    $.ajax({
-                        url: 'bulk_remove_from_cart.php',
-                        type: 'POST',
-                        data: { titles: titles },
-                        success: function(response) {
-                            var res = JSON.parse(response);
-                            alert(res.message);
-                            if (res.success) {
-                                location.reload();
+                Swal.fire({
+                    title: 'Are you sure?',
+                    text: 'You won\'t be able to revert this!',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, remove them!',
+                    cancelButtonText: 'No, keep them'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: 'bulk_remove_from_cart.php',
+                            type: 'POST',
+                            data: { titles: titles },
+                            success: function(response) {
+                                var res = JSON.parse(response);
+                                Swal.fire('Removed!', res.message, 'success').then(() => {
+                                    if (res.success) {
+                                        location.reload();
+                                    }
+                                });
+                            },
+                            error: function() {
+                                Swal.fire('Failed!', 'Failed to remove selected items from cart.', 'error');
                             }
-                        },
-                        error: function() {
-                            alert('Failed to remove selected items from cart.');
-                        }
-                    });
-                }
+                        });
+                    }
+                });
             } else {
-                alert('No items selected.');
+                Swal.fire('No items selected', 'Please select items to remove.', 'info');
             }
         });
 
@@ -196,28 +226,36 @@ $result = $stmt->get_result();
             });
 
             if (titles.length > 0) {
-                var bookList = titles.join('\n');
-                if (confirm('The following books will be checked out:\n\n' + bookList + '\n\nDo you want to proceed?')) {
-                    $.ajax({
-                        url: 'checkout.php',
-                        type: 'POST',
-                        data: { titles: titles },
-                        success: function(response) {
-                            var res = JSON.parse(response);
-                            alert(res.message);
-                            if (res.success) {
-                                location.reload();
-                            } else {
-                                alert(res.error);
+                var bookList = '<ul>' + titles.map(title => '<li>' + title + '</li>').join('') + '</ul>';
+                Swal.fire({
+                    title: 'Checkout',
+                    html: 'The following books will be checked out:<br>' + bookList + '<br>Do you want to proceed?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, checkout!',
+                    cancelButtonText: 'No, cancel'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: 'checkout.php',
+                            type: 'POST',
+                            data: { titles: titles },
+                            success: function(response) {
+                                var res = JSON.parse(response);
+                                Swal.fire('Checked out!', res.message, 'success').then(() => {
+                                    if (res.success) {
+                                        location.reload();
+                                    }
+                                });
+                            },
+                            error: function() {
+                                Swal.fire('Failed!', 'Failed to checkout selected items.', 'error');
                             }
-                        },
-                        error: function() {
-                            alert('Failed to checkout selected items.');
-                        }
-                    });
-                }
+                        });
+                    }
+                });
             } else {
-                alert('No items selected.');
+                Swal.fire('No items selected', 'Please select items to checkout.', 'info');
             }
         });
 

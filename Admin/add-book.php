@@ -458,9 +458,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                                 <div class="form-group">
                                                     <label>Status</label>
                                                     <select class="form-control" name="status">
-                                                        <option value="inshelf">In Shelf</option>
-                                                        <option value="borrowed">Borrowed</option>
-                                                        <option value="lost">Lost</option>
+                                                        <option value="Available">Available</option>
+                                                        <option value="Borrowed">Borrowed</option>
+                                                        <option value="Lost">Lost</option>
                                                     </select>
                                                 </div>
                                             </div>

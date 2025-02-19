@@ -15,7 +15,7 @@ if (!empty($bookTitle)) {
     $book = $result->fetch_assoc();
 
     // Fetch total copies and in-shelf count
-    $copiesQuery = "SELECT COUNT(*) as total_copies, SUM(CASE WHEN status = 'inshelf' THEN 1 ELSE 0 END) as in_shelf FROM books WHERE title = ?";
+    $copiesQuery = "SELECT COUNT(*) as total_copies, SUM(CASE WHEN status = 'Available' THEN 1 ELSE 0 END) as in_shelf FROM books WHERE title = ?";
     $stmt = $conn->prepare($copiesQuery);
     $stmt->bind_param("s", $bookTitle);
     $stmt->execute();
@@ -272,7 +272,7 @@ if (!empty($bookTitle)) {
                                     <span class="label">Total Copies:</span> <?php echo htmlspecialchars($totalCopies); ?>
                                 </div>
                                 <div class="info-item">
-                                    <span class="label">In-Shelf:</span> <?php echo htmlspecialchars($inShelf); ?>
+                                    <span class="label">Available:</span> <?php echo htmlspecialchars($inShelf); ?>
                                 </div>
                             </div>
 
@@ -528,7 +528,7 @@ if (!empty($bookTitle)) {
                                 ['700', '1#', 'a', $primaryAuthor,
                                            'e', 'author'],
                                 ['999', '##', 'a', 'Total Copies: ' . $totalCopies,
-                                           'b', 'In-Shelf: ' . $inShelf],
+                                           'b', 'Available: ' . $inShelf],
                             ];
 
                             // Define MARC field descriptions
@@ -683,7 +683,7 @@ if (!empty($bookTitle)) {
                             ?>
                             <div class="isbd-area">
                                 <span class="label">Total Copies:</span> <?php echo htmlspecialchars($totalCopies); ?>
-                                <span class="label">In-Shelf:</span> <?php echo htmlspecialchars($inShelf); ?>
+                                <span class="label">Available:</span> <?php echo htmlspecialchars($inShelf); ?>
                             </div>
                         </div>
                         <?php else: ?>
