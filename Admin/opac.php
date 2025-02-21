@@ -9,6 +9,23 @@ if (!isset($_SESSION['admin_id'])) {
 include '../db.php'; // Database connection
 include 'lcc_generator.php'; // Add this line
 
+// Add this function near the top of the file after database connection
+function parseDimension($dimension) {
+    $dimensions = ['height' => '', 'width' => ''];
+    if (!empty($dimension)) {
+        // Check if dimension contains 'x' separator
+        if (strpos($dimension, 'x') !== false) {
+            list($height, $width) = array_map('trim', explode('x', $dimension));
+            $dimensions['height'] = $height;
+            $dimensions['width'] = $width;
+        } else {
+            // If single number, use it for both height and width
+            $dimensions['height'] = $dimensions['width'] = trim($dimension);
+        }
+    }
+    return $dimensions;
+}
+
 // Get the book ID from the query parameters
 $bookId = isset($_GET['book_id']) ? intval($_GET['book_id']) : 0;
 
@@ -284,9 +301,10 @@ if ($bookId > 0) {
 
                                 <div class="info-item book-info-full">
                                     <span class="label">Physical Details:</span>
-                                    Height: <?php echo htmlspecialchars($book['height']); ?>cm, 
-                                    Width: <?php echo htmlspecialchars($book['width']); ?>cm, 
-                                    Pages: <?php echo htmlspecialchars($book['total_pages']); ?>
+                                    <?php
+                                    $dimensions = htmlspecialchars($book['dimension']). "cm, ";
+                                    echo "Pages: " . htmlspecialchars($book['total_pages']);
+                                    ?>
                                 </div>
                                 <div class="info-item">
                                     <span class="label">Total Copies:</span> <?php echo htmlspecialchars($totalCopies); ?>

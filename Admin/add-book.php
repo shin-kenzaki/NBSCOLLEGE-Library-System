@@ -10,58 +10,13 @@ if (!isset($_SESSION['admin_id'])) {
 include '../admin/inc/header.php';
 include '../db.php';
 
-// Change the subject options array at the top of the file
+// Only keep the main subject options array
 $subject_options = array(
     "Topical",
     "Personal",
     "Corporate",
-    "Geographical",
-    "Scientific",
-    "Historical",
-    "Literary",
-    "Artistic"
+    "Geographical"
 );
-
-// Add this after the existing $subject_options array
-$specific_subjects = array(
-    "Topical" => array(
-        "Philosophy", "Psychology", "Religion", "Social Sciences",
-        "Library Sciences", "Language", "Natural Sciences", "Technology", "Arts",
-        "Literature", "History", "Geography", "Mathematics", "Physics", "Chemistry", "Biology"
-    ),
-    "Personal" => array(
-        "Author", "Artist", "Musician", "Scientist",
-        "Historical Figure", "Political Figure", "Athlete", "Actor"
-    ),
-    "Corporate" => array(
-        "Government Agency", "Educational Institution",
-        "Business Organization", "Non-profit Organization",
-        "Religious Institution", "Media Company", "Tech Company"
-    ),
-    "Geographical" => array(
-        "Continent", "Country", "City", "Region",
-        "Landmark", "Geographic Feature", "Ocean", "Mountain"
-    ),
-    "Scientific" => array(
-        "Astronomy", "Biology", "Chemistry", "Physics",
-        "Earth Science", "Environmental Science", "Computer Science"
-    ),
-    "Historical" => array(
-        "Ancient History", "Medieval History", "Modern History",
-        "World Wars", "Revolutions", "Historical Events"
-    ),
-    "Literary" => array(
-        "Poetry", "Novels", "Short Stories", "Drama",
-        "Essays", "Biographies", "Autobiographies"
-    ),
-    "Artistic" => array(
-        "Painting", "Sculpture", "Photography", "Architecture",
-        "Music", "Dance", "Theater", "Film"
-    )
-);
-
-// Convert the array to JSON for JavaScript use
-$specific_subjects_json = json_encode($specific_subjects);
 
 $accession_error = '';
 
@@ -87,8 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         move_uploaded_file($_FILES['back_image']['tmp_name'], $back_image);
     }
 
-    $height = mysqli_real_escape_string($conn, $_POST['height']);
-    $width = mysqli_real_escape_string($conn, $_POST['width']);
+    $dimension = mysqli_real_escape_string($conn, $_POST['dimension']);
     $series = mysqli_real_escape_string($conn, $_POST['series']);
     $volume = mysqli_real_escape_string($conn, $_POST['volume']);
     $edition = mysqli_real_escape_string($conn, $_POST['edition']);
@@ -106,18 +60,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     $success_count = 0;
     $error_messages = array();
-    $isbn_index = 0;
+    $call_number_index = 0;
 
-    // Process each accession number and its copies
+    // Process each accession group
     for ($i = 0; $i < count($accessions); $i++) {
         $base_accession = $accessions[$i];
         $copies_for_this_accession = (int)$number_of_copies_array[$i];
+        $current_isbn = isset($_POST['isbn'][$i]) ? mysqli_real_escape_string($conn, $_POST['isbn'][$i]) : '';
         
         for ($j = 0; $j < $copies_for_this_accession; $j++) {
             $current_accession = $base_accession + $j;
-            $current_isbn = isset($_POST['isbn'][$isbn_index]) ? mysqli_real_escape_string($conn, $_POST['isbn'][$isbn_index]) : '';
-            $current_call_number = isset($_POST['call_number'][$isbn_index]) ? mysqli_real_escape_string($conn, $_POST['call_number'][$isbn_index]) : '';
-            $isbn_index++;
+            $current_call_number = isset($_POST['call_number'][$call_number_index]) ? 
+                mysqli_real_escape_string($conn, $_POST['call_number'][$call_number_index]) : '';
+            $current_shelf_location = isset($_POST['shelf_locations'][$call_number_index]) ? 
+                mysqli_real_escape_string($conn, $_POST['shelf_locations'][$call_number_index]) : '';
+            $call_number_index++;
 
             // Check for duplicate accession
             $check_query = "SELECT * FROM books WHERE accession = '$current_accession'";
@@ -136,43 +93,39 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
             // Process subject entries for this copy
             $subject_categories = isset($_POST['subject_categories']) ? $_POST['subject_categories'] : array();
-            $subject_entries = isset($_POST['subject_entries']) ? $_POST['subject_entries'] : array();
             $subject_paragraphs = isset($_POST['subject_paragraphs']) ? $_POST['subject_paragraphs'] : array();
 
             // Combine all subject entries into strings for storage
             $all_categories = array();
-            $all_specifications = array();
             $all_details = array();
 
             for ($k = 0; $k < count($subject_categories); $k++) {
                 if (!empty($subject_categories[$k])) {
                     $all_categories[] = mysqli_real_escape_string($conn, $subject_categories[$k]);
-                    $all_specifications[] = mysqli_real_escape_string($conn, $subject_entries[$k]);
                     $all_details[] = mysqli_real_escape_string($conn, $subject_paragraphs[$k]);
                 }
             }
 
             $subject_category = implode('; ', $all_categories);
-            $subject_specification = implode('; ', $all_specifications);
             $subject_detail = implode('; ', $all_details);
 
             $query = "INSERT INTO books (
                 accession, title, preferred_title, parallel_title, 
-                subject_category, subject_specification, subject_detail,
+                subject_category, subject_detail,
                 summary, contents, front_image, back_image, 
-                height, width, series, volume, edition, 
+                dimension, series, volume, edition, 
                 copy_number, total_pages, ISBN, content_type, 
                 media_type, carrier_type, call_number, URL, 
                 language, shelf_location, entered_by, date_added, 
                 status, last_update
             ) VALUES (
                 '$current_accession', '$title', '$preferred_title', '$parallel_title',
-                '$subject_category', '$subject_specification', '$subject_detail',
+                '$subject_category', '$subject_detail',
                 '$summary', '$contents', '$front_image', '$back_image',
-                '$height', '$width', '$series', '$volume', '$edition',
+                '$dimension', '$series', '$volume', '$edition',
                 $copy_number, '$total_pages', '$current_isbn', '$content_type',
                 '$media_type', '$carrier_type', '$current_call_number', '$url',
-                '$language', '$shelf_location', '$entered_by', '$date_added',
+                '$language', '$current_shelf_location', '$entered_by', '$date_added',
                 '$status', '$last_update'
             )";
 
@@ -254,7 +207,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                 <div id="subjectEntriesContainer">
                                     <div class="subject-entry-group mb-3">
                                         <div class="row">
-                                            <div class="col-md-4">
+                                            <div class="col-md-6">
                                                 <div class="form-group">
                                                     <label>Subject Category</label>
                                                     <select class="form-control subject-category" name="subject_categories[]">
@@ -267,15 +220,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                                     </select>
                                                 </div>
                                             </div>
-                                            <div class="col-md-4">
-                                                <div class="form-group">
-                                                    <label>Specific Subject</label>
-                                                    <select class="form-control specific-subject" name="subject_entries[]" disabled>
-                                                        <option value="">Select Category First</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-4">
+                                            <div class="col-md-6">
                                                 <div class="form-group">
                                                     <label>Details</label>
                                                     <textarea class="form-control" name="subject_paragraphs[]" 
@@ -314,12 +259,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                     <input type="file" class="form-control" name="back_image">
                                 </div>
                                 <div class="form-group">
-                                    <label>Height (cm)</label>
-                                    <input type="number" step="0.01" class="form-control" name="height">
-                                </div>
-                                <div class="form-group">
-                                    <label>Width (cm)</label>
-                                    <input type="number" step="0.01" class="form-control" name="width">
+                                    <label>Dimension (cm)</label>
+                                    <input type="number" step="0.01" class="form-control" name="dimension">
                                 </div>
                                 <div class="form-group">
                                     <label>Pages</label>
@@ -334,34 +275,33 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                             <input type="text" class="form-control" name="total_pages" placeholder="e.g. 234a">
                                             <small class="text-muted">Can include letters (e.g. 123a, 456b)</small>
                                         </div>
-                                        <div class="col-md-4">
-                                            <label class="small">Bibliography Pages</label>
-                                            <div class="input-group">
-                                                <input type="number" class="form-control" name="bibliography_pages">
-                                                <div class="input-group-append">
-                                                    <span class="input-group-text">p. bibl.</span>
-                                                </div>
-                                            </div>
-                                        </div>
                                     </div>
                                     <div class="row mt-2">
                                         <div class="col-md-6">
-                                            <label class="small">Index Pages</label>
-                                            <div class="input-group">
-                                                <input type="number" class="form-control" name="index_pages">
-                                                <div class="input-group-append">
-                                                    <span class="input-group-text">p. index</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="small">Glossary Pages</label>
-                                            <div class="input-group">
-                                                <input type="number" class="form-control" name="glossary_pages">
-                                                <div class="input-group-append">
-                                                    <span class="input-group-text">p. gloss.</span>
-                                                </div>
-                                            </div>
+                                            <label class="small">Supplementary Contents</label>
+                                            <select class="form-control" name="supplementary_content[]" multiple>
+                                                <!-- Standard Library Terms -->
+                                                <option value="includes_bibliography">Includes bibliography</option>
+                                                <option value="includes_index">Includes index</option>
+                                                <option value="includes_glossary">Includes glossary</option>
+                                                <option value="includes_appendix">Includes appendix</option>
+                                                <option value="includes_notes">Includes notes</option>
+                                                <option value="includes_references">Includes references</option>
+                                                
+                                                <!-- Common Library Combinations -->
+                                                <option value="includes_bibliography_index">Includes bibliography and index</option>
+                                                <option value="includes_bibliography_notes">Includes bibliography and notes</option>
+                                                <option value="includes_bibliography_references">Includes bibliography and references</option>
+                                                <option value="includes_index_glossary">Includes index and glossary</option>
+                                                <option value="includes_appendices_index">Includes appendices and index</option>
+                                                <option value="includes_bibliographical_references">Includes bibliographical references</option>
+                                                
+                                                <!-- Standard Multi-component Options -->
+                                                <option value="includes_bibliography_index_glossary">Includes bibliography, index, and glossary</option>
+                                                <option value="includes_bibliography_index_notes">Includes bibliography, index, and notes</option>
+                                                <option value="includes_bibliography_references_index">Includes bibliography, references, and index</option>
+                                            </select>
+                                            <small class="text-muted">Hold Ctrl/Cmd to select multiple items</small>
                                         </div>
                                     </div>
                                 </div>
@@ -400,6 +340,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                                         </div>
                                                     </div>
                                                 </div>
+                                                
+                                                <!-- Add call numbers section -->
+                                                <div class="form-group mt-4">
+                                                    <div id="callNumberContainer">
+                                                        <!-- Will be populated by JavaScript -->
+                                                    </div>
+                                                    <small class="text-muted">Enter unique call numbers for each copy</small>
+                                                </div>
                                             </div>
                                         </div>
 
@@ -418,7 +366,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                                 <div class="form-group">
                                                     <label>Shelf Location</label>
                                                     <select class="form-control" name="shelf_location">
-                                                        <option value="GC">General Circulation</option>
                                                         <option value="TR">Teachers Reference</option>
                                                         <option value="FIL">Filipiniana</option>
                                                         <option value="CIR">Circulation</option>
@@ -426,8 +373,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                                         <option value="SC">Special Collection</option>
                                                         <option value="BIO">Biography</option>
                                                         <option value="RES">Reserve</option>
-                                                        <option value="SCH">Scholastic</option>
-                                                        <option value="EAS">Easy</option>
                                                         <option value="FIC">Fiction</option>
                                                     </select>
                                                 </div>
@@ -505,16 +450,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                                 </div>
                                                 <div class="col-md-6">
                                                     <div class="form-group">
-                                                        <label>ISBN & Call Number</label>
+                                                        <label>ISBN Numbers</label>
                                                         <div id="isbnContainer">
-                                                            <div class="input-group mb-2">
-                                                                <input type="text" class="form-control" name="isbn[]" 
-                                                                    placeholder="Enter ISBN for Copy 1">
-                                                                <input type="text" class="form-control" name="call_number[]" 
-                                                                    placeholder="Enter call number for Copy 1">
-                                                            </div>
+                                                            <!-- Will be populated by JavaScript -->
                                                         </div>
-                                                        <small class="text-muted">Each copy needs unique ISBN and call number</small>
+                                                        <small class="text-muted">One ISBN per accession group</small>
                                                     </div>
                                                 </div>
                                             </div>
@@ -599,36 +539,79 @@ document.addEventListener("DOMContentLoaded", function() {
 
 function updateISBNFields() {
     const isbnContainer = document.getElementById('isbnContainer');
+    const callNumberContainer = document.getElementById('callNumberContainer');
     isbnContainer.innerHTML = '';
+    callNumberContainer.innerHTML = '';
     
     // Get all accession groups
     const accessionGroups = document.querySelectorAll('.accession-group');
     
-    accessionGroups.forEach((group) => {
+    accessionGroups.forEach((group, groupIndex) => {
         const accessionInput = group.querySelector('.accession-input').value;
         const copiesCount = parseInt(group.querySelector('.copies-input').value) || 1;
+        
+        // Create ISBN input (in Publication tab)
+        const isbnDiv = document.createElement('div');
+        isbnDiv.className = 'form-group mb-3';
+        
+        const isbnInput = document.createElement('input');
+        isbnInput.type = 'text';
+        isbnInput.className = 'form-control';
+        isbnInput.name = 'isbn[]';
+        isbnInput.placeholder = `ISBN for Accession Group ${groupIndex + 1}`;
+        
+        isbnDiv.appendChild(isbnInput);
+        isbnContainer.appendChild(isbnDiv);
+        
+        // Create call number inputs (in Local Information tab)
+        const groupLabel = document.createElement('h6');
+        groupLabel.className = 'mt-3 mb-2';
+        groupLabel.textContent = `Call Numbers for Accession Group ${groupIndex + 1}`;
+        callNumberContainer.appendChild(groupLabel);
         
         for (let i = 0; i < copiesCount; i++) {
             const currentAccession = calculateAccession(accessionInput, i);
             
-            const div = document.createElement('div');
-            div.className = 'input-group mb-2';
+            const callNumberDiv = document.createElement('div');
+            callNumberDiv.className = 'input-group mb-2';
             
-            const isbnInput = document.createElement('input');
-            isbnInput.type = 'text';
-            isbnInput.className = 'form-control';
-            isbnInput.name = 'isbn[]';
-            isbnInput.placeholder = `Enter ISBN for Accession ${currentAccession}`;
+            const accessionLabel = document.createElement('span');
+            accessionLabel.className = 'input-group-text';
+            accessionLabel.textContent = `Accession ${currentAccession}`;
             
             const callNumberInput = document.createElement('input');
             callNumberInput.type = 'text';
             callNumberInput.className = 'form-control';
             callNumberInput.name = 'call_number[]';
-            callNumberInput.placeholder = `Enter call number for Accession ${currentAccession}`;
+            callNumberInput.placeholder = 'Enter call number';
             
-            div.appendChild(isbnInput);
-            div.appendChild(callNumberInput);
-            isbnContainer.appendChild(div);
+            const shelfLocationSelect = document.createElement('select');
+            shelfLocationSelect.className = 'form-control';
+            shelfLocationSelect.name = 'shelf_locations[]';
+            
+            // Add shelf location options
+            const shelfOptions = [
+                ['TR', 'Teachers Reference'],
+                ['FIL', 'Filipiniana'],
+                ['CIR', 'Circulation'],
+                ['REF', 'Reference'],
+                ['SC', 'Special Collection'],
+                ['BIO', 'Biography'],
+                ['RES', 'Reserve'],
+                ['FIC', 'Fiction']
+            ];
+            
+            shelfOptions.forEach(([value, text]) => {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = text;
+                shelfLocationSelect.appendChild(option);
+            });
+            
+            callNumberDiv.appendChild(accessionLabel);
+            callNumberDiv.appendChild(callNumberInput);
+            callNumberDiv.appendChild(shelfLocationSelect);
+            callNumberContainer.appendChild(callNumberDiv);
         }
     });
 }
@@ -729,33 +712,5 @@ document.addEventListener('input', function(e) {
 
 // Add event listener to the form
 document.getElementById('bookForm').addEventListener('submit', validateForm);
-
-// Initialize specific subjects data
-const specificSubjects = <?php echo $specific_subjects_json; ?>;
-
-// Function to populate specific subjects dropdown
-function populateSpecificSubjects(categorySelect) {
-    const specificSelect = categorySelect.closest('.row').querySelector('.specific-subject');
-    const selectedCategory = categorySelect.value;
-    
-    specificSelect.innerHTML = '<option value="">Select Specific Subject</option>';
-    specificSelect.disabled = !selectedCategory;
-    
-    if (selectedCategory && specificSubjects[selectedCategory]) {
-        specificSubjects[selectedCategory].forEach(subject => {
-            const option = document.createElement('option');
-            option.value = subject;
-            option.textContent = subject;
-            specificSelect.appendChild(option);
-        });
-    }
-}
-
-// Event listener for category changes
-document.addEventListener('change', function(e) {
-    if (e.target && e.target.classList.contains('subject-category')) {
-        populateSpecificSubjects(e.target);
-    }
-});
 
 </script>

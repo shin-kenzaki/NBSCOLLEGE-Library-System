@@ -28,6 +28,29 @@ include '../db.php';
         .clickable-row {
             cursor: pointer;
         }
+        .book-entry {
+            padding: 10px 0;
+        }
+        .book-entry p {
+            margin: 5px 0;
+        }
+        .title-line {
+            font-weight: bold;
+            color: #4e73df;
+        }
+        .contributors-line {
+            font-style: italic;
+        }
+        .type-line, .publication-line, .availability-line {
+            color: #666;
+            font-size: 0.9em;
+        }
+        .action-buttons {
+            margin-top: 10px;
+        }
+        .action-buttons button {
+            margin-right: 5px;
+        }
     </style>
     <!-- Include SweetAlert CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
@@ -45,52 +68,102 @@ include '../db.php';
                 <div class="card-body">
                     <!-- Books Table -->
                     <div class="table-responsive">
-                        <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
-                            <thead>
+                        <table class="table" id="dataTable">
+                            <thead style="display: none;">
                                 <tr>
-                                    <th>Title</th>
-                                    <th>Author</th>
-                                    <th>Call Number</th>
-                                    <th>Total Copies</th>
-                                    <th>Total Available</th>
-                                    <th>Total Borrowed</th>
-                                    <th>Actions</th> <!-- Added Actions column -->
+                                    <th>Book Details</th>
+                                    <th>Image</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php
-                                // Modified query to use only the books table
-                                $query = "SELECT b.title, 
-                                                (SELECT call_number FROM books ORDER BY id LIMIT 1) as call_number,
-                                                COUNT(*) as total_copies,
-                                                SUM(CASE WHEN b.status = 'Available' THEN 1 ELSE 0 END) as total_in_shelf,
-                                                SUM(CASE WHEN b.status = 'Borrowed' THEN 1 ELSE 0 END) as total_borrowed,
-                                                (SELECT CONCAT(w.firstname, ' ', w.lastname) 
-                                                 FROM contributors c 
-                                                 JOIN writers w ON c.writer_id = w.id 
-                                                 WHERE c.book_id = b.id AND c.role = 'Author' 
-                                                 ORDER BY c.id LIMIT 1) as author
-                                         FROM books b
-                                         GROUP BY b.title
-                                         ORDER BY b.title";
+                                $query = "SELECT 
+                                    b.title,
+                                    b.content_type,
+                                    b.media_type,
+                                    b.shelf_location,
+                                    b.front_image,
+                                    p.publisher,
+                                    pub.publish_date as publication_year,
+                                    COUNT(*) as total_copies,
+                                    SUM(CASE WHEN b.status = 'Available' THEN 1 ELSE 0 END) as available_copies,
+                                    GROUP_CONCAT(DISTINCT 
+                                        CONCAT(
+                                            c.role, ':', 
+                                            w.lastname, ', ', 
+                                            w.firstname
+                                        ) 
+                                        ORDER BY 
+                                            FIELD(c.role, 'Author', 'Co-Author', 'Editor'),
+                                            w.lastname, 
+                                            w.firstname 
+                                        SEPARATOR '|'
+                                    ) as contributors
+                                FROM books b
+                                LEFT JOIN contributors c ON b.id = c.book_id
+                                LEFT JOIN writers w ON c.writer_id = w.id
+                                LEFT JOIN publications pub ON b.id = pub.book_id
+                                LEFT JOIN publishers p ON pub.publisher_id = p.id
+                                GROUP BY b.title, b.content_type, b.media_type, b.shelf_location, p.publisher, pub.publish_date
+                                ORDER BY b.title";
 
                                 $result = $conn->query($query);
 
                                 while ($row = $result->fetch_assoc()) {
+                                    // Process contributors
+                                    $contributors = [];
+                                    $contributorsByRole = [
+                                        'Author' => [],
+                                        'Co-Author' => [],
+                                        'Editor' => []
+                                    ];
+
+                                    if ($row['contributors']) {
+                                        foreach (explode('|', $row['contributors']) as $contributor) {
+                                            list($role, $name) = explode(':', $contributor);
+                                            $contributorsByRole[$role][] = $name;
+                                        }
+                                    }
+
+                                    // Format first line (Title and Contributors)
+                                    $allContributors = array_merge(
+                                        $contributorsByRole['Author'],
+                                        $contributorsByRole['Co-Author'],
+                                        $contributorsByRole['Editor']
+                                    );
+                                    $firstLine = htmlspecialchars($row['title']) . ' / ' . implode(', ', $allContributors);
+
+                                    // Format second line (By Contributors)
+                                    $byLine = 'By ' . implode('; ', $allContributors);
+
                                     echo "<tr class='clickable-row' data-href='view_book.php?title=" . urlencode($row['title']) . "'>
-                                        <td>" . htmlspecialchars($row['title']) . "</td>
-                                        <td>" . htmlspecialchars($row['author'] ?? 'N/A') . "</td>
-                                        <td>" . htmlspecialchars($row['call_number']) . "</td>
-                                        <td>" . htmlspecialchars($row['total_copies']) . "</td>
-                                        <td>" . htmlspecialchars($row['total_in_shelf']) . "</td>
-                                        <td>" . htmlspecialchars($row['total_borrowed']) . "</td>
-                                        <td>
-                                            <button class='btn btn-primary btn-sm add-to-cart' data-title='" . htmlspecialchars($row['title']) . "' title='Add to Cart'>
-                                                <i class='fas fa-cart-plus'></i> <!-- Add to Cart icon -->
-                                            </button>
-                                            <button class='btn btn-success btn-sm borrow-book' data-title='" . htmlspecialchars($row['title']) . "' title='Borrow'>
-                                                <i class='fas fa-book'></i> <!-- Borrow icon -->
-                                            </button>
+                                        <td style='width: 80%'>
+                                            <div class='book-entry'>
+                                                <p class='title-line'>" . $firstLine . "</p>
+                                                <p class='contributors-line'>" . $byLine . "</p>
+                                                <p class='type-line'>Content type: " . htmlspecialchars($row['content_type']) . 
+                                                " | Media type: " . htmlspecialchars($row['media_type']) . 
+                                                " | Shelf Location: " . htmlspecialchars($row['shelf_location']) . "</p>
+                                                <p class='publication-line'>Publication Details: " . 
+                                                htmlspecialchars($row['publisher']) . ", " . 
+                                                htmlspecialchars($row['publication_year']) . "</p>
+                                                <p class='availability-line'>Availability: " . 
+                                                htmlspecialchars($row['available_copies']) . " out of " . 
+                                                htmlspecialchars($row['total_copies']) . " copies available</p>
+                                            </div>
+                                            <div class='action-buttons'>
+                                                <button class='btn btn-primary btn-sm add-to-cart' data-title='" . htmlspecialchars($row['title']) . "'>
+                                                    <i class='fas fa-cart-plus'></i> Add to Cart
+                                                </button>
+                                                <button class='btn btn-success btn-sm borrow-book' data-title='" . htmlspecialchars($row['title']) . "'>
+                                                    <i class='fas fa-book'></i> Borrow Book
+                                                </button>
+                                            </div>
+                                        </td>
+                                        <td style='width: 20%; vertical-align: middle; text-align: center;'>
+                                            <img src='" . (empty($row['front_image']) ? '../Admin/inc/upload/default-book.jpg' : $row['front_image']) . "' 
+                                                 alt='Book Cover' 
+                                                 style='max-width: 120px; max-height: 180px; object-fit: contain;'>
                                         </td>
                                     </tr>";
                                 }
@@ -124,8 +197,12 @@ include '../db.php';
                 "searchPlaceholder": "Search within results..."
             },
             "pageLength": 10,
-            "order": [[0, 'asc']], // Sort by title by default
+            "order": [[0, 'asc']],
             "responsive": true,
+            "columns": [
+                { "orderable": true },
+                { "orderable": false }
+            ],
             "initComplete": function() {
                 $('#dataTable_filter input').addClass('form-control form-control-sm');
             }

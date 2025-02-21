@@ -164,8 +164,7 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
                                     <th>Parallel Title</th>
                                     <th>Front Image</th>
                                     <th>Back Image</th>
-                                    <th>Height</th>
-                                    <th>Width</th>
+                                    <th>Dimension(cm)</th>
                                     <th>Total Pages</th>
                                     <th>Call Number</th>
                                     <th>Copy Number</th>
@@ -217,8 +216,7 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
                                         echo "No Image";
                                     }
                                     echo "</td>
-                                        <td>{$row['height']}</td>
-                                        <td>{$row['width']}</td>
+                                        <td>{$row['dimension']}</td>
                                         <td>{$row['total_pages']}</td>
                                         <td>{$row['call_number']}</td>
                                         <td>{$row['copy_number']}</td>
@@ -309,7 +307,6 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
 
         <!-- Context Menu -->
         <div id="contextMenu" class="dropdown-menu" style="display:none; position:absolute;">
-            <a class="dropdown-item" href="#" id="viewBook">View Book</a>
             <a class="dropdown-item" href="#" id="updateBook">Update</a>
             <a class="dropdown-item" href="#" id="deleteBook">Delete</a>
         </div>
@@ -454,6 +451,16 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
         $(document).ready(function () {
             var selectedBookId;
 
+            // Add click handler for viewing book details
+            $('#dataTable tbody').on('click', 'tr', function(e) {
+                // Don't trigger on checkbox click
+                if ($(e.target).is('input[type="checkbox"]')) {
+                    return;
+                }
+                var bookId = $(this).find('td:nth-child(2)').text();
+                window.location.href = `opac.php?book_id=${bookId}`;
+            });
+
             // Show context menu on right-click
             $('#dataTable tbody').on('contextmenu', 'tr', function(e) {
                 e.preventDefault();
@@ -474,10 +481,6 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
             });
 
             // Handle context menu actions
-            $('#viewBook').click(function() {
-                window.location.href = `opac.php?book_id=${selectedBookId}`;
-            });
-
             $('#updateBook').click(function() {
                 window.location.href = `update_book.php?book_id=${selectedBookId}`;
             });

@@ -65,7 +65,7 @@ if (isset($_GET['id'])) {
         $stmt->execute();
 
         // Insert new borrowing record
-        $allowed_days = 1;
+        $allowed_days = 7;
         $sql = "INSERT INTO borrowings (user_id, book_id, status, borrow_date, allowed_days, due_date) 
                 VALUES (?, ?, 'Active', NOW(), ?, DATE_ADD(NOW(), INTERVAL ? DAY))";
         $stmt = $conn->prepare($sql);

@@ -1,0 +1,38 @@
+.marc-record {
+    font-family: monospace;
+    padding: 20px;
+    background-color: #f8f9fc;
+    border-radius: 5px;
+}
+
+.marc-field {
+    margin: 8px 0;
+    line-height: 1.5;
+}
+
+.field-tag {
+    color: #4e73df;
+    font-weight: bold;
+    margin-right: 10px;
+    display: inline-block;
+    width: 40px;
+}
+
+.field-content {
+    color: #5a5c69;
+}
+
+.subfield-delimiter {
+    color: #e74a3b;
+    font-weight: bold;
+}
+
+.subfield-code {
+    color: #1cc88a;
+    margin-right: 5px;
+}
+
+.indicators {
+    color: #f6c23e;
+    margin-right: 5px;
+}
