@@ -59,7 +59,7 @@ if (isset($_GET['id'])) {
         $stmt->bind_param("i", $book_id);
         $stmt->execute();
 
-        // Update user statistics
+        // Update only returned_books count
         $sql = "UPDATE users SET returned_books = returned_books + 1 
                 WHERE id = ?";
         $stmt = $conn->prepare($sql);

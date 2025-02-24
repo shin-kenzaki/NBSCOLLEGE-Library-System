@@ -87,6 +87,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             throw new Exception("Error updating book status");
         }
 
+        // Increment user's borrowed_books count
+        $update_user = $conn->prepare("UPDATE users SET borrowed_books = borrowed_books + 1 WHERE id = ?");
+        $update_user->bind_param("i", $user_id);
+        
+        if (!$update_user->execute()) {
+            throw new Exception("Error updating user's borrow count");
+        }
+
         // Commit transaction
         $conn->commit();
         echo json_encode(['status' => 'success', 'message' => 'Book borrowed successfully']);

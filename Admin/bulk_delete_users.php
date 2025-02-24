@@ -1,50 +1,50 @@
 <?php
 session_start();
-include('../db.php');
+include '../db.php';
 
-// Check if the user is logged in and has appropriate permissions
-if (!isset($_SESSION['admin_id']) || $_SESSION['role'] !== 'Admin') {
-    echo json_encode(['success' => false, 'message' => 'Unauthorized access']);
-    exit;
+if (!isset($_SESSION['admin_id'])) {
+    die(json_encode(['success' => false, 'message' => 'Unauthorized access']));
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['userIds'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['userIds'])) {
     $userIds = array_map('intval', $_POST['userIds']);
     
+    if (empty($userIds)) {
+        die(json_encode(['success' => false, 'message' => 'No users selected']));
+    }
+
     // Start transaction
     $conn->begin_transaction();
-    
+
     try {
-        // Check if any of these users have borrowed books
-        $checkQuery = "SELECT id FROM users WHERE id IN (" . implode(',', $userIds) . ") AND borrowed_books > 0";
-        $checkResult = $conn->query($checkQuery);
+        // Create placeholders for the IN clause
+        $placeholders = str_repeat('?,', count($userIds) - 1) . '?';
         
-        if ($checkResult->num_rows > 0) {
-            throw new Exception("Cannot delete users who have borrowed books");
+        // Delete users
+        $stmt = $conn->prepare("DELETE FROM users WHERE id IN ($placeholders)");
+        $stmt->bind_param(str_repeat('i', count($userIds)), ...$userIds);
+        
+        if ($stmt->execute()) {
+            $affected = $stmt->affected_rows;
+            $conn->commit();
+            echo json_encode([
+                'success' => true,
+                'message' => "$affected user(s) deleted successfully"
+            ]);
+        } else {
+            throw new Exception("Failed to delete users");
         }
-        
-        // Delete the users
-        $deleteQuery = "DELETE FROM users WHERE id IN (" . implode(',', $userIds) . ")";
-        if (!$conn->query($deleteQuery)) {
-            throw new Exception("Error deleting users");
-        }
-        
-        $conn->commit();
-        echo json_encode([
-            'success' => true, 
-            'message' => count($userIds) . ' user(s) successfully deleted'
-        ]);
     } catch (Exception $e) {
         $conn->rollback();
         echo json_encode([
-            'success' => false, 
+            'success' => false,
             'message' => $e->getMessage()
         ]);
     }
 } else {
     echo json_encode([
-        'success' => false, 
-        'message' => 'No users selected for deletion'
+        'success' => false,
+        'message' => 'Invalid request'
     ]);
 }
 

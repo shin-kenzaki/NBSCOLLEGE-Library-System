@@ -194,12 +194,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <table class="table table-bordered" id="usersTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
-                                <th style="width: 30px;"></th>
+                                <th style="width: 30px;">
+                                    <input type="checkbox" id="selectAll" class="select-all-checkbox">
+                                </th>
                                 <th>ID</th>
                                 <th>Physical ID Number</th>
                                 <th>Name</th>
                                 <th>Email</th>
-                                <th>Contact</th>
+                                <!-- Removed 'Contact' column -->
                                 <th>Borrowed</th>
                                 <th>Returned</th>
                                 <th>Damaged</th>
@@ -230,7 +232,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 echo "<td>{$row['school_id']}</td>";
                                 echo "<td>" . htmlspecialchars($fullname) . "</td>";
                                 echo "<td>{$row['email']}</td>";
-                                echo "<td>{$row['contact_no']}</td>";
+                                // Removed contact_no column
                                 echo "<td><span class='badge badge-info'>{$row['borrowed_books']}</span></td>";
                                 echo "<td><span class='badge badge-success'>{$row['returned_books']}</span></td>";
                                 echo "<td><span class='badge badge-warning'>{$row['damaged_books']}</span></td>";
@@ -450,8 +452,17 @@ $(document).ready(function() {
         });
     });
 
-    // Remove the select all checkbox handlers and keep only individual checkbox handlers
+    // Select All functionality
+    $('#selectAll').change(function() {
+        const isChecked = $(this).prop('checked');
+        $('.user-checkbox').prop('checked', isChecked);
+        updateSelectedCount();
+    });
+
+    // Individual checkbox handler
     $(document).on('change', '.user-checkbox', function() {
+        const allChecked = $('.user-checkbox:checked').length === $('.user-checkbox').length;
+        $('#selectAll').prop('checked', allChecked);
         updateSelectedCount();
     });
 
@@ -462,7 +473,7 @@ $(document).ready(function() {
         $('#bulkDeleteBtn').prop('disabled', checkedBoxes === 0);
     }
 
-    // Add bulk delete handler
+    // Bulk delete handler
     $('#bulkDeleteBtn').click(function() {
         const selectedUsers = $('.user-checkbox:checked').map(function() {
             return $(this).data('user-id');
