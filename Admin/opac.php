@@ -212,6 +212,34 @@ if ($bookId > 0) {
                 padding: 15px;
             }
         }
+        .isbd-record {
+            width: 100%;
+            background-color: #ffffff;
+            padding: 30px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+            font-family: "Times New Roman", Times, serif;
+            line-height: 1.8;
+        }
+        .isbd-area {
+            margin-bottom: 1.5em;
+            text-indent: -1em;
+            padding-left: 1em;
+        }
+        .isbd-punctuation {
+            color: #666;
+            font-weight: bold;
+        }
+        .isbd-date {
+            margin: 1em 0;
+            font-style: italic;
+        }
+        .isbd-subjects {
+            margin-top: 2em;
+        }
+        .isbd-accession {
+            margin-top: 1em;
+            font-weight: bold;
+        }
     </style>
     <!-- Add Bootstrap CSS and JS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -251,70 +279,55 @@ if ($bookId > 0) {
                 <!-- Standard View Tab -->
                 <div class="tab-pane fade show active" id="details" role="tabpanel">
                     <div class="book-details">
-                        <?php if (isset($error)): ?>
-                            <div class="alert alert-danger"><?php echo $error; ?></div>
-                        <?php else: ?>
-                            <h2><?php echo htmlspecialchars($book['title']); ?></h2>
+                        <?php if (isset($book)): ?>
+                            <!-- Title and Contributors -->
+                            <h4><?php echo htmlspecialchars($book['title']); ?></h4>
+
+                            <!-- Author Information -->
+                            <p>
+                                <strong>By:</strong>
+                                <?php 
+                                if (!empty($contributors)) {
+                                    foreach ($contributors as $contributor) {
+                                        if ($contributor['role'] === 'Author') {
+                                            echo htmlspecialchars($contributor['lastname'] . ', ' . $contributor['firstname'] . ' ' . $contributor['middle_init']);
+                                            break;
+                                        }
+                                    }
+                                }
+                                ?>
+                            </p>
+
+                            <!-- Book Images -->
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <?php if (!empty($book['front_image'])): ?>
+                                        <img src="../inc/book-image/<?php echo htmlspecialchars($book['front_image']); ?>" alt="Front Image" class="img-fluid">
+                                    <?php endif; ?>
+                                </div>
+                                <div class="col-md-6">
+                                    <?php if (!empty($book['back_image'])): ?>
+                                        <img src="../inc/book-image/<?php echo htmlspecialchars($book['back_image']); ?>" alt="Back Image" class="img-fluid">
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+
+                            <!-- Book Details -->
+                            <div class="mb-4">
+                                <p><strong>Accession:</strong> <?php echo htmlspecialchars($book['accession']); ?></p>
+                                <p><strong>Call Number:</strong> <?php echo htmlspecialchars($book['call_number']); ?></p>
+                                <p><strong>Generated Call Number:</strong> <?php echo htmlspecialchars($generatedCallNumber); ?></p>
+                                <p><strong>Copy Number:</strong> <?php echo htmlspecialchars($book['copy_number']); ?></p>
+                                <p><strong>ISBN:</strong> <?php echo htmlspecialchars($book['ISBN']); ?></p>
+                                <p><strong>Series:</strong> <?php echo htmlspecialchars($book['series']); ?></p>
+                                <p><strong>Volume:</strong> <?php echo htmlspecialchars($book['volume']); ?></p>
+                                <p><strong>Edition:</strong> <?php echo htmlspecialchars($book['edition']); ?></p>
+                                <p><strong>Language:</strong> <?php echo htmlspecialchars($book['language']); ?></p>
+                                <p><strong>Physical Description:</strong> <?php echo htmlspecialchars($book['total_pages']); ?> pages, <?php echo htmlspecialchars($book['dimension']); ?> cm</p>
+                                <p><strong>Availability:</strong> <?php echo htmlspecialchars($inShelf); ?> of <?php echo htmlspecialchars($totalCopies); ?> copies available</p>
+                            </div>
                             
-                            <div class="book-images">
-                                <?php if (!empty($book['front_image'])): ?>
-                                    <img src="../inc/book-image/<?php echo htmlspecialchars($book['front_image']); ?>" alt="Front Image">
-                                <?php endif; ?>
-                                <?php if (!empty($book['back_image'])): ?>
-                                    <img src="../inc/book-image/<?php echo htmlspecialchars($book['back_image']); ?>" alt="Back Image">
-                                <?php endif; ?>
-                            </div>
-
-                            <div class="book-info-grid">
-                                <div class="info-item">
-                                    <span class="label">Accession:</span> <?php echo htmlspecialchars($book['accession']); ?>
-                                </div>
-                                <div class="info-item">
-                                    <span class="label">Preferred Title:</span> <?php echo htmlspecialchars($book['preferred_title']); ?>
-                                </div>
-                                <div class="info-item">
-                                    <span class="label">Parallel Title:</span> <?php echo htmlspecialchars($book['parallel_title']); ?>
-                                </div>
-                                <div class="info-item">
-                                    <span class="label">Call Number:</span> <?php echo htmlspecialchars($book['call_number']); ?>
-                                </div>
-                                <div class="info-item">
-                                    <span class="label">Generated Call Number:</span> <?php echo htmlspecialchars($generatedCallNumber); ?>
-                                </div>
-                                <div class="info-item">
-                                    <span class="label">Copy Number:</span> <?php echo htmlspecialchars($book['copy_number']); ?>
-                                </div>
-                                
-                                <div class="info-item">
-                                    <span class="label">Series:</span> <?php echo htmlspecialchars($book['series']); ?>
-                                </div>
-                                <div class="info-item">
-                                    <span class="label">Volume:</span> <?php echo htmlspecialchars($book['volume']); ?>
-                                </div>
-                                
-                                <div class="info-item">
-                                    <span class="label">Language:</span> <?php echo htmlspecialchars($book['language']); ?>
-                                </div>
-                                <div class="info-item">
-                                    <span class="label">Status:</span> <?php echo htmlspecialchars($book['status']); ?>
-                                </div>
-
-                                <div class="info-item book-info-full">
-                                    <span class="label">Physical Details:</span>
-                                    <?php
-                                    $dimensions = htmlspecialchars($book['dimension']). "cm, ";
-                                    echo "Pages: " . htmlspecialchars($book['total_pages']);
-                                    ?>
-                                </div>
-                                <div class="info-item">
-                                    <span class="label">Total Copies:</span> <?php echo htmlspecialchars($totalCopies); ?>
-                                </div>
-                                <div class="info-item">
-                                    <span class="label">Available:</span> <?php echo htmlspecialchars($inShelf); ?>
-                                </div>
-                            </div>
-
-                            <!-- Add Subject Information -->
+                            <!-- Subject Information -->
                             <h3>Subject Information</h3>
                             <?php if (!empty($book['subject_category']) || !empty($book['subject_specification']) || !empty($book['subject_detail'])): ?>
                                 <div class="subject-info">
@@ -398,387 +411,443 @@ if ($bookId > 0) {
                             <?php else: ?>
                                 <p>No publications found.</p>
                             <?php endif; ?>
+
+                            <!-- Holdings Information Section -->
+                            <h3 class="mt-4">Holdings Information</h3>
+                            <?php if (!empty($allCopies)): ?>
+                                <div class="card shadow mb-4">
+                                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                                        <h6 class="m-0 font-weight-bold text-primary">Available Copies</h6>
+                                        <div class="small text-muted">
+                                            Total Copies: <?php echo htmlspecialchars($totalCopies); ?> | 
+                                            Available: <?php echo htmlspecialchars($inShelf); ?>
+                                        </div>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="table-responsive">
+                                            <table class="table table-bordered" width="100%" cellspacing="0">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Accession</th>
+                                                        <th>Call Number</th>
+                                                        <th>Copy Number</th>
+                                                        <th>Status</th>
+                                                        <th>Location</th>
+                                                        <th>Last Update</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <?php foreach ($allCopies as $copy): ?>
+                                                        <tr>
+                                                            <td><?php echo htmlspecialchars($copy['accession']); ?></td>
+                                                            <td><?php echo htmlspecialchars($copy['call_number']); ?></td>
+                                                            <td><?php echo htmlspecialchars($copy['copy_number']); ?></td>
+                                                            <td>
+                                                                <?php echo htmlspecialchars($copy['status']); ?>
+                                                            </td>
+                                                            <td><?php echo htmlspecialchars($copy['shelf_location']); ?></td>
+                                                            <td><?php echo htmlspecialchars(date('Y-m-d', strtotime($copy['last_update']))); ?></td>
+                                                        </tr>
+                                                    <?php endforeach; ?>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php else: ?>
+                                <div class="alert alert-info">No copies found.</div>
+                            <?php endif; ?>
+
+                        <?php else: ?>
+                            <div class="alert alert-danger">Book not found.</div>
                         <?php endif; ?>
                     </div>
                 </div>
 
-                <!-- MARC 21 View Tab -->
+                <!-- MARC View Tab -->
                 <div class="tab-pane fade" id="marc" role="tabpanel">
-                    <div class="marc-details p-4">
-                        <style>
-                            .marc-record {
-                                width: 100%;
-                                background-color: #ffffff;
-                                padding: 30px;
-                                box-shadow: 0 0 15px rgba(0,0,0,0.1);
-                            }
-                            .marc-field { 
-                                margin-bottom: 12px; 
-                                line-height: 1.6;
-                                background: #f8f9fa;
-                                padding: 12px 15px;
-                                border-radius: 5px;
-                                border-left: 3px solid #2c3e50;
-                            }
-                            .marc-tag { 
-                                display: inline-block;
-                                width: 45px;
-                                color: #004085;
-                                font-weight: bold;
-                                margin-right: 10px;
-                            }
-                            .marc-indicators {
-                                display: inline-block;
-                                width: 30px;
-                                color: #666;
-                                margin-right: 10px;
-                                font-family: monospace;
-                            }
-                            .marc-content {
-                                display: inline-block;
-                                font-family: monospace;
-                                color: #2c3e50;
-                            }
-                            .marc-delimiter {
-                                color: #dc3545;
-                                font-weight: bold;
-                                margin: 0 2px;
-                            }
-                            .marc-subfield-code {
-                                color: #28a745;
-                                margin-right: 3px;
-                            }
-                            .marc-field-tooltip {
-                                cursor: help;
-                                border-bottom: 1px dotted #666;
-                            }
-                            .marc-section {
-                                margin-bottom: 20px;
-                                padding: 15px;
-                                background: #fff;
-                                border-radius: 5px;
-                            }
-                            .marc-section-title {
-                                color: #34495e;
-                                font-size: 1.2rem;
-                                margin-bottom: 15px;
-                                padding-bottom: 8px;
-                                border-bottom: 2px solid #eee;
-                            }
-                        </style>
+                    
+                    <!-- Only show Labeled Display -->
+                    <div id="marc-labeled-view" class="marc-record">
+                        <?php 
+                        // MARC field descriptions
+                        $fieldDescriptions = [
+                            'LDR' => 'LEADER',
+                            '001' => 'Control Number',
+                            '005' => 'Date and Time of Latest Transaction',
+                            '020' => 'International Standard Book Number',
+                            '040' => 'Cataloging Source',
+                            '082' => 'Dewey Decimal Classification Number',
+                            '100' => 'Main Entry - Personal Name',
+                            '245' => 'Title Statement',
+                            '260' => 'Publication, Distribution, etc.',
+                            '300' => 'Physical Description',
+                            '336' => 'Content Type',
+                            '337' => 'Media Type',
+                            '338' => 'Carrier Type',
+                            '650' => 'Subject Added Entry - Topical Term',
+                            '700' => 'Added Entry - Personal Name',
+                            '852' => 'Location'
+                        ];
 
-                        <?php if (!isset($error)): ?>
-                        <div class="marc-record">
-                            <?php
-                            // Helper function to format MARC values
-                            function formatMarcValue($value) {
-                                return !empty($value) ? htmlspecialchars(trim($value)) : '';
+                        // Helper function to format MARC values
+                        function formatMarcValue($value) {
+                            return trim(preg_replace('/\s+/', ' ', $value));
+                        }
+
+                        // Format date for MARC21
+                        function formatMarc21Date($date) {
+                            return date('YmdHis', strtotime($date));
+                        }
+
+                        if (isset($book)) {
+                            // Initialize arrays for different types of contributors
+                            $author = isset($authorsList[0]) ? $authorsList[0] : '';
+                            $coauthors = $coAuthorsList ?? [];
+                            $editors = $editorsList ?? [];
+
+                            // Define MARC21 fields
+                            $marcFields = [];
+
+                            // Leader/Control Fields
+                            $marcFields[] = ['LDR', '', '', '00000nam a22000007a 4500'];
+                            $marcFields[] = ['001', '', '', $book['accession']];
+                            $marcFields[] = ['005', '', '', formatMarc21Date($book['date_added'])];
+                            
+                            // Variable Fields
+                            $marcFields[] = ['020', '##', 'a', $book['ISBN']];
+                            $marcFields[] = ['040', '##', 'a', 'PH-MnNBS', 'c', 'PH-MnNBS'];
+                            $marcFields[] = ['082', '04', 'a', $book['call_number']];
+
+                            // Title and Author Fields
+                            if (!empty($author)) {
+                                $marcFields[] = ['100', '1#', 'a', $author, 'e', 'author'];
                             }
 
-                            // Get primary author from contributors
-                            $primaryAuthor = '';
-                            if (!empty($contributors)) {
-                                foreach ($contributors as $contributor) {
-                                    if ($contributor['role'] === 'Author') {
-                                        $primaryAuthor = $contributor['lastname'] . ', ' . 
-                                                       $contributor['firstname'] . ' ' . 
-                                                       $contributor['middle_init'];
-                                        break;
-                                    }
+                            // Statement of responsibility
+                            $responsibilityStatement = [];
+                            if (!empty($author)) $responsibilityStatement[] = $author;
+                            if (!empty($coauthors)) $responsibilityStatement = array_merge($responsibilityStatement, $coauthors);
+                            
+                            $marcFields[] = ['245', '10', 
+                                'a', $book['title'],
+                                'c', implode(', ', $responsibilityStatement)
+                            ];
+
+                            // Publication Information
+                            if (!empty($publications)) {
+                                $pub = $publications[0];
+                                $marcFields[] = ['260', '##',
+                                    'a', $pub['place'],
+                                    'b', $pub['publisher'],
+                                    'c', $pub['publish_date']
+                                ];
+                            }
+
+                            // Physical Description
+                            $marcFields[] = ['300', '##',
+                                'a', $book['total_pages'] . ' pages',
+                                'b', 'illustrations',
+                                'c', $book['dimension'] . ' cm'
+                            ];
+
+                            // Content/Media Type
+                            $marcFields[] = ['336', '##', 'a', $book['content_type'], '2', 'rdacontent'];
+                            $marcFields[] = ['337', '##', 'a', $book['media_type'], '2', 'rdamedia'];
+                            $marcFields[] = ['338', '##', 'a', $book['carrier_type'], '2', 'rdacarrier'];
+
+                            // Subject Headings
+                            if (!empty($book['subject_category'])) {
+                                $subjects = explode(';', $book['subject_category']);
+                                foreach ($subjects as $subject) {
+                                    $marcFields[] = ['650', '#0', 'a', trim($subject)];
+                                }
+                            }
+                            if (!empty($book['subject_detail'])) {
+                                $details = explode(';', $book['subject_detail']);
+                                foreach ($details as $detail) {
+                                    $marcFields[] = ['650', '#0', 'x', trim($detail)];
                                 }
                             }
 
-                            // Get publication info
-                            $publication = !empty($publications) ? reset($publications) : null;
-
-                            // Get publication year from publications table
-                            $publicationYear = '';
-                            if (!empty($publications)) {
-                                $publicationYear = $publications[0]['publish_date'];
+                            // Added Entries for Co-Authors and Editors
+                            foreach ($coauthors as $coauthor) {
+                                $marcFields[] = ['700', '1#', 'a', $coauthor, 'e', 'co-author'];
+                            }
+                            foreach ($editors as $editor) {
+                                $marcFields[] = ['700', '1#', 'a', $editor, 'e', 'editor'];
                             }
 
-                            // MARC Fields Array
-                            $marcFields = [
-                                // Leader
-                                // ['LDR', '', '', str_pad('00000nam a22000000 4500', 24)],
-                                
-                                // Control Fields
-                                ['001', '', '', formatMarcValue($book['accession'])],
-                                ['005', '', '', date('YmdHis', strtotime($book['last_update']))],
-                                ['008', '', '', date('ymd', strtotime($book['date_added'])) . 's' . 
-                                           str_pad($publicationYear, 4, ' ') . 
-                                           'pau' .          // Geographic area code (Pennsylvania, USA as example)
-                                           'n' .           // Modified record
-                                           'bn' .          // Type of material - No special format
-                                           ' ' .           // Blank
-                                           'a' .           // Form of item (regular print)
-                                           ' ' .           // Nature of contents
-                                           '000' .         // Government publication
-                                           '0' .           // Conference publication
-                                           strtolower(substr($book['language'], 0, 3)) . 
-                                           'd'],          // Modified record
-
-                                // Variable Fields
-                                ['020', '##', 'a', $book['ISBN']],
-                                // ['040', '##', 'a', 'LOCAL'], // Local cataloging source
-                                ['082', '04', 'a', $book['call_number']],
-                                ['100', '1#', 'a', $primaryAuthor],
-                                ['245', '10', 'a', $book['title'],
-                                           'b', $book['parallel_title'],
-                                           'c', $primaryAuthor],
-                                ['246', '1#', 'a', $book['preferred_title']],
-                                ['250', '##', 'a', $book['edition']],
-                                ['260', '##', 'a', $publication['place'] ?? '',
-                                           'b', $publication['publisher'] ?? '',
-                                           'c', $publication['publish_date'] ?? ''],
-                                ['300', '##', 'a', $book['total_pages'] . ' pages',
-                                           'b', 'illustrations',
-                                           'c', $book['height'] . ' x ' . $book['width'] . ' cm'],
-                                ['336', '##', 'a', $book['content_type'],
-                                           '2', 'rdacontent'],
-                                ['337', '##', 'a', $book['media_type'],
-                                           '2', 'rdamedia'],
-                                ['338', '##', 'a', $book['carrier_type'],
-                                           '2', 'rdacarrier'],
-                                ['490', '1#', 'a', $book['series'],
-                                           'v', $book['volume']],
-                                ['500', '##', 'a', 'Copy ' . $book['copy_number']],
-                                ['505', '0#', 'a', $book['contents']],
-                                ['520', '##', 'a', $book['summary']],
-                                ['650', '##', 'a', $book['subject_category'],
-                                           'x', $book['subject_specification'],
-                                           'y', $book['subject_detail']],
-                                ['852', '##', 'a', $book['shelf_location'],
-                                           'p', $book['accession']],
-                                ['856', '40', 'u', $book['URL'],
-                                           'z', 'Online access'],
-                                ['902', '##', 'a', 'Status: ' . $book['status'],
-                                           'b', 'Entered by: ' . $book['entered_by'],
-                                           'c', 'Date added: ' . $book['date_added']],
-                                // Add additional author entries for other contributors
-                                ['700', '1#', 'a', $primaryAuthor,
-                                           'e', 'author'],
-                                ['999', '##', 'a', 'Total Copies: ' . htmlspecialchars($totalCopies),
-                                           'b', 'Available: ' . htmlspecialchars($inShelf)],
+                            // Holdings Information
+                            $marcFields[] = ['852', '##', 
+                                'a', $book['shelf_location'],
+                                'p', $book['accession']
                             ];
+                        }
+                        ?>
 
-                            // Define MARC field descriptions
-                            $marcFieldDesc = [
-                                'LDR' => 'Record Leader',
+                        <!-- Labeled Display -->
+                        <div id="marc-labeled-view" class="marc-record">
+                            <?php 
+                            // MARC field descriptions
+                            $fieldDescriptions = [
+                                'LDR' => 'LEADER',
                                 '001' => 'Control Number',
                                 '005' => 'Date and Time of Latest Transaction',
-                                '008' => 'Fixed-Length Data Elements',
                                 '020' => 'International Standard Book Number',
                                 '040' => 'Cataloging Source',
                                 '082' => 'Dewey Decimal Classification Number',
                                 '100' => 'Main Entry - Personal Name',
                                 '245' => 'Title Statement',
-                                '246' => 'Varying Form of Title',
-                                '250' => 'Edition Statement',
-                                '260' => 'Publication Information',
+                                '260' => 'Publication, Distribution, etc.',
                                 '300' => 'Physical Description',
                                 '336' => 'Content Type',
                                 '337' => 'Media Type',
                                 '338' => 'Carrier Type',
-                                '490' => 'Series Statement',
-                                '500' => 'General Note',
-                                '505' => 'Formatted Contents Note',
-                                '520' => 'Summary, etc.',
                                 '650' => 'Subject Added Entry - Topical Term',
-                                '852' => 'Location',
-                                '856' => 'Electronic Location and Access',
-                                '902' => 'Local Information'
+                                '700' => 'Added Entry - Personal Name',
+                                '852' => 'Location'
                             ];
 
-                            // Display MARC Record
-                            foreach ($marcFields as $field) {
-                                if (!empty($field[3]) || $field[0] === 'LDR') {
-                                    echo '<div class="marc-field">';
-                                    
-                                    // Display tag with tooltip
-                                    echo '<span class="marc-tag marc-field-tooltip" title="' . 
-                                         ($marcFieldDesc[$field[0]] ?? '') . '">' . 
-                                         $field[0] . '</span>';
+                            // Subfield descriptions
+                            $subfieldDescriptions = [
+                                'a' => 'Main entry/Primary information',
+                                'b' => 'Name of publisher, distributor, etc.',
+                                'c' => 'Statement of responsibility/Publication date',
+                                'd' => 'Place of publication',
+                                'e' => 'Relator term',
+                                'n' => 'Number of part/section',
+                                'p' => 'Name of part/section',
+                                '2' => 'Source of term',
+                                '6' => 'Linkage',
+                                'x' => 'Subject subdivision'
+                            ];
 
-                                    if ($field[0] === 'LDR' || $field[0] < '010') {
-                                        // Control field
-                                        echo '<span class="marc-content">' . $field[3] . '</span>';
-                                    } else {
-                                        // Data field
-                                        echo '<span class="marc-indicators">' . $field[1] . '</span>';
-                                        echo '<span class="marc-content">';
-                                        
-                                        // Display subfields
-                                        for ($i = 2; $i < count($field); $i += 2) {
-                                            if (!empty($field[$i + 1])) {
-                                                echo '<span class="marc-delimiter">‡</span>';
-                                                echo '<span class="marc-subfield-code">' . $field[$i] . '</span>';
-                                                echo formatMarcValue($field[$i + 1]) . ' ';
+                            foreach ($marcFields as $field): ?>
+                                <div class="marc-field">
+                                    <div class="field-header">
+                                        <span class="field-tag"><?= $field[0] ?></span>
+                                        <span class="field-name"><?= $fieldDescriptions[$field[0]] ?? 'Field ' . $field[0] ?></span>
+                                        <?php if ($field[0] >= '010'): ?>
+                                            <span class="indicators" title="Field Indicators"><?= $field[1] ?></span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="field-content">
+                                        <?php
+                                        if ($field[0] === 'LDR' || $field[0] < '010') {
+                                            echo '<span class="field-value">' . htmlspecialchars($field[3]) . '</span>';
+                                        } else {
+                                            for ($i = 2; $i < count($field); $i += 2) {
+                                                if (!empty($field[$i + 1])) {
+                                                    echo '<div class="subfield">';
+                                                    echo '<span class="subfield-delimiter">‡</span>';
+                                                    echo '<span class="subfield-code" title="' . 
+                                                        ($subfieldDescriptions[$field[$i]] ?? 'Subfield ' . $field[$i]) . 
+                                                        '">' . $field[$i] . '</span>';
+                                                    echo '<span class="subfield-value">' . 
+                                                        htmlspecialchars(formatMarcValue($field[$i + 1])) . '</span>';
+                                                    echo '</div>';
+                                                }
                                             }
                                         }
-                                        
-                                        echo '</span>';
-                                    }
-                                    
-                                    echo '</div>';
-                                }
-                            }
-                            ?>
+                                        ?>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
                         </div>
-                        <?php endif; ?>
+
+                        <style>
+                            .marc-record {
+                                font-family: monospace;
+                                background: #f8f9fc;
+                                padding: 20px;
+                                border-radius: 5px;
+                                margin-top: 15px;
+                            }
+                            .marc-field {
+                                background: #fff;
+                                padding: 10px;
+                                border-radius: 4px;
+                                margin-bottom: 8px;
+                                border: 1px solid #e3e6f0;
+                            }
+                            .field-header {
+                                display: flex;
+                                align-items: center;
+                                margin-bottom: 5px;
+                            }
+                            .field-tag {
+                                color: #4e73df;
+                                font-weight: bold;
+                                margin-right: 10px;
+                                min-width: 40px;
+                            }
+                            .field-name {
+                                color: #2c3e50;
+                                font-weight: 500;
+                                margin-right: 10px;
+                            }
+                            .indicators {
+                                color: #1cc88a;
+                                margin-right: 10px;
+                            }
+                            .field-content {
+                                margin-left: 20px;
+                            }
+                            .subfield {
+                                margin: 3px 0;
+                                display: flex;
+                                align-items: center;
+                                gap: 5px;
+                            }
+                            .subfield-delimiter {
+                                color: #e74a3b;
+                                font-weight: bold;
+                            }
+                            .subfield-code {
+                                color: #36b9cc;
+                                cursor: help;
+                            }
+                            .subfield-value {
+                                color: #2c3e50;
+                            }
+                            .marc-text {
+                                white-space: pre-wrap;
+                                font-size: 14px;
+                                line-height: 1.5;
+                            }
+                        </style>
                     </div>
                 </div>
 
                 <!-- ISBD View Tab -->
                 <div class="tab-pane fade" id="isbd" role="tabpanel">
-                    <div class="isbd-details p-4">
-                        <style>
-                            .isbd-record {
-                                width: 100%;
-                                background-color: #ffffff;
-                                padding: 30px;
-                                box-shadow: 0 0 15px rgba(0,0,0,0.1);
-                                font-family: "Times New Roman", Times, serif;
-                                line-height: 1.8;
-                            }
-                            .isbd-area {
-                                margin-bottom: 1.5em;
-                                text-indent: -1em;
-                                padding-left: 1em;
-                            }
-                            .isbd-punctuation {
-                                color: #666;
-                                font-weight: bold;
-                            }
-                            .isbd-date {
-                                margin: 1em 0;
-                                font-style: italic;
-                            }
-                            .isbd-subjects {
-                                margin-top: 2em;
-                            }
-                            .isbd-accession {
-                                margin-top: 1em;
-                                font-weight: bold;
-                            }
-                        </style>
+    <div class="isbd-details p-4">
 
-                        <?php if (!isset($error)): ?>
-                        <div class="isbd-record">
-                            <?php
-                            // Title and Statement of Responsibility Area
-                            echo '<div class="isbd-area">';
-                            echo htmlspecialchars($book['title']);
-                            
-                            if (!empty($book['parallel_title'])) {
-                                echo ' <span class="isbd-punctuation">=</span> ' . htmlspecialchars($book['parallel_title']);
-                            }
-                            
-                            if (!empty($book['preferred_title'])) {
-                                echo ' <span class="isbd-punctuation">[</span>' . htmlspecialchars($book['preferred_title']) . '<span class="isbd-punctuation">]</span>';
-                            }
-                            
-                            echo '</div>';
+    <?php if (isset($book)): ?>
+        <div class="isbd-record">
+            <?php
+            // Title Line
+            echo '<div class="isbd-area">';
+            echo htmlspecialchars($book['title']);
+            echo '</div>';
 
-                            // Publication, Distribution, etc. Area
-                            if ($publication) {
-                                echo '<div class="isbd-area">';
-                                $pubInfo = [];
-                                
-                                if (!empty($publication['place'])) {
-                                    $pubInfo[] = htmlspecialchars($publication['place']);
-                                }
-                                
-                                if (!empty($publication['publisher'])) {
-                                    $pubInfo[] = htmlspecialchars($publication['publisher']);
-                                }
-                                
-                                if (!empty($publication['publish_date'])) {
-                                    $pubInfo[] = htmlspecialchars($publication['publish_date']);
-                                }
-                                
-                                echo implode(' <span class="isbd-punctuation">:</span> ', $pubInfo);
-                                echo '<span class="isbd-punctuation">.</span>';
-                                echo '</div>';
-                            }
+            // Author Line (surname first)
+            if (!empty($authorsList)) {
+                echo '<div class="isbd-area">';
+                echo htmlspecialchars($authorsList[0]);
+                echo '</div>';
+            }
 
-                            // Date Added
-                            if (!empty($book['date_added'])) {
-                                echo '<div class="isbd-date">';
-                                echo '- ' . date('F j, Y', strtotime($book['date_added']));
-                                echo '</div>';
-                            }
+            // Title/Author/Co-Authors/Editors-Place/Publisher/Year Line
+            echo '<div class="isbd-area">';
+            // Title part
+            echo htmlspecialchars($book['title']) . ' / ';
+            
+            // Contributors part
+            $allContributors = array();
+            if (!empty($authorsList)) $allContributors[] = implode(', ', $authorsList);
+            if (!empty($coAuthorsList)) $allContributors[] = implode(', ', $coAuthorsList);
+            if (!empty($editorsList)) $allContributors[] = implode(', ', $editorsList);
+            echo htmlspecialchars(implode(', and ', $allContributors));
 
-                            // Summary/Abstract
-                            if (!empty($book['summary'])) {
-                                echo '<div class="isbd-area">';
-                                echo '<br>';
-                                echo htmlspecialchars($book['summary']);
-                                echo '</div>';
-                            }
+            // Publication information
+            if (!empty($publications)) {
+                $pub = $publications[0];
+                echo ' - ' . htmlspecialchars($pub['place']) . ' ';
+                echo htmlspecialchars($pub['publisher']) . ', ';
+                echo htmlspecialchars($pub['publish_date']);
+            }
 
-                            // Subject Access
-                            echo '<div class="isbd-subjects">';
-                            echo 'Subjects<span class="isbd-punctuation">--</span>Index Terms:';
-                            
-                            $subjects = [];
-                            if (!empty($book['subject_category'])) {
-                                $subjects[] = htmlspecialchars($book['subject_category']);
-                            }
-                            if (!empty($book['subject_specification'])) {
-                                $subjects[] = htmlspecialchars($book['subject_specification']);
-                            }
-                            if (!empty($book['subject_detail'])) {
-                                $subjects[] = htmlspecialchars($book['subject_detail']);
-                            }
-                            
-                            echo implode('. ', $subjects);
-                            echo '</div>';
+            // Physical description
+            echo ' - ';
+            if (!empty($book['preliminaries'])) {
+                echo htmlspecialchars($book['preliminaries']) . ', ';
+            }
+            echo htmlspecialchars($book['total_pages']) . ' pages';
+            if (!empty($book['illustrations'])) {
+                echo ' : illustrations';
+            }
+            echo ' ; ' . htmlspecialchars($book['dimension']) . ' cm';
+            echo '</div>';
 
-                            // Accession Number
-                            echo '<div class="isbd-accession">';
-                            echo 'Accession no.:<span class="isbd-punctuation">:</span>' . htmlspecialchars($book['accession']);
-                            echo '</div>';
-                            ?>
-                            <div class="isbd-area">
-                                <span class="label">Total Copies:</span> <?php echo htmlspecialchars($totalCopies); ?>
-                                <span class="label">Available:</span> <?php echo htmlspecialchars($inShelf); ?>
-                            </div>
-                        </div>
-                        <?php endif; ?>
-                    </div>
-                </div>
+            // ISBN Line
+            echo '<div class="isbd-area">';
+            echo 'ISBN: ' . htmlspecialchars($book['ISBN']);
+            echo '</div>';
+
+            // Subject Category and Details
+            if (!empty($book['subject_category']) || !empty($book['subject_detail'])) {
+                echo '<div class="isbd-area">';
+                if (!empty($book['subject_category'])) {
+                    echo 'Subject Category: ' . htmlspecialchars($book['subject_category']) . '<br>';
+                }
+                if (!empty($book['subject_detail'])) {
+                    $subjects = explode('|', $book['subject_detail']);
+                    foreach ($subjects as $subject) {
+                        echo htmlspecialchars($subject) . '<br>';
+                    }
+                }
+                echo '</div>';
+            }
+
+            // LC Classification Number
+            echo '<div class="isbd-area">';
+            echo 'LC Class No.: ' . htmlspecialchars($book['call_number']);
+            echo '</div>';
+            ?>
+        </div>
+        <?php else: ?>
+            <div class="alert alert-danger">Book not found.</div>
+        <?php endif; ?>
+    </div>
+</div>
 
                 <!-- Holdings Tab -->
                 <div class="tab-pane fade" id="holdings" role="tabpanel">
                     <div class="holdings-details p-4">
                         <?php if (!empty($allCopies)): ?>
-                            <div class="table-responsive">
-                                <table class="table table-bordered">
-                                    <thead>
-                                        <tr>
-                                            <th>Accession</th>
-                                            <th>Call Number</th>
-                                            <th>Copy Number</th>
-                                            <th>Status</th>
-                                            <th>Location</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php foreach ($allCopies as $copy): ?>
-                                            <tr>
-                                                <td><?php echo htmlspecialchars($copy['accession']); ?></td>
-                                                <td><?php echo htmlspecialchars($copy['call_number']); ?></td>
-                                                <td><?php echo htmlspecialchars($copy['copy_number']); ?></td>
-                                                <td><?php echo htmlspecialchars($copy['status']); ?></td>
-                                                <td><?php echo htmlspecialchars($copy['shelf_location']); ?></td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    </tbody>
-                                </table>
+                            <div class="card shadow mb-4">
+                                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                                    <h6 class="m-0 font-weight-bold text-primary">Available Copies</h6>
+                                    <div class="small text-muted">
+                                        Total Copies: <?php echo htmlspecialchars($totalCopies); ?> | 
+                                        Available: <?php echo htmlspecialchars($inShelf); ?>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered" width="100%" cellspacing="0">
+                                            <thead>
+                                                <tr>
+                                                    <th>Accession</th>
+                                                    <th>Call Number</th>
+                                                    <th>Copy Number</th>
+                                                    <th>Status</th>
+                                                    <th>Location</th>
+                                                    <th>Last Update</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php foreach ($allCopies as $copy): ?>
+                                                    <tr>
+                                                        <td><?php echo htmlspecialchars($copy['accession']); ?></td>
+                                                        <td><?php echo htmlspecialchars($copy['call_number']); ?></td>
+                                                        <td><?php echo htmlspecialchars($copy['copy_number']); ?></td>
+                                                        <td>
+                                                            <?php echo htmlspecialchars($copy['status']); ?>
+                                                        </td>
+                                                        <td><?php echo htmlspecialchars($copy['shelf_location']); ?></td>
+                                                        <td><?php echo htmlspecialchars(date('Y-m-d', strtotime($copy['last_update']))); ?></td>
+                                                    </tr>
+                                                <?php endforeach; ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
                             </div>
                         <?php else: ?>
-                            <div class="alert alert-danger">No copies found.</div>
+                            <div class="alert alert-info">No copies found.</div>
                         <?php endif; ?>
                     </div>
                 </div>

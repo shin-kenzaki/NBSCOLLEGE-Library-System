@@ -9,8 +9,41 @@ if (!isset($_SESSION['admin_id'])) {
 include '../admin/inc/header.php';
 include '../db.php';
 
-// Get search parameters
-$searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
+// Query to fetch publications data
+$query = "SELECT 
+            GROUP_CONCAT(p.id ORDER BY p.id) as id_ranges,
+            b.title as book_title,
+            pb.publisher,
+            pb.place,
+            p.publish_date
+          FROM publications p 
+          JOIN books b ON p.book_id = b.id 
+          JOIN publishers pb ON p.publisher_id = pb.id
+          GROUP BY b.title, pb.id, p.publish_date
+          ORDER BY b.title, p.publish_date";
+
+$result = $conn->query($query);
+$publications_data = array();
+
+while ($row = $result->fetch_assoc()) {
+    // Format ID ranges
+    $ids = explode(',', $row['id_ranges']);
+    $ranges = [];
+    $start = $ids[0];
+    $prev = $ids[0];
+    
+    for ($i = 1; $i < count($ids); $i++) {
+        if ($ids[$i] - $prev > 1) {
+            $ranges[] = $start == $prev ? $start : "$start-$prev";
+            $start = $ids[$i];
+        }
+        $prev = $ids[$i];
+    }
+    $ranges[] = $start == $prev ? $start : "$start-$prev";
+    
+    $row['id_ranges'] = implode(', ', $ranges);
+    $publications_data[] = $row;
+}
 ?>
 
 <!-- Main Content -->
@@ -35,7 +68,29 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
                             </tr>
                         </thead>
                         <tbody id="publicationsTableBody">
-                            <!-- Content will be loaded via AJAX -->
+                            <?php foreach ($publications_data as $row): ?>
+                            <tr>
+                                <td><input type="checkbox" class="row-checkbox" value="<?php echo htmlspecialchars($row['id_ranges']); ?>"></td>
+                                <td><?php echo htmlspecialchars($row['id_ranges']); ?></td>
+                                <td><?php echo htmlspecialchars($row['book_title']); ?></td>
+                                <td><?php echo htmlspecialchars($row['publisher']); ?></td>
+                                <td><?php echo htmlspecialchars($row['place']); ?></td>
+                                <td><?php echo htmlspecialchars(date('Y', strtotime($row['publish_date']))); ?></td>
+                                <td><?php 
+                                    $total = 0;
+                                    $ranges = explode(',', $row['id_ranges']);
+                                    foreach ($ranges as $range) {
+                                        if (strpos($range, '-') !== false) {
+                                            list($start, $end) = explode('-', $range);
+                                            $total += ($end - $start + 1);
+                                        } else {
+                                            $total += 1;
+                                        }
+                                    }
+                                    echo $total;
+                                ?></td>
+                            </tr>
+                            <?php endforeach; ?>
                         </tbody>
                     </table>
                 </div>
@@ -74,43 +129,22 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
 $(document).ready(function() {
     // Initialize DataTable
     var table = $('#dataTable').DataTable({
-        "ajax": {
-            "url": "fetch_publications.php",
-            "type": "GET"
+        "dom": "<'row mb-3'<'col-sm-6'l><'col-sm-6 d-flex justify-content-end'f>>" +
+               "<'row'<'col-sm-12'tr>>" +
+               "<'row mt-3'<'col-sm-5'i><'col-sm-7 d-flex justify-content-end'p>>",
+        "pageLength": 10,
+        "responsive": true,
+        "language": {
+            "search": "_INPUT_",
+            "searchPlaceholder": "Search..."
         },
-        "columns": [
-            { 
-                "data": null,
-                "defaultContent": "",
-                "render": function (data, type, row) {
-                    return '<input type="checkbox" class="row-checkbox" value="' + row.id + '">';
-                },
-                "orderable": false
-            },
-            { "data": "id" },
-            { "data": "book_title" },
-            { "data": "publisher" },
-            { "data": "place" },
-            { "data": "publish_date" },
-            { 
-                "data": "id",
-                "render": function(data, type, row) {
-                    let total = 0;
-                    const ranges = data.split(',').map(r => r.trim());
-                    
-                    ranges.forEach(range => {
-                        if(range.includes('-')) {
-                            const [start, end] = range.split('-').map(Number);
-                            total += (end - start + 1);
-                        } else {
-                            total += 1;
-                        }
-                    });
-                    return total;
-                }
-            }
-        ],
-        "order": [[2, "asc"], [5, "asc"]] // Sort by book title then year
+        "order": [[2, "asc"], [5, "asc"]], // Sort by book title then year
+        "initComplete": function() {
+            $('#dataTable_filter input').addClass('form-control form-control-sm');
+            $('#dataTable_filter').addClass('d-flex align-items-center');
+            $('#dataTable_filter label').append('<i class="fas fa-search ml-2"></i>');
+            $('.dataTables_paginate .paginate_button').addClass('btn btn-sm btn-outline-primary mx-1');
+        }
     });
 
     // Handle select all checkbox and header click

@@ -21,6 +21,10 @@
     <link href="inc/css/sb-admin-2.min.css" rel="stylesheet">
     <link href="inc/assets/DataTables/datatables.min.css" rel="stylesheet">
 
+    <!-- Add these before closing head tag -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.min.js"></script>
+
 </head>
 
 <body id="page-top">
@@ -73,12 +77,6 @@
 
             <?php if($_SESSION['role'] === 'Admin'): ?>
             <!-- Full management menu for admin -->
-            <li class="nav-item">
-                <a class="nav-link" href="add-book.php">
-                    <i class="fas fa-fw fa-book"></i>
-                    <span>Add Book</span>
-                </a>
-            </li>
 
             <li class="nav-item">
                 <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseTwo"
@@ -142,6 +140,16 @@
             <?php endif; ?>
 
             <?php if($_SESSION['role'] === 'Admin' || $_SESSION['role'] === 'Librarian'): ?>
+            <!-- Borrowing nav item -->
+            <li class="nav-item">
+                <a class="nav-link" href="book_borrowing.php">
+                    <i class="fas fa-book-reader"></i>
+                    <span>Book Borrowing</span>
+                </a>
+            </li>
+            <?php endif; ?>
+
+            <?php if($_SESSION['role'] === 'Admin' || $_SESSION['role'] === 'Librarian'): ?>
             <!-- Book reservations nav removed -->
             <?php endif; ?>
 
@@ -156,7 +164,7 @@
                     <div class="bg-white py-2 collapse-inner rounded">
                         <h6 class="collapse-header">Borrowing Management:</h6>
                         <a class="collapse-item" href="book_reservations.php">Book Reservations</a>
-                        <a class="collapse-item" href="../borrowed_books.php">Borrowed Books</a>
+                        <a class="collapse-item" href="borrowed_books.php">Borrowed Books</a>
                         <a class="collapse-item" href="borrowing_history.php">Borrowing History</a>
                         <a class="collapse-item" href="fines.php">Manage Fines</a>
                         <a class="collapse-item" href="lost_books.php">Lost Book Records</a>

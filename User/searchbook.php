@@ -78,15 +78,20 @@ include '../db.php';
                             <tbody>
                                 <?php
                                 $query = "SELECT 
-                                    b.title,
-                                    b.content_type,
-                                    b.media_type,
-                                    b.shelf_location,
-                                    b.front_image,
+                                    b1.title,
+                                    b1.content_type,
+                                    b1.media_type,
+                                    MIN(b1.shelf_location) as shelf_location,
+                                    b1.front_image,
                                     p.publisher,
                                     pub.publish_date as publication_year,
-                                    COUNT(*) as total_copies,
-                                    SUM(CASE WHEN b.status = 'Available' THEN 1 ELSE 0 END) as available_copies,
+                                    (SELECT COUNT(*) 
+                                     FROM books b2 
+                                     WHERE b2.title = b1.title) as total_copies,
+                                    (SELECT COUNT(*) 
+                                     FROM books b3 
+                                     WHERE b3.title = b1.title 
+                                     AND b3.status = 'Available') as available_copies,
                                     GROUP_CONCAT(DISTINCT 
                                         CONCAT(
                                             c.role, ':', 
@@ -99,13 +104,18 @@ include '../db.php';
                                             w.firstname 
                                         SEPARATOR '|'
                                     ) as contributors
-                                FROM books b
-                                LEFT JOIN contributors c ON b.id = c.book_id
+                                FROM (
+                                    SELECT DISTINCT title, MIN(id) as id
+                                    FROM books
+                                    GROUP BY title
+                                ) AS unique_books
+                                JOIN books b1 ON b1.id = unique_books.id
+                                LEFT JOIN contributors c ON b1.id = c.book_id
                                 LEFT JOIN writers w ON c.writer_id = w.id
-                                LEFT JOIN publications pub ON b.id = pub.book_id
+                                LEFT JOIN publications pub ON b1.id = pub.book_id
                                 LEFT JOIN publishers p ON pub.publisher_id = p.id
-                                GROUP BY b.title, b.content_type, b.media_type, b.shelf_location, p.publisher, pub.publish_date
-                                ORDER BY b.title";
+                                GROUP BY b1.title
+                                ORDER BY b1.title";
 
                                 $result = $conn->query($query);
 

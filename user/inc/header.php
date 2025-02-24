@@ -71,7 +71,7 @@
 
             <!-- Nav Item - Book Reservation -->
             <li class="nav-item">
-                <a class="nav-link" href="../book_reservations.php">
+                <a class="nav-link" href="book_reservations.php">
                     <i class="fas fa-fw fa-bookmark"></i>
                     <span>Book Reservation</span>
                 </a>

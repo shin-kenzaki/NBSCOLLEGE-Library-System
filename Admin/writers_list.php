@@ -60,11 +60,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 // Get the search query if it exists
 $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
 
-// Fetch writers data
+// Get selected writer IDs from session if they exist
+$selectedWriterIds = isset($_SESSION['selectedWriterIds']) ? $_SESSION['selectedWriterIds'] : [];
+
+// Modify the SQL query to handle selected writers first
 $sql = "SELECT id, firstname, middle_init, lastname FROM writers";
 if (!empty($searchQuery)) {
     $sql .= " WHERE firstname LIKE '%$searchQuery%' OR middle_init LIKE '%$searchQuery%' OR lastname LIKE '%$searchQuery%'";
 }
+$sql .= " ORDER BY CASE WHEN id IN (" . 
+        (!empty($selectedWriterIds) ? implode(',', array_map('intval', $selectedWriterIds)) : "0") . 
+        ") THEN 0 ELSE 1 END, id DESC";
+
 $result = $conn->query($sql);
 ?>
 
@@ -81,10 +88,12 @@ $result = $conn->query($sql);
                     <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
+                                <th>Select</th>
                                 <th>ID</th>
                                 <th>First Name</th>
                                 <th>Middle Initial</th>
                                 <th>Last Name</th>
+                                <th>Role</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -93,11 +102,20 @@ $result = $conn->query($sql);
                             if ($result->num_rows > 0) {
                                 // Loop through the rows and display them in the table
                                 while ($row = $result->fetch_assoc()) {
+                                    $isChecked = in_array($row['id'], $selectedWriterIds) ? 'checked' : '';
                                     echo "<tr>
-                                            <td>" . $row['id'] . "</td>
-                                            <td>" . $row['firstname'] . "</td>
-                                            <td>" . $row['middle_init'] . "</td>
-                                            <td>" . $row['lastname'] . "</td>
+                                            <td><input type='checkbox' class='selectWriter' name='writer_ids[]' value='{$row['id']}' $isChecked></td>
+                                            <td>{$row['id']}</td>
+                                            <td>{$row['firstname']}</td>
+                                            <td>{$row['middle_init']}</td>
+                                            <td>{$row['lastname']}</td>
+                                            <td>
+                                                <select name='roles[]' class='form-control'>
+                                                    <option value='Author'>Author</option>
+                                                    <option value='Co-Author'>Co-Author</option>
+                                                    <option value='Editor'>Editor</option>
+                                                </select>
+                                            </td>
                                           </tr>";
                                 }
                             }

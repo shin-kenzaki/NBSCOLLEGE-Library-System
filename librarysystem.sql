@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 21, 2025 at 03:04 PM
+-- Generation Time: Feb 22, 2025 at 08:45 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -74,6 +74,7 @@ CREATE TABLE `books` (
   `edition` varchar(100) DEFAULT NULL,
   `copy_number` int(225) DEFAULT NULL,
   `total_pages` varchar(100) DEFAULT NULL,
+  `supplementary_contents` varchar(100) DEFAULT NULL,
   `ISBN` varchar(100) DEFAULT NULL,
   `content_type` varchar(100) DEFAULT NULL,
   `media_type` varchar(100) DEFAULT NULL,
@@ -87,27 +88,6 @@ CREATE TABLE `books` (
   `status` varchar(100) DEFAULT NULL,
   `last_update` date DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `books`
---
-
-INSERT INTO `books` (`id`, `accession`, `title`, `preferred_title`, `parallel_title`, `subject_category`, `subject_detail`, `summary`, `contents`, `front_image`, `back_image`, `dimension`, `series`, `volume`, `edition`, `copy_number`, `total_pages`, `ISBN`, `content_type`, `media_type`, `carrier_type`, `call_number`, `URL`, `language`, `shelf_location`, `entered_by`, `date_added`, `status`, `last_update`) VALUES
-(1, 2870, 'Cataloguing and Classification: An introduction to AACR2, RDA, DDC, LCC, LCSH and MARC21 Standards', '', '', 'Topical', '', '', '', '', '', '', '', '', '', 1, '241', '', 'Text', 'Print', 'Book', '', '', 'English', 'TR', 210078, '2025-02-21', 'Available', '2025-02-21'),
-(2, 2871, 'Cataloguing and Classification: An introduction to AACR2, RDA, DDC, LCC, LCSH and MARC21 Standards', '', '', 'Topical', '', '', '', '', '', '', '', '', '', 2, '241', '', 'Text', 'Print', 'Book', '', '', 'English', 'TR', 210078, '2025-02-21', 'Available', '2025-02-21'),
-(3, 2872, 'Cataloguing and Classification: An introduction to AACR2, RDA, DDC, LCC, LCSH and MARC21 Standards', '', '', 'Topical', '', '', '', '', '', '', '', '', '', 3, '241', '', 'Text', 'Print', 'Book', '', '', 'English', 'TR', 210078, '2025-02-21', 'Available', '2025-02-21'),
-(4, 2873, 'Cataloguing and Classification: An introduction to AACR2, RDA, DDC, LCC, LCSH and MARC21 Standards', '', '', 'Topical', '', '', '', '', '', '', '', '', '', 4, '241', '', 'Text', 'Print', 'Book', '', '', 'English', 'TR', 210078, '2025-02-21', 'Available', '2025-02-21'),
-(5, 2874, 'Cataloguing and Classification: An introduction to AACR2, RDA, DDC, LCC, LCSH and MARC21 Standards', '', '', 'Topical', '', '', '', '', '', '', '', '', '', 5, '241', '', 'Text', 'Print', 'Book', '', '', 'English', 'TR', 210078, '2025-02-21', 'Available', '2025-02-21'),
-(6, 4879, 'Cataloguing and Classification: An introduction to AACR2, RDA, DDC, LCC, LCSH and MARC21 Standards', '', '', 'Topical', '', '', '', '', '', '', '', '', '', 6, '241', '', 'Text', 'Print', 'Book', '', '', 'English', 'TR', 210078, '2025-02-21', 'Available', '2025-02-21'),
-(7, 4880, 'Cataloguing and Classification: An introduction to AACR2, RDA, DDC, LCC, LCSH and MARC21 Standards', '', '', 'Topical', '', '', '', '', '', '', '', '', '', 7, '241', '', 'Text', 'Print', 'Book', '', '', 'English', 'TR', 210078, '2025-02-21', 'Available', '2025-02-21'),
-(8, 4881, 'Cataloguing and Classification: An introduction to AACR2, RDA, DDC, LCC, LCSH and MARC21 Standards', '', '', 'Topical', '', '', '', '', '', '', '', '', '', 8, '241', '', 'Text', 'Print', 'Book', '', '', 'English', 'TR', 210078, '2025-02-21', 'Available', '2025-02-21'),
-(9, 5689, 'Cataloguing and Classification: An introduction to AACR2, RDA, DDC, LCC, LCSH and MARC21 Standards', '', '', 'Topical', '', '', '', '', '', '', '', '', '', 9, '241', '', 'Text', 'Print', 'Book', '', '', 'English', 'TR', 210078, '2025-02-21', 'Available', '2025-02-21'),
-(10, 5690, 'Cataloguing and Classification: An introduction to AACR2, RDA, DDC, LCC, LCSH and MARC21 Standards', '', '', 'Topical', '', '', '', '', '', '', '', '', '', 10, '241', '', 'Text', 'Print', 'Book', '', '', 'English', 'TR', 210078, '2025-02-21', 'Available', '2025-02-21'),
-(11, 5691, 'Cataloguing and Classification: An introduction to AACR2, RDA, DDC, LCC, LCSH and MARC21 Standards', '', '', 'Topical', '', '', '', '', '', '', '', '', '', 11, '241', '', 'Text', 'Print', 'Book', '', '', 'English', 'TR', 210078, '2025-02-21', 'Available', '2025-02-21'),
-(12, 5692, 'Cataloguing and Classification: An introduction to AACR2, RDA, DDC, LCC, LCSH and MARC21 Standards', '', '', 'Topical', '', '', '', '', '', '', '', '', '', 12, '241', '', 'Text', 'Print', 'Book', '', '', 'English', 'TR', 210078, '2025-02-21', 'Available', '2025-02-21'),
-(13, 5693, 'Cataloguing and Classification: An introduction to AACR2, RDA, DDC, LCC, LCSH and MARC21 Standards', '', '', 'Topical', '', '', '', '', '', '', '', '', '', 13, '241', '', 'Text', 'Print', 'Book', '', '', 'English', 'TR', 210078, '2025-02-21', 'Available', '2025-02-21'),
-(14, 5694, 'Cataloguing and Classification: An introduction to AACR2, RDA, DDC, LCC, LCSH and MARC21 Standards', '', '', 'Topical', '', '', '', '', '', '', '', '', '', 14, '241', '', 'Text', 'Print', 'Book', '', '', 'English', 'TR', 210078, '2025-02-21', 'Available', '2025-02-21'),
-(15, 5695, 'Cataloguing and Classification: An introduction to AACR2, RDA, DDC, LCC, LCSH and MARC21 Standards', '', '', 'Topical', '', '', '', '', '', '', '', '', '', 15, '241', '', 'Text', 'Print', 'Book', '', '', 'English', 'TR', 210078, '2025-02-21', 'Available', '2025-02-21');
 
 -- --------------------------------------------------------
 
@@ -196,6 +176,14 @@ CREATE TABLE `publishers` (
   `place` varchar(100) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `publishers`
+--
+
+INSERT INTO `publishers` (`id`, `publisher`, `place`) VALUES
+(1, 'Chandos Publishing', 'USA'),
+(2, 'Elsevier', 'USA');
+
 -- --------------------------------------------------------
 
 --
@@ -225,6 +213,20 @@ CREATE TABLE `updates` (
   `status` varchar(100) DEFAULT NULL,
   `update` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `updates`
+--
+
+INSERT INTO `updates` (`id`, `user_id`, `role`, `status`, `update`) VALUES
+(1, 210078, 'Admin', 'Active login', '2025-02-21 17:21:41'),
+(2, 210078, 'Admin', 'Active login', '2025-02-22 01:31:39'),
+(3, 210078, 'Admin', 'Active login', '2025-02-22 02:51:38'),
+(4, 210078, 'Admin', 'Active login', '2025-02-22 04:43:27'),
+(5, 210078, 'student', 'Inactive Login', '2025-02-22 04:43:40'),
+(6, 210078, 'Admin', 'Active login', '2025-02-22 05:29:21'),
+(7, 210078, 'Admin', 'Active login', '2025-02-22 06:47:44'),
+(8, 210078, 'Admin', 'Active login', '2025-02-22 07:44:14');
 
 -- --------------------------------------------------------
 
@@ -276,6 +278,16 @@ CREATE TABLE `writers` (
   `middle_init` varchar(100) DEFAULT NULL,
   `lastname` varchar(100) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `writers`
+--
+
+INSERT INTO `writers` (`id`, `firstname`, `middle_init`, `lastname`) VALUES
+(1, 'Fotiz', '', 'Lazarinis'),
+(2, 'Marie Keen', '', 'Shaw'),
+(3, 'Shin Haruno', '', 'Kenzaki'),
+(4, 'M. K.', '', 'Shaw');
 
 --
 -- Indexes for dumped tables
@@ -367,7 +379,7 @@ ALTER TABLE `admins`
 -- AUTO_INCREMENT for table `books`
 --
 ALTER TABLE `books`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `borrowings`
@@ -403,7 +415,7 @@ ALTER TABLE `publications`
 -- AUTO_INCREMENT for table `publishers`
 --
 ALTER TABLE `publishers`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `reservations`
@@ -415,7 +427,7 @@ ALTER TABLE `reservations`
 -- AUTO_INCREMENT for table `updates`
 --
 ALTER TABLE `updates`
-  MODIFY `id` int(225) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(225) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `users`
@@ -427,7 +439,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `writers`
 --
 ALTER TABLE `writers`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

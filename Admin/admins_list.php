@@ -142,26 +142,19 @@ $result = mysqli_query($conn, $query);
                             </thead>
                             <tbody>
                                 <?php
-                                // Fetch admins from database
-                                $query = "SELECT * FROM admins";
-                                if (!empty($searchQuery)) {
-                                    $query .= " WHERE firstname LIKE '%$searchQuery%' 
-                                              OR lastname LIKE '%$searchQuery%' 
-                                              OR email LIKE '%$searchQuery%' 
-                                              OR employee_id LIKE '%$searchQuery%'";
-                                }
-                                $query .= " ORDER BY date_added DESC";
+                                // Direct admin retrieval
+                                $query = "SELECT * FROM admins ORDER BY date_added DESC";
                                 $result = $conn->query($query);
 
                                 while ($row = $result->fetch_assoc()) {
-                                    $fullname = $row['firstname'] . ' ' . $row['middle_init'] . ' ' . $row['lastname'];
+                                    $fullname = $row['firstname'] . ' ' . ($row['middle_init'] ? $row['middle_init'] . ' ' : '') . $row['lastname'];
                                     list($status_class, $status_text) = getStatusDisplay($row['status']);
                                     
                                     echo "<tr>";
                                     echo "<td><input type='checkbox' class='selectRow'></td>";
                                     echo "<td>{$row['id']}</td>";
                                     echo "<td>{$row['employee_id']}</td>";
-                                    echo "<td>{$fullname}</td>";
+                                    echo "<td>" . htmlspecialchars($fullname) . "</td>";
                                     echo "<td>{$row['email']}</td>";
                                     echo "<td>{$row['role']}</td>";
                                     echo "<td><span class='badge {$status_class}'>{$status_text}</span></td>";

@@ -11,6 +11,41 @@ include '../db.php';
 
 // Get search parameters
 $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
+
+// Query to fetch contributors data
+$query = "SELECT 
+            GROUP_CONCAT(c.id ORDER BY c.id) as id_ranges,
+            b.title as book_title,
+            CONCAT(w.firstname, ' ', w.middle_init, ' ', w.lastname) as writer_name,
+            c.role
+          FROM contributors c
+          JOIN books b ON c.book_id = b.id
+          JOIN writers w ON c.writer_id = w.id
+          GROUP BY b.title, w.id, c.role
+          ORDER BY b.title";
+
+$result = $conn->query($query);
+$contributors_data = array();
+
+while ($row = $result->fetch_assoc()) {
+    // Format ID ranges
+    $ids = explode(',', $row['id_ranges']);
+    $ranges = [];
+    $start = $ids[0];
+    $prev = $ids[0];
+    
+    for ($i = 1; $i < count($ids); $i++) {
+        if ($ids[$i] - $prev > 1) {
+            $ranges[] = $start == $prev ? $start : "$start-$prev";
+            $start = $ids[$i];
+        }
+        $prev = $ids[$i];
+    }
+    $ranges[] = $start == $prev ? $start : "$start-$prev";
+    
+    $row['id_ranges'] = implode(', ', $ranges);
+    $contributors_data[] = $row;
+}
 ?>
 
 <!-- Main Content -->
@@ -34,7 +69,28 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
                             </tr>
                         </thead>
                         <tbody id="contributorsTableBody">
-                            <!-- Content will be loaded via AJAX -->
+                            <?php foreach ($contributors_data as $row): ?>
+                            <tr>
+                                <td><input type="checkbox" class="row-checkbox" value="<?php echo htmlspecialchars($row['id_ranges']); ?>"></td>
+                                <td><?php echo htmlspecialchars($row['id_ranges']); ?></td>
+                                <td><?php echo htmlspecialchars($row['book_title']); ?></td>
+                                <td><?php echo htmlspecialchars($row['writer_name']); ?></td>
+                                <td><?php echo htmlspecialchars($row['role']); ?></td>
+                                <td><?php 
+                                    $total = 0;
+                                    $ranges = explode(',', $row['id_ranges']);
+                                    foreach ($ranges as $range) {
+                                        if (strpos($range, '-') !== false) {
+                                            list($start, $end) = explode('-', $range);
+                                            $total += ($end - $start + 1);
+                                        } else {
+                                            $total += 1;
+                                        }
+                                    }
+                                    echo $total;
+                                ?></td>
+                            </tr>
+                            <?php endforeach; ?>
                         </tbody>
                     </table>
                 </div>
@@ -73,40 +129,21 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
 $(document).ready(function() {
     // Initialize DataTable
     var table = $('#dataTable').DataTable({
-        "ajax": {
-            "url": "fetch_contributors.php",
-            "type": "GET"
+        "dom": "<'row mb-3'<'col-sm-6'l><'col-sm-6 d-flex justify-content-end'f>>" +
+               "<'row'<'col-sm-12'tr>>" +
+               "<'row mt-3'<'col-sm-5'i><'col-sm-7 d-flex justify-content-end'p>>",
+        "pageLength": 10,
+        "responsive": true,
+        "language": {
+            "search": "_INPUT_",
+            "searchPlaceholder": "Search..."
         },
-        "columns": [
-            { 
-                "data": null,
-                "defaultContent": "",
-                "render": function (data, type, row) {
-                    return '<input type="checkbox" class="row-checkbox" value="' + row.id_ranges + '">';
-                },
-                "orderable": false
-            },
-            { "data": "id_ranges" },
-            { "data": "book_title" },
-            { "data": "writer_name" },
-            { "data": "role" },
-            { 
-                "data": "id_ranges",
-                "render": function(data, type, row) {
-                    let total = 0;
-                    const ranges = data.split(',').map(r => r.trim());
-                    ranges.forEach(range => {
-                        if (range.includes('-')) {
-                            const [start, end] = range.split('-').map(Number);
-                            total += (end - start + 1);
-                        } else {
-                            total += 1;
-                        }
-                    });
-                    return total;
-                }
-            }
-        ]
+        "initComplete": function() {
+            $('#dataTable_filter input').addClass('form-control form-control-sm');
+            $('#dataTable_filter').addClass('d-flex align-items-center');
+            $('#dataTable_filter label').append('<i class="fas fa-search ml-2"></i>');
+            $('.dataTables_paginate .paginate_button').addClass('btn btn-sm btn-outline-primary mx-1');
+        }
     });
 
     // Context menu handling

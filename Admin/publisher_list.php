@@ -68,11 +68,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 // Get the search query if it exists
 $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
 
-// Fetch publishers data
+// Fetch publishers data with proper sorting
 $sql = "SELECT id, publisher, place FROM publishers";
 if (!empty($searchQuery)) {
     $sql .= " WHERE publisher LIKE '%$searchQuery%' OR place LIKE '%$searchQuery%'";
 }
+$sql .= " ORDER BY id DESC";
 $result = $conn->query($sql);
 ?>
 
@@ -175,6 +176,7 @@ $(document).ready(function () {
                "<'row mt-3'<'col-sm-5'i><'col-sm-7 d-flex justify-content-end'p>>",
         "pageLength": 10,
         "responsive": true,
+        "order": [[0, "desc"]], // Sort by ID in descending order
         "language": {
             "search": "_INPUT_",
             "searchPlaceholder": "Search..."

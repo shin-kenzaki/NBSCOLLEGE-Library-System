@@ -82,6 +82,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new Exception("Execute statement failed: " . $stmt->error);
             }
         }
+
+        // Update user status
+        $currentDate = date('Y-m-d');
+        $updateUserQuery = "UPDATE users SET status = '1', last_update = ? WHERE id = ?";
+        $stmt = $conn->prepare($updateUserQuery);
+        if (!$stmt) {
+            throw new Exception("Prepare statement failed: " . $conn->error);
+        }
+        $stmt->bind_param('si', $currentDate, $user_id);
+        if (!$stmt->execute()) {
+            throw new Exception("Execute statement failed: " . $stmt->error);
+        }
+
         $response['success'] = true;
         $response['message'] = 'Books checked out successfully.';
     } catch (Exception $e) {

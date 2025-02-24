@@ -1,12 +1,12 @@
 <?php
 session_start();
 
+// Only unset user-specific session variables
+unset($_SESSION['user_id']);
+unset($_SESSION['user_name']);
+unset($_SESSION['user_type']);
 
-
-// Destroy the session
-session_unset();
-session_destroy();
-
-// Redirect to the determined URL
-header("Location: ../");
+// Redirect to the user login page
+header("Location: index.php");
 exit();
+?>

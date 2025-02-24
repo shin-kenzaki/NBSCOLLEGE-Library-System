@@ -1,117 +1,120 @@
 <?php
 session_start();
+include('../db.php');
 
 // Check if user is logged in and has appropriate role
 if (!isset($_SESSION['admin_id']) || ($_SESSION['role'] !== 'Admin' && $_SESSION['role'] !== 'Librarian')) {
-    header('Location: login.php');
+    echo json_encode(['success' => false, 'message' => 'Unauthorized access']);
     exit();
 }
 
-if (isset($_GET['id'])) {
-    $reservation_id = $_GET['id'];
-    
-    // Database connection
-    $servername = "localhost";
-    $username = "root";
-    $password = "";
-    $dbname = "librarysystem";
-
-    $conn = new mysqli($servername, $username, $password, $dbname);
-
-    if ($conn->connect_error) {
-        die("Connection failed: " . $conn->connect_error);
+// Get input data - either from GET for single or POST for bulk
+$ids = [];
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['id'])) {
+    $ids[] = intval($_GET['id']);
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $json = file_get_contents('php://input');
+    $data = json_decode($json, true);
+    if (isset($data['ids']) && !empty($data['ids'])) {
+        $ids = array_map('intval', $data['ids']);
     }
+}
 
-    // Start transaction
-    $conn->begin_transaction();
+if (empty($ids)) {
+    echo json_encode(['success' => false, 'message' => 'No reservations selected']);
+    exit();
+}
 
-    try {
-        // Debug log
-        error_log("Processing reservation ID: " . $reservation_id);
+// Start transaction
+$conn->begin_transaction();
 
-        // First check if reservation can be marked as ready
-        $sql = "SELECT r.status, r.book_id, r.user_id, b.title, b.status as book_status, 
-                CONCAT(u.firstname, ' ', u.lastname) as borrower_name
-                FROM reservations r 
-                JOIN books b ON r.book_id = b.id 
-                JOIN users u ON r.user_id = u.id
-                WHERE r.id = ?";
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("i", $reservation_id);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $reservation = $result->fetch_assoc();
+try {
+    $ids_string = implode(',', $ids);
+    
+    // First, get the reservations and related book information
+    $query = "SELECT r.id, r.book_id, r.user_id, b.title, b.status as book_status,
+              CONCAT(u.firstname, ' ', u.lastname) as borrower_name
+              FROM reservations r
+              JOIN books b ON r.book_id = b.id
+              JOIN users u ON r.user_id = u.id
+              WHERE r.id IN ($ids_string)
+              AND r.status = 'PENDING'
+              AND r.recieved_date IS NULL 
+              AND r.cancel_date IS NULL";
+    
+    $result = $conn->query($query);
+    $updates = [];
+    $errors = [];
 
-        // Check if reservation status is valid for marking as ready
-        if (strtolower($reservation['status']) === 'ready' || strtolower($reservation['status']) === 'borrowed') {
-            throw new Exception("This reservation cannot be marked as ready - current status: " . $reservation['status']);
-        }
-
+    while ($reservation = $result->fetch_assoc()) {
         $book_id_to_update = $reservation['book_id'];
         
-        // Only look for another book if current book is not available
+        // If current book is not available, look for another copy
         if ($reservation['book_status'] !== 'Available') {
-            // Look for another available copy of the same book
-            $sql = "SELECT id FROM books WHERE title = ? AND status = 'Available' AND id != ? LIMIT 1";  
+            $sql = "SELECT id FROM books WHERE title = ? AND status = 'Available' AND id != ? LIMIT 1";
             $stmt = $conn->prepare($sql);
             $stmt->bind_param("si", $reservation['title'], $reservation['book_id']);
             $stmt->execute();
-            $result = $stmt->get_result();
+            $alt_result = $stmt->get_result();
 
-            if ($result->num_rows > 0) {
-                // Get the new book_id
-                $new_book = $result->fetch_assoc();
+            if ($alt_result->num_rows > 0) {
+                $new_book = $alt_result->fetch_assoc();
                 $book_id_to_update = $new_book['id'];
-
-                // Update the reservation with the new book_id
-                $sql = "UPDATE reservations SET book_id = ? WHERE id = ?";
-                $stmt = $conn->prepare($sql);
-                $stmt->bind_param("ii", $book_id_to_update, $reservation_id);
-                $stmt->execute();
+                
+                // Update reservation with new book_id
+                $updates[] = [
+                    'reservation_id' => $reservation['id'],
+                    'book_id' => $book_id_to_update,
+                    'needs_book_update' => true
+                ];
             } else {
-                // No available copies available - throw a more descriptive error
-                throw new Exception(sprintf(
-                    "Cannot mark %s's reservation as ready: No available copies of '%s' available.",
+                $errors[] = sprintf(
+                    "Cannot mark %s's reservation as ready: No available copies of '%s'",
                     htmlspecialchars($reservation['borrower_name']),
                     htmlspecialchars($reservation['title'])
-                ));
+                );
+                continue;
             }
+        } else {
+            $updates[] = [
+                'reservation_id' => $reservation['id'],
+                'book_id' => $book_id_to_update,
+                'needs_book_update' => false
+            ];
         }
-
-        // Update reservation status to Ready
-        $sql = "UPDATE reservations SET status = 'Ready' WHERE id = ?";
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("i", $reservation_id);
-        
-        if (!$stmt->execute()) {
-            error_log("SQL Error: " . $stmt->error);
-            throw new Exception("Failed to update status: " . $stmt->error);
-        }
-
-        // Update book status to Reserved
-        $sql = "UPDATE books SET status = 'Reserved' WHERE id = ?";
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("i", $book_id_to_update);
-        
-        if (!$stmt->execute()) {
-            error_log("SQL Error: " . $stmt->error);
-            throw new Exception("Failed to update book status: " . $stmt->error);
-        }
-
-        $conn->commit();
-        header('Location: book_reservations.php?success=' . urlencode(
-            sprintf("%s's reservation has been marked as ready", $reservation['borrower_name'])
-        ));
-
-    } catch (Exception $e) {
-        error_log("Error in mark_ready.php: " . $e->getMessage());
-        $conn->rollback();
-        header('Location: book_reservations.php?error=' . urlencode($e->getMessage()));
     }
 
-    $stmt->close();
-    $conn->close();
-} else {
-    header('Location: book_reservations.php');
+    // If there are any errors, don't proceed with updates
+    if (!empty($errors)) {
+        throw new Exception(implode("\n", $errors));
+    }
+
+    // Perform the updates
+    foreach ($updates as $update) {
+        // Update reservation status
+        $sql = "UPDATE reservations SET status = 'Ready'";
+        if ($update['needs_book_update']) {
+            $sql .= ", book_id = " . $update['book_id'];
+        }
+        $sql .= " WHERE id = " . $update['reservation_id'];
+        
+        if (!$conn->query($sql)) {
+            throw new Exception("Error updating reservation status");
+        }
+
+        // Update book status
+        $sql = "UPDATE books SET status = 'Reserved' WHERE id = " . $update['book_id'];
+        if (!$conn->query($sql)) {
+            throw new Exception("Error updating book status");
+        }
+    }
+
+    $conn->commit();
+    echo json_encode(['success' => true]);
+} catch (Exception $e) {
+    $conn->rollback();
+    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }
+
+$conn->close();
 ?>

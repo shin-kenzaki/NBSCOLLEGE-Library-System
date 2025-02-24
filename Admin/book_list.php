@@ -49,51 +49,74 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_book_id'])) {
     exit();
 }
 
+// Helper function to expand ID ranges into array of individual IDs
+function expandIdRanges($idRanges) {
+    $ids = [];
+    $ranges = explode(',', $idRanges);
+    
+    foreach ($ranges as $range) {
+        $range = trim($range);
+        if (strpos($range, '-') !== false) {
+            list($start, $end) = explode('-', $range);
+            $ids = array_merge($ids, range((int)$start, (int)$end));
+        } else {
+            $ids[] = (int)$range;
+        }
+    }
+    
+    return array_unique($ids);
+}
+
 // Handle batch book deletion
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['batch_delete'])) {
-    $bookIds = json_decode($_POST['book_ids']);
+    $bookIdRanges = json_decode($_POST['book_ids']);
+    $allBookIds = [];
+    
+    // Expand all ID ranges into individual IDs
+    foreach ($bookIdRanges as $idRange) {
+        $allBookIds = array_merge($allBookIds, expandIdRanges($idRange));
+    }
+    
     $success = true;
     $deleted = 0;
 
     // Start transaction
     $conn->begin_transaction();
     try {
-        foreach ($bookIds as $bookId) {
+        foreach ($allBookIds as $bookId) {
             // Delete related contributors first
-            $contribQuery = "DELETE FROM contributors WHERE book_id = ?";
-            $contribStmt = $conn->prepare($contribQuery);
+            $contribStmt = $conn->prepare("DELETE FROM contributors WHERE book_id = ?");
             $contribStmt->bind_param('i', $bookId);
             $contribStmt->execute();
 
-            // Delete related publications first
-            $pubQuery = "DELETE FROM publications WHERE book_id = ?";
-            $pubStmt = $conn->prepare($pubQuery);
+            // Delete related publications
+            $pubStmt = $conn->prepare("DELETE FROM publications WHERE book_id = ?");
             $pubStmt->bind_param('i', $bookId);
             $pubStmt->execute();
 
             // Delete the book
-            $bookQuery = "DELETE FROM books WHERE id = ?";
-            $bookStmt = $conn->prepare($bookQuery);
+            $bookStmt = $conn->prepare("DELETE FROM books WHERE id = ?");
             $bookStmt->bind_param('i', $bookId);
             $bookStmt->execute();
             
             if ($bookStmt->affected_rows > 0) {
                 $deleted++;
-            } else {
-                $success = false;
             }
         }
 
-        if ($success && $deleted > 0) {
+        if ($deleted > 0) {
             $conn->commit();
+            $response = [
+                'success' => true,
+                'message' => "$deleted copy/copies deleted successfully!"
+            ];
         } else {
             $conn->rollback();
+            $response = [
+                'success' => false,
+                'message' => 'No books were deleted.'
+            ];
         }
-
-        $response = [
-            'success' => $success,
-            'message' => $deleted . " book(s) and all related records deleted successfully!"
-        ];
     } catch (Exception $e) {
         $conn->rollback();
         $response = [
@@ -115,6 +138,34 @@ if (isset($_SESSION['success_message'])) {
 
 // Initialize search query
 $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
+
+// Modified query to group books by title with better grouping
+$query = "SELECT 
+    title,
+    GROUP_CONCAT(DISTINCT id ORDER BY id) as id_range,
+    GROUP_CONCAT(DISTINCT accession ORDER BY accession) as accession_range,
+    GROUP_CONCAT(CONCAT(call_number, '|', copy_number) ORDER BY copy_number) as call_number_data,
+    GROUP_CONCAT(DISTINCT copy_number ORDER BY copy_number) as copy_number_range,
+    GROUP_CONCAT(DISTINCT shelf_location ORDER BY shelf_location) as shelf_locations,
+    GROUP_CONCAT(DISTINCT ISBN ORDER BY ISBN) as isbns,
+    COUNT(*) as total_copies,
+    GROUP_CONCAT(DISTINCT series ORDER BY series) as series_data,
+    GROUP_CONCAT(DISTINCT edition ORDER BY edition) as editions,
+    GROUP_CONCAT(DISTINCT volume ORDER BY volume) as volumes
+    FROM books ";
+
+if (!empty($searchQuery)) {
+    $query .= " WHERE title LIKE ? ";
+    $stmt = $conn->prepare($query);
+    $searchParam = "%$searchQuery%";
+    $stmt->bind_param("s", $searchParam);
+} else {
+    $stmt = $conn->prepare($query);
+}
+
+$query .= " GROUP BY title ORDER BY title";
+$stmt->execute();
+$result = $stmt->get_result();
 ?>
 
 <!DOCTYPE html>
@@ -141,169 +192,177 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
                     <div>
                         <h6 class="m-0 font-weight-bold text-primary">Book List</h6>
-                        <small id="selectedCount" class="text-muted">(0 books selected)</small>
                     </div>
-                    <a href="add-book.php" class="btn btn-primary">Add Book</a>
+                    <div>
+                        <button class="btn btn-danger btn-sm mx-1" id="batchDelete" disabled>
+                            Delete Selected (<span id="selectedCountButton">0</span>)
+                        </button>
+                        <a href="add-book.php" class="btn btn-primary btn-sm">Add Book</a>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <!-- Remove the custom search form and keep only the action buttons -->
-                        <div class="mb-3" id="addContributorsIcons">
-                            <button class="btn btn-success btn-sm mx-1" id="addContributorsPerson"><i class="fas fa-user-plus"></i> Add Contributors</button>
-                            <button class="btn btn-success btn-sm mx-1" id="addPublisher"><i class="fas fa-building"></i> Add Publication</button>
-                            <button class="btn btn-danger btn-sm mx-1" id="batchDelete"><i class="fas fa-trash"></i> Delete Selected</button>
-                        </div>
+                        <!-- Remove the buttons container as we moved the delete button -->
                         <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
-                            <thead>
-                                <tr>
-                                    <th><input type="checkbox" id="selectAll"></th>
-                                    <th>ID</th>
-                                    <th>Accession</th>
-                                    <th>Title</th>
-                                    <th>Preferred Title</th>
-                                    <th>Parallel Title</th>
-                                    <th>Front Image</th>
-                                    <th>Back Image</th>
-                                    <th>Dimension(cm)</th>
-                                    <th>Total Pages</th>
-                                    <th>Call Number</th>
-                                    <th>Copy Number</th>
-                                    <th>Language</th>
-                                    <th>Shelf Location</th>
-                                    <th>Entered By</th>
-                                    <th>Date Added</th>
-                                    <th>Status</th>
-                                    <th>Last Update</th>
-                                    <th>Series</th>
-                                    <th>Volume</th>
-                                    <th>Edition</th>
-                                    <th>Content Type</th>
-                                    <th>Media Type</th>
-                                    <th>Carrier Type</th>
-                                    <th>ISBN</th>
-                                    <th>URL</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php
-                                // Fetch books from database
-                                $query = "SELECT * FROM books";
-                                if (!empty($searchQuery)) {
-                                    $query .= " WHERE title LIKE '%$searchQuery%' OR preferred_title LIKE '%$searchQuery%' OR parallel_title LIKE '%$searchQuery%' OR ISBN LIKE '%$searchQuery%'";
-                                }
-                                $query .= " ORDER BY id DESC";
-                                $result = $conn->query($query);
+    <thead>
+        <tr>
+            <th><input type="checkbox" id="selectAll"></th>
+            <th>ID Range</th>
+            <th>Title</th>
+            <th>Accession Range</th>
+            <th>Call Number Range</th>
+            <th>Copy Number Range</th>
+            <th>Shelf Locations</th>
+            <th>ISBN</th>
+            <th>Total Copies</th>
+        </tr>
+    </thead>
+    <tbody>
+        <?php
+        // Modified query to group books by title with better grouping
+        $query = "SELECT 
+            title,
+            GROUP_CONCAT(DISTINCT id ORDER BY id) as id_range,
+            GROUP_CONCAT(DISTINCT accession ORDER BY accession) as accession_range,
+            GROUP_CONCAT(CONCAT(call_number, '|', copy_number) ORDER BY copy_number) as call_number_data,
+            GROUP_CONCAT(DISTINCT copy_number ORDER BY copy_number) as copy_number_range,
+            GROUP_CONCAT(DISTINCT shelf_location ORDER BY shelf_location) as shelf_locations,
+            GROUP_CONCAT(DISTINCT ISBN ORDER BY ISBN) as isbns,
+            COUNT(*) as total_copies,
+            GROUP_CONCAT(DISTINCT series ORDER BY series) as series_data,
+            GROUP_CONCAT(DISTINCT edition ORDER BY edition) as editions,
+            GROUP_CONCAT(DISTINCT volume ORDER BY volume) as volumes
+            FROM books ";
+        
+        if (!empty($searchQuery)) {
+            $query .= " WHERE title LIKE '%$searchQuery%' ";
+        }
+        
+        $query .= " GROUP BY title ORDER BY title";
+        
+        $result = $conn->query($query);
 
-                                while ($row = $result->fetch_assoc()) {
-                                    echo "<tr>
-                                        <td><input type='checkbox' class='selectRow' value='{$row['id']}'></td>
-                                        <td>{$row['id']}</td>
-                                        <td>{$row['accession']}</td>
-                                        <td>{$row['title']}</td>
-                                        <td>{$row['preferred_title']}</td>
-                                        <td>{$row['parallel_title']}</td>
-                                        <td>";
-                                    if (!empty($row['front_image'])) {
-                                        echo "<img src='../inc/book-image/{$row['front_image']}' alt='Front Image' width='50'>";
-                                    } else {
-                                        echo "No Image";
-                                    }
-                                    echo "</td>
-                                        <td>";
-                                    if (!empty($row['back_image'])) {
-                                        echo "<img src='../inc/book-image/{$row['back_image']}' alt='Back Image' width='50'>";
-                                    } else {
-                                        echo "No Image";
-                                    }
-                                    echo "</td>
-                                        <td>{$row['dimension']}</td>
-                                        <td>{$row['total_pages']}</td>
-                                        <td>{$row['call_number']}</td>
-                                        <td>{$row['copy_number']}</td>
-                                        <td>{$row['language']}</td>
-                                        <td>{$row['shelf_location']}</td>
-                                        <td>{$row['entered_by']}</td>
-                                        <td>{$row['date_added']}</td>
-                                        <td>{$row['status']}</td>
-                                        <td>{$row['last_update']}</td>
-                                        <td>{$row['series']}</td>
-                                        <td>{$row['volume']}</td>
-                                        <td>{$row['edition']}</td>
-                                        <td>{$row['content_type']}</td>
-                                        <td>{$row['media_type']}</td>
-                                        <td>{$row['carrier_type']}</td>
-                                        <td>{$row['ISBN']}</td>
-                                        <td>";
-                                    echo !empty($row['URL']) ? "<a href='{$row['URL']}' target='_blank'>View</a>" : "N/A";
-                                    echo "</td>
-                                    </tr>";
-                                }
-                                ?>
-                            </tbody>
-                        </table>
+        while ($row = $result->fetch_assoc()) {
+            // Process IDs
+            $ids = explode(',', $row['id_range']);
+            $id_range = formatRange($ids);
+
+            // Process accessions
+            $accessions = explode(',', $row['accession_range']);
+            $accession_range = formatRange($accessions);
+
+            // Process call numbers (using existing formatCallNumberSequence function)
+            $call_number_data = explode(',', $row['call_number_data']);
+            $call_numbers = [];
+            $current_base = '';
+            $current_sequence = [];
+
+            foreach ($call_number_data as $data) {
+                list($call_num, $copy_num) = explode('|', $data);
+                $base_call = preg_replace('/\s*c\d+$/', '', $call_num);
+
+                if ($base_call !== $current_base) {
+                    if (!empty($current_sequence)) {
+                        $call_numbers[] = formatCallNumberSequence($current_base, $current_sequence);
+                    }
+                    $current_base = $base_call;
+                    $current_sequence = [];
+                }
+                $current_sequence[] = $copy_num;
+            }
+            
+            if (!empty($current_sequence)) {
+                $call_numbers[] = formatCallNumberSequence($current_base, $current_sequence);
+            }
+
+            // Process copy numbers
+            $copy_numbers = explode(',', $row['copy_number_range']);
+            $copy_range = formatRange($copy_numbers);
+
+            // Process shelf locations
+            $shelf_locations = array_unique(explode(',', $row['shelf_locations']));
+            $formatted_shelf_locations = implode(', ', $shelf_locations);
+
+            // Process ISBNs
+            $isbns = array_unique(explode(',', $row['isbns']));
+            $formatted_isbns = implode(', ', array_filter($isbns));
+
+            // Format all data for display
+            echo "<tr>
+                <td><input type='checkbox' class='selectRow' value='" . implode(',', $ids) . "'></td>
+                <td>{$id_range}</td>
+                <td>{$row['title']}</td>
+                <td>{$accession_range}</td>
+                <td>" . implode('<br>', $call_numbers) . "</td>
+                <td>{$copy_range}</td>
+                <td>{$formatted_shelf_locations}</td>
+                <td>" . ($formatted_isbns ?: 'N/A') . "</td>
+                <td>{$row['total_copies']}</td>
+            </tr>";
+        }
+
+        // Helper function to format ranges smartly
+        function formatRange($numbers) {
+            if (empty($numbers)) return 'N/A';
+            
+            $numbers = array_map('intval', $numbers);
+            sort($numbers);
+            
+            $ranges = [];
+            $start = $numbers[0];
+            $prev = $start;
+            
+            for ($i = 1; $i <= count($numbers); $i++) {
+                if ($i == count($numbers) || $numbers[$i] - $prev > 1) {
+                    if ($start == $prev) {
+                        $ranges[] = $start;
+                    } else {
+                        $ranges[] = "$start-$prev";
+                    }
+                    if ($i < count($numbers)) {
+                        $start = $numbers[$i];
+                        $prev = $start;
+                    }
+                } else {
+                    $prev = $numbers[$i];
+                }
+            }
+            
+            return implode(', ', $ranges);
+        }
+
+        // Keep the existing formatCallNumberSequence function
+        function formatCallNumberSequence($base_call, $copies) {
+            sort($copies, SORT_NUMERIC);
+            $ranges = [];
+            $start = $copies[0];
+            $prev = $start;
+            
+            for ($i = 1; $i <= count($copies); $i++) {
+                if ($i == count($copies) || $copies[$i] - $prev > 1) {
+                    if ($start == $prev) {
+                        $ranges[] = $base_call . " c" . $start;
+                    } else {
+                        $ranges[] = $base_call . " c" . $start . " - " . $base_call . " c" . $prev;
+                    }
+                    if ($i < count($copies)) {
+                        $start = $copies[$i];
+                        $prev = $start;
+                    }
+                } else {
+                    $prev = $copies[$i];
+                }
+            }
+            return implode('<br>', $ranges); // Change comma to HTML line break
+        }
+        ?>
+    </tbody>
+</table>
                             </div>
         </div>
         <!-- /.container-fluid -->
 
-        <!-- Add Contributors Modal -->
-        <div class="modal fade" id="addContributorsModal" tabindex="-1" role="dialog" aria-labelledby="addContributorsModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-lg" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="addContributorsModalLabel">Add Contributors</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                    <div class="modal-body">
-                        <!-- Search Form -->
-                        <form id="searchContributorsForm" method="GET" action="book_list.php">
-                            <div class="input-group mb-3">
-                                <input type="text" id="searchContributors" name="search_contributors" class="form-control" placeholder="Search Contributors...">
-                                <div class="input-group-append">
-                                    <button class="btn btn-primary" type="submit">Search</button>
-                                </div>
-                            </div>
-                        </form>
-                        <!-- Contributors List -->
-                        <div class="table-responsive">
-                            <table class="table table-bordered" id="contributorsTable" width="100%" cellspacing="0">
-                                <thead>
-                                    <tr>
-                                        <th>Writer ID</th>
-                                        <th>First Name</th>
-                                        <th>Middle Initial</th>
-                                        <th>Last Name</th>
-                                        <th>Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php
-                                    // Fetch contributors from database
-                                    $contributorsQuery = "SELECT * FROM writers";
-                                    if (isset($_GET['search_contributors']) && !empty($_GET['search_contributors'])) {
-                                        $searchContributors = $conn->real_escape_string($_GET['search_contributors']);
-                                        $contributorsQuery .= " WHERE firstname LIKE '%$searchContributors%' OR middle_init LIKE '%$searchContributors%' OR lastname LIKE '%$searchContributors%'";
-                                    }
-                                    $contributorsResult = $conn->query($contributorsQuery);
-
-                                    while ($contributor = $contributorsResult->fetch_assoc()) {
-                                        echo "<tr>
-                                            <td>{$contributor['id']}</td>
-                                            <td>{$contributor['firstname']}</td>
-                                            <td>{$contributor['middle_init']}</td>
-                                            <td>{$contributor['lastname']}</td>
-                                            <td><button class='btn btn-success btn-sm addContributor' data-id='{$contributor['id']}'>Add</button></td>
-                                        </tr>";
-                                    }
-                                    ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <!-- Remove the Add Contributors Modal - it's no longer needed -->
 
         <!-- Context Menu -->
         <div id="contextMenu" class="dropdown-menu" style="display:none; position:absolute;">
@@ -331,8 +390,13 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
                     selectedBookIds.push($(this).val());
                 });
                 
-                // Update the counter display
-                $('#selectedCount').text(`(${selectedBookIds.length} books selected)`);
+                const count = selectedBookIds.length;
+                
+                // Update only the button counter
+                $('#selectedCountButton').text(count);
+                
+                // Enable/disable delete button
+                $('#batchDelete').prop('disabled', count === 0);
                 
                 // Store selected book IDs in session
                 $.post('selected_books.php', {
@@ -399,19 +463,11 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
                 // }
             }
 
-            // Redirect to add_contributors.php when "Add Contributors (Person)" button is clicked
-            $('#addContributorsPerson').click(function (e) {
-                e.preventDefault();
-                var queryString = selectedBookIds.map(id => `book_ids[]=${id}`).join('&');
-                window.location.href = `add_contributors.php?${queryString}`;
-            });
-
-            // Redirect to add_publication.php when "Add Publication" button is clicked
-            $('#addPublisher').click(function (e) {
-                e.preventDefault();
-                var queryString = selectedBookIds.map(id => `book_ids[]=${id}`).join('&');
-                window.location.href = `add_publication.php?${queryString}`;
-            });
+            // Remove the addContributorsIcons toggle function and related code
+            
+            // Remove the addContributorsPerson click handler
+            
+            // Remove the addPublisher click handler
 
             // Handle batch delete
             $('#batchDelete').click(function() {
@@ -420,7 +476,21 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
                     return;
                 }
 
-                if (confirm('Are you sure you want to delete ' + selectedBookIds.length + ' selected book(s)?')) {
+                // Count total copies by expanding all ID ranges
+                let totalCopies = 0;
+                selectedBookIds.forEach(function(idRange) {
+                    let ids = idRange.split(',');
+                    ids.forEach(function(id) {
+                        if (id.includes('-')) {
+                            let [start, end] = id.split('-');
+                            totalCopies += parseInt(end) - parseInt(start) + 1;
+                        } else {
+                            totalCopies++;
+                        }
+                    });
+                });
+
+                if (confirm(`You are about to delete ${totalCopies} copy/copies. This cannot be undone! Are you sure?`)) {
                     $.ajax({
                         url: 'book_list.php',
                         type: 'POST',
@@ -431,7 +501,9 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
                         dataType: 'json',
                         success: function(response) {
                             alert(response.message);
-                            location.reload();
+                            if (response.success) {
+                                location.reload();
+                            }
                         },
                         error: function() {
                             alert('Error occurred while deleting books.');
@@ -450,6 +522,7 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
         <script>
         $(document).ready(function () {
             var selectedBookId;
+            var selectedIdRange;
 
             // Add click handler for viewing book details
             $('#dataTable tbody').on('click', 'tr', function(e) {
@@ -466,7 +539,9 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
                 e.preventDefault();
                 $('#dataTable tbody tr').removeClass('context-menu-active');
                 $(this).addClass('context-menu-active');
-                selectedBookId = $(this).find('td:nth-child(2)').text();
+                selectedIdRange = $(this).find('td:nth-child(2)').text(); // Get the ID range
+                var totalCopies = $(this).find('td:last').text(); // Get total copies from last column
+                $(this).data('totalCopies', totalCopies); // Store for later use
                 $('#contextMenu').css({
                     display: 'block',
                     left: e.pageX,
@@ -482,15 +557,35 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
 
             // Handle context menu actions
             $('#updateBook').click(function() {
-                window.location.href = `update_book.php?book_id=${selectedBookId}`;
+                var $row = $('.context-menu-active');
+                var title = $row.find('td:nth-child(3)').text();
+                window.location.href = `update_books.php?title=${encodeURIComponent(title)}&id_range=${encodeURIComponent(selectedIdRange)}`;
             });
 
             $('#deleteBook').click(function() {
-                if (confirm('Are you sure you want to delete this book?')) {
-                    $.post('book_list.php', { delete_book_id: selectedBookId }, function(response) {
-                        alert(response.message);
-                        location.reload();
-                    }, 'json');
+                var $row = $('.context-menu-active');
+                var totalCopies = $row.data('totalCopies');
+                var title = $row.find('td:nth-child(3)').text();
+
+                if (confirm(`You are about to delete ${totalCopies} copy/copies of "${title}". This cannot be undone! Are you sure?`)) {
+                    $.ajax({
+                        url: 'book_list.php',
+                        type: 'POST',
+                        data: {
+                            batch_delete: true,
+                            book_ids: JSON.stringify([selectedIdRange])
+                        },
+                        dataType: 'json',
+                        success: function(response) {
+                            alert(response.message);
+                            if (response.success) {
+                                location.reload();
+                            }
+                        },
+                        error: function() {
+                            alert('Error occurred while deleting books.');
+                        }
+                    });
                 }
             });
         });
@@ -503,8 +598,7 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
                        "<'row mt-3'<'col-sm-5'i><'col-sm-7 d-flex justify-content-end'p>>",
                 "pageLength": 10,
                 "lengthMenu": [[10, 25, 50, 100, 500], [10, 25, 50, 100, 500]],
-                "responsive": false, // Disable responsive feature
-                "scrollX": true,    // Enable horizontal scroll
+                "responsive": true,
                 "columnDefs": [
                     { 
                         "orderable": false, 
@@ -512,23 +606,11 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
                         "targets": 0 
                     }
                 ],
+                "order": [[2, "asc"]], // Sort by title by default
                 "language": {
                     "search": "_INPUT_",
                     "searchPlaceholder": "Search..."
-                },
-                "initComplete": function() {
-                    $('#dataTable_filter input').addClass('form-control form-control-sm');
-                    $('#dataTable_filter').addClass('d-flex align-items-center');
-                    $('#dataTable_filter label').append('<i class="fas fa-search ml-2"></i>');
-                    $('.dataTables_paginate .paginate_button').addClass('btn btn-sm btn-outline-primary mx-1');
                 }
-            });
-
-            // Keep the original checkbox click handler for direct checkbox clicks
-            $(document).on('click', '.selectRow', function(e) {
-                // Stop propagation to prevent the td click handler from firing
-                e.stopPropagation();
-                updateSelectedBookIds();
             });
         });
         </script>

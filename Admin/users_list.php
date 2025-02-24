@@ -10,6 +10,20 @@ if (!isset($_SESSION['admin_id'])) {
 include '../admin/inc/header.php';
 include '../db.php';
 include 'inc/status_helper.php';
+include 'inc/auto_status_update.php';
+
+// Auto update inactive users
+updateInactiveUsers($conn);
+
+// Fix the password generation function
+function generatePassword($length = 10) {
+    $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()';
+    $password = '';
+    for ($i = 0; $i < $length; $i++) { // Fix the comparison operator
+        $password .= $chars[rand(0, strlen($chars) - 1)];
+    }
+    return $password;
+}
 
 $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
 
@@ -18,7 +32,7 @@ $errors = [
     'firstname' => '',
     'lastname' => '',
     'email' => '',
-    'password' => '',
+    'usertype' => '' // Remove password from errors array
 ];
 $values = [
     'school_id' => '',
@@ -26,25 +40,22 @@ $values = [
     'middle_init' => '',
     'lastname' => '',
     'email' => '',
-    'password' => '',
     'contact_no' => '',
-    'usertype' => '', // Add this line
+    'usertype' => '', // Remove password from values array
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $school_id = $_POST['school_id']; 
-    $firstname = trim($_POST['firstname']);
-    $middle_init = trim($_POST['middle_init']) ?? NULL;
-    $lastname = trim($_POST['lastname']);
-    $email = $_POST['email']; 
-    $password = $_POST['password'];
-    $contact_no = $_POST['contact_no'];
-    $usertype = $_POST['usertype']; // Add this line
-    $status = $_POST['status'] ?? 0;
+    $school_id = $_POST['school_id'] ?? ''; 
+    $firstname = trim($_POST['firstname'] ?? '');
+    $middle_init = trim($_POST['middle_init'] ?? '') ?: NULL;
+    $lastname = trim($_POST['lastname'] ?? '');
+    $email = $_POST['email'] ?? ''; 
+    $contact_no = $_POST['contact_no'] ?? '';
+    $usertype = $_POST['usertype'] ?? ''; // Add null coalescing operator
+    $status = 1; // Automatically set status to Active (1)
     
     // Default values
-    $user_image = '/upload/default-avatar.png';
-    // Remove or comment out this line since usertype is now from input
+    $user_image = 'inc/upload/default-avatar.jpg';    // Remove or comment out this line since usertype is now from input
     // $usertype = 'student'; 
     $borrowed_books = 0;
     $returned_books = 0;
@@ -55,14 +66,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id_image = '/upload/default-id.png';
 
     // Store values to retain input data
-    $values = compact('school_id', 'firstname', 'middle_init', 'lastname', 'email', 'password', 'contact_no', 'usertype');
+    $values = compact('school_id', 'firstname', 'middle_init', 'lastname', 'email', 'contact_no', 'usertype');
 
-    // Validation
-    if (empty($school_id)) $errors['school_id'] = "School ID is required.";
-    if (empty($firstname)) $errors['firstname'] = "First name is required.";
-    if (empty($lastname)) $errors['lastname'] = "Last name is required.";
-    if (empty($email)) $errors['email'] = "Email is required.";
-    if (empty($password) || strlen($password) < 8) $errors['password'] = "Password must be at least 8 characters.";
+    // Generate password automatically
+    $password = generatePassword(12); // 12 characters long
+
+    // Validation with more specific error messages
+    if (empty($school_id)) {
+        $errors['school_id'] = "Physical ID number is required.";
+        $formSubmitted = true;
+    }
+    if (empty($firstname)) {
+        $errors['firstname'] = "First name is required.";
+        $formSubmitted = true;
+    }
+    if (empty($lastname)) {
+        $errors['lastname'] = "Last name is required.";
+        $formSubmitted = true;
+    }
+    if (empty($email)) {
+        $errors['email'] = "Email is required.";
+        $formSubmitted = true;
+    }
+    if (empty($usertype)) {
+        $errors['usertype'] = "Please select a user type.";
+        $formSubmitted = true;
+    }
 
     // Check for duplicates
     if (!array_filter($errors)) {
@@ -74,8 +103,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($result_check->num_rows > 0) {
             while ($row = $result_check->fetch_assoc()) {
-                if ($row['school_id'] == $school_id) $errors['school_id'] = "This School ID is already in use.";
-                if ($row['email'] == $email) $errors['email'] = "This email is already taken.";
+                if ($row['school_id'] == $school_id) {
+                    $errors['school_id'] = "This ID number is already in use.";
+                    $formSubmitted = true;
+                }
+                if ($row['email'] == $email) {
+                    $errors['email'] = "This email is already taken.";
+                    $formSubmitted = true;
+                }
             }
         } else {
             // Insert new user with all required fields
@@ -85,13 +120,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 email, password, contact_no, user_image, 
                 usertype, borrowed_books, returned_books, 
                 damaged_books, lost_books, address, 
-                id_type, id_image, status, date_added
+                id_type, id_image, status, date_added, last_update
             ) VALUES (
                 ?, ?, ?, ?, 
                 ?, ?, ?, ?,
                 ?, ?, ?, 
                 ?, ?, ?,
-                ?, ?, ?, NOW()
+                ?, ?, ?, NOW(), NOW()
             )";
             
             $stmt = $conn->prepare($sql);
@@ -106,12 +141,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if ($stmt->execute()) {
                 echo "<script>
-                    alert('User has been added successfully.');
-                    window.location.href='users_list.php';
+                    document.addEventListener('DOMContentLoaded', function() {
+                        Swal.fire({
+                            title: 'User Added Successfully',
+                            html: `
+                                <div class='text-center'>
+                                    <p><strong>Physical ID Number:</strong> " . $school_id . "</p>
+                                    <p><strong>Generated Password:</strong> " . $password . "</p>
+                                    <p class='text-danger'><small>Please make sure to copy this information now!</small></p>
+                                </div>
+                            `,
+                            icon: 'success',
+                            allowOutsideClick: false,
+                            confirmButtonText: 'OK'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                window.location.href = 'users_list.php';
+                            }
+                        });
+                    });
                 </script>";
-                exit;
             } else {
-                echo "<script>alert('Error adding user: " . $stmt->error . "');</script>";
+                $errors['general'] = "Error adding user: " . $stmt->error;
+                $formSubmitted = true;
             }
             $stmt->close();
         }
@@ -125,24 +177,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <!-- Begin Page Content -->
 <div id="content" class="d-flex flex-column min-vh-100">
     <div class="container-fluid">
-        <!-- Page Heading -->
-        <h1 class="h3 mb-4 text-gray-800">User Management</h1>
-        
         <div class="card shadow mb-4">
             <div class="card-header py-3 d-flex justify-content-between align-items-center">
                 <h6 class="m-0 font-weight-bold text-primary">Users List</h6>
-                <a href="#" class="btn btn-success btn-sm" data-toggle="modal" data-target="#addUserModal">
-                    <i class="fas fa-plus"></i> Add New User
-                </a>
+                <div>
+                    <button id="bulkDeleteBtn" class="btn btn-danger btn-sm mr-2" disabled>
+                        Delete Selected (<span id="selectedCount">0</span>)
+                    </button>
+                    <a href="#" class="btn btn-success btn-sm" data-toggle="modal" data-target="#addUserModal">
+                        <i class="fas fa-plus"></i> Add New User
+                    </a>
+                </div>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table table-bordered" id="usersTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
-                                <th><input type="checkbox" id="selectAll"></th>
+                                <th style="width: 30px;"></th>
                                 <th>ID</th>
-                                <th>School ID</th>
+                                <th>Physical ID Number</th>
                                 <th>Name</th>
                                 <th>Email</th>
                                 <th>Contact</th>
@@ -156,7 +210,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </tr>
                         </thead>
                         <tbody>
-                            <!-- Data will be loaded via AJAX -->
+                            <?php
+                            $query = "SELECT u.*, 
+                                u.borrowed_books,
+                                u.returned_books,
+                                u.damaged_books,
+                                u.lost_books
+                                FROM users u
+                                ORDER BY u.date_added DESC";
+                            $result = $conn->query($query);
+
+                            while ($row = $result->fetch_assoc()) {
+                                $fullname = $row['firstname'] . ' ' . ($row['middle_init'] ? $row['middle_init'] . ' ' : '') . $row['lastname'];
+                                list($status_class, $status_text) = getStatusDisplay($row['status']);
+                                
+                                echo "<tr>";
+                                echo "<td><input type='checkbox' class='user-checkbox' data-user-id='{$row['id']}'></td>";
+                                echo "<td>{$row['id']}</td>";
+                                echo "<td>{$row['school_id']}</td>";
+                                echo "<td>" . htmlspecialchars($fullname) . "</td>";
+                                echo "<td>{$row['email']}</td>";
+                                echo "<td>{$row['contact_no']}</td>";
+                                echo "<td><span class='badge badge-info'>{$row['borrowed_books']}</span></td>";
+                                echo "<td><span class='badge badge-success'>{$row['returned_books']}</span></td>";
+                                echo "<td><span class='badge badge-warning'>{$row['damaged_books']}</span></td>";
+                                echo "<td><span class='badge badge-danger'>{$row['lost_books']}</span></td>";
+                                echo "<td><span class='badge {$status_class}'>{$status_text}</span></td>";
+                                echo "<td>" . date('M d, Y', strtotime($row['date_added'])) . "</td>";
+                                echo "<td>" . ($row['last_update'] ? date('M d, Y', strtotime($row['last_update'])) : 'Never') . "</td>";
+                                echo "</tr>";
+                            }
+                            ?>
                         </tbody>
                     </table>
                 </div>
@@ -168,14 +252,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <!-- Context Menu -->
 <div id="contextMenu" class="dropdown-menu" style="display:none; position:absolute;">
-    <a class="dropdown-item" href="#" id="viewUser">View Details</a>
     <a class="dropdown-item" href="#" id="updateUser">Update</a>
     <a class="dropdown-item" href="#" id="deleteUser">Delete</a>
 </div>
 
 <!-- Add User Modal -->
-<div class="modal fade <?php if (isset($formSubmitted) && $formSubmitted) echo 'show d-block'; ?>" id="addUserModal" tabindex="-1" role="dialog" aria-labelledby="addUserModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
+<div class="modal fade <?php if (isset($formSubmitted)) echo 'show'; ?>" id="addUserModal" 
+     tabindex="-1" role="dialog" aria-labelledby="addUserModalLabel" 
+     aria-hidden="true" <?php if (isset($formSubmitted)) echo 'style="display: block;"'; ?>>
+    <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="addUserModalLabel">Add New User</h5>
@@ -183,36 +268,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <form id="addUserForm" action="" method="POST">
+            <form id="addUserForm" action="" method="POST" onsubmit="return confirmSubmit(event)">
                 <div class="modal-body">
-                    <div class="form-group">
-                        <label>School ID</label>
-                        <input type="text" name="school_id" class="form-control" value="<?= htmlspecialchars($values['school_id'] ?? '') ?>">
-                        <small class="text-danger"><?= $errors['school_id'] ?? '' ?></small>
+                    <?php if (!empty($errors['general'])): ?>
+                        <div class="alert alert-danger"><?= $errors['general'] ?></div>
+                    <?php endif; ?>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label>Physical ID Number</label>
+                                <input type="text" name="school_id" class="form-control" value="<?= htmlspecialchars($values['school_id'] ?? '') ?>">
+                                <small class="text-danger"><?= $errors['school_id'] ?? '' ?></small>
+                            </div>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>First Name</label>
-                        <input type="text" name="firstname" class="form-control" value="<?= htmlspecialchars($values['firstname'] ?? '') ?>">
-                        <small class="text-danger"><?= $errors['firstname'] ?? '' ?></small>
-                    </div>
-                    <div class="form-group">
-                        <label>Middle Initial</label>
-                        <input type="text" name="middle_init" class="form-control" value="<?= htmlspecialchars($values['middle_init'] ?? '') ?>">
-                    </div>
-                    <div class="form-group">
-                        <label>Last Name</label>
-                        <input type="text" name="lastname" class="form-control" value="<?= htmlspecialchars($values['lastname'] ?? '') ?>">
-                        <small class="text-danger"><?= $errors['lastname'] ?? '' ?></small>
+                    <div class="row">
+                        <div class="col-md-5">
+                            <div class="form-group">
+                                <label>First Name</label>
+                                <input type="text" name="firstname" class="form-control" value="<?= htmlspecialchars($values['firstname'] ?? '') ?>">
+                                <small class="text-danger"><?= $errors['firstname'] ?? '' ?></small>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label>M.I.</label>
+                                <input type="text" name="middle_init" class="form-control" value="<?= htmlspecialchars($values['middle_init'] ?? '') ?>">
+                            </div>
+                        </div>
+                        <div class="col-md-5">
+                            <div class="form-group">
+                                <label>Last Name</label>
+                                <input type="text" name="lastname" class="form-control" value="<?= htmlspecialchars($values['lastname'] ?? '') ?>">
+                                <small class="text-danger"><?= $errors['lastname'] ?? '' ?></small>
+                            </div>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label>Email</label>
                         <input type="email" name="email" class="form-control" value="<?= htmlspecialchars($values['email'] ?? '') ?>">
                         <small class="text-danger"><?= $errors['email'] ?? '' ?></small>
-                    </div>
-                    <div class="form-group">
-                        <label>Password</label>
-                        <input type="password" name="password" class="form-control">
-                        <small class="text-danger"><?= $errors['password'] ?? '' ?></small>
                     </div>
                     <div class="form-group">
                         <label>Contact Number</label>
@@ -227,15 +322,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <option value="staff" <?= ($values['usertype'] ?? '') == 'staff' ? 'selected' : '' ?>>Staff</option>
                             <option value="visitor" <?= ($values['usertype'] ?? '') == 'visitor' ? 'selected' : '' ?>>Visitor</option>
                         </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Status</label>
-                        <select name="status" class="form-control">
-                            <option value="0" selected>Inactive</option>
-                            <option value="1">Active</option>
-                            <option value="2">Banned</option>
-                            <option value="3">Disabled</option>
-                        </select>
+                        <small class="text-danger"><?= $errors['usertype'] ?? '' ?></small>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -247,6 +334,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 </div>
 
+<!-- Add SweetAlert2 library before your closing body tag -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <script>
 $(document).ready(function() {
     var selectedUserIds = [];
@@ -255,7 +345,7 @@ $(document).ready(function() {
         "dom": "<'row mb-3'<'col-sm-6'l><'col-sm-6 d-flex justify-content-end'f>>" +
                "<'row'<'col-sm-12'tr>>" +
                "<'row mt-3'<'col-sm-5'i><'col-sm-7 d-flex justify-content-end'p>>",
-        "order": [[11, "desc"]], 
+        "order": [[10, "desc"]],
         "pageLength": 10,
         "responsive": true,
         "language": {
@@ -263,18 +353,6 @@ $(document).ready(function() {
             "searchPlaceholder": "Search..."
         }
     });
-
-    function fetchUsers() {
-        $.ajax({
-            url: 'fetch_users.php',
-            type: 'GET',
-            success: function(response) {
-                $('#usersTable tbody').html(response);
-            }
-        });
-    }
-
-    fetchUsers();
 
     // Context Menu functionality
     var selectedUserId;
@@ -296,15 +374,12 @@ $(document).ready(function() {
     });
 
     // Context Menu Actions
-    $('#viewUser').click(function() {
-        window.location.href = `view_user.php?id=${selectedUserId}`;
-    });
-
+    // Remove the viewUser click handler
+    
     $('#updateUser').click(function() {
         window.location.href = `edit_user.php?id=${selectedUserId}`;
     });
 
-    // Update the delete action in the context menu handler
     $('#deleteUser').click(function() {
         if (confirm('Are you sure you want to delete this user?')) {
             window.location.href = 'delete_user.php?id=' + selectedUserId;
@@ -313,6 +388,141 @@ $(document).ready(function() {
 
     // Change the "Add User" button to trigger the modal
     $('.card-header .btn-success').attr('data-toggle', 'modal').attr('data-target', '#addUserModal');
+
+    // Add this to handle modal state after form submission with errors
+    <?php if (isset($formSubmitted)): ?>
+    $('#addUserModal').modal('show');
+    <?php endif; ?>
+
+    // Enhanced form validation and submission
+    $('#addUserForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        // Check required fields
+        let form = this;
+        let hasErrors = false;
+        
+        // Basic validation before showing confirmation
+        if (!form.school_id.value) {
+            $('[name="school_id"]').next('.text-danger').text('Physical ID number is required.');
+            hasErrors = true;
+        }
+        if (!form.firstname.value) {
+            $('[name="firstname"]').next('.text-danger').text('First name is required.');
+            hasErrors = true;
+        }
+        if (!form.lastname.value) {
+            $('[name="lastname"]').next('.text-danger').text('Last name is required.');
+            hasErrors = true;
+        }
+        if (!form.email.value) {
+            $('[name="email"]').next('.text-danger').text('Email is required.');
+            hasErrors = true;
+        }
+        if (!form.usertype.value) {
+            $('[name="usertype"]').next('.text-danger').text('Please select a user type.');
+            hasErrors = true;
+        }
+
+        if (hasErrors) {
+            return false;
+        }
+
+        // Updated confirmation message with centered content
+        Swal.fire({
+            title: 'Confirm User Addition',
+            html: `
+                <div class='text-center'>
+                    <p>Are you sure you want to add this user?</p>
+                    <p><strong>Physical ID Number:</strong> ${form.school_id.value}</p>
+                </div>
+            `,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, add user',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                form.submit();
+            }
+        });
+    });
+
+    // Remove the select all checkbox handlers and keep only individual checkbox handlers
+    $(document).on('change', '.user-checkbox', function() {
+        updateSelectedCount();
+    });
+
+    // Update selected count and button state
+    function updateSelectedCount() {
+        const checkedBoxes = $('.user-checkbox:checked').length;
+        $('#selectedCount').text(checkedBoxes);
+        $('#bulkDeleteBtn').prop('disabled', checkedBoxes === 0);
+    }
+
+    // Add bulk delete handler
+    $('#bulkDeleteBtn').click(function() {
+        const selectedUsers = $('.user-checkbox:checked').map(function() {
+            return $(this).data('user-id');
+        }).get();
+
+        if (selectedUsers.length === 0) return;
+
+        Swal.fire({
+            title: 'Delete Selected Users?',
+            text: `Are you sure you want to delete ${selectedUsers.length} user(s)? This action cannot be undone!`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete them!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: 'bulk_delete_users.php',
+                    method: 'POST',
+                    data: { userIds: selectedUsers },
+                    success: function(response) {
+                        try {
+                            const result = JSON.parse(response);
+                            if (result.success) {
+                                Swal.fire(
+                                    'Deleted!',
+                                    result.message,
+                                    'success'
+                                ).then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire(
+                                    'Error!',
+                                    result.message,
+                                    'error'
+                                );
+                            }
+                        } catch (e) {
+                            Swal.fire(
+                                'Error!',
+                                'An unexpected error occurred',
+                                'error'
+                            );
+                        }
+                    },
+                    error: function() {
+                        Swal.fire(
+                            'Error!',
+                            'Failed to delete users',
+                            'error'
+                        );
+                    }
+                });
+            }
+        });
+    });
+
+    // ...rest of existing code...
 });
 </script>
 
