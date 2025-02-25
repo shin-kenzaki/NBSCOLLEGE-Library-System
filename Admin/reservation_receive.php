@@ -31,15 +31,15 @@ $conn->begin_transaction();
 try {
     $ids_string = implode(',', $ids);
     
-    // Get reservations that are in READY status
-    $query = "SELECT r.id, r.book_id, r.user_id, b.title, u.firstname, u.lastname
+    // Get reservations that are in PENDING or READY status
+    $query = "SELECT r.id, r.book_id, r.user_id, b.title, u.firstname, u.lastname, r.status
               FROM reservations r
               JOIN books b ON r.book_id = b.id
               JOIN users u ON r.user_id = u.id
               WHERE r.id IN ($ids_string)
-              AND r.status = 'READY'
               AND r.recieved_date IS NULL 
-              AND r.cancel_date IS NULL";
+              AND r.cancel_date IS NULL
+              AND r.status IN ('Active', 'Ready')";
     
     $result = $conn->query($query);
     
@@ -47,12 +47,29 @@ try {
         throw new Exception("No valid reservations found to process");
     }
 
+    // Remove the READY status validation since we now accept PENDING too
+    $result->data_seek(0);
+
     $allowed_days = 7;
 
     while ($row = $result->fetch_assoc()) {
+        // Check if book is available when reservation is in PENDING status
+        if ($row['status'] === 'PENDING') {
+            $check_book = "SELECT status FROM books WHERE id = ?";
+            $stmt = $conn->prepare($check_book);
+            $stmt->bind_param("i", $row['book_id']);
+            $stmt->execute();
+            $book_result = $stmt->get_result();
+            $book_status = $book_result->fetch_assoc();
+            
+            if ($book_status['status'] !== 'Available') {
+                throw new Exception("Book '{$row['title']}' is not available for immediate borrowing");
+            }
+        }
+
         // Update reservation
         $sql = "UPDATE reservations 
-                SET recieved_date = NOW(),
+                SET recieved_date = NOW(), 
                     status = 'Recieved'
                 WHERE id = ?";
         $stmt = $conn->prepare($sql);

@@ -252,28 +252,40 @@ if ($bookId > 0) {
     <div id="content" class="d-flex flex-column min-vh-100">
         <div class="container-fluid px-4">
             <!-- Update tab navigation -->
-            <ul class="nav nav-tabs mb-3" id="bookDetailsTabs" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="details-tab" data-bs-toggle="tab" data-bs-target="#details" type="button" role="tab" aria-controls="details" aria-selected="true">
-                        Standard View
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="marc-tab" data-bs-toggle="tab" data-bs-target="#marc" type="button" role="tab" aria-controls="marc" aria-selected="false">
-                        MARC View
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="isbd-tab" data-bs-toggle="tab" data-bs-target="#isbd" type="button" role="tab" aria-controls="isbd" aria-selected="false">
-                        ISBD View
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="holdings-tab" data-bs-toggle="tab" data-bs-target="#holdings" type="button" role="tab" aria-controls="holdings" aria-selected="false">
-                        Holdings
-                    </button>
-                </li>
-            </ul>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <ul class="nav nav-tabs" id="bookDetailsTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="details-tab" data-bs-toggle="tab" data-bs-target="#details" type="button" role="tab" aria-controls="details" aria-selected="true">
+                            Standard View
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="marc-tab" data-bs-toggle="tab" data-bs-target="#marc" type="button" role="tab" aria-controls="marc" aria-selected="false">
+                            MARC View
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="isbd-tab" data-bs-toggle="tab" data-bs-target="#isbd" type="button" role="tab" aria-controls="isbd" aria-selected="false">
+                            ISBD View
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="holdings-tab" data-bs-toggle="tab" data-bs-target="#holdings" type="button" role="tab" aria-controls="holdings" aria-selected="false">
+                            Holdings
+                        </button>
+                    </li>
+                </ul>
+                <?php if (isset($book)): ?>
+                <div class="d-flex gap-2">
+                    <a href="update_books.php?title=<?php echo urlencode($book['title']); ?>&id_range=<?php echo $book['id']; ?>" class="btn btn-primary">
+                        <i class="fas fa-edit"></i> Update Books
+                    </a>
+                    <a href="add_copies.php?title=<?php echo urlencode($book['title']); ?>" class="btn btn-success">
+                        <i class="fas fa-plus"></i> Add Copies
+                    </a>
+                </div>
+                <?php endif; ?>
+            </div>
 
             <div class="tab-content" id="bookDetailsContent">
                 <!-- Standard View Tab -->

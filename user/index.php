@@ -65,8 +65,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         $_SESSION['usertype'] = $user['usertype'];
                         $_SESSION['status'] = $user['status'];
                         
-                        header("Location: dashboard.php");
-                        exit();
+                        $error = "success"; // Use error to trigger SweetAlert
                     } else {
                         $error = "Invalid password";
                     }
@@ -122,7 +121,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                     <div class="text-center">
                                         <h1 class="h4 text-gray-900 mb-4">Welcome Back!</h1>
                                     </div>
-                                    <?php if(!empty($error)): ?>
+                                    <?php if(!empty($error) && $error !== "success"): ?>
                                         <div class="alert alert-danger">
                                             <?php echo $error; ?>
                                         </div>
@@ -149,7 +148,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                     </form>
                                     <hr>
                                     <div class="text-center">
-                                        <a class="small" href="forgot-password.php">Forgot Password?</a>
+                                        <a class="small" href="forgot_password.php">Forgot Password?</a>
                                     </div>
                                     <div class="text-center">
                                         <a class="small" href="register.php">Create an Account!</a>
@@ -172,5 +171,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     <!-- Custom scripts for all pages-->
     <script src="inc/js/sb-admin-2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        <?php if($error === "success"): ?>
+            Swal.fire({
+                title: 'Welcome Back!',
+                text: 'Successfully logged in',
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false
+            }).then(function() {
+                window.location.href = 'dashboard.php';
+            });
+        <?php endif; ?>
+    </script>
 </body>
 </html>

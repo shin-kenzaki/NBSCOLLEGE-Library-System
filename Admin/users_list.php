@@ -115,6 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             // Insert new user with all required fields
             $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+            $image = '../Admin/inc/upload/default-avatar.jpg'; // Default image path
             $sql = "INSERT INTO users (
                 school_id, firstname, middle_init, lastname, 
                 email, password, contact_no, user_image, 
@@ -133,9 +134,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->bind_param(
                 "sssssssssiiiisssi",
                 $school_id, $firstname, $middle_init, $lastname,
-                $email, $hashed_password, $contact_no, $user_image,
+                $email, $hashed_password, $contact_no, $image, // Added image parameter
                 $usertype, $borrowed_books, $returned_books,
-                $damaged_books, $lost_books, $address,
                 $id_type, $id_image, $status
             );
 
@@ -181,10 +181,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="card-header py-3 d-flex justify-content-between align-items-center">
                 <h6 class="m-0 font-weight-bold text-primary">Users List</h6>
                 <div>
+                    <button id="bulkActivateBtn" class="btn btn-outline-success btn-sm mr-2" disabled>
+                        Activate Selected (<span id="selectedActivateCount">0</span>)
+                    </button>
+                    <button id="bulkBanBtn" class="btn btn-warning btn-sm mr-2" disabled>
+                        Ban Selected (<span id="selectedBanCount">0</span>)
+                    </button>
+                    <button id="bulkDisableBtn" class="btn btn-secondary btn-sm mr-2" disabled>
+                        Disable Selected (<span id="selectedDisableCount">0</span>)
+                    </button>
                     <button id="bulkDeleteBtn" class="btn btn-danger btn-sm mr-2" disabled>
                         Delete Selected (<span id="selectedCount">0</span>)
                     </button>
-                    <a href="#" class="btn btn-success btn-sm" data-toggle="modal" data-target="#addUserModal">
+                    <a href="#" class="btn btn-success btn-sm add-user-btn" data-toggle="modal" data-target="#addUserModal">
                         <i class="fas fa-plus"></i> Add New User
                     </a>
                 </div>
@@ -201,7 +210,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <th>Physical ID Number</th>
                                 <th>Name</th>
                                 <th>Email</th>
-                                <!-- Removed 'Contact' column -->
                                 <th>Borrowed</th>
                                 <th>Returned</th>
                                 <th>Damaged</th>
@@ -255,6 +263,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <!-- Context Menu -->
 <div id="contextMenu" class="dropdown-menu" style="display:none; position:absolute;">
     <a class="dropdown-item" href="#" id="updateUser">Update</a>
+    <a class="dropdown-item" href="#" id="banUser">Ban User</a>
+    <a class="dropdown-item" href="#" id="disableUser">Disable User</a>
     <a class="dropdown-item" href="#" id="deleteUser">Delete</a>
 </div>
 
@@ -382,14 +392,22 @@ $(document).ready(function() {
         window.location.href = `edit_user.php?id=${selectedUserId}`;
     });
 
+    $('#banUser').click(function() {
+        handleStatusChange(selectedUserId, 2, 'ban');
+    });
+
+    $('#disableUser').click(function() {
+        handleStatusChange(selectedUserId, 3, 'disable');
+    });
+
     $('#deleteUser').click(function() {
         if (confirm('Are you sure you want to delete this user?')) {
             window.location.href = 'delete_user.php?id=' + selectedUserId;
         }
     });
 
-    // Change the "Add User" button to trigger the modal
-    $('.card-header .btn-success').attr('data-toggle', 'modal').attr('data-target', '#addUserModal');
+    // Change this line to use a more specific selector
+    $('.add-user-btn').attr('data-toggle', 'modal').attr('data-target', '#addUserModal');
 
     // Add this to handle modal state after form submission with errors
     <?php if (isset($formSubmitted)): ?>
@@ -470,7 +488,13 @@ $(document).ready(function() {
     function updateSelectedCount() {
         const checkedBoxes = $('.user-checkbox:checked').length;
         $('#selectedCount').text(checkedBoxes);
+        $('#selectedBanCount').text(checkedBoxes);
+        $('#selectedDisableCount').text(checkedBoxes);
+        $('#selectedActivateCount').text(checkedBoxes);
         $('#bulkDeleteBtn').prop('disabled', checkedBoxes === 0);
+        $('#bulkBanBtn').prop('disabled', checkedBoxes === 0);
+        $('#bulkDisableBtn').prop('disabled', checkedBoxes === 0);
+        $('#bulkActivateBtn').prop('disabled', checkedBoxes === 0);
     }
 
     // Bulk delete handler
@@ -532,6 +556,179 @@ $(document).ready(function() {
             }
         });
     });
+
+    // Bulk ban handler
+    $('#bulkBanBtn').click(function() {
+        handleBulkStatusChange(2, 'ban');
+    });
+
+    // Bulk disable handler
+    $('#bulkDisableBtn').click(function() {
+        handleBulkStatusChange(3, 'disable');
+    });
+
+    // Add bulk activate handler
+    $('#bulkActivateBtn').click(function() {
+        const selectedUsers = $('.user-checkbox:checked').map(function() {
+            return $(this).data('user-id');
+        }).get();
+
+        if (selectedUsers.length === 0) return;
+
+        Swal.fire({
+            title: 'Activate Selected Users?',
+            text: `Are you sure you want to activate ${selectedUsers.length} user(s)?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, activate them!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: 'bulk_update_status.php',
+                    method: 'POST',
+                    data: { 
+                        userIds: selectedUsers,
+                        status: 1  // 1 represents "Active" status
+                    },
+                    success: function(response) {
+                        try {
+                            const result = JSON.parse(response);
+                            if (result.success) {
+                                Swal.fire(
+                                    'Activated!',
+                                    result.message,
+                                    'success'
+                                ).then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire(
+                                    'Error!',
+                                    result.message,
+                                    'error'
+                                );
+                            }
+                        } catch (e) {
+                            Swal.fire(
+                                'Error!',
+                                'An unexpected error occurred',
+                                'error'
+                            );
+                        }
+                    }
+                });
+            }
+        });
+    });
+
+    function handleStatusChange(userId, status, action) {
+        const actionText = action === 'ban' ? 'ban' : 'disable';
+        Swal.fire({
+            title: `${actionText.charAt(0).toUpperCase() + actionText.slice(1)} User?`,
+            text: `Are you sure you want to ${actionText} this user?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: `Yes, ${actionText} them!`
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: 'update_user_status.php',
+                    method: 'POST',
+                    data: { 
+                        userId: userId,
+                        status: status
+                    },
+                    success: function(response) {
+                        try {
+                            const result = JSON.parse(response);
+                            if (result.success) {
+                                Swal.fire(
+                                    `${actionText.charAt(0).toUpperCase() + actionText.slice(1)}ned!`,
+                                    result.message,
+                                    'success'
+                                ).then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire(
+                                    'Error!',
+                                    result.message,
+                                    'error'
+                                );
+                            }
+                        } catch (e) {
+                            Swal.fire(
+                                'Error!',
+                                'An unexpected error occurred',
+                                'error'
+                            );
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    function handleBulkStatusChange(status, action) {
+        const selectedUsers = $('.user-checkbox:checked').map(function() {
+            return $(this).data('user-id');
+        }).get();
+
+        if (selectedUsers.length === 0) return;
+
+        const actionText = action === 'ban' ? 'ban' : 'disable';
+        
+        Swal.fire({
+            title: `${actionText.charAt(0).toUpperCase() + actionText.slice(1)} Selected Users?`,
+            text: `Are you sure you want to ${actionText} ${selectedUsers.length} user(s)?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: `Yes, ${actionText} them!`
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: 'bulk_update_status.php',
+                    method: 'POST',
+                    data: { 
+                        userIds: selectedUsers,
+                        status: status
+                    },
+                    success: function(response) {
+                        try {
+                            const result = JSON.parse(response);
+                            if (result.success) {
+                                Swal.fire(
+                                    `${actionText.charAt(0).toUpperCase() + actionText.slice(1)}ned!`,
+                                    result.message,
+                                    'success'
+                                ).then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire(
+                                    'Error!',
+                                    result.message,
+                                    'error'
+                                );
+                            }
+                        } catch (e) {
+                            Swal.fire(
+                                'Error!',
+                                'An unexpected error occurred',
+                                'error'
+                            );
+                        }
+                    }
+                });
+            }
+        });
+    }
 
     // ...rest of existing code...
 });

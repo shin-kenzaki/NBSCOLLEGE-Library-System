@@ -12,7 +12,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
   // Hash the password
   $hashed_password = password_hash($_POST['password'], PASSWORD_DEFAULT);
   $usertype = mysqli_real_escape_string($conn, $_POST['usertype']);
-  $image = '../Admin/inc/upload/default-avatar.jpg'; // Default value if no image is uploaded
+  $image = '../Admin/inc/upload/default-avatar.jpg'; 
   
   // Check if school_id already exists
   $check_id_query = "SELECT school_id FROM users WHERE school_id = ?";

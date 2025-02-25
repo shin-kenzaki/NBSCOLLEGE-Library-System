@@ -139,20 +139,6 @@
             </li>
             <?php endif; ?>
 
-            <?php if($_SESSION['role'] === 'Admin' || $_SESSION['role'] === 'Librarian'): ?>
-            <!-- Borrowing nav item -->
-            <li class="nav-item">
-                <a class="nav-link" href="book_borrowing.php">
-                    <i class="fas fa-book-reader"></i>
-                    <span>Book Borrowing</span>
-                </a>
-            </li>
-            <?php endif; ?>
-
-            <?php if($_SESSION['role'] === 'Admin' || $_SESSION['role'] === 'Librarian'): ?>
-            <!-- Book reservations nav removed -->
-            <?php endif; ?>
-
             <!-- Nav Item - Books Menu -->
             <li class="nav-item">
                 <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseBooks"
@@ -163,6 +149,7 @@
                 <div id="collapseBooks" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
                     <div class="bg-white py-2 collapse-inner rounded">
                         <h6 class="collapse-header">Borrowing Management:</h6>
+                        <a class="collapse-item" href="book_borrowing.php">Book Borrowing</a>
                         <a class="collapse-item" href="book_reservations.php">Book Reservations</a>
                         <a class="collapse-item" href="borrowed_books.php">Borrowed Books</a>
                         <a class="collapse-item" href="borrowing_history.php">Borrowing History</a>
@@ -281,7 +268,13 @@
                                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 <i class="fas fa-bell fa-fw"></i>
                                 <!-- Counter - Alerts -->
-                                <span class="badge badge-danger badge-counter">3+</span>
+                                <?php
+                                include('../db.php');
+                                $notifQuery = "SELECT COUNT(*) as count FROM reservations WHERE status = 'PENDING'";
+                                $notifResult = $conn->query($notifQuery);
+                                $notifCount = $notifResult->fetch_assoc()['count'];
+                                ?>
+                                <span class="badge badge-danger badge-counter"><?php echo $notifCount > 0 ? ($notifCount > 3 ? '3+' : $notifCount) : ''; ?></span>
                             </a>
                             <!-- Dropdown - Alerts -->
                             <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
@@ -289,40 +282,75 @@
                                 <h6 class="dropdown-header">
                                     Alerts Center
                                 </h6>
-                                <a class="dropdown-item d-flex align-items-center" href="#">
-                                    <div class="mr-3">
-                                        <div class="icon-circle bg-primary">
-                                            <i class="fas fa-file-alt text-white"></i>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div class="small text-gray-500">December 12, 2019</div>
-                                        <span class="font-weight-bold">A new monthly report is ready to download!</span>
-                                    </div>
-                                </a>
-                                <a class="dropdown-item d-flex align-items-center" href="#">
-                                    <div class="mr-3">
-                                        <div class="icon-circle bg-success">
-                                            <i class="fas fa-donate text-white"></i>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div class="small text-gray-500">December 7, 2019</div>
-                                        $290.29 has been deposited into your account!
-                                    </div>
-                                </a>
-                                <a class="dropdown-item d-flex align-items-center" href="#">
-                                    <div class="mr-3">
-                                        <div class="icon-circle bg-warning">
-                                            <i class="fas fa-exclamation-triangle text-white"></i>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div class="small text-gray-500">December 2, 2019</div>
-                                        Spending Alert: We've noticed unusually high spending for your account.
-                                    </div>
-                                </a>
-                                <a class="dropdown-item text-center small text-gray-500" href="#">Show All Alerts</a>
+                                <?php
+                                $alertQuery = "SELECT 
+                                    r.id,
+                                    CONCAT(u.firstname, ' ', u.lastname) as user_name,
+                                    b.title as book_title,
+                                    r.reserve_date
+                                FROM reservations r
+                                JOIN users u ON r.user_id = u.id
+                                JOIN books b ON r.book_id = b.id
+                                WHERE r.status = 'PENDING'
+                                ORDER BY r.reserve_date DESC
+                                LIMIT 3";
+                                
+                                $alertResult = $conn->query($alertQuery);
+                                
+                                if ($alertResult->num_rows > 0) {
+                                    while($alert = $alertResult->fetch_assoc()) {
+                                        $timestamp = strtotime($alert['reserve_date']);
+                                        $timeAgo = human_timing($timestamp);
+                                        ?>
+                                        <a class="dropdown-item d-flex align-items-center" href="book_reservations.php">
+                                            <div class="mr-3">
+                                                <div class="icon-circle bg-primary">
+                                                    <i class="fas fa-book text-white"></i>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div class="small text-gray-500"><?php echo $timeAgo; ?></div>
+                                                <span class="font-weight-bold"><?php echo "New reservation for '{$alert['book_title']}' by {$alert['user_name']}"; ?></span>
+                                            </div>
+                                        </a>
+                                        <?php
+                                    }
+                                } else {
+                                    echo '<a class="dropdown-item d-flex align-items-center" href="#">
+                                            <div class="mr-3">
+                                                <div class="icon-circle bg-success">
+                                                    <i class="fas fa-check text-white"></i>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <span class="font-weight-bold">No new reservations</span>
+                                            </div>
+                                        </a>';
+                                }
+                                
+                                function human_timing($timestamp) {
+                                    $time = time() - $timestamp;
+                                    
+                                    $tokens = array (
+                                        31536000 => 'year',
+                                        2592000 => 'month',
+                                        604800 => 'week',
+                                        86400 => 'day',
+                                        3600 => 'hour',
+                                        60 => 'minute',
+                                        1 => 'second'
+                                    );
+                                    
+                                    foreach ($tokens as $unit => $text) {
+                                        if ($time < $unit) continue;
+                                        $numberOfUnits = floor($time / $unit);
+                                        return $numberOfUnits . ' ' . $text . (($numberOfUnits > 1) ? 's' : '') . ' ago';
+                                    }
+                                    
+                                    return 'just now';
+                                }
+                                ?>
+                                <a class="dropdown-item text-center small text-gray-500" href="book_reservations.php">Show All Reservations</a>
                             </div>
                         </li>
 
@@ -413,7 +441,7 @@
                                         <i class="fas fa-cogs fa-sm fa-fw mr-2 text-gray-400"></i>
                                         Settings
                                     </a>
-                                    <a class="dropdown-item" href="#">
+                                    <a class="dropdown-item" href="activity_log.php">
                                         <i class="fas fa-list fa-sm fa-fw mr-2 text-gray-400"></i>
                                         Activity Log
                                     </a>

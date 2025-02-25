@@ -39,7 +39,9 @@ CREATE TABLE `admins` (
   `role` varchar(100) DEFAULT NULL,
   `date_added` date DEFAULT NULL,
   `status` varchar(100) DEFAULT NULL,
-  `last_update` date DEFAULT NULL
+  `last_update` date DEFAULT NULL,
+  `reset_token` varchar(255) DEFAULT NULL,
+  `reset_expires` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --

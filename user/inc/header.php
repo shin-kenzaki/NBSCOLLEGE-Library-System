@@ -240,52 +240,51 @@
 
                         <!-- Nav Item - Alerts -->
                         <li class="nav-item dropdown no-arrow mx-1">
+                            <?php
+                            // Get ready reservations
+                            $ready_query = "SELECT r.id, b.title, r.reserve_date 
+                                          FROM reservations r 
+                                          JOIN books b ON r.book_id = b.id 
+                                          WHERE r.user_id = ? AND r.status = 'Ready'
+                                          ORDER BY r.reserve_date DESC";
+                            $ready_stmt = $conn->prepare($ready_query);
+                            $ready_stmt->bind_param('i', $_SESSION['user_id']);
+                            $ready_stmt->execute();
+                            $ready_result = $ready_stmt->get_result();
+                            $ready_count = $ready_result->num_rows;
+                            ?>
                             <a class="nav-link dropdown-toggle" href="#" id="alertsDropdown" role="button"
                                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 <i class="fas fa-bell fa-fw"></i>
                                 <!-- Counter - Alerts -->
-                                <span class="badge badge-danger badge-counter">3+</span>
+                                <?php if ($ready_count > 0): ?>
+                                    <span class="badge badge-danger badge-counter"><?php echo $ready_count; ?></span>
+                                <?php endif; ?>
                             </a>
                             <!-- Dropdown - Alerts -->
                             <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
                                 aria-labelledby="alertsDropdown">
                                 <h6 class="dropdown-header">
-                                    Alerts Center
+                                    Ready Books Center
                                 </h6>
-                                <a class="dropdown-item d-flex align-items-center" href="#">
-                                    <div class="mr-3">
-                                        <div class="icon-circle bg-primary">
-                                            <i class="fas fa-file-alt text-white"></i>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div class="small text-gray-500">December 12, 2019</div>
-                                        <span class="font-weight-bold">A new monthly report is ready to download!</span>
-                                    </div>
-                                </a>
-                                <a class="dropdown-item d-flex align-items-center" href="#">
-                                    <div class="mr-3">
-                                        <div class="icon-circle bg-success">
-                                            <i class="fas fa-donate text-white"></i>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div class="small text-gray-500">December 7, 2019</div>
-                                        $290.29 has been deposited into your account!
-                                    </div>
-                                </a>
-                                <a class="dropdown-item d-flex align-items-center" href="#">
-                                    <div class="mr-3">
-                                        <div class="icon-circle bg-warning">
-                                            <i class="fas fa-exclamation-triangle text-white"></i>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div class="small text-gray-500">December 2, 2019</div>
-                                        Spending Alert: We've noticed unusually high spending for your account.
-                                    </div>
-                                </a>
-                                <a class="dropdown-item text-center small text-gray-500" href="#">Show All Alerts</a>
+                                <?php if ($ready_count > 0): ?>
+                                    <?php while ($ready = $ready_result->fetch_assoc()): ?>
+                                        <a class="dropdown-item d-flex align-items-center" href="book_reservations.php">
+                                            <div class="mr-3">
+                                                <div class="icon-circle bg-success">
+                                                    <i class="fas fa-book text-white"></i>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div class="small text-gray-500"><?php echo date('F d, Y', strtotime($ready['reserve_date'])); ?></div>
+                                                <span class="font-weight-bold"><?php echo htmlspecialchars($ready['title']); ?> is ready for pickup!</span>
+                                            </div>
+                                        </a>
+                                    <?php endwhile; ?>
+                                <?php else: ?>
+                                    <a class="dropdown-item text-center small text-gray-500" href="#">No books ready for pickup</a>
+                                <?php endif; ?>
+                                <a class="dropdown-item text-center small text-gray-500" href="book_reservations.php">Show All Reservations</a>
                             </div>
                         </li>
 

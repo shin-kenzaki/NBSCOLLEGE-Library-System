@@ -5,24 +5,13 @@ session_start();
 header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
 header("Expires: Sat, 26 Jul 1997 05:00:00 GMT");
 
-// Check if user is already logged in, redirect to appropriate dashboard
+// Check if user is already logged in, redirect to dashboard
 if (isset($_SESSION['role'])) {
-    switch($_SESSION['role']) {
-        case 'Admin':
-            header("Location: dashboard.php");
-            break;
-        case 'Librarian':
-        case 'Assistant':
-            header("Location: librarian/librarian_dashboard.php");
-            break;
-        case 'Encoder':
-            header("Location: encoder/encoder_dashboard.php");
-            break;
-    }
+    header("Location: dashboard.php");
     exit();
 }
 
-require '../db.php'; // Database connection
+require '../db.php';
 
 // Initialize error message
 $error_message = '';
@@ -43,11 +32,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($result->num_rows > 0) {
             $admin = $result->fetch_assoc();
             
-            // Check status first
-            if ($admin['status'] === 'Disabled') {
-                $error_message = "This account has been disabled. Please contact the administrator.";
-            } else {
-                // Use password_verify for hashed password comparison
+            // First check if account is deactivated (status = 0)
+            if ($admin['status'] === '0') {
+                $error_message = "Your account has been deactivated. Please contact the administrator.";
+            } 
+            // Then check password if account is not deactivated
+            else {
                 if (password_verify($password, $admin['password'])) {
                     // Set session variables
                     $_SESSION['admin_id'] = $admin['employee_id'];
@@ -55,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['admin_firstname'] = $admin['firstname'];
                     $_SESSION['admin_lastname'] = $admin['lastname'];
                     $_SESSION['admin_image'] = !empty($admin['image']) ? $admin['image'] : 'upload/default-profile.png';
-                    $_SESSION['role'] = $admin['role'];  // Will now be 1 or 0
+                    $_SESSION['role'] = $admin['role'];
                     $_SESSION['admin_date_added'] = $admin['date_added'];
                     $_SESSION['admin_status'] = $admin['status'];
                     $_SESSION['admin_last_update'] = $admin['last_update'];
@@ -69,23 +59,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $log_stmt->close();
                     }
 
-                    // Redirect based on role
-                    switch($admin['role']) {
-                        case 'Admin':
-                            header("Location: dashboard.php");
-                            break;
-                        case 'Librarian':
-                        case 'Assistant':
-                            header("Location: librarian_dashboard.php");
-                            break;
-                        case 'Encoder':
-                            header("Location: encoder_dashboard.php");
-                            break;
-                        default:
-                            $error_message = "Invalid role assigned.";
-                            break;
-                    }
-                    exit();
+                    // Set redirect URL to dashboard.php for all roles
+                    $_SESSION['redirect_url'] = 'dashboard.php';
+                    $error_message = "success";
                 } else {
                     $error_message = "Invalid credentials"; 
                 }
@@ -154,7 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <div class="text-center">
                                         <h1 class="h4 text-gray-900 mb-4">Welcome Back!</h1>
                                     </div>
-                                    <?php if(!empty($error_message)): ?>
+                                    <?php if(!empty($error_message) && $error_message !== "success"): ?>
                                         <div class="alert alert-danger">
                                             <?php echo $error_message; ?>
                                         </div>
@@ -181,7 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     </form>
                                     <hr>
                                     <div class="text-center">
-                                        <a class="small" href="forgot-password.html">Forgot Password?</a>
+                                        <a class="small" href="forgot_password.php">Forgot Password?</a>
                                     </div>
                                     <div class="text-center">
                                         <a class="small" href="admin_registration.php">Create an Account!</a>
@@ -207,7 +183,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <!-- Custom scripts for all pages-->
     <script src="inc/js/sb-admin-2.min.js"></script>
-
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        <?php if($error_message === "success"): ?>
+            Swal.fire({
+                title: 'Welcome Back!',
+                text: 'Successfully logged in',
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false
+            }).then(function() {
+                window.location.href = '<?php echo $_SESSION['redirect_url']; ?>';
+            });
+        <?php endif; ?>
+    </script>
 </body>
 
 </html>

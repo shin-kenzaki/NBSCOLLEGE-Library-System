@@ -44,31 +44,31 @@ if (isset($_POST['submit'])) {
         }
 
         // Get arrays of book data
-        $shelf_locations = $_POST['shelf_location'];
-        $call_numbers = $_POST['call_numbers']; // Array of call numbers
-        $front_images = $_POST['front_image'];
-        $back_images = $_POST['back_image'];
-        $dimensions = $_POST['dimension'];
-        $series = $_POST['series'];
-        $volumes = $_POST['volume'];
-        $editions = $_POST['edition'];
-        $urls = $_POST['url'];
-        $content_types = $_POST['content_type'];
-        $media_types = $_POST['media_type'];
-        $carrier_types = $_POST['carrier_type'];
-        $total_pages = $_POST['total_pages'];
-        $supplementary_contents = $_POST['supplementary_contents'];
-        $ISBNs = $_POST['ISBN'];
-        $entered_by = $_POST['entered_by'];
-        $date_added = $_POST['date_added'];
+        $shelf_locations = $_POST['shelf_location'] ?? array();
+        $call_numbers = $_POST['call_numbers'] ?? array();
+        $front_images = $_POST['front_image'] ?? array();
+        $back_images = $_POST['back_image'] ?? array();
+        $dimensions = $_POST['dimension'] ?? array();
+        $series = $_POST['series'] ?? array();
+        $volumes = $_POST['volume'] ?? array();
+        $editions = $_POST['edition'] ?? array();
+        $urls = $_POST['url'] ?? array();
+        $content_types = $_POST['content_type'] ?? array();
+        $media_types = $_POST['media_type'] ?? array();
+        $carrier_types = $_POST['carrier_type'] ?? array();
+        $total_pages = $_POST['total_pages'] ?? array();
+        $supplementary_contents = $_POST['supplementary_contents'] ?? array();
+        $ISBNs = $_POST['ISBN'] ?? array();
+        $entered_by = $_POST['entered_by'] ?? array();
+        $date_added = $_POST['date_added'] ?? array();
 
         // Common data for all copies
-        $title = mysqli_real_escape_string($conn, $_POST['title']);
-        $preferred_title = mysqli_real_escape_string($conn, $_POST['preferred_title']);
-        $parallel_title = mysqli_real_escape_string($conn, $_POST['parallel_title']);
-        $call_number = mysqli_real_escape_string($conn, $_POST['call_number']);
-        $language = mysqli_real_escape_string($conn, $_POST['language']);
-        $status = mysqli_real_escape_string($conn, $_POST['status']);
+        $title = mysqli_real_escape_string($conn, $_POST['title'] ?? '');
+        $preferred_title = mysqli_real_escape_string($conn, $_POST['preferred_title'] ?? '');
+        $parallel_title = mysqli_real_escape_string($conn, $_POST['parallel_title'] ?? '');
+        $call_number = mysqli_real_escape_string($conn, $_POST['call_number'] ?? '');
+        $language = mysqli_real_escape_string($conn, $_POST['language'] ?? '');
+        $status = mysqli_real_escape_string($conn, $_POST['status'] ?? '');
         $abstract = mysqli_real_escape_string($conn, $_POST['abstract'] ?? '');
         $notes = mysqli_real_escape_string($conn, $_POST['notes'] ?? '');
         $dimension = mysqli_real_escape_string($conn, $_POST['dimension'] ?? '');
@@ -80,27 +80,48 @@ if (isset($_POST['submit'])) {
         $media_type = mysqli_real_escape_string($conn, $_POST['media_type'] ?? 'Print');
         $carrier_type = mysqli_real_escape_string($conn, $_POST['carrier_type'] ?? 'Book');
         $last_update = date('Y-m-d');
-        $subject_category = mysqli_real_escape_string($conn, $_POST['subject_categories'][0] ?? '');
-        $subject_detail = mysqli_real_escape_string($conn, $_POST['subject_paragraphs'][0] ?? '');
+
+        // Safely access array elements
+        $subject_category = '';
+        if (isset($_POST['subject_categories']) && !empty($_POST['subject_categories'])) {
+            $subject_category = mysqli_real_escape_string($conn, $_POST['subject_categories'][0]);
+        }
+
+        $subject_detail = '';
+        if (isset($_POST['subject_paragraphs']) && !empty($_POST['subject_paragraphs'])) {
+            $subject_detail = mysqli_real_escape_string($conn, $_POST['subject_paragraphs'][0]);
+        }
 
         // Update each book copy
         foreach ($bookIds as $index => $bookId) {
-            $shelf_location = mysqli_real_escape_string($conn, $shelf_locations[$index]);
-            $call_number = mysqli_real_escape_string($conn, $call_numbers[$index]);
-            $accession = mysqli_real_escape_string($conn, $accessions[$index]);
-            $front_image = mysqli_real_escape_string($conn, $front_images[$index]);
-            $back_image = mysqli_real_escape_string($conn, $back_images[$index]);
-            $dimension = mysqli_real_escape_string($conn, $dimensions[$index]);
-            $series = mysqli_real_escape_string($conn, $series[$index]);
-            $volume = mysqli_real_escape_string($conn, $volumes[$index]);
-            $edition = mysqli_real_escape_string($conn, $editions[$index]);
-            $url = mysqli_real_escape_string($conn, $urls[$index]);
-            $content_type = mysqli_real_escape_string($conn, $content_types[$index]);
-            $media_type = mysqli_real_escape_string($conn, $media_types[$index]);
-            $carrier_type = mysqli_real_escape_string($conn, $carrier_types[$index]);
-            $total_page = mysqli_real_escape_string($conn, $total_pages[$index]);
-            $supplementary_content = mysqli_real_escape_string($conn, $supplementary_contents[$index]);
-            $ISBN = mysqli_real_escape_string($conn, $ISBNs[$index]);
+            // Safe array access with proper checks for each array
+            $shelf_location = isset($shelf_locations[$index]) ? mysqli_real_escape_string($conn, $shelf_locations[$index]) : '';
+            $call_number = isset($call_numbers[$index]) ? mysqli_real_escape_string($conn, $call_numbers[$index]) : '';
+            $accession = isset($accessions[$index]) ? mysqli_real_escape_string($conn, $accessions[$index]) : '';
+            $front_image = isset($front_images[$index]) ? mysqli_real_escape_string($conn, $front_images[$index]) : '';
+            $back_image = isset($back_images[$index]) ? mysqli_real_escape_string($conn, $back_images[$index]) : '';
+            $dimension = isset($dimensions[$index]) ? mysqli_real_escape_string($conn, $dimensions[$index]) : '';
+            $series = isset($series[$index]) ? mysqli_real_escape_string($conn, $series[$index]) : '';
+            $volume = isset($volumes[$index]) ? mysqli_real_escape_string($conn, $volumes[$index]) : '';
+            $edition = isset($editions[$index]) ? mysqli_real_escape_string($conn, $editions[$index]) : '';
+            $url = isset($urls[$index]) ? mysqli_real_escape_string($conn, $urls[$index]) : '';
+            $content_type = isset($content_types[$index]) ? mysqli_real_escape_string($conn, $content_types[$index]) : 'Text';
+            $media_type = isset($media_types[$index]) ? mysqli_real_escape_string($conn, $media_types[$index]) : 'Print';
+            $carrier_type = isset($carrier_types[$index]) ? mysqli_real_escape_string($conn, $carrier_types[$index]) : 'Book';
+            $total_page = isset($total_pages[$index]) ? mysqli_real_escape_string($conn, $total_pages[$index]) : '';
+            $supplementary_content = isset($supplementary_contents[$index]) ? mysqli_real_escape_string($conn, $supplementary_contents[$index]) : '';
+            $ISBN = isset($ISBNs[$index]) ? mysqli_real_escape_string($conn, $ISBNs[$index]) : '';
+            
+            // Special handling for entered_by and date_added
+            $entered_by_value = '';
+            if (isset($entered_by) && is_array($entered_by) && isset($entered_by[$index])) {
+                $entered_by_value = mysqli_real_escape_string($conn, $entered_by[$index]);
+            }
+            
+            $date_added_value = '';
+            if (isset($date_added) && is_array($date_added) && isset($date_added[$index])) {
+                $date_added_value = mysqli_real_escape_string($conn, $date_added[$index]);
+            }
 
             $update_query = "UPDATE books SET 
                 title = ?, 
@@ -134,6 +155,8 @@ if (isset($_POST['submit'])) {
                 WHERE id = ?";
                 
             $stmt = $conn->prepare($update_query);
+            
+            // Bind parameters with copy-specific values
             $stmt->bind_param("ssssssssssssssssssssssssssssi", 
                 $title, 
                 $preferred_title, 
@@ -158,14 +181,20 @@ if (isset($_POST['submit'])) {
                 $url,
                 $language,
                 $shelf_location,
-                $entered_by,
-                $date_added,
+                $entered_by_value,
+                $date_added_value,
                 $status,
                 $last_update,
                 $accession,
                 $bookId
             );
-            $stmt->execute();
+
+            // Execute the update for this copy
+            if (!$stmt->execute()) {
+                throw new Exception("Error updating book copy (ID: $bookId): " . $stmt->error);
+            }
+            
+            $stmt->close();
         }
 
         // Update contributors - MODIFIED SECTION
@@ -847,6 +876,31 @@ document.addEventListener("DOMContentLoaded", function() {
     // Initialize on page load
     setupEventListeners();
     updateCopyNumbers();
+
+    // Replace the existing shelf location event listeners with this new implementation
+    const shelfLocationSelects = document.querySelectorAll('select[name="shelf_location[]"]');
+    shelfLocationSelects.forEach((select, index) => {
+        select.addEventListener('change', function() {
+            const newValue = this.value;
+            const totalSelects = shelfLocationSelects.length;
+
+            // If changing the first copy, update all subsequent copies
+            if (index === 0) {
+                for (let i = 1; i < totalSelects; i++) {
+                    shelfLocationSelects[i].value = newValue;
+                }
+            } else {
+                // For any other copy, only update copies that come after it
+                for (let i = index + 1; i < totalSelects; i++) {
+                    shelfLocationSelects[i].value = newValue;
+                }
+                // Copies before this one remain unchanged
+            }
+
+            // Trigger call number update after changing shelf locations
+            formatCallNumber();
+        });
+    });
 });
 
 // Add accession number validation

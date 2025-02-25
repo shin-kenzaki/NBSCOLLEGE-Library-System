@@ -119,9 +119,17 @@ $result = mysqli_query($conn, $query);
                     <div class="card shadow mb-4">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
                     <h6 class="m-0 font-weight-bold text-primary">List of Admins</h6>
-                    <button class="btn btn-success" data-toggle="modal" data-target="#addUserModal">
-                        <i class="fas fa-plus"></i> Add User
-                    </button>
+                    <div>
+                        <button id="activateSelected" class="btn btn-outline-success btn-sm mr-2" disabled>
+                            Activate Selected (<span id="selectedActivateCount">0</span>)
+                        </button>
+                        <button id="deactivateSelected" class="btn btn-outline-secondary btn-sm mr-2" disabled>
+                            Deactivate Selected (<span id="selectedDeactivateCount">0</span>)
+                        </button>
+                        <button class="btn btn-success btn-sm" data-toggle="modal" data-target="#addUserModal">
+                            <i class="fas fa-plus"></i> Add User
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -202,7 +210,6 @@ $result = mysqli_query($conn, $query);
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
-            </div>
             <form id="addUserForm" action="" method="POST">
                 <div class="modal-body">
                     <div class="form-group">
@@ -263,6 +270,9 @@ $result = mysqli_query($conn, $query);
         </div>
     </div>
 </div>
+
+<!-- Add SweetAlert2 library before your closing body tag -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
 $(document).ready(function() {
@@ -327,7 +337,7 @@ $(document).ready(function() {
     // Select All functionality
     $('#selectAll').click(function() {
         $('.selectRow').prop('checked', this.checked);
-        updateSelectedAdminIds();
+        updateSelectedCount();
     });
 
     $('.selectRow').click(function() {
@@ -336,7 +346,7 @@ $(document).ready(function() {
         } else {
             $('#selectAll').prop('checked', false);
         }
-        updateSelectedAdminIds();
+        updateSelectedCount();
     });
 
     // Context Menu
@@ -370,23 +380,51 @@ $(document).ready(function() {
         window.location.href = `edit_admin.php?id=${selectedAdminId}`;
     });
 
+    // Update delete admin with SweetAlert
     $('#deleteAdmin').click(function() {
-        if (confirm('Are you sure you want to delete this admin?')) {
-            $.ajax({
-                url: `delete_admin.php?id=${selectedAdminId}`,
-                method: 'GET',
-                dataType: 'json',
-                success: function(response) {
-                    alert(response.message);
-                    if (response.status === 'success') {
-                        location.reload();
+        Swal.fire({
+            title: 'Delete Admin?',
+            text: 'Are you sure you want to delete this admin? This action cannot be undone.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: `delete_admin.php?id=${selectedAdminId}`,
+                    method: 'GET',
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Deleted!',
+                                text: response.message,
+                                showConfirmButton: false,
+                                timer: 1500
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: response.message
+                            });
+                        }
+                    },
+                    error: function() {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Error occurred while deleting admin'
+                        });
                     }
-                },
-                error: function() {
-                    alert('Error occurred while deleting admin');
-                }
-            });
-        }
+                });
+            }
+        });
     });
 
     // Batch Actions
@@ -397,23 +435,213 @@ $(document).ready(function() {
         });
 
         if (selectedIds.length === 0) {
-            alert('Please select admins to delete.');
+            Swal.fire({
+                icon: 'warning',
+                title: 'No Selection',
+                text: 'Please select admins to delete.'
+            });
             return;
         }
 
-        if (confirm('Are you sure you want to delete ' + selectedIds.length + ' selected admin(s)?')) {
-            // Implement batch delete functionality
-            $.ajax({
-                url: 'batch_delete_admins.php',
-                type: 'POST',
-                data: {
-                    admin_ids: selectedIds
-                },
-                success: function(response) {
-                    location.reload();
-                }
+        Swal.fire({
+            title: 'Delete Selected Admins?',
+            text: `Are you sure you want to delete ${selectedIds.length} selected admin(s)? This action cannot be undone!`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete them!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: 'batch_delete_admins.php',
+                    type: 'POST',
+                    data: {
+                        admin_ids: selectedIds
+                    },
+                    success: function(response) {
+                        try {
+                            const result = JSON.parse(response);
+                            if (result.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Deleted!',
+                                    text: result.message,
+                                    showConfirmButton: false,
+                                    timer: 1500
+                                }).then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: result.message
+                                });
+                            }
+                        } catch (e) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'An unexpected error occurred'
+                            });
+                        }
+                    }
+                });
+            }
+        });
+    });
+
+    // Add new Activate Selected functionality
+    $('#activateSelected').click(function() {
+        var selectedIds = [];
+        $('.selectRow:checked').each(function() {
+            selectedIds.push($(this).closest('tr').find('td:nth-child(2)').text());
+        });
+
+        if (selectedIds.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'No Selection',
+                text: 'Please select admins to activate.'
             });
+            return;
         }
+
+        Swal.fire({
+            title: 'Activate Selected Admins?',
+            text: `Are you sure you want to activate ${selectedIds.length} selected admin(s)?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, activate them!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: 'batch_activate_admins.php',
+                    type: 'POST',
+                    data: {
+                        admin_ids: selectedIds
+                    },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Activated!',
+                                text: 'Selected admins have been activated successfully.',
+                                showConfirmButton: false,
+                                timer: 1500
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: response.message
+                            });
+                        }
+                    },
+                    error: function() {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'An error occurred while processing your request.'
+                        });
+                    }
+                });
+            }
+        });
+    });
+
+    // Add deactivate functionality
+    $('#deactivateSelected').click(function() {
+        var selectedIds = [];
+        $('.selectRow:checked').each(function() {
+            selectedIds.push($(this).closest('tr').find('td:nth-child(2)').text());
+        });
+
+        if (selectedIds.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'No Selection',
+                text: 'Please select admins to deactivate.'
+            });
+            return;
+        }
+
+        Swal.fire({
+            title: 'Deactivate Selected Admins?',
+            text: `Are you sure you want to deactivate ${selectedIds.length} selected admin(s)?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#6c757d',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, deactivate them!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: 'batch_deactivate_admins.php',
+                    type: 'POST',
+                    data: {
+                        admin_ids: selectedIds
+                    },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Deactivated!',
+                                text: 'Selected admins have been deactivated successfully.',
+                                showConfirmButton: false,
+                                timer: 1500
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: response.message
+                            });
+                        }
+                    },
+                    error: function() {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'An error occurred while processing your request.'
+                        });
+                    }
+                });
+            }
+        });
+    });
+
+    // Update selected count function
+    function updateSelectedCount() {
+        const checkedBoxes = $('.selectRow:checked').length;
+        $('#selectedActivateCount').text(checkedBoxes);
+        $('#selectedDeactivateCount').text(checkedBoxes);
+        $('#activateSelected').prop('disabled', checkedBoxes === 0);
+        $('#deactivateSelected').prop('disabled', checkedBoxes === 0);
+    }
+
+    // Update checkbox handlers to use the new count function
+    $('#selectAll').click(function() {
+        $('.selectRow').prop('checked', this.checked);
+        updateSelectedCount();
+    });
+
+    $('.selectRow').click(function() {
+        if ($('.selectRow:checked').length == $('.selectRow').length) {
+            $('#selectAll').prop('checked', true);
+        } else {
+            $('#selectAll').prop('checked', false);
+        }
+        updateSelectedCount();
     });
 });
 </script>

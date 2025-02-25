@@ -187,7 +187,7 @@ $result = $conn->query($query);
             if (!reservationId) return;
 
             $selectedRow = $(this);
-            const currentStatus = $selectedRow.find('td:eq(4) span').text().trim();
+            const currentStatus = $selectedRow.find('td:eq(5) span').text().trim();
 
             // Don't show menu for completed states
             if (currentStatus === 'Cancelled' || currentStatus === 'Received') {
@@ -246,7 +246,7 @@ $result = $conn->query($query);
                     };
                     break;
                 case 'received':
-                    url = 'reservation_bulk_receive.php';
+                    url = 'reservation_receive.php'; // Fix URL to match the correct endpoint
                     confirmConfig = {
                         title: 'Mark as Received?',
                         text: 'Are you sure you want to mark this reservation as received? This action cannot be undone.',
@@ -478,25 +478,35 @@ $result = $conn->query($query);
         $('#bulkReceiveBtn').click(function() {
             const selectedIds = [];
             const selectedBooks = [];
+            const invalidSelections = [];
             
             $('.reservation-checkbox:checked').each(function() {
                 const $row = $(this).closest('tr');
                 const status = $row.find('td:eq(5) span').text().trim();
+                const bookTitle = $row.find('td:eq(2)').text();
+                const borrower = $row.find('td:eq(1)').text();
                 
-                // Only include Ready items
                 if (status === 'Ready') {
                     selectedIds.push($(this).data('id'));
                     selectedBooks.push({
-                        title: $row.find('td:eq(2)').text(),
-                        borrower: $row.find('td:eq(1)').text()
+                        title: bookTitle,
+                        borrower: borrower
                     });
+                } else {
+                    invalidSelections.push(`${bookTitle} - ${borrower} (${status})`);
                 }
             });
 
-            if (selectedIds.length === 0) {
+            if (invalidSelections.length > 0) {
+                let errorMessage = 'The following reservations must be marked as Ready first:<ul class="list-group mt-3">';
+                invalidSelections.forEach(item => {
+                    errorMessage += `<li class="list-group-item text-danger">${item}</li>`;
+                });
+                errorMessage += '</ul>';
+                
                 Swal.fire({
-                    title: 'No Ready Items Selected',
-                    text: 'Please select reservations that are marked as Ready.',
+                    title: 'Invalid Selections',
+                    html: errorMessage,
                     icon: 'warning'
                 });
                 return;
@@ -521,7 +531,7 @@ $result = $conn->query($query);
                 allowEscapeKey: false,
                 showLoaderOnConfirm: true,
                 preConfirm: () => {
-                    return fetch('reservation_bulk_receive.php', {
+                    return fetch('reservation_receive.php', { // Fix URL here too
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',

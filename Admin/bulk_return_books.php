@@ -28,13 +28,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['borrowIds'])) {
                                              return_date = ? 
                                          WHERE id = ?");
         
-        // Update user stats
+        // Update user stats (only returned_books)
         $updateUser = $conn->prepare("UPDATE users 
-                                    SET returned_books = returned_books + 1,
-                                        borrowed_books = borrowed_books - 1
+                                    SET returned_books = returned_books + 1
                                     WHERE id = ?");
 
-        // Add book status update
+        // Update book status
         $updateBook = $conn->prepare("UPDATE books 
                                     SET status = 'Available'
                                     WHERE id = ?");
@@ -56,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['borrowIds'])) {
                 throw new Exception("Failed to update borrowing status for ID: $borrowId");
             }
 
-            // Update book status
+            // Update book status to Available
             $updateBook->bind_param('i', $borrowing['book_id']);
             if (!$updateBook->execute()) {
                 throw new Exception("Failed to update book status for book ID: " . $borrowing['book_id']);
