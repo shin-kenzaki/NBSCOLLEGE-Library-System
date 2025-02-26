@@ -36,7 +36,7 @@ CREATE TABLE `admins` (
   `email` varchar(100) DEFAULT NULL,
   `password` varchar(100) DEFAULT NULL,
   `image` varchar(100) DEFAULT NULL,
-  `role` varchar(100) DEFAULT NULL,
+  `role` varchar(100) DEFAULT NULL,  /*Admin, Librarian, Assistant, Encoder*/
   `date_added` date DEFAULT NULL,
   `status` varchar(100) DEFAULT NULL,
   `last_update` date DEFAULT NULL,
@@ -156,6 +156,24 @@ CREATE TABLE `fines` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `messages`
+--
+
+CREATE TABLE `messages` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `sender_id` int(11) NOT NULL,
+  `receiver_id` int(11) DEFAULT NULL,
+  `sender_role` varchar(50) DEFAULT NULL,
+  `receiver_role` varchar(50) DEFAULT NULL,
+  `message` text NOT NULL,
+  `timestamp` timestamp NOT NULL DEFAULT current_timestamp(),
+  `is_read` tinyint(1) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `publications`
 --
 
@@ -250,7 +268,7 @@ CREATE TABLE `users` (
   `damaged_books` int(225) NOT NULL DEFAULT 0,
   `lost_books` int(225) NOT NULL DEFAULT 0,
   `user_image` varchar(100) DEFAULT NULL,
-  `usertype` varchar(100) DEFAULT NULL,
+  `usertype` varchar(100) DEFAULT NULL, /* Student, Faculty, Staff, Visitor */
   `address` varchar(100) DEFAULT NULL,
   `id_type` varchar(100) DEFAULT NULL,
   `id_image` varchar(100) DEFAULT NULL,

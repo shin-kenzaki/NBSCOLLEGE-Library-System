@@ -294,7 +294,7 @@
                                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 <i class="fas fa-envelope fa-fw"></i>
                                 <!-- Counter - Messages -->
-                                <span class="badge badge-danger badge-counter">7</span>
+                                <span class="badge badge-danger badge-counter" id="messageCount">0</span>
                             </a>
                             <!-- Dropdown - Messages -->
                             <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
@@ -302,55 +302,10 @@
                                 <h6 class="dropdown-header">
                                     Message Center
                                 </h6>
-                                <a class="dropdown-item d-flex align-items-center" href="#">
-                                    <div class="dropdown-list-image mr-3">
-                                        <img class="rounded-circle" src="img/undraw_profile_1.svg"
-                                            alt="...">
-                                        <div class="status-indicator bg-success"></div>
-                                    </div>
-                                    <div class="font-weight-bold">
-                                        <div class="text-truncate">Hi there! I am wondering if you can help me with a
-                                            problem I've been having.</div>
-                                        <div class="small text-gray-500">Emily Fowler · 58m</div>
-                                    </div>
-                                </a>
-                                <a class="dropdown-item d-flex align-items-center" href="#">
-                                    <div class="dropdown-list-image mr-3">
-                                        <img class="rounded-circle" src="img/undraw_profile_2.svg"
-                                            alt="...">
-                                        <div class="status-indicator"></div>
-                                    </div>
-                                    <div>
-                                        <div class="text-truncate">I have the photos that you ordered last month, how
-                                            would you like them sent to you?</div>
-                                        <div class="small text-gray-500">Jae Chun · 1d</div>
-                                    </div>
-                                </a>
-                                <a class="dropdown-item d-flex align-items-center" href="#">
-                                    <div class="dropdown-list-image mr-3">
-                                        <img class="rounded-circle" src="img/undraw_profile_3.svg"
-                                            alt="...">
-                                        <div class="status-indicator bg-warning"></div>
-                                    </div>
-                                    <div>
-                                        <div class="text-truncate">Last month's report looks great, I am very happy with
-                                            the progress so far, keep up the good work!</div>
-                                        <div class="small text-gray-500">Morgan Alvarez · 2d</div>
-                                    </div>
-                                </a>
-                                <a class="dropdown-item d-flex align-items-center" href="#">
-                                    <div class="dropdown-list-image mr-3">
-                                        <img class="rounded-circle" src="https://source.unsplash.com/Mv9hjnEUHR4/60x60"
-                                            alt="...">
-                                        <div class="status-indicator bg-success"></div>
-                                    </div>
-                                    <div>
-                                        <div class="text-truncate">Am I a good boy? The reason I ask is because someone
-                                            told me that people say this to all dogs, even if they aren't good...</div>
-                                        <div class="small text-gray-500">Chicken the Dog · 2w</div>
-                                    </div>
-                                </a>
-                                <a class="dropdown-item text-center small text-gray-500" href="#">Read More Messages</a>
+                                <div id="messagesList">
+                                    <!-- Messages will be dynamically loaded here -->
+                                </div>
+                                <a class="dropdown-item text-center small text-gray-500" href="messages.php">Read More Messages</a>
                             </div>
                         </li>
 
@@ -461,10 +416,72 @@
 
     <script src="inc/assets/DataTables/datatables.min.js"></script>
 
+    <script>
+    function updateMessages() {
+        // Update unread count
+        fetch('ajax/get_unread_count.php')
+            .then(response => response.json())
+            .then(data => {
+                const badge = document.getElementById('messageCount');
+                if (data.count > 0) {
+                    badge.style.display = 'inline';
+                    badge.textContent = data.count > 99 ? '99+' : data.count;
+                } else {
+                    badge.style.display = 'none';
+                }
+            });
 
+        // Update message preview
+        fetch('ajax/get_latest_messages.php')
+            .then(response => response.json())
+            .then(data => {
+                const messagesList = document.getElementById('messagesList');
+                if (!data.messages || data.messages.length === 0) {
+                    messagesList.innerHTML = `
+                        <div class="text-center p-3">
+                            <p class="small text-gray-500">No new messages</p>
+                        </div>`;
+                    return;
+                }
 
+                messagesList.innerHTML = '';
+                data.messages.forEach(msg => {
+                    const time = new Date(msg.timestamp);
+                    const timeAgo = Math.floor((new Date() - time) / 60000); // minutes
+                    const timeStr = timeAgo < 60 
+                        ? timeAgo + 'm ago' 
+                        : Math.floor(timeAgo/60) + 'h ago';
+                    
+                    messagesList.innerHTML += `
+                        <a class="dropdown-item d-flex align-items-center" href="messages.php?user=${msg.sender_id}&role=${msg.sender_role}">
+                            <div class="dropdown-list-image mr-3">
+                                <img class="rounded-circle" src="${msg.sender_image}" alt="${msg.sender_name}"
+                                     style="width: 40px; height: 40px; object-fit: cover;">
+                                <div class="status-indicator ${msg.is_read ? 'bg-success' : 'bg-warning'}"></div>
+                            </div>
+                            <div class="font-weight-bold flex-grow-1">
+                                <div class="text-truncate">${msg.message}</div>
+                                <div class="small text-gray-500">
+                                    ${msg.sender_name} · ${timeStr}
+                                </div>
+                            </div>
+                            ${!msg.is_read ? '<div class="ml-2"><span class="badge badge-danger">New</span></div>' : ''}
+                        </a>`;
+                });
+            })
+            .catch(error => {
+                console.error('Error loading messages:', error);
+                document.getElementById('messagesList').innerHTML = `
+                    <div class="text-center p-3">
+                        <p class="small text-gray-500">Error loading messages</p>
+                    </div>`;
+            });
+    }
 
-
+    // Update messages every 30 seconds
+    setInterval(updateMessages, 30000);
+    // Initial load
+    updateMessages();
+    </script>
 </body>
-
 </html>

@@ -6,17 +6,9 @@ include '../db.php';
 header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
 header("Expires: Sat, 26 Jul 1997 05:00:00 GMT");
 
-// Strict role check
-if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'Admin') {
-    // Clear all session variables
-    $_SESSION = array();
-    
-    // Destroy the session
-    session_destroy();
-    
-    // Redirect to login page
+// Check for any valid staff role
+if (!isset($_SESSION['admin_id']) || !isset($_SESSION['role']) || !in_array($_SESSION['role'], ['Admin', 'Librarian', 'Assistant', 'Encoder'])) {
     header("Location: index.php");
-    exit();
 }
 
 // Session timeout check (optional, set timeout to 30 minutes)

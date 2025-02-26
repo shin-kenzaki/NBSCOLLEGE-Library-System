@@ -430,9 +430,16 @@ if ($bookId > 0) {
                                 <div class="card shadow mb-4">
                                     <div class="card-header py-3 d-flex justify-content-between align-items-center">
                                         <h6 class="m-0 font-weight-bold text-primary">Available Copies</h6>
-                                        <div class="small text-muted">
-                                            Total Copies: <?php echo htmlspecialchars($totalCopies); ?> | 
-                                            Available: <?php echo htmlspecialchars($inShelf); ?>
+                                        <div class="d-flex align-items-center">
+                                            <div class="small text-muted me-3">
+                                                Total Copies: <?php echo htmlspecialchars($totalCopies); ?> | 
+                                                Available: <?php echo htmlspecialchars($inShelf); ?>
+                                            </div>
+                                            <a href="export_barcodes.php?title=<?php echo urlencode($book['title']); ?>" 
+                                               class="btn btn-sm btn-primary ms-2" 
+                                               target="_blank">
+                                                <i class="fas fa-download"></i> Export Barcodes
+                                            </a>
                                         </div>
                                     </div>
                                     <div class="card-body">
@@ -822,9 +829,16 @@ if ($bookId > 0) {
                             <div class="card shadow mb-4">
                                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
                                     <h6 class="m-0 font-weight-bold text-primary">Available Copies</h6>
-                                    <div class="small text-muted">
-                                        Total Copies: <?php echo htmlspecialchars($totalCopies); ?> | 
-                                        Available: <?php echo htmlspecialchars($inShelf); ?>
+                                    <div class="d-flex align-items-center">
+                                        <div class="small text-muted me-3">
+                                            Total Copies: <?php echo htmlspecialchars($totalCopies); ?> | 
+                                            Available: <?php echo htmlspecialchars($inShelf); ?>
+                                        </div>
+                                        <a href="export_barcodes.php?title=<?php echo urlencode($book['title']); ?>" 
+                                           class="btn btn-sm btn-primary ms-2" 
+                                           target="_blank">
+                                            <i class="fas fa-download"></i> Export Barcodes
+                                        </a>
                                     </div>
                                 </div>
                                 <div class="card-body">

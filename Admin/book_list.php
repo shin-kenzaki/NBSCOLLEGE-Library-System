@@ -219,7 +219,6 @@ $result = $stmt->get_result();
     </thead>
     <tbody>
         <?php
-        // Modified query to group books by title with better grouping
         $query = "SELECT 
             title,
             GROUP_CONCAT(DISTINCT id ORDER BY id) as id_range,
@@ -353,7 +352,7 @@ $result = $stmt->get_result();
                     $prev = $copies[$i];
                 }
             }
-            return implode('<br>', $ranges); // Change comma to HTML line break
+            return implode('<br>', $ranges); 
         }
         ?>
     </tbody>
@@ -361,8 +360,6 @@ $result = $stmt->get_result();
                             </div>
         </div>
         <!-- /.container-fluid -->
-
-        <!-- Remove the Add Contributors Modal - it's no longer needed -->
 
         <!-- Context Menu -->
         <div id="contextMenu" class="dropdown-menu" style="display:none; position:absolute;">

@@ -5,8 +5,9 @@ session_start();
 header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
 header("Expires: Sat, 26 Jul 1997 05:00:00 GMT");
 
-// Check if user is already logged in, redirect to dashboard
-if (isset($_SESSION['role'])) {
+// Check if any staff member is logged in
+if (isset($_SESSION['admin_id']) && isset($_SESSION['role']) && 
+    in_array($_SESSION['role'], ['Admin', 'Librarian', 'Assistant', 'Encoder'])) {
     header("Location: dashboard.php");
     exit();
 }
@@ -17,64 +18,53 @@ require '../db.php';
 $error_message = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Retrieve and sanitize input
     $employee_id = $_POST['employee_id'];
     $password = $_POST['password'];
 
-    // Query to check if the user exists
-    $sql = "SELECT * FROM admins WHERE employee_id = ?";
+    // Query to check for all valid staff roles
+    $sql = "SELECT * FROM admins WHERE employee_id = ? AND role IN ('Admin', 'Librarian', 'Assistant', 'Encoder') AND (status != '0' OR status IS NULL)";
     if ($stmt = $conn->prepare($sql)) {
         $stmt->bind_param("s", $employee_id);
         $stmt->execute();
         $result = $stmt->get_result();
 
-        // If the employee_id exists, check the password
         if ($result->num_rows > 0) {
             $admin = $result->fetch_assoc();
             
-            // First check if account is deactivated (status = 0)
-            if ($admin['status'] === '0') {
-                $error_message = "Your account has been deactivated. Please contact the administrator.";
-            } 
-            // Then check password if account is not deactivated
-            else {
-                if (password_verify($password, $admin['password'])) {
-                    // Set session variables
-                    $_SESSION['admin_id'] = $admin['employee_id'];
-                    $_SESSION['admin_email'] = $admin['email'];
-                    $_SESSION['admin_firstname'] = $admin['firstname'];
-                    $_SESSION['admin_lastname'] = $admin['lastname'];
-                    $_SESSION['admin_image'] = !empty($admin['image']) ? $admin['image'] : 'upload/default-profile.png';
-                    $_SESSION['role'] = $admin['role'];
-                    $_SESSION['admin_date_added'] = $admin['date_added'];
-                    $_SESSION['admin_status'] = $admin['status'];
-                    $_SESSION['admin_last_update'] = $admin['last_update'];
+            if (password_verify($password, $admin['password'])) {
+                // Set session variables
+                $_SESSION['admin_id'] = $admin['id'];
+                $_SESSION['admin_employee_id'] = $admin['employee_id'];
+                $_SESSION['admin_email'] = $admin['email'];
+                $_SESSION['admin_firstname'] = $admin['firstname'];
+                $_SESSION['admin_lastname'] = $admin['lastname'];
+                $_SESSION['admin_image'] = !empty($admin['image']) ? $admin['image'] : 'inc/img/default-avatar.jpg';
+                $_SESSION['role'] = $admin['role'];
+                $_SESSION['usertype'] = $admin['role'];
+                $_SESSION['admin_date_added'] = $admin['date_added'];
+                $_SESSION['admin_status'] = $admin['status'];
+                $_SESSION['admin_last_update'] = $admin['last_update'];
 
-                    // Log the successful login in updates table
-                    $log_query = "INSERT INTO updates (user_id, role, status, `update`) VALUES (?, ?, ?, NOW())";
-                    if ($log_stmt = $conn->prepare($log_query)) {
-                        $login_status = "Active login";
-                        $log_stmt->bind_param("sss", $admin['employee_id'], $admin['role'], $login_status);
-                        $log_stmt->execute();
-                        $log_stmt->close();
-                    }
-
-                    // Set redirect URL to dashboard.php for all roles
-                    $_SESSION['redirect_url'] = 'dashboard.php';
-                    $error_message = "success";
-                } else {
-                    $error_message = "Invalid credentials"; 
+                // Log the successful login
+                $log_query = "INSERT INTO updates (user_id, role, status, `update`) VALUES (?, ?, ?, NOW())";
+                if ($log_stmt = $conn->prepare($log_query)) {
+                    $login_status = "Active login";
+                    $log_stmt->bind_param("sss", $admin['employee_id'], $admin['role'], $login_status);
+                    $log_stmt->execute();
+                    $log_stmt->close();
                 }
+
+                // Direct header redirect
+                header("Location: dashboard.php");
+                exit();
+            } else {
+                $error_message = "Invalid credentials";
             }
         } else {
-            $error_message = "Invalid credentials"; 
+            $error_message = "Invalid credentials";
         }
-
         $stmt->close();
-    } else {
-        $error_message = "Error preparing query: " . $conn->error;
     }
-
     $conn->close();
 }
 ?>
@@ -186,15 +176,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         <?php if($error_message === "success"): ?>
-            Swal.fire({
-                title: 'Welcome Back!',
-                text: 'Successfully logged in',
-                icon: 'success',
-                timer: 1500,
-                showConfirmButton: false
-            }).then(function() {
-                window.location.href = '<?php echo $_SESSION['redirect_url']; ?>';
-            });
+            window.location.href = 'dashboard.php';
         <?php endif; ?>
     </script>
 </body>

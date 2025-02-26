@@ -34,14 +34,9 @@
         <!-- Sidebar -->
         <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
             <!-- Sidebar - Brand -->
-            <a class="sidebar-brand d-flex align-items-center justify-content-center" href="<?php
-                if ($_SESSION['role'] === 'Admin') {
-                    echo 'dashboard.php';
-                } elseif ($_SESSION['role'] === 'Librarian' || $_SESSION['role'] === 'Assistant') {
-                    echo 'librarian_dashboard.php';
-                } elseif ($_SESSION['role'] === 'Encoder') {
-                    echo 'encoder_dashboard.php';
-                }
+            <a class="sidebar-brand d-flex align-items-center justify-content-center" href="<?php 
+                $base_url = '/Library-System/Admin/';
+                echo $base_url . 'dashboard.php'; 
             ?>">
                 <div class="sidebar-brand-icon rotate-n-15">
                     <!-- <img src="img/nbs-icon.png" alt="Library Logo" width="30" height="50"> -->
@@ -54,13 +49,14 @@
 
             <!-- Nav Item - Dashboard -->
             <li class="nav-item active">
-                <a class="nav-link" href="<?php
+                <a class="nav-link" href="<?php 
+                    $base_url = '/Library-System/Admin/';
                     if ($_SESSION['role'] === 'Admin') {
-                        echo 'dashboard.php';
+                        echo $base_url . 'dashboard.php';
                     } elseif ($_SESSION['role'] === 'Librarian' || $_SESSION['role'] === 'Assistant') {
-                        echo 'librarian_dashboard.php';
+                        echo $base_url . 'dashboard.php'; // Changed to use same dashboard
                     } elseif ($_SESSION['role'] === 'Encoder') {
-                        echo 'encoder_dashboard.php';
+                        echo $base_url . 'dashboard.php'; // Changed to use same dashboard
                     }
                 ?>">
                     <i class="fas fa-fw fa-tachometer-alt"></i>
@@ -237,6 +233,26 @@
 
                     <!-- Topbar Navbar -->
                     <ul class="navbar-nav ml-auto">
+                        <!-- Alert Center -->
+                        <li class="nav-item dropdown no-arrow mx-1">
+                            <a class="nav-link dropdown-toggle" href="#" id="alertsDropdown" role="button"
+                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <i class="fas fa-bell fa-fw"></i>
+                                <!-- Counter - Alerts -->
+                                <span class="badge badge-danger badge-counter" id="reservationCount">0</span>
+                            </a>
+                            <!-- Dropdown - Alerts -->
+                            <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
+                                aria-labelledby="alertsDropdown">
+                                <h6 class="dropdown-header">
+                                    Reservation Alerts
+                                </h6>
+                                <div id="alertsList">
+                                    <!-- Alerts will be dynamically inserted here -->
+                                </div>
+                                <a class="dropdown-item text-center small text-gray-500" href="book_reservations.php">Show All Reservations</a>
+                            </div>
+                        </li>
 
                         <!-- Nav Item - Search Dropdown (Visible Only XS) -->
                         <li class="nav-item dropdown no-arrow d-sm-none">
@@ -262,105 +278,13 @@
                             </div>
                         </li>
 
-                        <!-- Nav Item - Alerts -->
-                        <li class="nav-item dropdown no-arrow mx-1">
-                            <a class="nav-link dropdown-toggle" href="#" id="alertsDropdown" role="button"
-                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <i class="fas fa-bell fa-fw"></i>
-                                <!-- Counter - Alerts -->
-                                <?php
-                                include('../db.php');
-                                $notifQuery = "SELECT COUNT(*) as count FROM reservations WHERE status = 'PENDING'";
-                                $notifResult = $conn->query($notifQuery);
-                                $notifCount = $notifResult->fetch_assoc()['count'];
-                                ?>
-                                <span class="badge badge-danger badge-counter"><?php echo $notifCount > 0 ? ($notifCount > 3 ? '3+' : $notifCount) : ''; ?></span>
-                            </a>
-                            <!-- Dropdown - Alerts -->
-                            <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
-                                aria-labelledby="alertsDropdown">
-                                <h6 class="dropdown-header">
-                                    Alerts Center
-                                </h6>
-                                <?php
-                                $alertQuery = "SELECT 
-                                    r.id,
-                                    CONCAT(u.firstname, ' ', u.lastname) as user_name,
-                                    b.title as book_title,
-                                    r.reserve_date
-                                FROM reservations r
-                                JOIN users u ON r.user_id = u.id
-                                JOIN books b ON r.book_id = b.id
-                                WHERE r.status = 'PENDING'
-                                ORDER BY r.reserve_date DESC
-                                LIMIT 3";
-                                
-                                $alertResult = $conn->query($alertQuery);
-                                
-                                if ($alertResult->num_rows > 0) {
-                                    while($alert = $alertResult->fetch_assoc()) {
-                                        $timestamp = strtotime($alert['reserve_date']);
-                                        $timeAgo = human_timing($timestamp);
-                                        ?>
-                                        <a class="dropdown-item d-flex align-items-center" href="book_reservations.php">
-                                            <div class="mr-3">
-                                                <div class="icon-circle bg-primary">
-                                                    <i class="fas fa-book text-white"></i>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <div class="small text-gray-500"><?php echo $timeAgo; ?></div>
-                                                <span class="font-weight-bold"><?php echo "New reservation for '{$alert['book_title']}' by {$alert['user_name']}"; ?></span>
-                                            </div>
-                                        </a>
-                                        <?php
-                                    }
-                                } else {
-                                    echo '<a class="dropdown-item d-flex align-items-center" href="#">
-                                            <div class="mr-3">
-                                                <div class="icon-circle bg-success">
-                                                    <i class="fas fa-check text-white"></i>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <span class="font-weight-bold">No new reservations</span>
-                                            </div>
-                                        </a>';
-                                }
-                                
-                                function human_timing($timestamp) {
-                                    $time = time() - $timestamp;
-                                    
-                                    $tokens = array (
-                                        31536000 => 'year',
-                                        2592000 => 'month',
-                                        604800 => 'week',
-                                        86400 => 'day',
-                                        3600 => 'hour',
-                                        60 => 'minute',
-                                        1 => 'second'
-                                    );
-                                    
-                                    foreach ($tokens as $unit => $text) {
-                                        if ($time < $unit) continue;
-                                        $numberOfUnits = floor($time / $unit);
-                                        return $numberOfUnits . ' ' . $text . (($numberOfUnits > 1) ? 's' : '') . ' ago';
-                                    }
-                                    
-                                    return 'just now';
-                                }
-                                ?>
-                                <a class="dropdown-item text-center small text-gray-500" href="book_reservations.php">Show All Reservations</a>
-                            </div>
-                        </li>
-
                         <!-- Nav Item - Messages -->
                         <li class="nav-item dropdown no-arrow mx-1">
                             <a class="nav-link dropdown-toggle" href="#" id="messagesDropdown" role="button"
                                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 <i class="fas fa-envelope fa-fw"></i>
                                 <!-- Counter - Messages -->
-                                <span class="badge badge-danger badge-counter">7</span>
+                                <span class="badge badge-danger badge-counter" id="messageCount">0</span>
                             </a>
                             <!-- Dropdown - Messages -->
                             <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
@@ -368,55 +292,15 @@
                                 <h6 class="dropdown-header">
                                     Message Center
                                 </h6>
-                                <a class="dropdown-item d-flex align-items-center" href="#">
-                                    <div class="dropdown-list-image mr-3">
-                                        <img class="rounded-circle" src="img/undraw_profile_1.svg"
-                                            alt="...">
-                                        <div class="status-indicator bg-success"></div>
+                                <div id="messagesList">
+                                    <!-- Messages will be loaded here -->
+                                    <div class="text-center p-3">
+                                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                            <span class="sr-only">Loading...</span>
+                                        </div>
                                     </div>
-                                    <div class="font-weight-bold">
-                                        <div class="text-truncate">Hi there! I am wondering if you can help me with a
-                                            problem I've been having.</div>
-                                        <div class="small text-gray-500">Emily Fowler · 58m</div>
-                                    </div>
-                                </a>
-                                <a class="dropdown-item d-flex align-items-center" href="#">
-                                    <div class="dropdown-list-image mr-3">
-                                        <img class="rounded-circle" src="img/undraw_profile_2.svg"
-                                            alt="...">
-                                        <div class="status-indicator"></div>
-                                    </div>
-                                    <div>
-                                        <div class="text-truncate">I have the photos that you ordered last month, how
-                                            would you like them sent to you?</div>
-                                        <div class="small text-gray-500">Jae Chun · 1d</div>
-                                    </div>
-                                </a>
-                                <a class="dropdown-item d-flex align-items-center" href="#">
-                                    <div class="dropdown-list-image mr-3">
-                                        <img class="rounded-circle" src="img/undraw_profile_3.svg"
-                                            alt="...">
-                                        <div class="status-indicator bg-warning"></div>
-                                    </div>
-                                    <div>
-                                        <div class="text-truncate">Last month's report looks great, I am very happy with
-                                            the progress so far, keep up the good work!</div>
-                                        <div class="small text-gray-500">Morgan Alvarez · 2d</div>
-                                    </div>
-                                </a>
-                                <a class="dropdown-item d-flex align-items-center" href="#">
-                                    <div class="dropdown-list-image mr-3">
-                                        <img class="rounded-circle" src="https://source.unsplash.com/Mv9hjnEUHR4/60x60"
-                                            alt="...">
-                                        <div class="status-indicator bg-success"></div>
-                                    </div>
-                                    <div>
-                                        <div class="text-truncate">Am I a good boy? The reason I ask is because someone
-                                            told me that people say this to all dogs, even if they aren't good...</div>
-                                        <div class="small text-gray-500">Chicken the Dog · 2w</div>
-                                    </div>
-                                </a>
-                                <a class="dropdown-item text-center small text-gray-500" href="#">Read More Messages</a>
+                                </div>
+                                <a class="dropdown-item text-center small text-gray-500" href="messages.php">Read More Messages</a>
                             </div>
                         </li>
 
@@ -441,7 +325,7 @@
                                         <i class="fas fa-cogs fa-sm fa-fw mr-2 text-gray-400"></i>
                                         Settings
                                     </a>
-                                    <a class="dropdown-item" href="activity_log.php">
+                                    <a class="dropdown-item" href="#">
                                         <i class="fas fa-list fa-sm fa-fw mr-2 text-gray-400"></i>
                                         Activity Log
                                     </a>
@@ -526,6 +410,149 @@
     });
     </script>
 
-</body>
+    <script>
+    // Update unread message count
+    function updateMessageCount() {
+        fetch('ajax/get_unread_count.php')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('messageCount').textContent = data.count;
+            });
+    }
 
+    // Update count every 30 seconds
+    setInterval(updateMessageCount, 30000);
+    updateMessageCount();
+    </script>
+
+    <script>
+    // Update unread message count and message preview
+    function updateMessages() {
+        // Update unread count
+        fetch('ajax/get_unread_count.php')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('messageCount').textContent = data.count || '';
+            });
+
+        // Update message preview
+        fetch('ajax/get_latest_messages.php')
+            .then(response => response.json())
+            .then(data => {
+                const messagesList = document.getElementById('messagesList');
+                messagesList.innerHTML = '';
+                
+                data.messages.slice(0, 4).forEach(msg => {
+                    const time = new Date(msg.timestamp);
+                    const timeAgo = Math.floor((new Date() - time) / 60000); // minutes
+                    
+                    messagesList.innerHTML += `
+                        <a class="dropdown-item d-flex align-items-center" href="messages.php?user=${msg.sender_id}">
+                            <div class="dropdown-list-image mr-3">
+                                <img class="rounded-circle" src="${msg.sender_image || 'img/undraw_profile.svg'}" alt="...">
+                                <div class="status-indicator ${msg.is_read ? 'bg-success' : 'bg-warning'}"></div>
+                            </div>
+                            <div class="font-weight-bold">
+                                <div class="text-truncate">${msg.message}</div>
+                                <div class="small text-gray-500">${msg.sender_name} · ${timeAgo}m</div>
+                            </div>
+                        </a>
+                    `;
+                });
+            });
+    }
+
+    // Update every 30 seconds
+    setInterval(updateMessages, 30000);
+    updateMessages();
+    </script>
+
+    <script>
+    // Add this to your existing scripts
+    function updateUnreadCount() {
+        fetch('ajax/get_unread_count.php')
+            .then(response => response.json())
+            .then(data => {
+                const badge = document.getElementById('unreadMessageCount');
+                badge.textContent = data.count > 0 ? data.count : '';
+                badge.style.display = data.count > 0 ? 'block' : 'none';
+            });
+    }
+
+    // Update count every 30 seconds
+    setInterval(updateUnreadCount, 30000);
+    updateUnreadCount();
+    </script>
+
+    <script>
+    function updateMessageCount() {
+        fetch('ajax/get_unread_count.php')
+            .then(response => response.json())
+            .then(data => {
+                const badge = document.getElementById('messageCount');
+                if (data.count > 0) {
+                    badge.style.display = 'inline';
+                    badge.textContent = data.count > 99 ? '99+' : data.count;
+                } else {
+                    badge.style.display = 'none';
+                }
+            })
+            .catch(error => console.error('Error updating message count:', error));
+    }
+
+    // Update count every 30 seconds
+    setInterval(updateMessageCount, 30000);
+    // Initial update
+    updateMessageCount();
+    </script>
+
+    <script>
+    function updateMessages() {
+        // Update message preview
+        fetch('ajax/get_latest_messages.php')
+            .then(response => response.json())
+            .then(data => {
+                const messagesList = document.getElementById('messagesList');
+                if (!data.messages || data.messages.length === 0) {
+                    messagesList.innerHTML = `
+                        <div class="text-center p-3">
+                            <p class="small text-gray-500">No new messages</p>
+                        </div>`;
+                    return;
+                }
+
+                messagesList.innerHTML = '';
+                data.messages.forEach(msg => {
+                    messagesList.innerHTML += `
+                        <a class="dropdown-item d-flex align-items-center" href="messages.php?user=${msg.sender_id}&role=${msg.sender_role}">
+                            <div class="dropdown-list-image mr-3">
+                                <img class="rounded-circle" src="${msg.sender_image}" alt="${msg.sender_name}"
+                                     style="width: 40px; height: 40px; object-fit: cover;">
+                                <div class="status-indicator ${msg.is_read ? 'bg-success' : 'bg-warning'}"></div>
+                            </div>
+                            <div class="font-weight-bold flex-grow-1">
+                                <div class="text-truncate">${msg.message}</div>
+                                <div class="small text-gray-500">
+                                    ${msg.sender_name} · ${msg.timestamp}
+                                </div>
+                            </div>
+                            ${!msg.is_read ? '<div class="ml-2"><span class="badge badge-danger">New</span></div>' : ''}
+                        </a>`;
+                });
+            })
+            .catch(error => {
+                console.error('Error loading messages:', error);
+                document.getElementById('messagesList').innerHTML = `
+                    <div class="text-center p-3">
+                        <p class="small text-gray-500">Error loading messages</p>
+                    </div>`;
+            });
+    }
+
+    // Update messages every 30 seconds
+    setInterval(updateMessages, 30000);
+    // Initial load
+    updateMessages();
+    </script>
+</body>
 </html>
