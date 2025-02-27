@@ -21,7 +21,7 @@
         $password = $_POST['password'];
         $role = $_POST['role'];
         $status = Null;
-        $image = 'inc/upload/default-avatar.jpg';
+        $image = '../Images/Profile/default-avatar.jpg';
 
         // Validate password length
         if (strlen($password) < 8) {

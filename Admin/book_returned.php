@@ -32,7 +32,7 @@ if (isset($_GET['id'])) {
             $due_date = new DateTime($borrowing['due_date']);
             $return_date = new DateTime(date('Y-m-d'));
             $days_overdue = $due_date->diff($return_date)->days;
-            $fine_amount = $days_overdue * 50; // 50 pesos per day
+            $fine_amount = $days_overdue * 5; // 5 pesos per day
 
             // Insert fine record for overdue books
             $sql = "INSERT INTO fines (borrowing_id, type, amount, status, date, payment_date) 
@@ -43,14 +43,16 @@ if (isset($_GET['id'])) {
         }
 
         // Update borrowing record for both statuses
+        $admin_id = $_SESSION['admin_id'];
         $sql = "UPDATE borrowings SET 
                 return_date = NOW(), 
+                recieved_by = ?,
                 status = 'Returned' 
                 WHERE book_id = ? 
                 AND return_date IS NULL 
                 AND status IN ('Active', 'Overdue')";
         $stmt = $conn->prepare($sql);
-        $stmt->bind_param("i", $book_id);
+        $stmt->bind_param("ii", $admin_id, $book_id);
         $stmt->execute();
 
         // Update book status

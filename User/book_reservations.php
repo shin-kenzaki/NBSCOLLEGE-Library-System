@@ -15,10 +15,26 @@ if (!isset($_SESSION['user_id'])) {
 $user_id = $_SESSION['user_id'];
 
 // Debug the query
-$query = "SELECT r.id, b.title, r.reserve_date, r.status 
-          FROM reservations r 
-          JOIN books b ON r.book_id = b.id 
-          WHERE r.user_id = ? AND (r.status = 'Pending' OR r.status = 'Ready')";
+$query = "SELECT 
+    r.id,
+    b.title,
+    r.reserve_date,
+    r.ready_date,
+    CONCAT(a1.firstname, ' ', a1.lastname) as ready_by_name,
+    r.issue_date,
+    CONCAT(a2.firstname, ' ', a2.lastname) as issued_by_name,
+    r.cancel_date,
+    CONCAT(COALESCE(a3.firstname, u2.firstname), ' ', COALESCE(a3.lastname, u2.lastname)) AS cancelled_by_name,
+    r.cancelled_by_role,
+    r.status 
+FROM reservations r 
+JOIN books b ON r.book_id = b.id 
+LEFT JOIN admins a1 ON r.ready_by = a1.id
+LEFT JOIN admins a2 ON r.issued_by = a2.id
+LEFT JOIN admins a3 ON (r.cancelled_by = a3.id AND r.cancelled_by_role = 'Admin')
+LEFT JOIN users u2 ON (r.cancelled_by = u2.id AND r.cancelled_by_role = 'User')
+WHERE r.user_id = ? 
+AND (r.status = 'Pending' OR r.status = 'Ready')";
 
 $stmt = $conn->prepare($query);
 $stmt->bind_param('i', $user_id);
@@ -47,6 +63,66 @@ include 'inc/header.php';
         .dataTables_wrapper .dataTables_paginate {
             margin-bottom: 1rem; 
         }
+        /* Add custom CSS for responsive table */
+        .table-responsive {
+            width: 100%;
+            margin-bottom: 1rem;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        /* Ensure minimum width for table columns */
+        #dataTable th,
+        #dataTable td {
+            white-space: nowrap;
+        }
+        
+        /* Specific column widths */
+        #dataTable th:nth-child(1),
+        #dataTable td:nth-child(1) {
+            min-width: 80px; /* ID column */
+        }
+        #dataTable th:nth-child(2),
+        #dataTable td:nth-child(2) {
+            min-width: 200px; /* Title column */
+        }
+        #dataTable th:nth-child(3),
+        #dataTable td:nth-child(3) {
+            min-width: 150px; /* Reserve Date column */
+        }
+        #dataTable th:nth-child(4),
+        #dataTable td:nth-child(4),
+        #dataTable th:nth-child(5),
+        #dataTable td:nth-child(5) {
+            text-align: center;
+        }
+        
+        /* Make the table stretch full width */
+        #dataTable {
+            width: 100% !important;
+        }
+
+        /* Center the badge content */
+        .badge {
+            display: inline-block;
+            width: 100%;
+            text-align: center;
+        }
+
+        /* Center align all table cells vertically */
+        #dataTable td, 
+        #dataTable th {
+            vertical-align: middle !important;
+        }
+
+        /* Status and Actions columns horizontal and vertical centering */
+        #dataTable th:nth-child(4),
+        #dataTable td:nth-child(4),
+        #dataTable th:nth-child(5),
+        #dataTable td:nth-child(5) {
+            text-align: center;
+            vertical-align: middle;
+        }
     </style>
     <!-- Include SweetAlert CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
@@ -59,8 +135,8 @@ include 'inc/header.php';
             <div class="card-header py-3">
                 <h6 class="m-0 font-weight-bold text-primary">Current Reservations</h6>
             </div>
-            <div class="card-body">
-                <div class="table-responsive">
+            <div class="card-body px-0"> <!-- Remove padding for full-width scroll -->
+                <div class="table-responsive px-3"> <!-- Add padding inside scroll container -->
                     <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
@@ -83,11 +159,21 @@ include 'inc/header.php';
                                         <td><?php echo htmlspecialchars($row['title']); ?></td>
                                         <td><?php echo date('Y-m-d h:i A', strtotime($row['reserve_date'])); ?></td>
                                         <td>
-                                            <?php if ($row['status'] == 'Ready'): ?>
-                                                <span class="badge badge-success p-2">
+                                            <?php if ($row["status"] == 'Ready'): ?>
+                                                <span class="badge badge-success p-2" 
+                                                      data-toggle="tooltip" 
+                                                      title="Made ready by: <?php echo htmlspecialchars($row["ready_by_name"]); ?> 
+                                                             on <?php echo date('Y-m-d h:i A', strtotime($row["ready_date"])); ?>">
                                                     <i class="fas fa-check"></i> READY
                                                     <br>
                                                     <small>Your book is ready for pickup</small>
+                                                </span>
+                                            <?php elseif ($row["status"] == 'Cancelled'): ?>
+                                                <span class="badge badge-danger p-2" 
+                                                      data-toggle="tooltip" 
+                                                      title="Cancelled by: <?php echo htmlspecialchars($row["cancelled_by_name"]); ?> (<?php echo $row["cancelled_by_role"]; ?>)
+                                                             on <?php echo date('Y-m-d h:i A', strtotime($row["cancel_date"])); ?>">
+                                                    <i class="fas fa-times"></i> CANCELLED
                                                 </span>
                                             <?php else: ?>
                                                 <span class="badge badge-warning p-2">
@@ -129,10 +215,17 @@ $(document).ready(function() {
         },
         "pageLength": 10,
         "order": [[0, 'asc']],
-        "responsive": true,
+        "responsive": false, // Disable DataTables responsive handling
+        "scrollX": true, // Enable horizontal scrolling
+        "autoWidth": false, // Disable auto-width calculation
         "initComplete": function() {
             $('#dataTable_filter input').addClass('form-control form-control-sm');
         }
+    });
+    
+    // Adjust table columns on window resize
+    $(window).on('resize', function () {
+        $('#dataTable').DataTable().columns.adjust();
     });
 
     $('.cancel-reservation').on('click', function() {

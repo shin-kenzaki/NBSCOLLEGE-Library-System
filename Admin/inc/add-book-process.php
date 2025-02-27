@@ -24,11 +24,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $carrier_type = $_POST['carrier_type'];
     $language = $_POST['language'];
     $shelf_location = $_POST['shelf_location'];
-    $entered_by = $_POST['entered_by'];
-    $date_added = $_POST['date_added'];
-    $status = $_POST['status'];
-    $last_update = $_POST['last_update'];
     $copies = $_POST['copies']; // Number of copies to add
+
+    // Get admin info from session
+    $entered_by = $_SESSION['admin_id'];
+    $updated_by = $_SESSION['admin_id'];
+    $date_added = date('Y-m-d');
+    $last_update = date('Y-m-d');
 
     // Fetch the latest ID from the database if the given ID is not provided
     if (empty($id)) {
@@ -52,15 +54,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 
     // Prepare SQL query
-    $sql = "INSERT INTO books (accession, title, preferred_title, parallel_title, front_image, back_image, height, width, series, volume, edition, copy_number, total_pages, ISBN, content_type, media_type, carrier_type, URL, language, shelf_location, entered_by, date_added, status, last_update) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    $sql = "INSERT INTO books (accession, title, preferred_title, parallel_title, front_image, back_image, height, width, series, volume, edition, copy_number, total_pages, ISBN, content_type, media_type, carrier_type, URL, language, shelf_location, entered_by, date_added, status, updated_by, last_update) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     if ($stmt = $conn->prepare($sql)) {
         for ($i = 0; $i < $copies; $i++) {
             $current_accession = $accession + $i; // Increment ID for each copy
             $copy_number = $i + 1; // Copy number starts from 1
 
-            $stmt->bind_param("ssssssddsisssissssssssss", 
+            $stmt->bind_param("ssssssddsisssisssssssssssss", 
                 $current_accession, $title, $preferred_title, $parallel_title, 
                 $front_image, $back_image, 
                 $height, $width, 
@@ -68,7 +70,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $total_pages, $ISBN, 
                 $content_type, $media_type, $carrier_type, 
                 $URL, $language, $shelf_location, 
-                $entered_by, $date_added, $status, $last_update
+                $entered_by, $date_added, $status, $updated_by, $last_update
             );
 
             if (!$stmt->execute()) {

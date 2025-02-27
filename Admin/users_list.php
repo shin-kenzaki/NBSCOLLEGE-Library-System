@@ -115,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             // Insert new user with all required fields
             $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-            $image = '../Admin/inc/upload/default-avatar.jpg'; // Default image path
+            $image = '../Images/Profile/default-avatar.jpg';
             $sql = "INSERT INTO users (
                 school_id, firstname, middle_init, lastname, 
                 email, password, contact_no, user_image, 
@@ -198,8 +198,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </a>
                 </div>
             </div>
-            <div class="card-body">
-                <div class="table-responsive">
+            <div class="card-body px-0">
+                <div class="table-responsive px-3">
                     <table class="table table-bordered" id="usersTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
@@ -359,7 +359,8 @@ $(document).ready(function() {
                "<'row mt-3'<'col-sm-5'i><'col-sm-7 d-flex justify-content-end'p>>",
         "order": [[10, "desc"]],
         "pageLength": 10,
-        "responsive": true,
+        "responsive": false,
+        "scrollX": true,
         "language": {
             "search": "_INPUT_",
             "searchPlaceholder": "Search..."
@@ -730,8 +731,75 @@ $(document).ready(function() {
         });
     }
 
-    // ...rest of existing code...
+    // Add window resize handler
+    $(window).on('resize', function () {
+        table.columns.adjust();
+    });
 });
 </script>
+
+<style>
+    /* Add responsive table styles */
+    .table-responsive {
+        width: 100%;
+        margin-bottom: 1rem;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    #usersTable th,
+    #usersTable td {
+        min-width: 100px;
+        white-space: nowrap;
+    }
+    
+    #usersTable {
+        width: 100% !important;
+    }
+    
+    .table td, .table th {
+        white-space: nowrap;
+    }
+
+    /* Add to existing styles */
+    .card-header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .card-header .btn-group {
+        display: inline-flex;
+        flex-wrap: nowrap;
+        gap: 5px;
+    }
+    
+    @media (max-width: 768px) {
+        .card-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .card-header .btn-group {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            width: 100%;
+        }
+        
+        .card-header .btn {
+            margin: 2px !important;
+            white-space: nowrap;
+            justify-content: center;
+            padding: .25rem .5rem;
+            font-size: .875rem;
+        }
+        
+        .card-header h6 {
+            text-align: center;
+            margin-bottom: 10px !important;
+        }
+    }
+</style>
 
 <?php include('../admin/inc/footer.php'); ?>

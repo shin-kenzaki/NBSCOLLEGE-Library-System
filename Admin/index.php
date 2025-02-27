@@ -93,7 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <style>
         .bg-login-image {
-    background: url('inc/img/bg-login.JPG') center center no-repeat;
+    background: url('../Images/BG/bg-login.JPG') center center no-repeat;
     background-size: cover;
 }
     </style>

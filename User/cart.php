@@ -43,6 +43,71 @@ $result = $stmt->get_result();
         .selected-row {
             background-color: #f0f8ff; /* Light blue background for selected rows */
         }
+
+        /* Add custom CSS for responsive table */
+        .table-responsive {
+            width: 100%;
+            margin-bottom: 1rem;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        /* Ensure minimum width for table columns */
+        #dataTable th,
+        #dataTable td {
+            white-space: nowrap;
+        }
+        
+        /* Specific column widths */
+        #dataTable th:nth-child(1),
+        #dataTable td:nth-child(1) {
+            min-width: 50px; /* Checkbox column */
+        }
+        #dataTable th:nth-child(2),
+        #dataTable td:nth-child(2) {
+            min-width: 200px; /* Title column */
+        }
+        #dataTable th:nth-child(3),
+        #dataTable td:nth-child(3) {
+            min-width: 150px; /* Author column */
+        }
+        #dataTable th:nth-child(4),
+        #dataTable td:nth-child(4) {
+            min-width: 150px; /* Date Added column */
+            text-align: center;
+            vertical-align: middle;
+        }
+        #dataTable th:nth-child(5),
+        #dataTable td:nth-child(5) {
+            min-width: 100px; /* Actions column */
+            text-align: center;
+            vertical-align: middle;
+        }
+        
+        /* Make the table stretch full width */
+        #dataTable {
+            width: 100% !important;
+        }
+
+        /* Center align all table cells vertically */
+        #dataTable td, 
+        #dataTable th {
+            vertical-align: middle !important;
+        }
+
+        /* Actions column horizontal and vertical centering */
+        #dataTable th:nth-child(5),
+        #dataTable td:nth-child(5) {
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        /* Center checkbox in first column */
+        #dataTable th:first-child,
+        #dataTable td:first-child {
+            text-align: center;
+            vertical-align: middle;
+        }
     </style>
     <!-- Include SweetAlert CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
@@ -61,9 +126,8 @@ $result = $stmt->get_result();
                         <button class="btn btn-primary btn-sm" id="checkout">Checkout</button>
                     </div>
                 </div>
-                <div class="card-body">
-                    <!-- Cart Table -->
-                    <div class="table-responsive">
+                <div class="card-body px-0"> <!-- Remove padding for full-width scroll -->
+                    <div class="table-responsive px-3"> <!-- Add padding inside scroll container -->
                         <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                             <thead>
                                 <tr>
@@ -119,11 +183,18 @@ $result = $stmt->get_result();
                 "searchPlaceholder": "Search within results..."
             },
             "pageLength": 10,
-            "order": [[0, 'asc']], // Sort by title by default
-            "responsive": true,
+            "order": [[1, 'asc']], // Sort by title by default
+            "responsive": false, // Disable DataTables responsive handling
+            "scrollX": true, // Enable horizontal scrolling
+            "autoWidth": false, // Disable auto-width calculation
             "initComplete": function() {
                 $('#dataTable_filter input').addClass('form-control form-control-sm');
             }
+        });
+
+        // Adjust table columns on window resize
+        $(window).on('resize', function () {
+            $('#dataTable').DataTable().columns.adjust();
         });
 
         // Function to update the selected item count

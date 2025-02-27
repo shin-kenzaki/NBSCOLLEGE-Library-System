@@ -21,12 +21,14 @@ include('update_overdue_status.php');
 updateOverdueStatus($conn);
 
 // Fetch borrowed books data from the database
-$query = "SELECT b.id as borrow_id, b.book_id, b.user_id, b.borrow_date, b.due_date, b.status,
+$query = "SELECT b.id as borrow_id, b.book_id, b.user_id, b.issue_date, b.due_date, b.status,
           bk.title, bk.accession, 
-          CONCAT(u.firstname, ' ', u.lastname) AS borrower
+          CONCAT(u.firstname, ' ', u.lastname) AS borrower,
+          CONCAT(a.firstname, ' ', a.lastname) AS issued_by_name
           FROM borrowings b
           JOIN books bk ON b.book_id = bk.id
           JOIN users u ON b.user_id = u.id
+          LEFT JOIN admins a ON b.issued_by = a.id
           WHERE b.status IN ('Active', 'Overdue')
           AND b.return_date IS NULL";
 $result = $conn->query($query);
@@ -34,7 +36,10 @@ $result = $conn->query($query);
 
 <!-- Main Content -->
 <div id="content" class="d-flex flex-column min-vh-100">
-    <div class="container-fluid">
+    <div class="container-fluid px-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3 mb-0 text-gray-800">Borrowed Books</h1>
+        </div>
         <div class="card shadow mb-4">
             <div class="card-header py-3 d-flex justify-content-between align-items-center">
                 <h6 class="m-0 font-weight-bold text-primary">Borrowed Books List</h6>
@@ -76,15 +81,9 @@ $result = $conn->query($query);
                                     <td><?php echo $row['accession']; ?></td>
                                     <td><?php echo $row['title']; ?></td>
                                     <td><?php echo $row['borrower']; ?></td>
-                                    <td><?php echo $row['borrow_date']; ?></td>
+                                    <td><?php echo date('Y-m-d', strtotime($row['issue_date'])); ?></td>
                                     <td><?php echo $row['due_date']; ?></td>
-                                    <td>
-                                        <?php if ($row['status'] === 'Overdue'): ?>
-                                            <span class="badge badge-danger">Overdue</span>
-                                        <?php else: ?>
-                                            <span class="badge badge-success">Active</span>
-                                        <?php endif; ?>
-                                    </td>
+                                    <td><?php echo $row['issued_by_name']; ?></td>
                                 </tr>
                             <?php endwhile; ?>
                         </tbody>
@@ -147,14 +146,17 @@ $result = $conn->query($query);
         let $selectedRow = null;
 
         // Initialize DataTable
-        $('#dataTable').DataTable({
+        const table = $('#dataTable').DataTable({
             "dom": "<'row mb-3'<'col-sm-6'l><'col-sm-6 d-flex justify-content-end'f>>" +
                    "<'row'<'col-sm-12'tr>>" +
                    "<'row mt-3'<'col-sm-5'i><'col-sm-7 d-flex justify-content-end'p>>",
+            "pagingType": "simple_numbers",
             "pageLength": 10,
             "lengthMenu": [[10, 25, 50, 100, 500], [10, 25, 50, 100, 500]],
             "responsive": true,
-            "scrollX": true,
+            "scrollY": "60vh",
+            "scrollCollapse": true,
+            "fixedHeader": true,
             "language": {
                 "search": "_INPUT_",
                 "searchPlaceholder": "Search..."
@@ -163,8 +165,13 @@ $result = $conn->query($query);
                 $('#dataTable_filter input').addClass('form-control form-control-sm');
                 $('#dataTable_filter').addClass('d-flex align-items-center');
                 $('#dataTable_filter label').append('<i class="fas fa-search ml-2"></i>');
-                $('.dataTables_paginate .paginate_button').addClass('btn btn-sm btn-outline-primary mx-1');
+                $('#dataTable_paginate .paginate_button').addClass('btn btn-sm btn-outline-primary mx-1');
             }
+        });
+
+        // Add window resize handler
+        $(window).on('resize', function() {
+            table.columns.adjust().draw();
         });
 
         // Right-click handler for table rows

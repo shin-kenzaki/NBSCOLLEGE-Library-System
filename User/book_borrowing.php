@@ -11,9 +11,12 @@ if (!isset($_SESSION['user_id'])) {
 $user_id = $_SESSION['user_id'];
 
 // Fetch active and overdue borrowings
-$query = "SELECT b.id, bk.title, b.borrow_date, b.due_date, b.status, b.allowed_days 
+$query = "SELECT b.id, bk.title, b.issue_date, b.due_date, b.status, b.allowed_days,
+                 a1.firstname AS issued_by_name, a2.firstname AS received_by_name 
           FROM borrowings b 
           JOIN books bk ON b.book_id = bk.id 
+          LEFT JOIN admins a1 ON b.issued_by = a1.id
+          LEFT JOIN admins a2 ON b.recieved_by = a2.id
           WHERE b.user_id = ? AND b.status IN ('Active', 'Overdue')";
 
 $stmt = $conn->prepare($query);
@@ -51,10 +54,11 @@ include 'inc/header.php';
                         <thead>
                             <tr>
                                 <th>Title</th>
-                                <th>Borrow Date</th>
+                                <th>Issue Date</th>
                                 <th>Due Date</th>
                                 <th>Days Remaining</th>
                                 <th>Status</th>
+                                <th>Issued By</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -67,7 +71,7 @@ include 'inc/header.php';
                             ?>
                                 <tr>
                                     <td><?php echo htmlspecialchars($row['title']); ?></td>
-                                    <td><?php echo date('Y-m-d', strtotime($row['borrow_date'])); ?></td>
+                                    <td><?php echo date('Y-m-d', strtotime($row['issue_date'])); ?></td>
                                     <td><?php echo date('Y-m-d', strtotime($row['due_date'])); ?></td>
                                     <td>
                                         <?php if ($is_overdue): ?>
@@ -83,6 +87,7 @@ include 'inc/header.php';
                                             <span class="badge badge-success">Active</span>
                                         <?php endif; ?>
                                     </td>
+                                    <td><?php echo htmlspecialchars($row['issued_by_name']); ?></td>
                                 </tr>
                             <?php endwhile; ?>
                             <?php endif; ?>

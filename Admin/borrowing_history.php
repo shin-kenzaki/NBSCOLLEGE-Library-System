@@ -11,7 +11,7 @@ if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Lib
 include('../db.php');
 $query = "SELECT 
             b.id as borrow_id,
-            b.borrow_date,
+            b.issue_date,
             b.due_date,
             b.return_date,
             b.report_date,
@@ -19,21 +19,29 @@ $query = "SELECT
             b.status,
             bk.title as book_title,
             bk.accession,
-            CONCAT(u.firstname, ' ', u.lastname) as borrower_name
+            CONCAT(u.firstname, ' ', u.lastname) as borrower_name,
+            CONCAT(a1.firstname, ' ', a1.lastname) as issued_by_name,
+            CONCAT(a2.firstname, ' ', a2.lastname) as recieved_by_name
           FROM borrowings b
           JOIN books bk ON b.book_id = bk.id
           JOIN users u ON b.user_id = u.id
+          LEFT JOIN admins a1 ON b.issued_by = a1.id
+          LEFT JOIN admins a2 ON b.recieved_by = a2.id
           WHERE b.status != 'Active' AND b.status != 'Over Due'
-          ORDER BY b.borrow_date DESC";
+          ORDER BY b.issue_date DESC";
 $result = $conn->query($query);
 ?>
 
 <!-- Main Content -->
 <div id="content" class="d-flex flex-column min-vh-100">
-    <div class="container-fluid">
+    <div class="container-fluid px-4">
+        <!-- Page Heading -->
+        <h1 class="h3 mb-2 text-gray-800">Borrowing History</h1>
+        <p class="mb-4">Complete history of all book borrowing transactions including returns, losses, and damages.</p>
+
         <div class="card shadow mb-4">
-            <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                <h6 class="m-0 font-weight-bold text-primary">Borrowing History</h6>
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Borrowing Records</h6>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
@@ -43,8 +51,10 @@ $result = $conn->query($query);
                                 <th>Book Title</th>
                                 <th>Accession No.</th>
                                 <th>Borrower</th>
-                                <th>Borrow Date</th>
+                                <th>Issue Date</th>
                                 <th>Due Date</th>
+                                <th>Issued By</th>
+                                <th>Received By</th>
                                 <th>Return/Report Date</th>
                                 <th>Replaced Date</th>
                                 <th>Status</th>
@@ -56,8 +66,10 @@ $result = $conn->query($query);
                                 <td><?php echo htmlspecialchars($row['book_title']); ?></td>
                                 <td><?php echo htmlspecialchars($row['accession']); ?></td>
                                 <td><?php echo htmlspecialchars($row['borrower_name']); ?></td>
-                                <td><?php echo date('Y-m-d', strtotime($row['borrow_date'])); ?></td>
+                                <td><?php echo date('Y-m-d', strtotime($row['issue_date'])); ?></td>
                                 <td><?php echo date('Y-m-d', strtotime($row['due_date'])); ?></td>
+                                <td><?php echo $row['issued_by_name']; ?></td>
+                                <td><?php echo $row['recieved_by_name'] ?? '-'; ?></td>
                                 <td><?php 
                                     if ($row['return_date']) {
                                         echo date('Y-m-d', strtotime($row['return_date']));
@@ -99,6 +111,7 @@ $(document).ready(function() {
         "dom": "<'row mb-3'<'col-sm-6'l><'col-sm-6 d-flex justify-content-end'f>>" +
                "<'row'<'col-sm-12'tr>>" +
                "<'row mt-3'<'col-sm-5'i><'col-sm-7 d-flex justify-content-end'p>>",
+        "pagingType": "simple_numbers",
         "pageLength": 10,
         "lengthMenu": [[10, 25, 50, 100, 500], [10, 25, 50, 100, 500]],
         "responsive": true,
@@ -114,7 +127,7 @@ $(document).ready(function() {
             $('#dataTable_filter input').addClass('form-control form-control-sm');
             $('#dataTable_filter').addClass('d-flex align-items-center');
             $('#dataTable_filter label').append('<i class="fas fa-search ml-2"></i>');
-            $('#dataTable_paginate .paginate_button').addClass('btn btn-sm btn-outline-primary mx-1');
+            $('.dataTables_paginate .paginate_button').addClass('btn btn-sm btn-outline-primary mx-1');
         }
     });
 

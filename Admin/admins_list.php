@@ -108,6 +108,114 @@ $result = mysqli_query($conn, $query);
 
 ?>
 
+<style>
+    /* Add responsive table styles */
+    .table-responsive {
+        width: 100%;
+        margin-bottom: 1rem;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    #adminsTable th,
+    #adminsTable td {
+        min-width: 100px;
+        white-space: nowrap;
+    }
+    
+    #adminsTable {
+        width: 100% !important;
+    }
+    
+    .table td, .table th {
+        white-space: nowrap;
+    }
+
+    /* Add to existing styles */
+    .card-header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .card-header .btn-group {
+        display: inline-flex;
+        flex-wrap: nowrap;
+        gap: 5px;
+    }
+    
+    @media (max-width: 768px) {
+        .card-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .card-header .btn-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            width: 100%;
+        }
+        
+        .card-header .btn {
+            margin: 2px !important;
+            white-space: nowrap;
+            justify-content: center;
+        }
+        
+        .card-header h6 {
+            text-align: center;
+            margin-bottom: 10px !important;
+        }
+    }
+
+    /* Updated card header styles */
+    .card-header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+        padding: 1rem;
+    }
+    
+    .card-header .title-section {
+        flex: 1;
+        min-width: 200px;
+    }
+    
+    .card-header .btn-group {
+        display: flex;
+        gap: 5px;
+        flex-wrap: nowrap;
+    }
+    
+    @media (max-width: 768px) {
+        .card-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .card-header .title-section {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        
+        .card-header .btn-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            width: 100%;
+        }
+        
+        .card-header .btn {
+            margin: 2px !important;
+            padding: 0.375rem 0.5rem;
+            font-size: 0.875rem;
+            white-space: nowrap;
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
 
             <!-- Main Content -->
             <div id="content" class="d-flex flex-column min-vh-100">
@@ -117,22 +225,24 @@ $result = mysqli_query($conn, $query);
 
 
                     <div class="card shadow mb-4">
-                <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 font-weight-bold text-primary">List of Admins</h6>
-                    <div>
-                        <button id="activateSelected" class="btn btn-outline-success btn-sm mr-2" disabled>
-                            Activate Selected (<span id="selectedActivateCount">0</span>)
+                <div class="card-header py-3">
+                    <div class="title-section">
+                        <h6 class="m-0 font-weight-bold text-primary">List of Admins</h6>
+                    </div>
+                    <div class="btn-group">
+                        <button id="activateSelected" class="btn btn-outline-success btn-sm" disabled>
+                            Activate (<span id="selectedActivateCount">0</span>)
                         </button>
-                        <button id="deactivateSelected" class="btn btn-outline-secondary btn-sm mr-2" disabled>
-                            Deactivate Selected (<span id="selectedDeactivateCount">0</span>)
+                        <button id="deactivateSelected" class="btn btn-outline-secondary btn-sm" disabled>
+                            Deactivate (<span id="selectedDeactivateCount">0</span>)
                         </button>
                         <button class="btn btn-success btn-sm" data-toggle="modal" data-target="#addUserModal">
-                            <i class="fas fa-plus"></i> Add User
+                            <i class="fas fa-plus"></i> Add Admin
                         </button>
                     </div>
                 </div>
-                <div class="card-body">
-                    <div class="table-responsive">
+                <div class="card-body px-0">
+                    <div class="table-responsive px-3">
                         <!-- Remove the custom search form -->
                         <table class="table table-bordered" id="adminsTable" width="100%" cellspacing="0">
                             <thead>
@@ -285,7 +395,8 @@ $(document).ready(function() {
                "<'row mt-3'<'col-sm-5'i><'col-sm-7 d-flex justify-content-end'p>>",
         "order": [[7, "desc"]], 
         "pageLength": 10,
-        "responsive": true,
+        "responsive": false,
+        "scrollX": true,
         "language": {
             "search": "_INPUT_",
             "searchPlaceholder": "Search..."
@@ -299,6 +410,11 @@ $(document).ready(function() {
             // Fix pagination buttons styling & spacing
             $('.dataTables_paginate .paginate_button').addClass('btn btn-sm btn-outline-primary mx-1');
         }
+    });
+
+    // Add window resize handler
+    $(window).on('resize', function () {
+        table.columns.adjust();
     });
 
     // Function to update selected admin IDs

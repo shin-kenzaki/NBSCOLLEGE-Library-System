@@ -9,6 +9,7 @@ if (!isset($_SESSION['admin_id'])) {
 include '../admin/inc/header.php';
 include '../db.php';
 include '../inc/status_helper.php';
+require 'inc/functions.php';
 
 $user_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
@@ -37,6 +38,7 @@ if (!$user) {
 }
 
 list($status_class, $status_text) = getStatusDisplay($user['status']);
+$userImage = displayProfileImage($user['user_image']);
 ?>
 
 <div id="content">
@@ -55,7 +57,7 @@ list($status_class, $status_text) = getStatusDisplay($user['status']);
                     <div class="card-header">Profile Picture</div>
                     <div class="card-body text-center">
                         <img class="img-account-profile rounded-circle mb-2" 
-                             src="<?= htmlspecialchars($user['image'] ?? '../assets/img/default-avatar.png') ?>" 
+                             src="<?= htmlspecialchars($userImage) ?>" 
                              alt="User profile picture"
                              style="width: 180px; height: 180px; object-fit: cover;">
                     </div>

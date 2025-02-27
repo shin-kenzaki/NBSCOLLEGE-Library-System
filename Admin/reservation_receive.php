@@ -8,6 +8,8 @@ if (!isset($_SESSION['admin_id']) || ($_SESSION['role'] !== 'Admin' && $_SESSION
     exit();
 }
 
+$admin_id = $_SESSION['admin_id'];
+
 // Get input data - either from GET for single or POST for bulk
 $ids = [];
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['id'])) {
@@ -54,7 +56,7 @@ try {
 
     while ($row = $result->fetch_assoc()) {
         // Check if book is available when reservation is in PENDING status
-        if ($row['status'] === 'PENDING') {
+        if ($row['status'] === 'Pending') {
             $check_book = "SELECT status FROM books WHERE id = ?";
             $stmt = $conn->prepare($check_book);
             $stmt->bind_param("i", $row['book_id']);
@@ -69,11 +71,13 @@ try {
 
         // Update reservation
         $sql = "UPDATE reservations 
-                SET recieved_date = NOW(), 
-                    status = 'Recieved'
+                SET recieved_date = NOW(),
+                    issue_date = NOW(),
+                    issued_by = ?,
+                    status = 'Received'
                 WHERE id = ?";
         $stmt = $conn->prepare($sql);
-        $stmt->bind_param("i", $row['id']);
+        $stmt->bind_param("ii", $admin_id, $row['id']);
         if (!$stmt->execute()) {
             throw new Exception("Error updating reservation");
         }
@@ -90,10 +94,10 @@ try {
 
         // Create borrowing record
         $sql = "INSERT INTO borrowings 
-                (user_id, book_id, status, borrow_date, allowed_days, due_date)
-                VALUES (?, ?, 'Active', NOW(), ?, DATE_ADD(NOW(), INTERVAL ? DAY))";
+                (user_id, book_id, status, issue_date, issued_by, allowed_days, due_date)
+                VALUES (?, ?, 'Active', NOW(), ?, ?, DATE_ADD(NOW(), INTERVAL ? DAY))";
         $stmt = $conn->prepare($sql);
-        $stmt->bind_param("iiii", $row['user_id'], $row['book_id'], $allowed_days, $allowed_days);
+        $stmt->bind_param("iiiii", $row['user_id'], $row['book_id'], $admin_id, $allowed_days, $allowed_days);
         if (!$stmt->execute()) {
             throw new Exception("Error creating borrowing record");
         }

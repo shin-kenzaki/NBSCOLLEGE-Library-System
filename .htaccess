@@ -1,0 +1,15 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /Library-System/
+    
+    # Admin section error handling
+    RewriteCond %{REQUEST_URI} ^/Library-System/Admin/.*$
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^Admin/(.*)$ Admin/404.php [L,QSA]
+
+    # ...existing code...
+</IfModule>
+
+# Set custom 404 page for admin section
+ErrorDocument 404 /Library-System/Admin/404.php

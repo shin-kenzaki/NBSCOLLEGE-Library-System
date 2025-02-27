@@ -58,7 +58,6 @@ if (isset($_POST['submit'])) {
         $carrier_types = $_POST['carrier_type'] ?? array();
         $total_pages = $_POST['total_pages'] ?? array();
         $supplementary_contents = $_POST['supplementary_contents'] ?? array();
-        $ISBNs = $_POST['ISBN'] ?? array();
         $entered_by = $_POST['entered_by'] ?? array();
         $date_added = $_POST['date_added'] ?? array();
 
@@ -92,36 +91,36 @@ if (isset($_POST['submit'])) {
             $subject_detail = mysqli_real_escape_string($conn, $_POST['subject_paragraphs'][0]);
         }
 
+        // Get admin info for update tracking
+        $current_admin_id = $_SESSION['admin_id'];
+        $update_date = date('Y-m-d');
+
         // Update each book copy
         foreach ($bookIds as $index => $bookId) {
+            // Get original entered_by and date_added for this specific copy
+            $original_data_query = "SELECT entered_by, date_added FROM books WHERE id = ?";
+            $stmt = $conn->prepare($original_data_query);
+            $stmt->bind_param("i", $bookId);
+            $stmt->execute();
+            $original_data = $stmt->get_result()->fetch_assoc();
+            $stmt->close();
+            
             // Safe array access with proper checks for each array
             $shelf_location = isset($shelf_locations[$index]) ? mysqli_real_escape_string($conn, $shelf_locations[$index]) : '';
             $call_number = isset($call_numbers[$index]) ? mysqli_real_escape_string($conn, $call_numbers[$index]) : '';
             $accession = isset($accessions[$index]) ? mysqli_real_escape_string($conn, $accessions[$index]) : '';
-            $front_image = isset($front_images[$index]) ? mysqli_real_escape_string($conn, $front_images[$index]) : '';
-            $back_image = isset($back_images[$index]) ? mysqli_real_escape_string($conn, $back_images[$index]) : '';
-            $dimension = isset($dimensions[$index]) ? mysqli_real_escape_string($conn, $dimensions[$index]) : '';
-            $series = isset($series[$index]) ? mysqli_real_escape_string($conn, $series[$index]) : '';
-            $volume = isset($volumes[$index]) ? mysqli_real_escape_string($conn, $volumes[$index]) : '';
-            $edition = isset($editions[$index]) ? mysqli_real_escape_string($conn, $editions[$index]) : '';
-            $url = isset($urls[$index]) ? mysqli_real_escape_string($conn, $urls[$index]) : '';
-            $content_type = isset($content_types[$index]) ? mysqli_real_escape_string($conn, $content_types[$index]) : 'Text';
-            $media_type = isset($media_types[$index]) ? mysqli_real_escape_string($conn, $media_types[$index]) : 'Print';
-            $carrier_type = isset($carrier_types[$index]) ? mysqli_real_escape_string($conn, $carrier_types[$index]) : 'Book';
+            
+            // Use original data for entered_by and date_added
+            $entered_by_value = $original_data['entered_by'];
+            $date_added_value = $original_data['date_added'];
+            
+            // Get copy-specific values
+            $url = isset($_POST['url']) ? mysqli_real_escape_string($conn, $_POST['url']) : '';
+            $content_type = isset($_POST['content_type']) ? mysqli_real_escape_string($conn, $_POST['content_type']) : 'Text';
+            $media_type = isset($_POST['media_type']) ? mysqli_real_escape_string($conn, $_POST['media_type']) : 'Print';
+            $carrier_type = isset($_POST['carrier_type']) ? mysqli_real_escape_string($conn, $_POST['carrier_type']) : 'Book';
             $total_page = isset($total_pages[$index]) ? mysqli_real_escape_string($conn, $total_pages[$index]) : '';
             $supplementary_content = isset($supplementary_contents[$index]) ? mysqli_real_escape_string($conn, $supplementary_contents[$index]) : '';
-            $ISBN = isset($ISBNs[$index]) ? mysqli_real_escape_string($conn, $ISBNs[$index]) : '';
-            
-            // Special handling for entered_by and date_added
-            $entered_by_value = '';
-            if (isset($entered_by) && is_array($entered_by) && isset($entered_by[$index])) {
-                $entered_by_value = mysqli_real_escape_string($conn, $entered_by[$index]);
-            }
-            
-            $date_added_value = '';
-            if (isset($date_added) && is_array($date_added) && isset($date_added[$index])) {
-                $date_added_value = mysqli_real_escape_string($conn, $date_added[$index]);
-            }
 
             $update_query = "UPDATE books SET 
                 title = ?, 
@@ -150,14 +149,15 @@ if (isset($_POST['submit'])) {
                 entered_by = ?,
                 date_added = ?,
                 status = ?,
+                updated_by = ?,
                 last_update = ?,
                 accession = ?
                 WHERE id = ?";
                 
             $stmt = $conn->prepare($update_query);
             
-            // Bind parameters with copy-specific values
-            $stmt->bind_param("ssssssssssssssssssssssssssssi", 
+            // Bind parameters with copy-specific values including preserved entered_by/date_added
+            $stmt->bind_param("sssssssssssssssssssssssssssssi", 
                 $title, 
                 $preferred_title, 
                 $parallel_title,
@@ -181,10 +181,11 @@ if (isset($_POST['submit'])) {
                 $url,
                 $language,
                 $shelf_location,
-                $entered_by_value,
-                $date_added_value,
+                $entered_by_value,    // Use preserved value for this specific copy
+                $date_added_value,    // Use preserved value for this specific copy
                 $status,
-                $last_update,
+                $current_admin_id,
+                $update_date,
                 $accession,
                 $bookId
             );
@@ -329,7 +330,8 @@ $subject_options = array(
 <div id="content-wrapper" class="d-flex flex-column min-vh-100">
     <div id="content" class="flex-grow-1">
         <div class="container-fluid">
-            <form id="bookForm" action="" method="POST" enctype="multipart/form-data" class="h-100">
+            <form id="bookForm" action="" method="POST" enctype="multipart/form-data" class="h-100" 
+                  onkeydown="return event.key != 'Enter';">
                 <div class="container-fluid d-flex justify-content-between align-items-center">
                     <h1 class="h3 mb-2 text-gray-800">Update Books (<?php echo count($books); ?> copies)</h1>
                     <button type="submit" name="submit" class="btn btn-primary">Update Books</button>
@@ -589,15 +591,49 @@ $subject_options = array(
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label>Entered By</label>
-                                    <input type="text" class="form-control" name="entered_by" 
-                                           value="<?php echo $_SESSION['admin_id']; ?>" readonly>
+                                    <label>Original Entry By</label>
+                                    <input type="text" class="form-control" 
+                                           value="<?php echo htmlspecialchars($first_book['entered_by'] ?? ''); ?>" readonly>
+                                    <input type="hidden" name="entered_by[]" 
+                                           value="<?php echo htmlspecialchars($first_book['entered_by'] ?? ''); ?>">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label>Date Added</label>
-                                    <input type="text" class="form-control" name="date_added" 
+                                    <label>Original Entry Date</label>
+                                    <input type="text" class="form-control" name="date_added[]" 
+                                           value="<?php echo htmlspecialchars($first_book['date_added'] ?? ''); ?>" readonly>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>Last Updated By</label>
+                                    <?php
+                                    // Get updater details if available
+                                    $updater_name = 'Not yet updated';
+                                    if (!empty($first_book['updated_by'])) {
+                                        $updater_query = "SELECT CONCAT(firstname, ' ', lastname) as full_name, role 
+                                                        FROM admins WHERE id = ?";
+                                        $stmt = $conn->prepare($updater_query);
+                                        $stmt->bind_param("i", $first_book['updated_by']);
+                                        $stmt->execute();
+                                        $updater_result = $stmt->get_result();
+                                        if ($updater_data = $updater_result->fetch_assoc()) {
+                                            $updater_name = $updater_data['full_name'] . ' (' . $updater_data['role'] . ')';
+                                        }
+                                    }
+                                    ?>
+                                    <input type="text" class="form-control" value="<?php echo htmlspecialchars($updater_name); ?>" readonly>
+                                    <input type="hidden" name="updated_by" value="<?php echo $_SESSION['admin_id']; ?>">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>Last Update</label>
+                                    <input type="text" class="form-control" name="last_update" 
                                            value="<?php echo date('Y-m-d'); ?>" readonly>
                                 </div>
                             </div>
@@ -717,11 +753,11 @@ $subject_options = array(
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label>ISBN Numbers</label>
-                                    <div id="isbnContainer">
-                                        <!-- Will be populated by JavaScript -->
-                                    </div>
-                                    <small class="text-muted">One ISBN per accession group</small>
+                                    <label>ISBN</label>
+                                    <input type="text" class="form-control" name="ISBN" 
+                                           value="<?php echo htmlspecialchars($first_book['ISBN'] ?? ''); ?>" 
+                                           placeholder="Enter ISBN number">
+                                    <small class="text-muted">This ISBN will be applied to all copies</small>
                                 </div>
                             </div>
                         </div>
@@ -938,5 +974,27 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+});
+
+// Add this at the start of your existing script
+document.addEventListener('DOMContentLoaded', function() {
+    // Prevent form submission on enter key
+    document.getElementById('bookForm').addEventListener('keypress', function(e) {
+        if (e.keyCode === 13 || e.key === 'Enter') {
+            e.preventDefault();
+            return false;
+        }
+    });
+
+    // Only allow form submission via the submit button
+    document.getElementById('bookForm').onsubmit = function(e) {
+        if (e.submitter && e.submitter.type === 'submit') {
+            return validateForm(e);
+        }
+        e.preventDefault();
+        return false;
+    };
+
+    // ...rest of your existing script...
 });
 </script>

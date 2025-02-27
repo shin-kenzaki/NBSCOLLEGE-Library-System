@@ -22,12 +22,22 @@ $query = "SELECT
     b.title AS book_title,
     b.accession AS accession,
     r.reserve_date,
-    UPPER(r.status) as status,
+    r.ready_date,
+    CONCAT(a1.firstname, ' ', a1.lastname) AS ready_by_name,
+    r.issue_date,
+    CONCAT(a2.firstname, ' ', a2.lastname) AS issued_by_name,
     r.cancel_date,
+    CONCAT(COALESCE(a3.firstname, u2.firstname), ' ', COALESCE(a3.lastname, u2.lastname)) AS cancelled_by_name,
+    r.cancelled_by_role,
+    CONCAT(UPPER(SUBSTRING(r.status, 1, 1)), LOWER(SUBSTRING(r.status, 2))) as status,
     r.recieved_date
 FROM reservations r
 JOIN users u ON r.user_id = u.id
 JOIN books b ON r.book_id = b.id
+LEFT JOIN admins a1 ON r.ready_by = a1.id
+LEFT JOIN admins a2 ON r.issued_by = a2.id
+LEFT JOIN admins a3 ON (r.cancelled_by = a3.id AND r.cancelled_by_role = 'Admin')
+LEFT JOIN users u2 ON (r.cancelled_by = u2.id AND r.cancelled_by_role = 'User')
 WHERE r.recieved_date IS NULL 
 AND r.cancel_date IS NULL";
 $result = $conn->query($query);
@@ -35,7 +45,10 @@ $result = $conn->query($query);
 
 <!-- Main Content -->
 <div id="content" class="d-flex flex-column min-vh-100">
-    <div class="container-fluid">
+    <div class="container-fluid px-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3 mb-0 text-gray-800">Book Reservations</h1>
+        </div>
         <div class="card shadow mb-4">
             <div class="card-header py-3 d-flex justify-content-between align-items-center">
                 <h6 class="m-0 font-weight-bold text-primary">Book Reservations List</h6>
@@ -95,19 +108,14 @@ $result = $conn->query($query);
                                     <td><?php echo $row["accession"]; ?></td>
                                     <td><?php echo $row["reserve_date"]; ?></td>
                                     <?php
-                                    $status = 'Pending';
-                                    $statusClass = 'text-warning';
-                                    
-                                    if ($row["cancel_date"] !== null) {
-                                        $status = 'Cancelled';
-                                        $statusClass = 'text-danger';
-                                    } elseif ($row["recieved_date"] !== null) {
-                                        $status = 'Received';
-                                        $statusClass = 'text-success';
-                                    } elseif ($row["status"] === 'READY') {
-                                        $status = 'Ready';
-                                        $statusClass = 'text-primary';
-                                    }
+                                    $status = $row["status"];
+                                    $statusClass = match($status) {
+                                        'Pending' => 'text-warning',
+                                        'Ready' => 'text-primary',
+                                        'Received' => 'text-success',
+                                        'Cancelled' => 'text-danger',
+                                        default => 'text-secondary'
+                                    };
                                     ?>
                                     <td><span class='font-weight-bold <?php echo $statusClass; ?>'><?php echo $status; ?></span></td>
                                 </tr>
@@ -152,6 +160,7 @@ $result = $conn->query($query);
             "dom": "<'row mb-3'<'col-sm-6'l><'col-sm-6 d-flex justify-content-end'f>>" +
                    "<'row'<'col-sm-12'tr>>" +
                    "<'row mt-3'<'col-sm-5'i><'col-sm-7 d-flex justify-content-end'p>>",
+            "pagingType": "simple_numbers",
             "pageLength": 10,
             "lengthMenu": [[10, 25, 50, 100, 500], [10, 25, 50, 100, 500]],
             "responsive": true,
@@ -166,7 +175,7 @@ $result = $conn->query($query);
                 $('#dataTable_filter input').addClass('form-control form-control-sm');
                 $('#dataTable_filter').addClass('d-flex align-items-center');
                 $('#dataTable_filter label').append('<i class="fas fa-search ml-2"></i>');
-                $('#dataTable_paginate .paginate_button').addClass('btn btn-sm btn-outline-primary mx-1');
+                $('.dataTables_paginate .paginate_button').addClass('btn btn-sm btn-outline-primary mx-1');
             }
         });
 
@@ -182,26 +191,25 @@ $result = $conn->query($query);
         $('#dataTable tbody').on('contextmenu', 'tr', function(e) {
             e.preventDefault();
             
-            // Ensure the row has a reservation ID
             const reservationId = $(this).data('reservation-id');
             if (!reservationId) return;
 
             $selectedRow = $(this);
-            const currentStatus = $selectedRow.find('td:eq(5) span').text().trim();
+            const status = $selectedRow.data('status');
 
             // Don't show menu for completed states
-            if (currentStatus === 'Cancelled' || currentStatus === 'Received') {
+            if (status === 'Cancelled' || status === 'Received') {
                 return;
             }
 
             // Show/hide menu items based on status
             $(".context-menu .list-group-item").hide(); // Hide all items by default
 
-            if (currentStatus === 'Pending') {
+            if (status === 'Pending') {
                 // For pending items, show only Ready and Cancel options
                 $(".context-menu .list-group-item[data-action='ready']").show();
                 $(".context-menu .list-group-item[data-action='cancel']").show();
-            } else if (currentStatus === 'Ready') {
+            } else if (status === 'Ready') {
                 // For ready items, show only Received and Cancel options
                 $(".context-menu .list-group-item[data-action='received']").show();
                 $(".context-menu .list-group-item[data-action='cancel']").show();
@@ -230,8 +238,22 @@ $result = $conn->query($query);
 
             const reservationId = $selectedRow.data('reservation-id');
             const action = $(this).data('action');
+            const status = $selectedRow.data('status');
             let url = '';
             let confirmConfig = {};
+
+            // Validate action against current status
+            if ((action === 'ready' && status !== 'Pending') ||
+                (action === 'received' && status !== 'Ready') ||
+                (action === 'cancel' && !['Pending', 'Ready'].includes(status))) {
+                Swal.fire({
+                    title: 'Invalid Action',
+                    text: 'This action cannot be performed on the current reservation status.',
+                    icon: 'error'
+                });
+                contextMenu.hide();
+                return;
+            }
 
             switch(action) {
                 case 'ready':
@@ -241,19 +263,17 @@ $result = $conn->query($query);
                         text: 'Are you sure you want to mark this reservation as ready?',
                         icon: 'question',
                         confirmButtonText: 'Yes, Mark as Ready',
-                        confirmButtonColor: '#3085d6',
-                        cancelButtonColor: '#6c757d'
+                        confirmButtonColor: '#3085d6'
                     };
                     break;
                 case 'received':
-                    url = 'reservation_receive.php'; // Fix URL to match the correct endpoint
+                    url = 'reservation_receive.php';
                     confirmConfig = {
                         title: 'Mark as Received?',
-                        text: 'Are you sure you want to mark this reservation as received? This action cannot be undone.',
+                        text: 'Are you sure you want to mark this reservation as received and create a borrowing record? This action cannot be undone.',
                         icon: 'warning',
                         confirmButtonText: 'Yes, Mark as Received',
-                        confirmButtonColor: '#28a745',
-                        cancelButtonColor: '#6c757d'
+                        confirmButtonColor: '#28a745'
                     };
                     break;
                 case 'cancel':
@@ -263,8 +283,7 @@ $result = $conn->query($query);
                         text: 'Are you sure you want to cancel this reservation?',
                         icon: 'warning',
                         confirmButtonText: 'Yes, Cancel It',
-                        confirmButtonColor: '#dc3545',
-                        cancelButtonColor: '#6c757d'
+                        confirmButtonColor: '#dc3545'
                     };
                     break;
             }
@@ -274,26 +293,34 @@ $result = $conn->query($query);
                     ...confirmConfig,
                     showCancelButton: true,
                     cancelButtonText: 'No, Keep It',
+                    cancelButtonColor: '#6c757d',
                     allowOutsideClick: false,
                     allowEscapeKey: false,
                     showLoaderOnConfirm: true,
                     preConfirm: () => {
                         return fetch(`${url}?id=${reservationId}`)
-                            .then(response => {
-                                if (!response.ok) {
-                                    throw new Error(response.statusText);
+                            .then(response => response.json())
+                            .then(data => {
+                                if (!data.success) {
+                                    throw new Error(data.message || 'Error processing request');
                                 }
-                                return response;
+                                return data;
                             })
                             .catch(error => {
-                                Swal.showValidationMessage(`Request failed: ${error}`);
+                                Swal.showValidationMessage(`Request failed: ${error.message}`);
                             });
                     }
                 }).then((result) => {
                     if (result.isConfirmed) {
+                        const actionTexts = {
+                            'ready': 'marked as ready',
+                            'received': 'received and borrowing record created',
+                            'cancel': 'cancelled'
+                        };
+                        
                         Swal.fire({
                             title: 'Success!',
-                            text: 'The reservation status has been updated.',
+                            text: `The reservation has been ${actionTexts[action]}.`,
                             icon: 'success',
                             confirmButtonColor: '#3085d6'
                         }).then(() => {
@@ -332,11 +359,13 @@ $result = $conn->query($query);
         $('#selectAll').change(function() {
             const isChecked = $(this).prop('checked');
             $('.reservation-checkbox').each(function() {
-                const $row = $(this).closest('tr');
-                const status = $row.find('td:eq(5) span').text().trim();
+                const status = $(this).closest('tr').data('status');
                 // Only allow selection of Pending and Ready items
                 if (status === 'Pending' || status === 'Ready') {
                     $(this).prop('checked', isChecked);
+                } else {
+                    $(this).prop('checked', false);
+                    $(this).prop('disabled', true);
                 }
             });
             updateBulkButtons();
@@ -369,9 +398,36 @@ $result = $conn->query($query);
         // Handle bulk cancel button click
         $('#bulkCancelBtn').click(function() {
             const selectedIds = [];
+            const invalidSelections = [];
+            
             $('.reservation-checkbox:checked').each(function() {
-                selectedIds.push($(this).data('id'));
+                const $row = $(this).closest('tr');
+                const status = $row.data('status');
+                const bookTitle = $row.find('td:eq(2)').text();
+                const borrower = $row.find('td:eq(1)').text();
+                
+                if (status === 'Pending' || status === 'Ready') {
+                    selectedIds.push($(this).data('id'));
+                } else {
+                    invalidSelections.push(`${bookTitle} - ${borrower} (${status})`);
+                }
             });
+
+            // Show error if any invalid selections
+            if (invalidSelections.length > 0) {
+                let errorMessage = 'Only pending or ready reservations can be cancelled:<ul class="list-group mt-3">';
+                invalidSelections.forEach(item => {
+                    errorMessage += `<li class="list-group-item text-danger">${item}</li>`;
+                });
+                errorMessage += '</ul>';
+                
+                Swal.fire({
+                    title: 'Invalid Selections',
+                    html: errorMessage,
+                    icon: 'warning'
+                });
+                return;
+            }
 
             if (selectedIds.length === 0) return;
 
@@ -423,9 +479,36 @@ $result = $conn->query($query);
         // Add bulk ready button handler
         $('#bulkReadyBtn').click(function() {
             const selectedIds = [];
+            const invalidSelections = [];
+            
             $('.reservation-checkbox:checked').each(function() {
-                selectedIds.push($(this).data('id'));
+                const $row = $(this).closest('tr');
+                const status = $row.data('status');
+                const bookTitle = $row.find('td:eq(2)').text();
+                const borrower = $row.find('td:eq(1)').text();
+                
+                if (status === 'Pending') {
+                    selectedIds.push($(this).data('id'));
+                } else {
+                    invalidSelections.push(`${bookTitle} - ${borrower} (${status})`);
+                }
             });
+
+            // Show error if any invalid selections
+            if (invalidSelections.length > 0) {
+                let errorMessage = 'Only pending reservations can be marked as ready:<ul class="list-group mt-3">';
+                invalidSelections.forEach(item => {
+                    errorMessage += `<li class="list-group-item text-danger">${item}</li>`;
+                });
+                errorMessage += '</ul>';
+                
+                Swal.fire({
+                    title: 'Invalid Selections',
+                    html: errorMessage,
+                    icon: 'warning'
+                });
+                return;
+            }
 
             if (selectedIds.length === 0) return;
 
@@ -482,7 +565,7 @@ $result = $conn->query($query);
             
             $('.reservation-checkbox:checked').each(function() {
                 const $row = $(this).closest('tr');
-                const status = $row.find('td:eq(5) span').text().trim();
+                const status = $row.data('status');
                 const bookTitle = $row.find('td:eq(2)').text();
                 const borrower = $row.find('td:eq(1)').text();
                 

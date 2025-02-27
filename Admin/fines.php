@@ -31,9 +31,12 @@ $result = $conn->query($query);
 
 <!-- Main Content -->
 <div id="content" class="d-flex flex-column min-vh-100">
-    <div class="container-fluid">
+    <div class="container-fluid px-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3 mb-0 text-gray-800">Fines</h1>
+        </div>
         <div class="card shadow mb-4">
-            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <div class="card-header py-3">
                 <h6 class="m-0 font-weight-bold text-primary">Fines List</h6>
             </div>
             <?php if (isset($_GET['success'])): ?>
@@ -122,14 +125,17 @@ $(document).ready(function() {
     let $selectedRow = null;
 
     // Initialize DataTable
-    $('#finesTable').DataTable({
+    const table = $('#finesTable').DataTable({
         "dom": "<'row mb-3'<'col-sm-6'l><'col-sm-6 d-flex justify-content-end'f>>" +
                "<'row'<'col-sm-12'tr>>" +
                "<'row mt-3'<'col-sm-5'i><'col-sm-7 d-flex justify-content-end'p>>",
+        "pagingType": "simple_numbers",
         "pageLength": 25,
         "lengthMenu": [[10, 25, 50, 100, 500], [10, 25, 50, 100, 500]],
         "responsive": true,
-        "scrollX": true,
+        "scrollY": "60vh",
+        "scrollCollapse": true,
+        "fixedHeader": true,
         "order": [[5, "desc"]],
         "language": {
             "search": "_INPUT_",
@@ -141,6 +147,11 @@ $(document).ready(function() {
             $('#finesTable_filter label').append('<i class="fas fa-search ml-2"></i>');
             $('.dataTables_paginate .paginate_button').addClass('btn btn-sm btn-outline-primary mx-1');
         }
+    });
+
+    // Add window resize handler
+    $(window).on('resize', function() {
+        table.columns.adjust().draw();
     });
 
     // Right-click handler for table rows
@@ -180,39 +191,50 @@ $(document).ready(function() {
         const amount = $selectedRow.data('amount');
         const borrower = $selectedRow.data('borrower');
 
+        // Sweet Alert confirmation
         Swal.fire({
             title: 'Confirm Payment',
-            html: `Are you sure you want to mark this fine as paid?<br><br>
-                  <b>Borrower:</b> ${borrower}<br>
-                  <b>Amount:</b> ₱${amount.toFixed(2)}`,
+            html: `
+                <div class="text-left">
+                    <p class="mb-2"><strong>Borrower:</strong> ${borrower}</p>
+                    <p class="mb-2"><strong>Amount:</strong> ₱${parseFloat(amount).toLocaleString('en-PH', {minimumFractionDigits: 2})}</p>
+                    <p class="mt-3">Are you sure you want to mark this fine as paid?</p>
+                </div>
+            `,
             icon: 'question',
             showCancelButton: true,
-            confirmButtonText: 'Yes, Mark as Paid',
-            cancelButtonText: 'No, Keep as Unpaid',
+            confirmButtonText: '<i class="fas fa-check"></i> Yes, Mark as Paid',
+            cancelButtonText: '<i class="fas fa-times"></i> Cancel',
             confirmButtonColor: '#28a745',
-            cancelButtonColor: '#6c757d',
+            cancelButtonColor: '#dc3545',
             allowOutsideClick: false,
             allowEscapeKey: false,
             showLoaderOnConfirm: true,
+            customClass: {
+                confirmButton: 'btn btn-success',
+                cancelButton: 'btn btn-danger'
+            },
             preConfirm: () => {
                 return fetch(`mark_fine_paid.php?id=${fineId}`)
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error(response.statusText);
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'error') {
+                            throw new Error(data.message);
                         }
-                        return response;
+                        return data;
                     })
                     .catch(error => {
-                        Swal.showValidationMessage(`Request failed: ${error}`);
+                        Swal.showValidationMessage(`Error: ${error.message}`);
                     });
             }
         }).then((result) => {
             if (result.isConfirmed) {
                 Swal.fire({
-                    title: 'Payment Processed!',
-                    text: 'The fine has been marked as paid successfully.',
                     icon: 'success',
-                    confirmButtonColor: '#3085d6'
+                    title: 'Payment Recorded!',
+                    text: 'The fine has been successfully marked as paid.',
+                    confirmButtonColor: '#28a745',
+                    confirmButtonText: 'OK'
                 }).then(() => {
                     window.location.reload();
                 });

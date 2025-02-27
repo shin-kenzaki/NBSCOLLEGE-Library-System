@@ -8,6 +8,8 @@ if (!isset($_SESSION['admin_id']) || ($_SESSION['role'] !== 'Admin' && $_SESSION
     exit();
 }
 
+$admin_id = $_SESSION['admin_id'];
+
 // Get input data - either from GET for single or POST for bulk
 $ids = [];
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['id'])) {
@@ -31,11 +33,11 @@ $conn->begin_transaction();
 try {
     $ids_string = implode(',', $ids);
     
-    // Get all reservations that are in READY status to update their books
+    // Get all reservations that are in Ready status to update their books
     $query = "SELECT id, book_id, status 
              FROM reservations 
              WHERE id IN ($ids_string) 
-             AND status = 'READY'
+             AND status = 'Ready'
              AND recieved_date IS NULL 
              AND cancel_date IS NULL";
     
@@ -48,13 +50,17 @@ try {
 
     // Update reservations
     $query = "UPDATE reservations 
-              SET status = 'Cancelled', 
-                  cancel_date = NOW() 
+              SET status = 'Cancelled',
+                  cancel_date = NOW(),
+                  cancelled_by = ?,
+                  cancelled_by_role = 'Admin'
               WHERE id IN ($ids_string) 
               AND recieved_date IS NULL 
               AND cancel_date IS NULL";
     
-    if (!$conn->query($query)) {
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param("i", $admin_id);
+    if (!$stmt->execute()) {
         throw new Exception("Error updating reservations");
     }
 

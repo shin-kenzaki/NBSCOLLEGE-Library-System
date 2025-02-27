@@ -11,6 +11,7 @@ if (!isset($_SESSION['admin_id']) || ($_SESSION['role'] !== 'Admin' && $_SESSION
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $book_id = $_POST['book_id'];
     $user_id = $_POST['user_id'];
+    $admin_id = $_SESSION['admin_id'];
     
     // Set the values as specified
     $status = 'Active';
@@ -57,25 +58,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
         // Insert borrowing record
-        $insert_query = $conn->prepare("INSERT INTO borrowings (
-            book_id, 
-            user_id, 
-            status, 
-            borrow_date, 
-            allowed_days, 
-            due_date
-        ) VALUES (?, ?, ?, ?, ?, ?)");
+        $sql = "INSERT INTO borrowings (user_id, book_id, issued_by, issue_date, due_date, status) 
+                VALUES (?, ?, ?, NOW(), DATE_ADD(NOW(), INTERVAL ? DAY), 'Active')";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("iiii", $user_id, $book_id, $admin_id, $allowed_days);
         
-        $insert_query->bind_param("iissis", 
-            $book_id, 
-            $user_id, 
-            $status, 
-            $borrow_date, 
-            $allowed_days, 
-            $due_date
-        );
-        
-        if (!$insert_query->execute()) {
+        if (!$stmt->execute()) {
             throw new Exception("Error creating borrowing record");
         }
 

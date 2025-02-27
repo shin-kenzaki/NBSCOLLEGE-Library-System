@@ -9,9 +9,14 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-$query = "SELECT b.title, br.borrow_date, br.due_date, br.return_date, br.report_date, br.status 
+$query = "SELECT b.title, br.issue_date, br.due_date, br.return_date, 
+                 br.report_date, br.replacement_date, br.status,
+                 a1.firstname AS issued_by_name, 
+                 a2.firstname AS received_by_name
           FROM borrowings br 
           JOIN books b ON br.book_id = b.id 
+          LEFT JOIN admins a1 ON br.issued_by = a1.id
+          LEFT JOIN admins a2 ON br.recieved_by = a2.id
           WHERE br.user_id = ? AND br.status != 'Active'";
 $stmt = $conn->prepare($query);
 $stmt->bind_param('i', $user_id);
@@ -48,28 +53,35 @@ include 'inc/header.php';
                         <thead>
                             <tr>
                                 <th>Title</th>
-                                <th>Borrow Date</th>
+                                <th>Issue Date</th>
                                 <th>Due Date</th>
                                 <th>Return/Report Date</th>
                                 <th>Status</th>
+                                <th>Issued By</th>
+                                <th>Received By</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php while ($row = $result->fetch_assoc()): ?>
                                 <tr>
                                     <td><?php echo htmlspecialchars($row['title']); ?></td>
-                                    <td><?php echo date('Y-m-d h:i A', strtotime($row['borrow_date'])); ?></td>
+                                    <td><?php echo date('Y-m-d', strtotime($row['issue_date'])); ?></td>
                                     <td><?php echo date('Y-m-d', strtotime($row['due_date'])); ?></td>
                                     <td>
                                         <?php 
                                         if ($row['status'] == 'Lost' || $row['status'] == 'Damaged') {
                                             echo 'Reported: ' . date('Y-m-d', strtotime($row['report_date']));
+                                            if ($row['replacement_date']) {
+                                                echo '<br>Replaced: ' . date('Y-m-d', strtotime($row['replacement_date']));
+                                            }
                                         } else {
                                             echo 'Returned: ' . date('Y-m-d', strtotime($row['return_date']));
                                         }
                                         ?>
                                     </td>
                                     <td><?php echo htmlspecialchars($row['status']); ?></td>
+                                    <td><?php echo htmlspecialchars($row['issued_by_name']); ?></td>
+                                    <td><?php echo htmlspecialchars($row['received_by_name']); ?></td>
                                 </tr>
                             <?php endwhile; ?>
                         </tbody>

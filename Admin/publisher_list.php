@@ -77,16 +77,40 @@ $sql .= " ORDER BY id DESC";
 $result = $conn->query($sql);
 ?>
 
+<style>
+    /* Add responsive table styles */
+    .table-responsive {
+        width: 100%;
+        margin-bottom: 1rem;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    #dataTable th,
+    #dataTable td {
+        min-width: 100px;
+        white-space: nowrap;
+    }
+    
+    #dataTable {
+        width: 100% !important;
+    }
+    
+    .table td, .table th {
+        white-space: nowrap;
+    }
+</style>
+
 <!-- Main Content -->
 <div id="content" class="d-flex flex-column min-vh-100">
     <div class="container-fluid">
         <div class="card shadow mb-4">
-            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <div class="card-header py-3 d-flex flex-wrap align-items-center justify-content-between">
                 <h6 class="m-0 font-weight-bold text-primary">Publishers List</h6>
                 <button class="btn btn-primary" data-toggle="modal" data-target="#addPublisherModal">Add Publisher</button>
             </div>
-            <div class="card-body">
-                <div class="table-responsive">
+            <div class="card-body px-0">
+                <div class="table-responsive px-3">
                     <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
@@ -175,7 +199,8 @@ $(document).ready(function () {
                "<'row'<'col-sm-12'tr>>" +
                "<'row mt-3'<'col-sm-5'i><'col-sm-7 d-flex justify-content-end'p>>",
         "pageLength": 10,
-        "responsive": true,
+        "responsive": false,
+        "scrollX": true,
         "order": [[0, "desc"]], // Sort by ID in descending order
         "language": {
             "search": "_INPUT_",
@@ -187,6 +212,11 @@ $(document).ready(function () {
             $('#dataTable_filter label').append('<i class="fas fa-search ml-2"></i>');
             $('.dataTables_paginate .paginate_button').addClass('btn btn-sm btn-outline-primary mx-1');
         }
+    });
+
+    // Add window resize handler
+    $(window).on('resize', function () {
+        table.columns.adjust();
     });
 
     // Add more publishers functionality

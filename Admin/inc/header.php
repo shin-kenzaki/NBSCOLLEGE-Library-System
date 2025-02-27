@@ -73,6 +73,21 @@
 
             <?php if($_SESSION['role'] === 'Admin'): ?>
             <!-- Full management menu for admin -->
+            
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseUsers"
+                    aria-expanded="true" aria-controls="collapseUsers">
+                    <i class="fas fa-users"></i>
+                    <span>User Management</span>
+                </a>
+                <div id="collapseUsers" class="collapse" aria-labelledby="headingUsers" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <h6 class="collapse-header">Manage Users:</h6>
+                        <a class="collapse-item" href="admins_list.php">Admin Users</a>
+                        <a class="collapse-item" href="users_list.php">Users</a>
+                    </div>
+                </div>
+            </li>
 
             <li class="nav-item">
                 <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseTwo"
@@ -92,27 +107,14 @@
                 </div>
             </li>
 
+            <?php elseif($_SESSION['role'] === 'Librarian' || $_SESSION['role'] === 'Assistant'): ?>
+            <!-- Limited menu for librarian and assistant -->
+            
+            <!-- Add User Management for Librarian and Assistant but without admin access -->
             <li class="nav-item">
-                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseUsers"
-                    aria-expanded="true" aria-controls="collapseUsers">
+                <a class="nav-link" href="users_list.php">
                     <i class="fas fa-users"></i>
                     <span>User Management</span>
-                </a>
-                <div id="collapseUsers" class="collapse" aria-labelledby="headingUsers" data-parent="#accordionSidebar">
-                    <div class="bg-white py-2 collapse-inner rounded">
-                        <h6 class="collapse-header">Manage Users:</h6>
-                        <a class="collapse-item" href="admins_list.php">Admin Users</a>
-                        <a class="collapse-item" href="users_list.php">Users</a>
-                    </div>
-                </div>
-            </li>
-
-            <?php elseif($_SESSION['role'] === 'Librarian'): ?>
-            <!-- Limited menu for librarian -->
-            <li class="nav-item">
-                <a class="nav-link" href="add-book.php">
-                    <i class="fas fa-fw fa-book"></i>
-                    <span>Add Book</span>
                 </a>
             </li>
 
@@ -125,6 +127,7 @@
                 <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
                     <div class="bg-white py-2 collapse-inner rounded">
                         <h6 class="collapse-header">Book Module:</h6>
+                        <a class="collapse-item" href="add-book.php">Add Book</a>
                         <a class="collapse-item" href="book_list.php" data-toggle="dropdown">Book List</a>
                         <a class="collapse-item" href="writers_list.php" data-toggle="dropdown">Writers List</a>
                         <a class="collapse-item" href="publisher_list.php" data-toggle="dropdown">Publisher List</a>

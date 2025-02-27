@@ -12,6 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['borrowIds'])) {
     $borrowIds = array_map('intval', $_POST['borrowIds']);
     $today = date('Y-m-d');
     $returnedCount = 0;
+    $admin_id = $_SESSION['admin_id']; // Get current admin ID
 
     // Start transaction
     $conn->begin_transaction();
@@ -25,7 +26,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['borrowIds'])) {
         // Update borrowing record
         $updateBorrowing = $conn->prepare("UPDATE borrowings 
                                          SET status = 'Returned', 
-                                             return_date = ? 
+                                             return_date = ?,
+                                             recieved_by = ?
                                          WHERE id = ?");
         
         // Update user stats (only returned_books)
@@ -49,8 +51,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['borrowIds'])) {
                 throw new Exception("Borrowing record not found for ID: $borrowId");
             }
 
-            // Update borrowing status
-            $updateBorrowing->bind_param('si', $today, $borrowId);
+            // Update borrowing status - FIXED PARAMETER BINDING
+            $updateBorrowing->bind_param('sii', $today, $admin_id, $borrowId);
             if (!$updateBorrowing->execute()) {
                 throw new Exception("Failed to update borrowing status for ID: $borrowId");
             }

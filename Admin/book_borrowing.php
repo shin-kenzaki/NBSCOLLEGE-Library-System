@@ -3,7 +3,6 @@ session_start();
 include('inc/header.php');
 include('../db.php');
 
-// Check if user is logged in and has appropriate role
 if (!isset($_SESSION['admin_id']) || ($_SESSION['role'] !== 'Admin' && $_SESSION['role'] !== 'Librarian')) {
     header('Location: login.php');
     exit();
@@ -11,76 +10,88 @@ if (!isset($_SESSION['admin_id']) || ($_SESSION['role'] !== 'Admin' && $_SESSION
 ?>
 
 <!-- Main Content -->
-<div id="content-wrapper" class="d-flex flex-column min-vh-100">
-    <div id="content" class="flex-grow-1">
-        <div class="container-fluid">
-            <form id="borrowingForm" method="POST" action="process_borrowing.php" class="h-100">
-                <div class="container-fluid d-flex justify-content-between align-items-center">
-                    <h1 class="h3 mb-2 text-gray-800">Book Borrowing Form</h1>
-                    <div>
-                        <button type="submit" class="btn btn-success">Submit</button>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-xl-12 col-lg-7">
-                        <h5>Borrower Information</h5>
-                        <div class="form-group row">
-                            <div class="col-sm-6">
-                                <label for="userSearch" class="col-form-label">Search Borrower</label>
-                                <input type="text" class="form-control" id="userSearch" placeholder="Enter ID number or name">
+<div id="content" class="d-flex flex-column min-vh-100">
+    <div class="container-fluid px-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3 mb-0 text-gray-800">Book Borrowing</h1>
+        </div>
+        
+        <!-- Card starts here -->
+        <div class="card shadow">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">Book Borrowing Form</h6>
+                <button type="submit" form="borrowingForm" class="btn btn-primary">Process Borrowing</button>
+            </div>
+            <div class="card-body">
+                <form id="borrowingForm" method="POST" action="process_borrowing.php">
+                    <!-- Borrower Section -->
+                    <div class="mb-4">
+                        <h5 class="mb-3">Borrower Information</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="userSearch" class="form-label">Search Borrower</label>
+                                    <input type="text" class="form-control" id="userSearch" placeholder="Enter ID number or name">
+                                </div>
                             </div>
-                            <div class="col-sm-6">
-                                <label for="user_id" class="col-form-label">Select Borrower</label>
-                                <select class="form-control" id="user_id" name="user_id" required>
-                                    <option value="">Choose a borrower...</option>
-                                    <?php
-                                    // Fetch users with any status from the "users" table
-                                    $users_query = "SELECT id, school_id, firstname, middle_init, lastname FROM users WHERE status IS NULL OR status IN ('1', '0')";
-                                    $users_result = $conn->query($users_query);
-                                    while($user = $users_result->fetch_assoc()): ?>
-                                        <option value="<?php echo $user['id']; ?>" 
-                                                data-school-id="<?php echo $user['school_id']; ?>">
-                                            <?php echo htmlspecialchars($user['id'] . ' - ' . 
-                                                                      $user['school_id'] . ' - ' . 
-                                                                      $user['firstname'] . ' ' . 
-                                                                      ($user['middle_init'] ? $user['middle_init'] . '. ' : '') . 
-                                                                      $user['lastname']); ?>
-                                        </option>
-                                    <?php endwhile; ?>
-                                </select>
-                            </div>
-                        </div>
-
-                        <h5>Book Information</h5>
-                        <div class="form-group row">
-                            <div class="col-sm-6">
-                                <label for="bookSearch" class="col-form-label">Search Book</label>
-                                <input type="text" class="form-control" id="bookSearch" placeholder="Enter book ID, accession, or title">
-                            </div>
-                            <div class="col-sm-6">
-                                <label for="book_id" class="col-form-label">Select Book</label>
-                                <select class="form-control" id="book_id" name="book_id" required>
-                                    <option value="">Choose a book...</option>
-                                    <?php
-                                    // Fetch available books
-                                    $books_query = "SELECT id, title, accession FROM books WHERE status = 'Available'";
-                                    $books_result = $conn->query($books_query);
-                                    while($book = $books_result->fetch_assoc()): ?>
-                                        <option value="<?php echo $book['id']; ?>">
-                                            <?php echo htmlspecialchars($book['id'] . ' - ' . $book['accession'] . ' - ' . $book['title']); ?>
-                                        </option>
-                                    <?php endwhile; ?>
-                                </select>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="user_id" class="form-label">Select Borrower</label>
+                                    <select class="form-control" id="user_id" name="user_id" required>
+                                        <option value="">Choose a borrower...</option>
+                                        <?php
+                                        $users_query = "SELECT id, school_id, firstname, middle_init, lastname FROM users WHERE status IS NULL OR status IN ('1', '0')";
+                                        $users_result = $conn->query($users_query);
+                                        while($user = $users_result->fetch_assoc()): ?>
+                                            <option value="<?php echo $user['id']; ?>" 
+                                                    data-school-id="<?php echo $user['school_id']; ?>">
+                                                <?php echo htmlspecialchars($user['school_id'] . ' - ' . 
+                                                                        $user['firstname'] . ' ' . 
+                                                                        ($user['middle_init'] ? $user['middle_init'] . '. ' : '') . 
+                                                                        $user['lastname']); ?>
+                                            </option>
+                                        <?php endwhile; ?>
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            </form>
+
+                    <!-- Book Section -->
+                    <div class="mb-4">
+                        <h5 class="mb-3">Book Information</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="bookSearch" class="form-label">Search Book</label>
+                                    <input type="text" class="form-control" id="bookSearch" placeholder="Enter book ID, accession, or title">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="book_id" class="form-label">Select Book</label>
+                                    <select class="form-control" id="book_id" name="book_id" required>
+                                        <option value="">Choose a book...</option>
+                                        <?php
+                                        $books_query = "SELECT id, title, accession FROM books WHERE status = 'Available'";
+                                        $books_result = $conn->query($books_query);
+                                        while($book = $books_result->fetch_assoc()): ?>
+                                            <option value="<?php echo $book['id']; ?>">
+                                                <?php echo htmlspecialchars($book['accession'] . ' - ' . $book['title']); ?>
+                                            </option>
+                                        <?php endwhile; ?>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
-    <?php include('inc/footer.php'); ?>
 </div>
+
+<?php include('inc/footer.php'); ?>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
@@ -92,7 +103,6 @@ $(document).ready(function() {
     let lastChar = Date.now();
     let barcodeString = '';
     const delay = 50;
-    let scanTimeout = null;
 
     $(document).on('keypress', function(e) {
         const currentTime = Date.now();
@@ -101,11 +111,6 @@ $(document).ready(function() {
         // Only process if we're not typing in other input fields
         if ($('input:text, textarea').is(':focus') && !$('#bookSearch').is(':focus')) {
             return;
-        }
-
-        // Clear timeout if it exists
-        if (scanTimeout) {
-            clearTimeout(scanTimeout);
         }
 
         // Reset barcode if too much time has passed
@@ -126,62 +131,58 @@ $(document).ready(function() {
         if (e.which === 13) {
             e.preventDefault();
             
-            // Set a small timeout to ensure we have the complete barcode
-            scanTimeout = setTimeout(() => {
-                // Remove leading zeros from barcode
-                const trimmedBarcode = barcodeString.replace(/^0+/, '');
-                
-                // Focus the book search input
-                $('#bookSearch').focus();
-                
-                // Search book by accession number using AJAX
-                $.ajax({
-                    url: 'search_book_by_accession.php',
-                    type: 'POST',
-                    data: { accession: trimmedBarcode },
-                    success: function(response) {
-                        try {
-                            const res = JSON.parse(response);
-                            if (res.status === 'success') {
-                                $('#book_id').val(res.book.id);
-                                $('#bookSearch').val(trimmedBarcode);
-                                
-                                Swal.fire({
-                                    title: 'Book Found',
-                                    html: `Found book:<br><b>${res.book.title}</b>`,
-                                    icon: 'success',
-                                    timer: 1500,
-                                    showConfirmButton: false
-                                });
-                            } else {
-                                Swal.fire({
-                                    title: 'Book Not Found',
-                                    text: 'No available book found with accession number: ' + trimmedBarcode,
-                                    icon: 'error'
-                                });
-                                $('#bookSearch').val('');
-                                $('#book_id').val('');
-                            }
-                        } catch (e) {
-                            console.error(e);
+            // Remove leading zeros from barcode
+            const trimmedBarcode = barcodeString.replace(/^0+/, '');
+            
+            // Focus and populate the book search input
+            $('#bookSearch').focus().val(trimmedBarcode);
+            
+            // Search book by accession number using AJAX
+            $.ajax({
+                url: 'search_book_by_accession.php',
+                type: 'POST',
+                data: { accession: trimmedBarcode },
+                success: function(response) {
+                    try {
+                        const res = JSON.parse(response);
+                        if (res.status === 'success') {
+                            $('#book_id').val(res.book.id);
+                            
                             Swal.fire({
-                                title: 'Error',
-                                text: 'Invalid response from server',
+                                title: 'Book Found',
+                                html: `Found book:<br><b>${res.book.title}</b>`,
+                                icon: 'success',
+                                timer: 1500,
+                                showConfirmButton: false
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Book Not Found',
+                                text: 'No available book found with accession number: ' + trimmedBarcode,
                                 icon: 'error'
                             });
+                            $('#bookSearch').val('');
+                            $('#book_id').val('');
                         }
-                    },
-                    error: function(xhr, status, error) {
+                    } catch (e) {
+                        console.error(e);
                         Swal.fire({
                             title: 'Error',
-                            text: 'Server error: ' + error,
+                            text: 'Invalid response from server',
                             icon: 'error'
                         });
                     }
-                });
-                
-                barcodeString = '';
-            }, 100);
+                },
+                error: function(xhr, status, error) {
+                    Swal.fire({
+                        title: 'Error',
+                        text: 'Server error: ' + error,
+                        icon: 'error'
+                    });
+                }
+            });
+            
+            barcodeString = '';
         }
     });
 
@@ -259,6 +260,15 @@ $(document).ready(function() {
         
         const selectedBook = $('#book_id option:selected').text();
         const selectedBorrower = $('#user_id option:selected').text();
+
+        if (!$('#book_id').val() || !$('#user_id').val()) {
+            Swal.fire({
+                title: 'Error!',
+                text: 'Please select both a book and a borrower',
+                icon: 'error'
+            });
+            return;
+        }
 
         Swal.fire({
             title: 'Confirm Borrowing',

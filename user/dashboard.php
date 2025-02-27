@@ -40,7 +40,7 @@ $cart_stmt->execute();
 $cart_items = $cart_stmt->get_result();
 
 // Fetch borrowing history
-$history_query = "SELECT b.title, br.borrow_date, br.return_date, br.status 
+$history_query = "SELECT b.title, br.issue_date, br.return_date, br.status 
                   FROM borrowings br 
                   JOIN books b ON br.book_id = b.id 
                   WHERE br.user_id = ? AND br.status != 'Active'";
@@ -51,13 +51,13 @@ $borrowing_history = $history_stmt->get_result();
 
 // Fetch monthly borrowing history
 $monthly_query = "SELECT 
-    DATE_FORMAT(borrow_date, '%b') as month,
+    DATE_FORMAT(issue_date, '%b') as month,
     COUNT(*) as borrowed
     FROM borrowings 
     WHERE user_id = ? 
-    AND borrow_date >= DATE_SUB(NOW(), INTERVAL 1 YEAR)
-    GROUP BY MONTH(borrow_date)
-    ORDER BY borrow_date";
+    AND issue_date >= DATE_SUB(NOW(), INTERVAL 1 YEAR)
+    GROUP BY MONTH(issue_date)
+    ORDER BY issue_date";
 $monthly_stmt = $conn->prepare($monthly_query);
 $monthly_stmt->bind_param('i', $user_id);
 $monthly_stmt->execute();
@@ -215,7 +215,7 @@ include '../user/inc/header.php';
                                     <?php while ($row = $borrowing_history->fetch_assoc()): ?>
                                         <tr>
                                             <td><?php echo htmlspecialchars($row['title']); ?></td>
-                                            <td><?php echo date('Y-m-d', strtotime($row['borrow_date'])); ?></td>
+                                            <td><?php echo date('Y-m-d', strtotime($row['issue_date'])); ?></td>
                                             <td><?php echo date('Y-m-d', strtotime($row['return_date'])); ?></td>
                                             <td><?php echo htmlspecialchars($row['status']); ?></td>
                                         </tr>

@@ -27,9 +27,12 @@ $result = $conn->query($query);
 
 <!-- Main Content -->
 <div id="content" class="d-flex flex-column min-vh-100">
-    <div class="container-fluid">
+    <div class="container-fluid px-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3 mb-0 text-gray-800">Damaged Books</h1>
+        </div>
         <div class="card shadow mb-4">
-            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <div class="card-header py-3">
                 <h6 class="m-0 font-weight-bold text-primary">Damaged Book Records</h6>
             </div>
             <div class="card-body">
@@ -86,6 +89,7 @@ $(document).ready(function() {
         "dom": "<'row mb-3'<'col-sm-6'l><'col-sm-6 d-flex justify-content-end'f>>" +
                "<'row'<'col-sm-12'tr>>" +
                "<'row mt-3'<'col-sm-5'i><'col-sm-7 d-flex justify-content-end'p>>",
+        "pagingType": "simple_numbers",
         "pageLength": 10,
         "lengthMenu": [[10, 25, 50, 100, 500], [10, 25, 50, 100, 500]],
         "responsive": true,
@@ -101,7 +105,7 @@ $(document).ready(function() {
             $('#dataTable_filter input').addClass('form-control form-control-sm');
             $('#dataTable_filter').addClass('d-flex align-items-center');
             $('#dataTable_filter label').append('<i class="fas fa-search ml-2"></i>');
-            $('#dataTable_paginate .paginate_button').addClass('btn btn-sm btn-outline-primary mx-1');
+            $('.dataTables_paginate .paginate_button').addClass('btn btn-sm btn-outline-primary mx-1');
         }
     });
 

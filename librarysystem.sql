@@ -88,6 +88,7 @@ CREATE TABLE `books` (
   `entered_by` int(225) DEFAULT NULL,
   `date_added` date DEFAULT NULL,
   `status` varchar(100) DEFAULT NULL,
+  `updated_by` int(225) DEFAULT NULL,
   `last_update` date DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -102,10 +103,12 @@ CREATE TABLE `borrowings` (
   `user_id` int(225) DEFAULT NULL,
   `book_id` int(225) DEFAULT NULL,
   `status` varchar(100) DEFAULT NULL,
-  `borrow_date` timestamp NULL DEFAULT NULL,
+  `issue_date` timestamp NULL DEFAULT NULL,
+  `issued_by` int(11) DEFAULT NULL,
   `allowed_days` int(225) DEFAULT NULL,
   `due_date` date DEFAULT NULL,
   `return_date` date DEFAULT NULL,
+  `recieved_by` int(11) DEFAULT NULL,
   `report_date` date DEFAULT NULL,
   `replacement_date` date DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -215,7 +218,13 @@ CREATE TABLE `reservations` (
   `user_id` int(225) DEFAULT NULL,
   `book_id` int(225) DEFAULT NULL,
   `reserve_date` timestamp NULL DEFAULT NULL,
+  `ready_date` timestamp NULL DEFAULT NULL,
+  `ready_by` int(11) DEFAULT NULL,
+  `issue_date` timestamp NULL DEFAULT NULL,
+  `issued_by` int(11) DEFAULT NULL,
   `cancel_date` timestamp NULL DEFAULT NULL,
+  `cancelled_by` int(11) DEFAULT NULL,
+  `cancelled_by_role` varchar(50) DEFAULT NULL,
   `recieved_date` timestamp NULL DEFAULT NULL,
   `status` varchar(100) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

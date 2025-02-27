@@ -302,7 +302,8 @@ $accession_error = '';
     <div id="content" class="flex-grow-1">
         <div class="container-fluid">
             <!-- Fix: Remove enctype if not needed -->
-            <form id="bookForm" action="add-book.php" method="POST" enctype="multipart/form-data" class="h-100">
+            <form id="bookForm" action="add-book.php" method="POST" enctype="multipart/form-data" class="h-100" 
+                  onkeydown="return event.key != 'Enter';">
                 <div class="container-fluid d-flex justify-content-between align-items-center">
                     <h1 class="h3 mb-2 text-gray-800">Add Book</h1>
                     <!-- Fix: Change button type to submit -->
@@ -448,18 +449,16 @@ $accession_error = '';
                                 <div class="form-group">
                                     <label>Pages</label>
                                     <div class="row">
-                                        <div class="col-md-4">
+                                        <div class="col-md-3">
                                             <label class="small">Prefix (Roman)</label>
                                             <input type="text" class="form-control" name="prefix_pages" placeholder="e.g. xvi">
                                             <small class="text-muted">Use roman numerals</small>
                                         </div>
-                                        <div class="col-md-4">
+                                        <div class="col-md-3">
                                             <label class="small">Main Pages</label>
                                             <input type="text" class="form-control" name="main_pages" placeholder="e.g. 234a">
-                                            <small class="text-muted">Can include letters (e.g. 123a, 456b)</small>
+                                            <small class="text-muted">Can include letters (e.g. 123a)</small>
                                         </div>
-                                    </div>
-                                    <div class="row mt-2">
                                         <div class="col-md-6">
                                             <label class="small">Supplementary Contents</label>
                                             <select class="form-control" name="supplementary_content[]" multiple>
@@ -493,98 +492,111 @@ $accession_error = '';
                             <!-- Local Information Tab -->
                             <div class="tab-pane fade" id="local-info" role="tabpanel">
                                 <h4>Local Information</h4>
-                                        <div class="row">
-                                            <div class="col-md-12">
-                                                <div id="accessionContainer">
-                                                    <div class="accession-group mb-3">
-                                                        <div class="row">
-                                                            <div class="col-md-8">
-                                                                <div class="form-group">
-                                                                    <label>Accession (Copy 1)</label>
-                                                                    <input type="text" class="form-control accession-input" name="accession[]" 
-                                                                        placeholder="e.g., 2023-0001 (will auto-increment based on copies)" required>
-                                                                    <small class="text-muted">If you enter 2023-0001 and set 3 copies, it will create: 2023-0001, 2023-0002, 2023-0003</small>
-                                                                    <?php if ($accession_error): ?>
-                                                                        <small class="text-danger"><?php echo $accession_error; ?></small>
-                                                                    <?php endif; ?>
-                                                                </div>
-                                                            </div>
-                                                            <div class="col-md-2">
-                                                                <div class="form-group">
-                                                                    <label>Number of Copies</label>
-                                                                    <input type="number" class="form-control copies-input" name="number_of_copies[]" min="1" value="1" required>
-                                                                    <small class="text-muted">Auto-increments accession</small>
-                                                                </div>
-                                                            </div>
-                                                            <div class="col-md-2">
-                                                                <label>&nbsp;</label>
-                                                                <button type="button" class="btn btn-primary btn-block w-100 add-accession">Add Another</button>
-                                                            </div>
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div id="accessionContainer">
+                                            <div class="accession-group mb-2">
+                                                <div class="row">
+                                                    <div class="col-md-8">
+                                                        <div class="form-group">
+                                                            <label>Accession (Copy 1)</label>
+                                                            <input type="text" class="form-control accession-input" name="accession[]" 
+                                                                placeholder="e.g., 2023-0001 (will auto-increment based on copies)" required>
+                                                            <small class="text-muted">If you enter 2023-0001 and set 3 copies, it will create: 2023-0001, 2023-0002, 2023-0003</small>
+                                                            <?php if ($accession_error): ?>
+                                                                <small class="text-danger"><?php echo $accession_error; ?></small>
+                                                            <?php endif; ?>
                                                         </div>
                                                     </div>
-                                                </div>
-                                                
-                                                <!-- Add call numbers section -->
-                                                <div class="form-group mt-4">
-                                                    <div id="callNumberContainer">
-                                                        <!-- Will be populated by JavaScript -->
+                                                    <div class="col-md-2">
+                                                        <div class="form-group">
+                                                            <label>Number of Copies</label>
+                                                            <input type="number" class="form-control copies-input" name="number_of_copies[]" min="1" value="1" required>
+                                                            <small class="text-muted">Auto-increments accession</small>
+                                                        </div>
                                                     </div>
-                                                    <small class="text-muted">Enter unique call numbers for each copy</small>
+                                                    <div class="col-md-2">
+                                                        <label>&nbsp;</label>
+                                                        <button type="button" class="btn btn-primary btn-block w-100 add-accession">Add Another</button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
+                                        
+                                        <!-- Reduce top margin and add bottom margin -->
+                                        <div class="form-group mb-3">
+                                            <div id="callNumberContainer">
+                                                <!-- Will be populated by JavaScript -->
+                                            </div>
+                                            <small class="text-muted">Enter unique call numbers for each copy</small>
+                                        </div>
+                                    </div>
+                                </div>
 
-                                        <!--  -->
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <div class="form-group">
-                                                    <label>Language</label>
-                                                    <select class="form-control" name="language">
-                                                        <option value="English">English</option>
-                                                        <option value="Spanish">Spanish</option>
-                                                    </select>
-                                                </div>
-                                            </div>
+                                <!-- Remove extra margin/padding -->
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Language</label>
+                                            <select class="form-control" name="language">
+                                                <option value="English">English</option>
+                                                <option value="Spanish">Spanish</option>
+                                            </select>
                                         </div>
-                                        <!--  -->
+                                    </div>
+                                </div>
 
-                                        <!--  -->
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <div class="form-group">
-                                                    <label>Entered By</label>
-                                                    <input type="text" class="form-control" name="entered_by" value="<?php echo $_SESSION['admin_id']; ?>" readonly>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <div class="form-group">
-                                                    <label>Date Added</label>
-                                                    <input type="text" class="form-control" name="date_added" value="<?php echo date('Y-m-d'); ?>" readonly>
-                                                </div>
-                                            </div>
+                                <!--  -->
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Entered By</label>
+                                            <?php
+                                            // Get admin details
+                                            $admin_id = $_SESSION['admin_id'];
+                                            $admin_query = "SELECT CONCAT(firstname, ' ', lastname) as full_name, role 
+                                                          FROM admins WHERE id = ?";
+                                            $stmt = $conn->prepare($admin_query);
+                                            $stmt->bind_param("i", $admin_id);
+                                            $stmt->execute();
+                                            $admin_result = $stmt->get_result();
+                                            $admin_data = $admin_result->fetch_assoc();
+                                            ?>
+                                            <input type="text" class="form-control" 
+                                                   value="<?php echo htmlspecialchars($admin_data['full_name'] . ' (' . $admin_data['role'] . ') - ID: ' . $admin_id); ?>" 
+                                                   readonly>
+                                            <input type="hidden" name="entered_by" value="<?php echo $admin_id; ?>">
                                         </div>
-                                        <!--  -->
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Date Added</label>
+                                            <input type="text" class="form-control" name="date_added" value="<?php echo date('Y-m-d'); ?>" readonly>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!--  -->
 
-                                        <!--  -->
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <div class="form-group">
-                                                    <label>Status</label>
-                                                    <select class="form-control" name="status">
-                                                        <option value="Available">Available</option>
-                                                        <option value="Borrowed">Borrowed</option>
-                                                        <option value="Lost">Lost</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <div class="form-group">
-                                                    <label>Last Update</label>
-                                                    <input type="text" class="form-control" name="last_update" value="<?php echo date('Y-m-d'); ?>" readonly>
-                                                </div>
-                                            </div>
+                                <!--  -->
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Status</label>
+                                            <select class="form-control" name="status">
+                                                <option value="Available">Available</option>
+                                                <option value="Borrowed">Borrowed</option>
+                                                <option value="Lost">Lost</option>
+                                            </select>
                                         </div>
-                                        <!--  -->
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Last Update</label>
+                                            <input type="text" class="form-control" name="last_update" value="<?php echo date('Y-m-d'); ?>" readonly>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!--  -->
                             </div>
                             <!-- end local information -->
 

@@ -8,6 +8,8 @@ if (!isset($_SESSION['admin_id']) || ($_SESSION['role'] !== 'Admin' && $_SESSION
     exit();
 }
 
+$admin_id = $_SESSION['admin_id'];
+
 // Get input data - either from GET for single or POST for bulk
 $ids = [];
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['id'])) {
@@ -38,7 +40,7 @@ try {
               JOIN books b ON r.book_id = b.id
               JOIN users u ON r.user_id = u.id
               WHERE r.id IN ($ids_string)
-              AND r.status = 'PENDING'
+              AND r.status = 'Pending'
               AND r.recieved_date IS NULL 
               AND r.cancel_date IS NULL";
     
@@ -91,14 +93,19 @@ try {
 
     // Perform the updates
     foreach ($updates as $update) {
-        // Update reservation status
-        $sql = "UPDATE reservations SET status = 'Ready'";
+        // Update reservation status and add ready_date and ready_by
+        $sql = "UPDATE reservations SET 
+                status = 'Ready',
+                ready_date = NOW(),
+                ready_by = ?";
         if ($update['needs_book_update']) {
             $sql .= ", book_id = " . $update['book_id'];
         }
         $sql .= " WHERE id = " . $update['reservation_id'];
         
-        if (!$conn->query($sql)) {
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("i", $admin_id);
+        if (!$stmt->execute()) {
             throw new Exception("Error updating reservation status");
         }
 

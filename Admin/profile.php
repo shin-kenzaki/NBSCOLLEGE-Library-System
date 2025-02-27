@@ -11,7 +11,7 @@ if (!isset($_SESSION['admin_id'])) {
 // Handle profile picture reset
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reset_profile'])) {
     $admin_id = $_SESSION['admin_id'];
-    $default_image = "inc/upload/default-avatar.jpg";
+    $default_image = "../Images/Profile/default-avatar.jpg";
     
     $sql = "UPDATE admins SET image=? WHERE employee_id=?";
     $stmt = $conn->prepare($sql);
@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
     
     // Handle file upload
     if (isset($_FILES['profile_image']) && $_FILES['profile_image']['error'] === 0) {
-        $target_dir = "inc/upload/";
+        $target_dir = "../Images/Profile";
         $file_extension = strtolower(pathinfo($_FILES["profile_image"]["name"], PATHINFO_EXTENSION));
         $new_filename = "profile_" . $admin_id . "." . $file_extension;
         $target_file = $target_dir . $new_filename;

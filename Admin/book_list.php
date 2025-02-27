@@ -172,7 +172,40 @@ $result = $stmt->get_result();
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Book List</title>
+    <style>
+        /* Add custom CSS for responsive table */
+        .table-responsive {
+            width: 100%;
+            margin-bottom: 1rem;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        /* Ensure minimum width for table columns */
+        #dataTable th,
+        #dataTable td {
+            min-width: 100px; /* Adjust this value based on your content */
+            white-space: nowrap;
+        }
+        
+        /* Specific column widths */
+        #dataTable th:nth-child(3),
+        #dataTable td:nth-child(3) {
+            min-width: 200px; /* Title column wider */
+        }
+        
+        /* Make the table stretch full width */
+        #dataTable {
+            width: 100% !important;
+        }
+        
+        /* Prevent text wrapping in cells */
+        .table td, .table th {
+            white-space: nowrap;
+        }
+    </style>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             var successMessage = "<?php echo $successMessage; ?>";
@@ -181,6 +214,50 @@ $result = $stmt->get_result();
             }
         });
     </script>
+    <style>
+    @media (max-width: 575.98px) {
+        .card-header .btn-group {
+            display: flex;
+            width: 100%;
+        }
+        
+        .card-header .btn-group .btn {
+            flex: 1;
+        }
+        
+        .card-header .btn-sm {
+            padding: .25rem .5rem;
+            font-size: .875rem;
+            white-space: nowrap;
+        }
+    }
+</style>
+    <style>
+    /* Add this to your existing styles */
+    .card-header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+    
+    @media (max-width: 575.98px) {
+        .card-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .card-header .btn-group {
+            display: flex;
+            width: 100%;
+        }
+        
+        .card-header .btn-group .btn {
+            flex: 1;
+        }
+    }
+</style>
 </head>
 <body>
     <?php include '../admin/inc/header.php'; ?>
@@ -189,20 +266,17 @@ $result = $stmt->get_result();
     <div id="content" class="d-flex flex-column min-vh-100">
         <div class="container-fluid">
             <div class="card shadow mb-4">
-                <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="m-0 font-weight-bold text-primary">Book List</h6>
-                    </div>
-                    <div>
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Book List</h6>
+                    <div class="btn-group">
                         <button class="btn btn-danger btn-sm mx-1" id="batchDelete" disabled>
                             Delete Selected (<span id="selectedCountButton">0</span>)
                         </button>
                         <a href="add-book.php" class="btn btn-primary btn-sm">Add Book</a>
                     </div>
                 </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <!-- Remove the buttons container as we moved the delete button -->
+                <div class="card-body px-0"> <!-- Remove padding for full-width scroll -->
+                    <div class="table-responsive px-3"> <!-- Add padding inside scroll container -->
                         <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
     <thead>
         <tr>
@@ -595,7 +669,8 @@ $result = $stmt->get_result();
                        "<'row mt-3'<'col-sm-5'i><'col-sm-7 d-flex justify-content-end'p>>",
                 "pageLength": 10,
                 "lengthMenu": [[10, 25, 50, 100, 500], [10, 25, 50, 100, 500]],
-                "responsive": true,
+                "responsive": false, // Disable DataTables responsive handling
+                "scrollX": true, // Enable horizontal scrolling
                 "columnDefs": [
                     { 
                         "orderable": false, 
@@ -608,6 +683,11 @@ $result = $stmt->get_result();
                     "search": "_INPUT_",
                     "searchPlaceholder": "Search..."
                 }
+            });
+            
+            // Adjust table columns on window resize
+            $(window).on('resize', function () {
+                table.columns.adjust();
             });
         });
         </script>

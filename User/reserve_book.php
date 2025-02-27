@@ -83,7 +83,22 @@ try {
     }
 
     // Insert into reservations table with status 'Pending'
-    $query = "INSERT INTO reservations (user_id, book_id, reserve_date, cancel_date, recieved_date, status) VALUES (?, ?, ?, NULL, NULL, 'Pending')";
+    $query = "INSERT INTO reservations (
+        user_id, 
+        book_id, 
+        reserve_date,
+        ready_date,
+        ready_by,
+        issue_date,
+        issued_by, 
+        cancel_date,
+        cancelled_by,
+        recieved_date,
+        status
+    ) VALUES (
+        ?, ?, ?, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Pending'
+    )";
+    
     $stmt = $conn->prepare($query);
     if (!$stmt) {
         throw new Exception("Prepare statement failed: " . $conn->error);

@@ -12,7 +12,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
   // Hash the password
   $hashed_password = password_hash($_POST['password'], PASSWORD_DEFAULT);
   $usertype = mysqli_real_escape_string($conn, $_POST['usertype']);
-  $image = '../Admin/inc/upload/default-avatar.jpg'; 
+  // Update default image path to be consistent
+  $image = '../Images/Profile/default-avatar.jpg'; 
+  
+  // Create directory if it doesn't exist
+  if (!file_exists('../Images/Profile')) {
+    mkdir('../Images/Profile', 0777, true);
+  }
+  
+  // Ensure default avatar exists
+  if (!file_exists($image)) {
+    copy('../Images/default-avatar.jpg', $image);
+  }
   
   // Check if school_id already exists
   $check_id_query = "SELECT school_id FROM users WHERE school_id = ?";
@@ -63,6 +74,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
   }
   $stmt->close();
 }
+
+// Update user_image paths to be consistent
+$update_image_query = "UPDATE users SET user_image = CONCAT('../Images/Profile/', SUBSTRING_INDEX(user_image, '/', -1))
+WHERE user_image IS NOT NULL AND user_image != ''";
+$conn->query($update_image_query);
 ?>
 
 <!DOCTYPE html>
