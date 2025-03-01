@@ -105,6 +105,27 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             background: url('../Images/BG/bg-login.JPG') center center no-repeat;
             background-size: cover;
         }
+        
+        /* Mobile-specific styles */
+        @media (max-width: 768px) {
+            .card {
+                margin: 1rem !important;
+            }
+            .p-5 {
+                padding: 2rem !important;
+            }
+            .my-5 {
+                margin-top: 2rem !important;
+                margin-bottom: 2rem !important;
+            }
+            /* Show background image on small screens too */
+            .bg-login-mobile {
+                min-height: 180px;
+                background: url('../Images/BG/bg-login.JPG') center center no-repeat;
+                background-size: cover;
+                border-radius: 5px 5px 0 0;
+            }
+        }
     </style>
 </head>
 
@@ -116,6 +137,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     <div class="card-body p-0">
                         <div class="row">
                             <div class="col-lg-6 d-none d-lg-block bg-login-image"></div>
+                            <!-- Mobile image that shows only on small screens -->
+                            <div class="d-block d-lg-none w-100 bg-login-mobile"></div>
                             <div class="col-lg-6">
                                 <div class="p-5">
                                     <div class="text-center">

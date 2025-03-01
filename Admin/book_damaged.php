@@ -1,8 +1,9 @@
 <?php
 session_start();
 
-if (!isset($_SESSION['admin_id']) || ($_SESSION['role'] !== 'Admin' && $_SESSION['role'] !== 'Librarian')) {
-    header("Location: login.php");
+// Check if the user is logged in and has the appropriate admin role
+if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Librarian', 'Assistant'])) {
+    header("Location: index.php");
     exit();
 }
 
@@ -25,10 +26,11 @@ if (isset($_GET['id'])) {
             throw new Exception("Borrowing record not found");
         }
 
-        // Update borrowing record
-        $sql = "UPDATE borrowings SET status = 'Damaged', report_date = CURDATE() WHERE book_id = ? AND return_date IS NULL";
+        // Update borrowing record including return_date
+        $admin_id = $_SESSION['admin_id'];
+        $sql = "UPDATE borrowings SET status = 'Damaged', report_date = CURDATE(), recieved_by = ?, return_date = CURDATE() WHERE book_id = ? AND return_date IS NULL";
         $stmt = $conn->prepare($sql);
-        $stmt->bind_param("i", $book_id);
+        $stmt->bind_param("ii", $admin_id, $book_id);
         $stmt->execute();
 
         // Update book status
@@ -38,9 +40,7 @@ if (isset($_GET['id'])) {
         $stmt->execute();
 
         // Update user statistics
-        $sql = "UPDATE users SET 
-                damaged_books = damaged_books + 1
-                WHERE id = ?";
+        $sql = "UPDATE users SET damaged_books = damaged_books + 1 WHERE id = ?";
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("i", $borrowing['user_id']);
         $stmt->execute();

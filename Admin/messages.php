@@ -2,15 +2,16 @@
 session_start();
 require_once('../db.php');
 
-if (!isset($_SESSION['admin_id'])) {
-    header('Location: index.php');
+// Check if the user is logged in and has the appropriate admin role
+if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Librarian', 'Assistant', 'Encoder'])) {
+    header("Location: index.php");
     exit();
 }
 
 include('inc/header.php');
 ?>
 
-<div id="content">
+<div id="content" class="p-0 mt-0">
     <div class="container-fluid">
         <div class="row">
             <!-- Mobile View Controls -->
@@ -23,25 +24,26 @@ include('inc/header.php');
             <!-- Conversations List -->
             <div class="col-md-4 conversation-sidebar">
                 <div class="card shadow mb-4">
-                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                        <h6 class="m-0 font-weight-bold text-primary">Conversations</h6>
-                        <div class="d-flex align-items-center">
-                            <div class="input-group input-group-sm mr-2" style="width: 150px;">
-                                <input type="text" class="form-control" id="searchConversation" 
-                                       placeholder="Search..." aria-label="Search conversations">
-                                <div class="input-group-append">
-                                    <span class="input-group-text">
-                                        <i class="fas fa-search"></i>
-                                    </span>
-                                </div>
-                            </div>
+                    <div class="card-header py-3">
+                        <!-- Modified header layout -->
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="m-0 font-weight-bold text-primary">Conversations</h6>
                             <button class="btn btn-primary btn-sm" id="newChatBtn" onclick="toggleChatButton(this)">
                                 <i class="fas fa-plus"></i> Talk to Someone
                             </button>
                         </div>
+                        <div class="input-group input-group-sm">
+                            <input type="text" class="form-control" id="searchConversation" 
+                                   placeholder="Search..." aria-label="Search conversations">
+                            <div class="input-group-append">
+                                <span class="input-group-text">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                            </div>
+                        </div>
                     </div>
                     <div class="card-body p-0">
-                        <div class="list-group list-group-flush" id="conversationList" style="height: calc(100vh - 200px); overflow-y: auto;">
+                        <div class="list-group list-group-flush" id="conversationList">
                             <!-- Content will be dynamically loaded -->
                         </div>
                     </div>
@@ -54,11 +56,13 @@ include('inc/header.php');
                     <div class="card-header py-3 d-flex justify-content-between align-items-center">
                         <h6 class="m-0 font-weight-bold text-primary" id="chatTitle">Select a conversation</h6>
                     </div>
-                    <div class="card-body">
-                        <div id="messageArea" style="height: calc(100vh - 280px); overflow-y: auto;" class="mb-4 p-4 border rounded">
-                            <div class="text-center text-muted">
-                                <i class="fas fa-comments fa-3x mb-3"></i>
-                                <p>Select a conversation to start chatting</p>
+                    <div class="card-body p-3">
+                        <div id="messageArea" style="height: calc(100vh - 300px); overflow-y: auto;" class="mb-4 p-4 border rounded bg-light">
+                            <div class="conversation-placeholder d-flex flex-column justify-content-center align-items-center h-100">
+                                <div class="text-center text-muted">
+                                    <i class="fas fa-comments fa-3x mb-3"></i>
+                                    <p>Select a conversation to start chatting</p>
+                                </div>
                             </div>
                         </div>
                         <form id="messageForm" class="d-none">
@@ -80,6 +84,36 @@ include('inc/header.php');
 
 <style>
 /* Add these styles in the head section or in your CSS file */
+#content {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+.card-header {
+    border-top-left-radius: 0 !important;
+    border-top-right-radius: 0 !important;
+}
+
+/* Ensure chat area takes full height but aligns to top */
+.chat-main .card, 
+.conversation-sidebar .card {
+    height: calc(100vh - 56px); /* Adjust based on navbar height */
+    margin-top: 0 !important;
+}
+
+.conversation-sidebar .card-body,
+.chat-main .card-body {
+    display: flex;
+    flex-direction: column;
+    height: calc(100% - 57px); /* Account for header height */
+    padding-top: 0.5rem;
+}
+
+#conversationList {
+    margin-top: 0;
+    padding-top: 0;
+}
+
 .conversation-item.active .text-muted,
 .conversation-item.active small,
 .user-item.active .text-muted,
@@ -145,16 +179,36 @@ include('inc/header.php');
     }
 
     #searchConversation {
-        width: 120px !important;
+        width: 100% !important;
     }
 
     .card-header {
         padding: 0.75rem 0.5rem !important;
     }
-}
 
-/* Additional mobile-specific styles */
-@media (max-width: 767.98px) {
+    .row {
+        margin-left: 0;
+        margin-right: 0;
+        margin-top: 0;
+    }
+    
+    .col-md-8, .col-md-4 {
+        padding-left: 0;
+        padding-right: 0;
+    }
+    
+    #content {
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    
+    .container-fluid {
+        padding-left: 0;
+        padding-right: 0;
+        margin-top: 0;
+    }
+    
+    /* Additional mobile-specific styles */
     .conversation-item, .user-item {
         padding: 0.5rem !important;
     }
@@ -172,13 +226,417 @@ include('inc/header.php');
         font-size: 0.75rem !important;
     }
 }
+
+/* Add these styles for message alignment */
+.message .card-body {
+    padding: 0.5rem 0.75rem;
+    display: flex;
+    align-items: flex-start; /* Align content to top */
+    text-align: left;
+    height: auto; /* Remove any fixed height */
+    min-height: unset; /* Remove any min-height */
+}
+
+.message .card-body p {
+    margin-bottom: 0;
+    width: 100%;
+    word-break: break-word; /* Prevent text overflow */
+    white-space: pre-wrap; /* Preserve line breaks */
+    height: auto; /* Allow natural height */
+}
+
+/* Message styling improvements */
+.message {
+    max-width: 75%;
+    height: auto; /* Allow natural height */
+}
+
+/* Timestamp styling */
+.message small.text-muted {
+    font-size: 0.7rem;
+}
+
+@media (max-width: 767.98px) {
+    .message {
+        max-width: 85%; /* More width on mobile */
+    }
+    
+    /* Additional mobile-specific styles */
+    .message .card-body {
+        padding: 0.4rem 0.6rem;
+    }
+}
+
+/* Add these styles in the head section or in your CSS file */
+#content {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+.card-header {
+    border-top-left-radius: 0 !important;
+    border-top-right-radius: 0 !important;
+}
+
+/* Ensure chat area takes full height */
+.chat-main .card {
+    height: calc(100vh - 56px); /* Adjust based on navbar height */
+}
+
+.chat-main .card-body {
+    display: flex;
+    flex-direction: column;
+    height: calc(100% - 57px); /* Account for header height */
+}
+
+#messageArea {
+    flex: 1;
+    overflow-y: auto;
+}
+
+/* Make conversation sidebar card match the chat area height */
+.conversation-sidebar .card {
+    height: calc(100vh - 56px); /* Match the chat-main card height */
+}
+
+.conversation-sidebar .card-body {
+    height: calc(100% - 113px); /* Account for header height */
+    padding: 0;
+}
+
+#conversationList {
+    height: 100% !important; /* Override the inline style */
+    overflow-y: auto;
+}
+
+/* Conversation styling */
+.conversation-item.active .text-muted,
+.conversation-item.active small,
+.user-item.active .text-muted,
+.user-item.active small {
+    color: rgba(255, 255, 255, 0.75) !important;
+}
+
+.conversation-item.active,
+.user-item.active {
+    background-color: var(--primary) !important;
+    color: white !important;
+    border-color: var(--primary) !important;
+}
+
+.user-item.active h6,
+.conversation-item.active h6 {
+    color: white !important;
+}
+
+/* Conversation placeholder styling */
+.conversation-placeholder {
+    height: 100%;
+}
+
+.conversation-placeholder .fas {
+    color: var(--primary);
+    opacity: 0.6;
+}
+
+.conversation-placeholder p {
+    font-size: 1.1rem;
+    margin-top: 0.5rem;
+}
+
+/* Message styling */
+.message .card-body {
+    padding: 0.5rem 0.75rem;
+    display: flex;
+    align-items: flex-start;
+    text-align: left;
+    height: auto; /* Remove any fixed height */
+    min-height: unset; /* Remove any min-height */
+}
+
+.message .message-content {
+    margin-bottom: 0;
+    width: 100%;
+    word-break: break-word;
+    white-space: pre-wrap;
+    line-height: 1.4;
+}
+
+/* Ensure consistent padding inside message bubbles */
+.card-body.py-2.px-3 {
+    padding: 0.6rem 0.75rem !important;
+    height: auto !important; /* Ensure no fixed height */
+}
+
+/* Improve message spacing */
+.message {
+    max-width: 75%;
+    height: auto; /* Allow natural height */
+}
+
+.message .card {
+    border-radius: 1rem;
+    height: auto; /* Allow natural height */
+}
+
+/* Make sure paragraphs in messages don't force extra height */
+.message .card-body p {
+    margin-bottom: 0;
+    width: 100%;
+    word-break: break-word;
+    white-space: pre-wrap;
+    height: auto; /* Allow natural height */
+}
+
+/* Mobile responsiveness */
+@media (max-width: 767.98px) {
+    .conversation-sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1040;
+        background: white;
+        transition: transform 0.3s ease-in-out;
+        transform: translateX(-100%);
+    }
+
+    .conversation-sidebar.show {
+        transform: translateX(0);
+    }
+
+    .chat-main {
+        min-height: calc(100vh - 100px);
+    }
+
+    .toggle-conversations {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 1030;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+
+    #messageArea {
+        height: calc(100vh - 220px) !important;
+        padding: 1rem !important;
+    }
+
+    .card-body {
+        padding: 0.75rem;
+    }
+
+    .card-header {
+        padding: 0.75rem 1rem !important;
+    }
+
+    .chat-main .card {
+        height: calc(100vh - 56px);
+        margin-bottom: 0 !important;
+    }
+    
+    #content {
+        padding: 0 !important;
+    }
+    
+    .container-fluid {
+        padding-left: 0;
+        padding-right: 0;
+    }
+    
+    .row {
+        margin-left: 0;
+        margin-right: 0;
+    }
+    
+    .card {
+        border-radius: 0;
+    }
+
+    .conversation-sidebar .card {
+        height: 100vh;
+        margin-bottom: 0 !important;
+    }
+    
+    .conversation-sidebar .card-body {
+        height: calc(100% - 113px);
+    }
+    
+    #conversationList {
+        height: 100% !important;
+    }
+}
+
+/* Updated mobile styles for chat cards */
+@media (max-width: 767.98px) {
+    .chat-main .card {
+        height: 100vh !important;
+        margin: 0 !important;
+        border: none !important;
+        border-radius: 0 !important;
+    }
+
+    .chat-main .card-header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1020;
+        border-radius: 0 !important;
+        background: white;
+    }
+
+    .chat-main .card-body {
+        padding-top: 60px !important; /* Account for fixed header */
+        height: calc(100vh - 56px) !important;
+    }
+
+    #messageArea {
+        height: calc(100vh - 170px) !important;
+        padding: 1rem !important;
+        margin-bottom: 60px !important; /* Space for message form */
+    }
+
+    #messageForm {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 10px;
+        background: white;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        z-index: 1020;
+    }
+
+    .message {
+        max-width: 85% !important;
+    }
+
+    .message .card {
+        height: auto !important;
+    }
+
+    .message .card-body {
+        padding: 8px 12px !important;
+        height: auto !important;
+    }
+
+    /* Improved conversation sidebar for mobile */
+    .conversation-sidebar {
+        height: 100vh !important;
+        overflow-y: auto;
+    }
+
+    .conversation-sidebar .card {
+        height: 100vh !important;
+        margin: 0 !important;
+        border: none !important;
+    }
+
+    .conversation-sidebar .card-header {
+        position: sticky;
+        top: 0;
+        z-index: 1020;
+        background: white;
+    }
+
+    #conversationList {
+        height: calc(100vh - 113px) !important;
+        overflow-y: auto;
+    }
+
+    /* Fix message input on mobile */
+    .input-group {
+        margin-bottom: env(safe-area-inset-bottom);
+    }
+
+    /* Ensure proper spacing for iOS devices */
+    @supports (-webkit-touch-callout: none) {
+        #messageForm {
+            padding-bottom: calc(10px + env(safe-area-inset-bottom));
+        }
+    }
+}
+
+/* Message styling improvements */
+.message {
+    max-width: 75%;
+    margin-bottom: 1rem;
+}
+
+.message .card {
+    border-radius: 1rem;
+    width: fit-content;
+    min-width: 120px;
+}
+
+.message .card-body {
+    padding: 0.5rem 0.75rem !important;
+    width: 100%;
+    height: auto !important;
+    min-height: 0 !important;
+}
+
+.message .message-content {
+    margin: 0;
+    word-break: break-word;
+    white-space: pre-wrap;
+    line-height: 1.4;
+}
+
+.message small.text-muted {
+    font-size: 0.7rem;
+    display: block;
+    margin: 0.2rem 0;
+}
+
+/* Mobile-specific message styling */
+@media (max-width: 767.98px) {
+    .message {
+        max-width: 85%;
+        margin-bottom: 0.75rem;
+    }
+
+    .message .card {
+        margin: 0;
+    }
+
+    .message .card-body {
+        padding: 0.4rem 0.6rem !important;
+    }
+
+    .message .message-content {
+        font-size: 0.95rem;
+    }
+
+    .message small.text-muted {
+        font-size: 0.65rem;
+    }
+}
+
+/* Remove any existing message height constraints */
+.message .card,
+.message .card-body,
+.message .message-content {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+}
 </style>
 
 <script>
 // Add these variables at the top of your JavaScript
 let selectedRole = null;
 let selectedUserId = null;
-let selectedName = null;  // Add this line to store the name
+let selectedName = null;  
 let refreshInterval = null;
 
 // Handle conversation selection
@@ -194,11 +652,15 @@ document.querySelectorAll('.conversation-item').forEach(item => {
     });
 });
 
-// Update loadMessages function to filter by selected role
+// Update loadMessages function for consistent placeholder
 function loadMessages() {
     if (!selectedRole || !selectedUserId) {
         document.getElementById('messageArea').innerHTML = 
-            '<div class="text-center text-muted">Please select a conversation</div>';
+            '<div class="conversation-placeholder d-flex flex-column justify-content-center align-items-center h-100">' +
+            '<div class="text-center text-muted">' +
+            '<i class="fas fa-comments fa-3x mb-3"></i>' +
+            '<p>Please select a conversation</p>' +
+            '</div></div>';
         return;
     }
     
@@ -234,17 +696,22 @@ function loadMessages() {
                     const messageElement = document.createElement('div');
                     messageElement.className = `d-flex ${isCurrentUser ? 'justify-content-end' : 'justify-content-start'} mb-3`;
                     messageElement.innerHTML = `
-                        <div class="message ${isCurrentUser ? 'ml-auto' : 'mr-auto'}" style="max-width: 70%;">
+                        <div class="message ${isCurrentUser ? 'ml-auto' : 'mr-auto'}">
                             <small class="text-muted ${isCurrentUser ? 'text-right' : 'text-left'} d-block mb-1">
                                 ${msg.sender_name}
                             </small>
                             <div class="card ${isCurrentUser ? 'bg-primary text-white' : 'bg-light'}">
                                 <div class="card-body py-2 px-3">
-                                    <p class="mb-0">${msg.message}</p>
+                                    <p class="message-content m-0">${msg.message}</p>
                                 </div>
                             </div>
                             <small class="text-muted ${isCurrentUser ? 'text-right' : 'text-left'} d-block mt-1">
-                                ${new Date(msg.send_time).toLocaleString()}
+                                ${new Date(msg.send_time).toLocaleString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                })}
                             </small>
                         </div>
                     `;
@@ -438,6 +905,7 @@ function toggleChatButton(button) {
 }
 
 // Add these new functions to your JavaScript section
+// Update loadConversations for consistent empty state
 function loadConversations() {
     const button = document.getElementById('newChatBtn');
     // Ensure button is in primary state
@@ -450,23 +918,18 @@ function loadConversations() {
         .then(data => {
             const conversationList = document.getElementById('conversationList');
             conversationList.innerHTML = '';
-            
-            // Always show conversations view regardless of data length
-            if (!data || data.length === 0) {
+            if (data.length === 0) {
                 conversationList.innerHTML = `
-                    <div class="text-center text-muted p-3">
-                        <p>No conversations yet</p>
-                        <small>Click "Talk to Someone" to start a new chat</small>
-                    </div>`;
-                // Clear chat area
-                document.getElementById('messageArea').innerHTML = `
-                    <div class="text-center text-muted">
-                        <i class="fas fa-comments fa-3x mb-3"></i>
-                        <p>Start a new conversation by clicking "Talk to Someone"</p>
+                    <div class="d-flex flex-column justify-content-center align-items-center h-100">
+                        <div class="text-center text-muted p-3">
+                            <p>No conversations yet</p>
+                            <small>Users will appear here when they message you</small>
+                        </div>
                     </div>`;
                 return;
             }
             
+            // Rest of the function remains the same
             // Rest of the conversation display logic
             data.forEach(conv => {
                 const unreadBadge = conv.unread > 0 ? 

@@ -1,5 +1,12 @@
 <?php
 session_start();
+
+// Check if the user is logged in and has the appropriate admin role
+if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Librarian', 'Assistant', 'Encoder'])) {
+    header("Location: index.php");
+    exit();
+}
+
 include '../db.php';
 
 $response = array('success' => false, 'message' => '');

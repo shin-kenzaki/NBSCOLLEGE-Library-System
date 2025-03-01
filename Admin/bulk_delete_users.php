@@ -2,8 +2,10 @@
 session_start();
 include '../db.php';
 
-if (!isset($_SESSION['admin_id'])) {
-    die(json_encode(['success' => false, 'message' => 'Unauthorized access']));
+// Check if user is logged in and has appropriate role
+if (!isset($_SESSION['admin_id']) || $_SESSION['role'] !== 'Admin') {
+    echo json_encode(['success' => false, 'message' => 'Unauthorized access']);
+    exit();
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['userIds'])) {

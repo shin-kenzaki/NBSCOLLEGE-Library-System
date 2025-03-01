@@ -3,8 +3,9 @@ session_start();
 include('inc/header.php');
 include('../db.php');
 
-if (!isset($_SESSION['admin_id']) || ($_SESSION['role'] !== 'Admin' && $_SESSION['role'] !== 'Librarian')) {
-    header('Location: login.php');
+// Check if the user is logged in and has the appropriate admin role
+if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Librarian', 'Assistant'])) {
+    header("Location: index.php");
     exit();
 }
 ?>

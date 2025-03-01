@@ -2,7 +2,7 @@
 session_start();
 include '../db.php';
 
-if (!isset($_SESSION['admin_id'])) {
+if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Librarian', 'Assistant', 'Encoder'])) {
     die(json_encode(['success' => false, 'message' => 'Unauthorized access']));
 }
 

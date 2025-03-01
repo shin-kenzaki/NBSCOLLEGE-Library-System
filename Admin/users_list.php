@@ -2,7 +2,7 @@
 session_start();
 
 // Check if the user is logged in
-if (!isset($_SESSION['admin_id'])) {
+if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Librarian', 'Assistant', 'Encoder'])) {
     header("Location: index.php");
     exit();
 }
@@ -234,7 +234,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 $fullname = $row['firstname'] . ' ' . ($row['middle_init'] ? $row['middle_init'] . ' ' : '') . $row['lastname'];
                                 list($status_class, $status_text) = getStatusDisplay($row['status']);
                                 
-                                echo "<tr>";
+                                echo "<tr style='cursor: pointer;' onclick=\"window.location='view_user.php?id={$row['id']}'\">";
                                 echo "<td><input type='checkbox' class='user-checkbox' data-user-id='{$row['id']}'></td>";
                                 echo "<td>{$row['id']}</td>";
                                 echo "<td>{$row['school_id']}</td>";

@@ -3,10 +3,9 @@ session_start();
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-// Check if the user is logged in
-if (!isset($_SESSION['admin_id'])) {
-    $response = array('success' => false, 'message' => 'Unauthorized access');
-    echo json_encode($response);
+// Check if the user is logged in and has the appropriate admin role
+if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Librarian', 'Assistant', 'Encoder'])) {
+    header("Location: index.php");
     exit();
 }
 

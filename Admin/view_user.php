@@ -1,14 +1,14 @@
 <?php
 session_start();
 
-if (!isset($_SESSION['admin_id'])) {
+if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Librarian', 'Assistant', 'Encoder'])) {
     header("Location: index.php");
     exit();
 }
 
 include '../admin/inc/header.php';
 include '../db.php';
-include '../inc/status_helper.php';
+include 'inc/status_helper.php';
 require 'inc/functions.php';
 
 $user_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
@@ -98,7 +98,7 @@ $userImage = displayProfileImage($user['user_image']);
                         <!-- User details here -->
                         <div class="row">
                             <div class="col-sm-4 mb-3">
-                                <label class="small text-muted mb-1">School ID</label>
+                                <label class="small text-muted mb-1">ID Number</label>
                                 <div class="h5 mb-0"><?= htmlspecialchars($user['school_id']) ?></div>
                             </div>
                             <div class="col-sm-4 mb-3">
@@ -160,21 +160,25 @@ $userImage = displayProfileImage($user['user_image']);
                             <table class="table table-bordered table-striped">
                                 <thead>
                                     <tr>
-                                        <th>Book</th>
-                                        <th>Borrowed Date</th>
-                                        <th>Due Date</th>
-                                        <th>Status</th>
+                                        <th class="text-center">Book</th>
+                                        <th class="text-center">Borrowed Date</th>
+                                        <th class="text-center">Due Date</th>
+                                        <th class="text-center">Return Date</th>
+                                        <th class="text-center">Received By</th>
+                                        <th class="text-center">Status</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php
                                     $borrowings = $conn->prepare("
-                                        SELECT b.*, bk.title as book_title 
+                                        SELECT b.*, bk.title as book_title, 
+                                               CONCAT(a.firstname, ' ', a.lastname) as recieved_by_name
                                         FROM borrowings b 
                                         JOIN books bk ON b.book_id = bk.id 
+                                        LEFT JOIN admins a ON b.recieved_by = a.id 
                                         WHERE b.user_id = ? 
-                                        ORDER BY b.borrow_date DESC 
-                                        LIMIT 5
+                                        ORDER BY b.issue_date DESC 
+                                        LIMIT 10
                                     ");
                                     $borrowings->bind_param("i", $user_id);
                                     $borrowings->execute();
@@ -183,12 +187,14 @@ $userImage = displayProfileImage($user['user_image']);
                                     while ($row = $result->fetch_assoc()) {
                                         echo "<tr>";
                                         echo "<td>" . htmlspecialchars($row['book_title']) . "</td>";
-                                        echo "<td>" . date('M d, Y', strtotime($row['borrow_date'])) . "</td>";
-                                        echo "<td>" . date('M d, Y', strtotime($row['due_date'])) . "</td>";
-                                        echo "<td><span class='badge badge-" . 
-                                            ($row['status'] == 'borrowed' ? 'info' : 
-                                            ($row['status'] == 'returned' ? 'success' : 
-                                            ($row['status'] == 'damaged' ? 'warning' : 'danger'))) . 
+                                        echo "<td class='text-center'>" . date('M d, Y', strtotime($row['issue_date'])) . "</td>";
+                                        echo "<td class='text-center'>" . date('M d, Y', strtotime($row['due_date'])) . "</td>";
+                                        echo "<td class='text-center'>" . ($row['return_date'] ? date('M d, Y', strtotime($row['return_date'])) : '-') . "</td>";
+                                        echo "<td class='text-center'>" . ($row['recieved_by_name'] ? htmlspecialchars($row['recieved_by_name']) : '-') . "</td>";
+                                        echo "<td class='text-center'><span class='badge badge-" . 
+                                            ($row['status'] == 'Returned' ? 'success' : 
+                                            ($row['status'] == 'Damaged' ? 'warning' : 
+                                            ($row['status'] == 'Lost' ? 'danger' : 'info'))) . 
                                             "'>" . ucfirst($row['status']) . "</span></td>";
                                         echo "</tr>";
                                     }

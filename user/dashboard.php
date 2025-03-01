@@ -2,8 +2,9 @@
 session_start();
 include '../db.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: login.php');
+// Check if the user is logged in and has the appropriate role
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['usertype'], ['Student', 'Faculty', 'Staff', 'Visitor'])) {
+    header("Location: index.php");
     exit();
 }
 
@@ -39,11 +40,13 @@ $cart_stmt->bind_param('i', $user_id);
 $cart_stmt->execute();
 $cart_items = $cart_stmt->get_result();
 
-// Fetch borrowing history
+// Fetch recent borrowings, limit to 10 items
 $history_query = "SELECT b.title, br.issue_date, br.return_date, br.status 
                   FROM borrowings br 
                   JOIN books b ON br.book_id = b.id 
-                  WHERE br.user_id = ? AND br.status != 'Active'";
+                  WHERE br.user_id = ? AND br.status != 'Active'
+                  ORDER BY br.issue_date DESC
+                  LIMIT 10";
 $history_stmt = $conn->prepare($history_query);
 $history_stmt->bind_param('i', $user_id);
 $history_stmt->execute();
@@ -78,6 +81,35 @@ if (empty($months)) {
     $borrowed = array_fill(0, 12, 0);
 }
 
+// Fetch daily borrowing history for the current month
+$daily_query = "SELECT 
+    DATE_FORMAT(issue_date, '%d') as day,
+    COUNT(*) as borrowed
+    FROM borrowings 
+    WHERE user_id = ? 
+    AND issue_date >= DATE_FORMAT(NOW() ,'%Y-%m-01')
+    GROUP BY DAY(issue_date)
+    ORDER BY issue_date";
+$daily_stmt = $conn->prepare($daily_query);
+$daily_stmt->bind_param('i', $user_id);
+$daily_stmt->execute();
+$daily_result = $daily_stmt->get_result();
+
+// Initialize arrays for daily chart data
+$days = [];
+$daily_borrowed = [];
+
+while ($row = $daily_result->fetch_assoc()) {
+    $days[] = $row['day'];
+    $daily_borrowed[] = $row['borrowed'];
+}
+
+// If no data, use days of the current month
+if (empty($days)) {
+    $days = range(1, date('t'));
+    $daily_borrowed = array_fill(0, count($days), 0);
+}
+
 include '../user/inc/header.php';
 ?>
 
@@ -87,7 +119,7 @@ include '../user/inc/header.php';
         <!-- User Analytics Section -->
         <div class="row">
             <!-- Pie Chart -->
-            <div class="col-xl-12 col-md-12 mb-4">
+            <div class="col-xl-4 col-lg-5 mb-4">
                 <div class="card shadow mb-4">
                     <!-- Card Header - Dropdown -->
                     <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
@@ -115,11 +147,9 @@ include '../user/inc/header.php';
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Line Chart -->
-        <div class="row">
-            <div class="col-xl-12 col-md-12 mb-4">
+            <!-- Line Chart -->
+            <div class="col-xl-8 col-lg-7 mb-4">
                 <div class="card shadow mb-4">
                     <!-- Card Header -->
                     <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
@@ -195,12 +225,12 @@ include '../user/inc/header.php';
             </div>
         </div>
 
-        <!-- Borrowing History Section -->
+        <!-- Recent Borrowings Section -->
         <div class="row">
             <div class="col-xl-12 col-md-12 mb-4">
                 <div class="card shadow h-100 py-2">
                     <div class="card-body">
-                        <h6 class="m-0 font-weight-bold text-primary">Borrowing History</h6>
+                        <h6 class="m-0 font-weight-bold text-primary">Recent Borrowings</h6>
                         <div class="table-responsive mt-3">
                             <table class="table table-bordered" width="100%" cellspacing="0">
                                 <thead>
@@ -268,7 +298,7 @@ var ctx = document.getElementById("myLineChart");
 var myLineChart = new Chart(ctx, {
     type: "line",
     data: {
-        labels: <?php echo json_encode($months); ?>,
+        labels: <?php echo json_encode($days); ?>,
         datasets: [{
             label: "Books Borrowed",
             lineTension: 0.3,
@@ -282,7 +312,7 @@ var myLineChart = new Chart(ctx, {
             pointHoverBorderColor: "rgba(78, 115, 223, 1)",
             pointHitRadius: 10,
             pointBorderWidth: 2,
-            data: <?php echo json_encode($borrowed); ?>,
+            data: <?php echo json_encode($daily_borrowed); ?>,
         }],
     },
     options: {
@@ -298,14 +328,14 @@ var myLineChart = new Chart(ctx, {
         scales: {
             xAxes: [{
                 time: {
-                    unit: 'date'
+                    unit: 'day'
                 },
                 gridLines: {
                     display: false,
                     drawBorder: false
                 },
                 ticks: {
-                    maxTicksLimit: 7
+                    maxTicksLimit: 31
                 }
             }],
             yAxes: [{

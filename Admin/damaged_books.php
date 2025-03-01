@@ -2,16 +2,16 @@
 session_start();
 include('inc/header.php');
 
-// Check if the user is logged in and has appropriate role
-if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Librarian'])) {
-    header('Location: login.php');
+// Check if the user is logged in and has the appropriate admin role
+if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Librarian', 'Assistant', 'Encoder'])) {
+    header("Location: index.php");
     exit();
 }
 
 include('../db.php');
 $query = "SELECT 
             b.id as borrow_id,
-            b.borrow_date,
+            b.issue_date,
             b.report_date,
             b.replacement_date,
             bk.title as book_title,
@@ -56,7 +56,7 @@ $result = $conn->query($query);
                                 <td><?php echo htmlspecialchars($row['book_title']); ?></td>
                                 <td><?php echo htmlspecialchars($row['accession']); ?></td>
                                 <td><?php echo htmlspecialchars($row['borrower_name']); ?></td>
-                                <td><?php echo date('Y-m-d', strtotime($row['borrow_date'])); ?></td>
+                                <td><?php echo date('Y-m-d', strtotime($row['issue_date'])); ?></td>
                                 <td><?php echo date('Y-m-d', strtotime($row['report_date'])); ?></td>
                                 <td><?php echo $row['replacement_date'] ? date('Y-m-d', strtotime($row['replacement_date'])) : '-'; ?></td>
                                 <td><?php echo $row['replacement_date'] ? 'Replaced' : 'Pending Replacement'; ?></td>

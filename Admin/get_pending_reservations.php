@@ -4,9 +4,10 @@ include('../db.php');
 
 header('Content-Type: application/json');
 
-if (!isset($_SESSION['admin_id'])) {
-    echo json_encode(['error' => 'Unauthorized']);
-    exit;
+// Check if the user is logged in and has the appropriate admin role
+if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Librarian', 'Assistant', 'Encoder'])) {
+    header("Location: index.php");
+    exit();
 }
 
 $query = "SELECT 

@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Log the successful login
                 $log_query = "INSERT INTO updates (user_id, role, status, `update`) VALUES (?, ?, ?, NOW())";
                 if ($log_stmt = $conn->prepare($log_query)) {
-                    $login_status = "Active login";
+                    $login_status = "Active Login";
                     $log_stmt->bind_param("sss", $admin['employee_id'], $admin['role'], $login_status);
                     $log_stmt->execute();
                     $log_stmt->close();
@@ -80,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title>Library System - Admin Login</title>
+    <title>Library System - User Login</title>
 
     <!-- Custom fonts for this template-->
     <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
@@ -96,6 +96,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     background: url('../Images/BG/bg-login.JPG') center center no-repeat;
     background-size: cover;
 }
+        
+        /* Mobile-specific styles */
+        @media (max-width: 768px) {
+            .card {
+                margin: 1rem !important;
+            }
+            .p-5 {
+                padding: 2rem !important;
+            }
+            .my-5 {
+                margin-top: 2rem !important;
+                margin-bottom: 2rem !important;
+            }
+            /* Show background image on small screens too */
+            .bg-login-mobile {
+                min-height: 180px;
+                background: url('../Images/BG/bg-login.JPG') center center no-repeat;
+                background-size: cover;
+                border-radius: 5px 5px 0 0;
+            }
+        }
     </style>
 
 </head>
@@ -115,6 +136,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         <div class="row">
                         <div class="col-lg-6 d-none d-lg-block bg-login-image"></div>
+                            <!-- Mobile image that shows only on small screens -->
+                            <div class="d-block d-lg-none w-100 bg-login-mobile"></div>
                             <div class="col-lg-6">
                                 <div class="p-5">
                                     <div class="text-center">
@@ -176,7 +199,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         <?php if($error_message === "success"): ?>
-            window.location.href = 'dashboard.php';
+            Swal.fire({
+                title: 'Welcome Back!',
+                text: 'Successfully logged in',
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false
+            }).then(function() {
+                window.location.href = 'dashboard.php';
+            });
         <?php endif; ?>
     </script>
 </body>

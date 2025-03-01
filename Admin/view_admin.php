@@ -2,14 +2,14 @@
 session_start();
 
 // Check if user is logged in
-if (!isset($_SESSION['admin_id'])) {
+if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin'])) {
     header("Location: index.php");
     exit();
 }
 
 include '../admin/inc/header.php';
 include '../db.php';
-include '../inc/status_helper.php';
+include 'inc/status_helper.php';
 
 // Get admin ID from URL
 $admin_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
@@ -68,7 +68,7 @@ list($status_class, $status_text) = getStatusDisplay($admin['status']);
                     <div class="card-body">
                         <div class="row">
                             <div class="col-sm-4 mb-3">
-                                <label class="small text-muted mb-1">Employee ID</label>
+                                <label class="small text-muted mb-1">ID Number</label>
                                 <div class="h5 mb-0"><?= htmlspecialchars($admin['employee_id']) ?></div>
                             </div>
                             <div class="col-sm-4 mb-3">

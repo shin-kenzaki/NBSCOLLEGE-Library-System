@@ -143,6 +143,41 @@ $conn->query($update_image_query);
         box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
         outline: none;
       }
+      
+      /* Mobile view adjustments */
+      @media (max-width: 768px) {
+        .card-body {
+          padding: 0;
+        }
+        
+        .p-5 {
+          padding: 1.5rem !important;
+        }
+        
+        .form-group {
+          margin-bottom: 0.75rem;
+        }
+        
+        .form-control-user {
+          font-size: 0.8rem;
+          padding: 0.75rem 1rem;
+        }
+        
+        .btn-user {
+          padding: 0.5rem 1rem;
+        }
+        
+        .h4 {
+          font-size: 1.25rem;
+        }
+        
+        /* Stack form elements vertically on small screens */
+        @media (max-width: 576px) {
+          .form-group.row > div {
+            margin-bottom: 0.75rem;
+          }
+        }
+      }
     </style>
   </head>
 

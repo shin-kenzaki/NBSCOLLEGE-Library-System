@@ -6,9 +6,9 @@ include '../db.php';
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-// Check if user is logged in
-if (!isset($_SESSION['user_id'])) {
-    header('Location: login.html');
+// Check if the user is logged in and has the appropriate role
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['usertype'], ['Student', 'Faculty', 'Staff', 'Visitor'])) {
+    header("Location: index.php");
     exit();
 }
 

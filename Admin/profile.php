@@ -2,9 +2,9 @@
 session_start();
 require('../db.php');
 
-// Check if user is logged in
-if (!isset($_SESSION['admin_id'])) {
-    header('Location: index.php');
+// Check if the user is logged in and has the appropriate admin role
+if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Librarian', 'Assistant', 'Encoder'])) {
+    header("Location: index.php");
     exit();
 }
 
@@ -13,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reset_profile'])) {
     $admin_id = $_SESSION['admin_id'];
     $default_image = "../Images/Profile/default-avatar.jpg";
     
-    $sql = "UPDATE admins SET image=? WHERE employee_id=?";
+    $sql = "UPDATE admins SET image=? WHERE id=?";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("si", $default_image, $admin_id);
     
@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
     
     // Handle file upload
     if (isset($_FILES['profile_image']) && $_FILES['profile_image']['error'] === 0) {
-        $target_dir = "../Images/Profile";
+        $target_dir = "../Images/Profile/";
         $file_extension = strtolower(pathinfo($_FILES["profile_image"]["name"], PATHINFO_EXTENSION));
         $new_filename = "profile_" . $admin_id . "." . $file_extension;
         $target_file = $target_dir . $new_filename;
@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
         $check = getimagesize($_FILES["profile_image"]["tmp_name"]);
         if ($check !== false && move_uploaded_file($_FILES["profile_image"]["tmp_name"], $target_file)) {
             $image_path = $target_file;
-            $sql = "UPDATE admins SET firstname=?, middle_init=?, lastname=?, email=?, image=?, last_update=CURRENT_DATE WHERE employee_id=?";
+            $sql = "UPDATE admins SET firstname=?, middle_init=?, lastname=?, email=?, image=?, last_update=CURRENT_DATE WHERE id=?";
             $stmt = $conn->prepare($sql);
             $stmt->bind_param("sssssi", $firstname, $middle_init, $lastname, $email, $image_path, $admin_id);
             
@@ -62,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
             }
         }
     } else {
-        $sql = "UPDATE admins SET firstname=?, middle_init=?, lastname=?, email=?, last_update=CURRENT_DATE WHERE employee_id=?";
+        $sql = "UPDATE admins SET firstname=?, middle_init=?, lastname=?, email=?, last_update=CURRENT_DATE WHERE id=?";
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("ssssi", $firstname, $middle_init, $lastname, $email, $admin_id);
     }
@@ -87,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['change_password'])) {
     $confirm_password = $_POST['confirm_password'];
     
     // Verify current password
-    $sql = "SELECT password FROM admins WHERE employee_id = ?";
+    $sql = "SELECT password FROM admins WHERE id = ?";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("i", $admin_id);
     $stmt->execute();
@@ -97,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['change_password'])) {
     if (password_verify($current_password, $user['password'])) {
         if ($new_password === $confirm_password) {
             $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
-            $update_sql = "UPDATE admins SET password = ? WHERE employee_id = ?";
+            $update_sql = "UPDATE admins SET password = ? WHERE id = ?";
             $update_stmt = $conn->prepare($update_sql);
             $update_stmt->bind_param("si", $hashed_password, $admin_id);
             
@@ -119,7 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['change_password'])) {
 
 // Get admin data
 $admin_id = $_SESSION['admin_id'];
-$sql = "SELECT * FROM admins WHERE employee_id = ?";
+$sql = "SELECT * FROM admins WHERE id = ?";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $admin_id);
 $stmt->execute();
@@ -127,9 +127,9 @@ $result = $stmt->get_result();
 $admin = $result->fetch_assoc();
 
 // Get last login
-$sql = "SELECT * FROM updates WHERE user_id = ? AND status LIKE '%login%' ORDER BY `update` DESC LIMIT 1";
+$sql = "SELECT * FROM updates WHERE user_id = ? AND role = ? AND (status = 'Active login' OR status = 'Inactive login') ORDER BY `update` DESC LIMIT 1";
 $stmt = $conn->prepare($sql);
-$stmt->bind_param("i", $admin_id);
+$stmt->bind_param("is", $admin_id, $_SESSION['role']);
 $stmt->execute();
 $result = $stmt->get_result();
 $last_login = $result->fetch_assoc();

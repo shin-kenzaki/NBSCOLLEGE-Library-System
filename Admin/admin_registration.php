@@ -147,6 +147,55 @@
             box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
             outline: none;
         }
+        
+        /* Error text styling */
+        .error-text {
+            color: red;
+            font-size: 0.75rem;
+            display: block;
+            margin-top: 0.25rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        /* Mobile responsiveness improvements */
+        @media (max-width: 768px) {
+            .card-body {
+                padding: 0;
+            }
+            
+            .p-5 {
+                padding: 1.5rem !important;
+            }
+            
+            .form-group {
+                margin-bottom: 0.75rem;
+            }
+            
+            .h4 {
+                font-size: 1.25rem;
+            }
+            
+            .form-control-user {
+                font-size: 0.8rem;
+                padding: 0.75rem 1rem;
+            }
+            
+            .btn-user {
+                padding: 0.5rem 1rem;
+            }
+            
+            /* Convert rows to columns on very small screens */
+            @media (max-width: 576px) {
+                .form-group.row > div:first-child {
+                    margin-bottom: 0.75rem;
+                }
+                
+                /* Make error text more visible */
+                .error-text {
+                    margin-bottom: 0.5rem;
+                }
+            }
+        }
     </style>
 
 </head>
@@ -171,11 +220,11 @@
                                 <div class="form-group row">
                                     <div class="col-sm-6 mb-3 mb-sm-0">
                                         <input type="text" class="form-control form-control-user" employee_id="employee_id" name="employee_id" placeholder="ID" value="<?= htmlspecialchars($_POST['employee_id'] ?? '') ?>" required>
-                                        <span style="color:red;"><?= $errors['employee_id'] ?></span>
+                                        <span class="error-text"><?= $errors['employee_id'] ?></span>
                                     </div>
                                     <div class="col-sm-6">
                                         <input type="text" class="form-control form-control-user" name="firstname" placeholder="First Name" value="<?= htmlspecialchars($_POST['firstname'] ?? '') ?>" required>
-                                        <span style="color:red;"><?= $errors['firstname'] ?></span>
+                                        <span class="error-text"><?= $errors['firstname'] ?></span>
                                     </div>
                                 </div>
 
@@ -185,19 +234,19 @@
                                     </div>
                                     <div class="col-sm-6">
                                         <input type="text" class="form-control form-control-user" name="lastname" placeholder="Last Name" value="<?= htmlspecialchars($_POST['lastname'] ?? '') ?>" required>
-                                        <span style="color:red;"><?= $errors['lastname'] ?></span>
+                                        <span class="error-text"><?= $errors['lastname'] ?></span>
                                     </div>
                                 </div>
 
                                 <div class="form-group">
                                     <input type="text" class="form-control form-control-user" name="email" placeholder="Email" value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" required>
-                                    <span style="color:red;"><?= $errors['email'] ?></span>
+                                    <span class="error-text"><?= $errors['email'] ?></span>
                                 </div>
 
                                 <div class="form-group row">
                                     <div class="col-sm-6">
                                         <input type="password" class="form-control form-control-user" name="password" placeholder="Password" required>
-                                        <span style="color:red;"><?= $errors['password'] ?></span>
+                                        <span class="error-text"><?= $errors['password'] ?></span>
                                     </div>
                                     <div class="col-sm-6">
                                         <select name="role" class="form-control user select-dropdown" required>

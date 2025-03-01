@@ -2,9 +2,9 @@
 session_start();
 include('inc/header.php');
 
-// Check if the user is logged in
-if (!isset($_SESSION['admin_id'])) {
-    header('Location: login.php');
+// Check if the user is logged in and has the appropriate admin role
+if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Librarian', 'Assistant', 'Encoder'])) {
+    header("Location: index.php");
     exit();
 }
 
@@ -81,9 +81,20 @@ $result = $conn->query($query);
                                     <td><?php echo $row['accession']; ?></td>
                                     <td><?php echo $row['title']; ?></td>
                                     <td><?php echo $row['borrower']; ?></td>
-                                    <td><?php echo date('Y-m-d', strtotime($row['issue_date'])); ?></td>
-                                    <td><?php echo $row['due_date']; ?></td>
-                                    <td><?php echo $row['issued_by_name']; ?></td>
+                                    <td><?php echo date('M d, Y', strtotime($row['issue_date'])); ?></td>
+                                    <td><?php echo date('M d, Y', strtotime($row['due_date'])); ?></td>
+                                    <td>
+                                        <?php
+                                        $status = htmlspecialchars($row['status']);
+                                        $statusClass = '';
+                                        if ($status === 'Active') {
+                                            $statusClass = 'badge badge-success';
+                                        } elseif ($status === 'Overdue') {
+                                            $statusClass = 'badge badge-danger';
+                                        }
+                                        echo "<span class='$statusClass'>$status</span>";
+                                        ?>
+                                    </td>
                                 </tr>
                             <?php endwhile; ?>
                         </tbody>

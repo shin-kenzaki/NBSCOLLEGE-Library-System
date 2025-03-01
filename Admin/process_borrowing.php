@@ -1,12 +1,13 @@
 <?php
 session_start();
-include('../db.php');
 
-// Check if user is logged in and has appropriate role
-if (!isset($_SESSION['admin_id']) || ($_SESSION['role'] !== 'Admin' && $_SESSION['role'] !== 'Librarian')) {
+// Check if the user is logged in and has the appropriate admin role
+if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Librarian', 'Assistant', 'Encoder'])) {
     echo json_encode(['status' => 'error', 'message' => 'Unauthorized access']);
     exit();
 }
+
+include('../db.php');
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $book_id = $_POST['book_id'];

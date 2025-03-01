@@ -2,9 +2,9 @@
 session_start();
 include('inc/header.php');
 
-// Check if the user is logged in and has appropriate role
-if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Librarian'])) {
-    header('Location: login.php');
+// Check if the user is logged in and has the appropriate admin role
+if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Librarian', 'Assistant', 'Encoder'])) {
+    header("Location: index.php");
     exit();
 }
 
@@ -48,29 +48,29 @@ $result = $conn->query($query);
                     <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
-                                <th>Book Title</th>
-                                <th>Accession No.</th>
-                                <th>Borrower</th>
-                                <th>Issue Date</th>
-                                <th>Due Date</th>
-                                <th>Issued By</th>
-                                <th>Received By</th>
-                                <th>Return/Report Date</th>
-                                <th>Replaced Date</th>
-                                <th>Status</th>
+                                <th class="text-center">Book Title</th>
+                                <th class="text-center">Accession No.</th>
+                                <th class="text-center">Borrower</th>
+                                <th class="text-center">Issue Date</th>
+                                <th class="text-center">Due Date</th>
+                                <th class="text-center">Issued By</th>
+                                <th class="text-center">Received By</th>
+                                <th class="text-center">Return/Report Date</th>
+                                <th class="text-center">Replaced Date</th>
+                                <th class="text-center">Status</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php while($row = $result->fetch_assoc()): ?>
                             <tr>
                                 <td><?php echo htmlspecialchars($row['book_title']); ?></td>
-                                <td><?php echo htmlspecialchars($row['accession']); ?></td>
+                                <td class="text-center"><?php echo htmlspecialchars($row['accession']); ?></td>
                                 <td><?php echo htmlspecialchars($row['borrower_name']); ?></td>
-                                <td><?php echo date('Y-m-d', strtotime($row['issue_date'])); ?></td>
-                                <td><?php echo date('Y-m-d', strtotime($row['due_date'])); ?></td>
+                                <td class="text-center"><?php echo date('Y-m-d', strtotime($row['issue_date'])); ?></td>
+                                <td class="text-center"><?php echo date('Y-m-d', strtotime($row['due_date'])); ?></td>
                                 <td><?php echo $row['issued_by_name']; ?></td>
                                 <td><?php echo $row['recieved_by_name'] ?? '-'; ?></td>
-                                <td><?php 
+                                <td class="text-center"><?php 
                                     if ($row['return_date']) {
                                         echo date('Y-m-d', strtotime($row['return_date']));
                                     } elseif ($row['report_date']) {
@@ -79,19 +79,27 @@ $result = $conn->query($query);
                                         echo 'N/A';
                                     }
                                 ?></td>
-                                <td><?php echo $row['replacement_date'] ? date('Y-m-d', strtotime($row['replacement_date'])) : '-'; ?></td>
-                                <td><?php 
+                                <td class="text-center"><?php echo $row['replacement_date'] ? date('Y-m-d', strtotime($row['replacement_date'])) : '-'; ?></td>
+                                <td class="text-center"><?php 
+                                    $status = '';
+                                    $status_color = '';
                                     if ($row['replacement_date']) {
-                                        echo $row['status'] . ' (Replaced)';
+                                        $status = $row['status'] . ' (Replaced)';
+                                        $status_color = 'success';
                                     } else if ($row['report_date'] && $row['status'] == 'Lost') {
-                                        echo 'Lost';
+                                        $status = 'Lost';
+                                        $status_color = 'danger';
                                     } else if ($row['report_date'] && $row['status'] == 'Damaged') {
-                                        echo 'Damaged';
+                                        $status = 'Damaged';
+                                        $status_color = 'warning';
                                     } else if ($row['return_date']) {
-                                        echo 'Returned';
+                                        $status = 'Returned';
+                                        $status_color = 'primary';
                                     } else {
-                                        echo $row['status'];
+                                        $status = $row['status'];
+                                        $status_color = 'secondary';
                                     }
+                                    echo "<span class=\"badge badge-$status_color\">" . $status . "</span>";
                                 ?></td>
                             </tr>
                             <?php endwhile; ?>

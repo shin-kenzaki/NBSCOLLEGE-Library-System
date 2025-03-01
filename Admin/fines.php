@@ -2,9 +2,9 @@
 session_start();
 include('inc/header.php');
 
-// Check if the user is logged in
-if (!isset($_SESSION['admin_id'])) {
-    header('Location: login.php');
+// Check if the user is logged in and has the appropriate admin role
+if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Librarian', 'Assistant', 'Encoder'])) {
+    header("Location: index.php");
     exit();
 }
 
@@ -18,14 +18,16 @@ include('../db.php');
 
 // Fetch fines with related information
 $query = "SELECT f.id, f.type, f.amount, f.status, f.date, f.payment_date,
-          b.borrow_date, b.due_date, b.return_date,
-          bk.title as book_title,
-          CONCAT(u.firstname, ' ', u.lastname) as borrower_name
+          b.issue_date, b.due_date, b.return_date,
+          bk.title AS book_title,
+          CONCAT(u.firstname, ' ', u.lastname) AS borrower_name
           FROM fines f
           JOIN borrowings b ON f.borrowing_id = b.id
           JOIN books bk ON b.book_id = bk.id
           JOIN users u ON b.user_id = u.id
           ORDER BY f.date DESC";
+
+// Run the query and store the result
 $result = $conn->query($query);
 ?>
 
@@ -61,13 +63,13 @@ $result = $conn->query($query);
                     <table class="table table-bordered" id="finesTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
-                                <th>Borrower</th>
-                                <th>Book</th>
-                                <th>Type</th>
-                                <th>Amount</th>
-                                <th>Issue Date</th>
-                                <th>Status</th>
-                                <th>Payment Date</th>
+                                <th class="text-center">Borrower</th>
+                                <th class="text-center">Book</th>
+                                <th class="text-center">Type</th>
+                                <th class="text-center">Amount</th>
+                                <th class="text-center">Issue Date</th>
+                                <th class="text-center">Status</th>
+                                <th class="text-center">Payment Date</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -78,19 +80,19 @@ $result = $conn->query($query);
                                     data-status="<?php echo $row['status']; ?>">
                                     <td><?php echo htmlspecialchars($row['borrower_name']); ?></td>
                                     <td><?php echo htmlspecialchars($row['book_title']); ?></td>
-                                    <td><?php echo htmlspecialchars($row['type']); ?></td>
-                                    <td>₱<?php echo number_format($row['amount'], 2); ?></td>
-                                    <td><?php echo date('Y-m-d', strtotime($row['date'])); ?></td>
-                                    <td>
+                                    <td class="text-center"><?php echo htmlspecialchars($row['type']); ?></td>
+                                    <td class="text-center">₱<?php echo number_format($row['amount'], 2); ?></td>
+                                    <td class="text-center"><?php echo date('Y-m-d', strtotime($row['date'])); ?></td>
+                                    <td class="text-center">
                                         <?php if ($row['status'] === 'Unpaid'): ?>
                                             <span class="badge badge-danger">Unpaid</span>
                                         <?php else: ?>
                                             <span class="badge badge-success">Paid</span>
                                         <?php endif; ?>
                                     </td>
-                                    <td>
+                                    <td class="text-center">
                                         <?php 
-                                        echo ($row['payment_date'] !== '0000-00-00') 
+                                        echo ($row['payment_date'] !== null && $row['payment_date'] !== '0000-00-00') 
                                             ? date('Y-m-d', strtotime($row['payment_date']))
                                             : '-';
                                         ?>
@@ -161,10 +163,7 @@ $(document).ready(function() {
         $selectedRow = $(this);
         const status = $selectedRow.data('status');
 
-        // Don't show menu for already paid fines
-        if (status === 'Paid') {
-            return;
-        }
+        contextMenu.find('li').data('action', status === 'Unpaid' ? 'mark-paid' : 'mark-unpaid').text(status === 'Unpaid' ? 'Mark as Paid' : 'Mark as Unpaid');
 
         contextMenu.css({
             top: e.pageY + "px",
@@ -190,6 +189,14 @@ $(document).ready(function() {
         const fineId = $selectedRow.data('fine-id');
         const amount = $selectedRow.data('amount');
         const borrower = $selectedRow.data('borrower');
+        const action = $(this).data('action');
+        let url = '';
+
+        if (action === 'mark-paid') {
+            url = 'mark_fine_paid.php';
+        } else if (action === 'mark-unpaid') {
+            url = 'mark_fine_unpaid.php';
+        }
 
         // Sweet Alert confirmation
         Swal.fire({
@@ -198,12 +205,12 @@ $(document).ready(function() {
                 <div class="text-left">
                     <p class="mb-2"><strong>Borrower:</strong> ${borrower}</p>
                     <p class="mb-2"><strong>Amount:</strong> ₱${parseFloat(amount).toLocaleString('en-PH', {minimumFractionDigits: 2})}</p>
-                    <p class="mt-3">Are you sure you want to mark this fine as paid?</p>
+                    <p class="mt-3">Are you sure you want to mark this fine as ${action === 'mark-paid' ? 'paid' : 'unpaid'}?</p>
                 </div>
             `,
             icon: 'question',
             showCancelButton: true,
-            confirmButtonText: '<i class="fas fa-check"></i> Yes, Mark as Paid',
+            confirmButtonText: `<i class="fas fa-check"></i> Yes, Mark as ${action === 'mark-paid' ? 'Paid' : 'Unpaid'}`,
             cancelButtonText: '<i class="fas fa-times"></i> Cancel',
             confirmButtonColor: '#28a745',
             cancelButtonColor: '#dc3545',
@@ -215,7 +222,7 @@ $(document).ready(function() {
                 cancelButton: 'btn btn-danger'
             },
             preConfirm: () => {
-                return fetch(`mark_fine_paid.php?id=${fineId}`)
+                return fetch(`${url}?id=${fineId}`)
                     .then(response => response.json())
                     .then(data => {
                         if (data.status === 'error') {
@@ -232,7 +239,7 @@ $(document).ready(function() {
                 Swal.fire({
                     icon: 'success',
                     title: 'Payment Recorded!',
-                    text: 'The fine has been successfully marked as paid.',
+                    text: `The fine has been successfully marked as ${action === 'mark-paid' ? 'paid' : 'unpaid'}.`,
                     confirmButtonColor: '#28a745',
                     confirmButtonText: 'OK'
                 }).then(() => {

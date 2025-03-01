@@ -1,9 +1,9 @@
 <?php
 session_start();
 
-// Check if the user is logged in
-if (!isset($_SESSION['admin_id'])) {
-    header("Location: index.php");
+// Check if user is logged in and has appropriate role
+if (!isset($_SESSION['admin_id']) || $_SESSION['role'] !== 'Admin') {
+    echo json_encode(['success' => false, 'message' => 'Unauthorized access']);
     exit();
 }
 
@@ -116,63 +116,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php endif; ?>
 
                 <form method="POST" action="">
-                    <div class="form-group">
-                        <label>Employee ID</label>
-                        <input type="text" name="employee_id" class="form-control" value="<?= htmlspecialchars($admin['employee_id']) ?>">
-                        <?php if (isset($errors['employee_id'])): ?>
-                            <small class="text-danger"><?= $errors['employee_id'] ?></small>
-                        <?php endif; ?>
+                    <div class="form-row">
+                        <div class="form-group col-md-3">
+                            <label>ID Number</label>
+                            <input type="text" name="employee_id" class="form-control" value="<?= htmlspecialchars($admin['employee_id']) ?>">
+                            <?php if (isset($errors['employee_id'])): ?>
+                                <small class="text-danger"><?= $errors['employee_id'] ?></small>
+                            <?php endif; ?>
+                        </div>
+                        <div class="form-group col-md-9">
+                            <label>Email</label>
+                            <input type="email" name="email" class="form-control" value="<?= htmlspecialchars($admin['email']) ?>">
+                            <?php if (isset($errors['email'])): ?>
+                                <small class="text-danger"><?= $errors['email'] ?></small>
+                            <?php endif; ?>
+                        </div>
                     </div>
 
-                    <div class="form-group">
-                        <label>First Name</label>
-                        <input type="text" name="firstname" class="form-control" value="<?= htmlspecialchars($admin['firstname']) ?>">
-                        <?php if (isset($errors['firstname'])): ?>
-                            <small class="text-danger"><?= $errors['firstname'] ?></small>
-                        <?php endif; ?>
+                    <div class="form-row">
+                        <div class="form-group col-md-4">
+                            <label>First Name</label>
+                            <input type="text" name="firstname" class="form-control" value="<?= htmlspecialchars($admin['firstname']) ?>">
+                            <?php if (isset($errors['firstname'])): ?>
+                                <small class="text-danger"><?= $errors['firstname'] ?></small>
+                            <?php endif; ?>
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label>Middle Initial</label>
+                            <input type="text" name="middle_init" class="form-control" value="<?= htmlspecialchars($admin['middle_init'] ?? '') ?>">
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label>Last Name</label>
+                            <input type="text" name="lastname" class="form-control" value="<?= htmlspecialchars($admin['lastname']) ?>">
+                            <?php if (isset($errors['lastname'])): ?>
+                                <small class="text-danger"><?= $errors['lastname'] ?></small>
+                            <?php endif; ?>
+                        </div>
                     </div>
 
-                    <div class="form-group">
-                        <label>Middle Initial</label>
-                        <input type="text" name="middle_init" class="form-control" value="<?= htmlspecialchars($admin['middle_init'] ?? '') ?>">
-                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label>Role</label>
+                            <select name="role" class="form-control">
+                                <option value="Admin" <?= $admin['role'] == 'Admin' ? 'selected' : '' ?>>Admin</option>
+                                <option value="Librarian" <?= $admin['role'] == 'Librarian' ? 'selected' : '' ?>>Librarian</option>
+                                <option value="Encoder" <?= $admin['role'] == 'Encoder' ? 'selected' : '' ?>>Encoder</option>
+                            </select>
+                            <?php if (isset($errors['role'])): ?>
+                                <small class="text-danger"><?= $errors['role'] ?></small>
+                            <?php endif; ?>
+                        </div>
 
-                    <div class="form-group">
-                        <label>Last Name</label>
-                        <input type="text" name="lastname" class="form-control" value="<?= htmlspecialchars($admin['lastname']) ?>">
-                        <?php if (isset($errors['lastname'])): ?>
-                            <small class="text-danger"><?= $errors['lastname'] ?></small>
-                        <?php endif; ?>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Email</label>
-                        <input type="email" name="email" class="form-control" value="<?= htmlspecialchars($admin['email']) ?>">
-                        <?php if (isset($errors['email'])): ?>
-                            <small class="text-danger"><?= $errors['email'] ?></small>
-                        <?php endif; ?>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Role</label>
-                        <select name="role" class="form-control">
-                            <option value="Admin" <?= $admin['role'] == 'Admin' ? 'selected' : '' ?>>Admin</option>
-                            <option value="Librarian" <?= $admin['role'] == 'Librarian' ? 'selected' : '' ?>>Librarian</option>
-                            <option value="Encoder" <?= $admin['role'] == 'Encoder' ? 'selected' : '' ?>>Encoder</option>
-                        </select>
-                        <?php if (isset($errors['role'])): ?>
-                            <small class="text-danger"><?= $errors['role'] ?></small>
-                        <?php endif; ?>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Status</label>
-                        <select name="status" class="form-control">
-                            <option value="0" <?= $admin['status'] == 0 ? 'selected' : '' ?>>Inactive</option>
-                            <option value="1" <?= $admin['status'] == 1 ? 'selected' : '' ?>>Active</option>
-                            <option value="2" <?= $admin['status'] == 2 ? 'selected' : '' ?>>Banned</option>
-                            <option value="3" <?= $admin['status'] == 3 ? 'selected' : '' ?>>Disabled</option>
-                        </select>
+                        <div class="form-group col-md-6">
+                            <label>Status</label>
+                            <select name="status" class="form-control">
+                                <option value="0" <?= $admin['status'] == 0 ? 'selected' : '' ?>>Inactive</option>
+                                <option value="1" <?= $admin['status'] == 1 ? 'selected' : '' ?>>Active</option>
+                                <option value="2" <?= $admin['status'] == 2 ? 'selected' : '' ?>>Banned</option>
+                                <option value="3" <?= $admin['status'] == 3 ? 'selected' : '' ?>>Disabled</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div class="form-group text-center mt-4">

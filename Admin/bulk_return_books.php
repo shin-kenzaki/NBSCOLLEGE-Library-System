@@ -1,8 +1,9 @@
 <?php
 session_start();
 
-if (!isset($_SESSION['admin_id'])) {
-    echo json_encode(['success' => false, 'message' => 'Unauthorized access']);
+// Check if the user is logged in and has the appropriate admin role
+if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Librarian', 'Assistant', 'Encoder'])) {
+    header("Location: index.php");
     exit();
 }
 
@@ -73,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['borrowIds'])) {
             if ($borrowing['days_overdue'] > 0) {
                 $fineAmount = $borrowing['days_overdue'] * 5.00; // ₱5 per day
                 $insertFine = $conn->prepare("INSERT INTO fines (borrowing_id, type, amount, status, date) 
-                                           VALUES (?, 'Overdue', ?, 'Pending', ?)");
+                                           VALUES (?, 'Overdue', ?, 'Unpaid', ?)");
                 $insertFine->bind_param('ids', $borrowId, $fineAmount, $today);
                 $insertFine->execute();
             }

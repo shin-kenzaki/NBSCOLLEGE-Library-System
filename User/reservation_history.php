@@ -2,8 +2,9 @@
 session_start();
 include '../db.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: login.php');
+// Check if the user is logged in and has the appropriate role
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['usertype'], ['Student', 'Faculty', 'Staff', 'Visitor'])) {
+    header("Location: index.php");
     exit();
 }
 
