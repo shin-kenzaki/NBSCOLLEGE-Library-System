@@ -1,0 +1,194 @@
+<?php
+// Start session first
+session_start();
+include '../db.php';
+
+// Check if user is logged in with correct privileges BEFORE including header
+if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Librarian', 'Assistant', 'Encoder'])) {
+    header("Location: index.php");
+    exit();
+}
+
+// Initialize the shortcut session if not exists
+if (!isset($_SESSION['book_shortcut'])) {
+    header("Location: add_book_shortcut.php");
+    exit();
+}
+
+// Check if previous steps were completed
+if (!$_SESSION['book_shortcut']['steps_completed']['writer'] || !$_SESSION['book_shortcut']['steps_completed']['publisher']) {
+    $_SESSION['error'] = "Please complete the previous steps first.";
+    header("Location: add_book_shortcut.php");
+    exit();
+}
+
+// Handle book title selection
+if (isset($_POST['copy_title'])) {
+    $_SESSION['book_shortcut']['book_title'] = $_POST['book_title'];
+    $_SESSION['book_shortcut']['steps_completed']['title'] = true;
+}
+
+// Handle proceed to add book
+if (isset($_POST['proceed_to_add'])) {
+    // Validate required data
+    if (empty($_POST['new_title'])) {
+        echo "<script>alert('Book title is required.');</script>";
+    } else {
+        $_SESSION['book_shortcut']['steps_completed']['title'] = true;
+        $_SESSION['book_shortcut']['book_title'] = $_POST['new_title'];
+        
+        // Redirect to add book shortcut for form
+        header("Location: add_book_shortcut_form.php");
+        exit();
+    }
+}
+
+// Get the search query if it exists
+$searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
+
+// Only include header AFTER all potential redirects
+include 'inc/header.php';
+
+// Fetch books from database for the table
+$booksQuery = "SELECT 
+    b.id, 
+    b.title, 
+    GROUP_CONCAT(DISTINCT CONCAT(w.firstname, ' ', w.middle_init, ' ', w.lastname) SEPARATOR ', ') AS author_name, 
+    p.publisher AS publisher_name
+    FROM books b 
+    LEFT JOIN contributors c ON b.id = c.book_id AND c.role = 'Author'
+    LEFT JOIN writers w ON c.writer_id = w.id
+    LEFT JOIN publications pub ON b.id = pub.book_id
+    LEFT JOIN publishers p ON pub.publisher_id = p.id";
+
+if (!empty($searchQuery)) {
+    $searchQuery = $conn->real_escape_string($searchQuery);
+    $booksQuery .= " WHERE b.title LIKE '%$searchQuery%' OR w.firstname LIKE '%$searchQuery%' OR w.lastname LIKE '%$searchQuery%'";
+}
+
+$booksQuery .= " GROUP BY b.id ORDER BY b.title LIMIT 50";
+$booksResult = $conn->query($booksQuery);
+?>
+
+<!-- Main Content -->
+<div id="content">
+    <div class="container-fluid">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Check Book Title & Add New Book</h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <a href="add_book_shortcut.php" class="btn btn-secondary btn-sm">
+                        <i class="fas fa-arrow-left"></i> Back to Progress Form
+                    </a>
+                </div>
+
+                <div class="alert alert-info">
+                    <p><strong>Step 3:</strong> Check if the book title already exists in the system. You can copy an existing title or enter a new one.</p>
+                </div>
+
+                <!-- New Title Form -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="m-0 font-weight-bold">Add New Book</h6>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" action="shortcut_books.php">
+                            <div class="form-group">
+                                <label for="new_title">Book Title:</label>
+                                <input type="text" class="form-control" id="new_title" name="new_title" value="<?php echo htmlspecialchars($_SESSION['book_shortcut']['book_title']); ?>" required>
+                            </div>
+                            <button type="submit" name="proceed_to_add" class="btn btn-success">
+                                <i class="fas fa-plus"></i> Proceed to Add Book
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Search Existing Books -->
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="m-0 font-weight-bold">Check Existing Books</h6>
+                    </div>
+                    <div class="card-body">
+                        <!-- Search Form -->
+                        <form method="GET" action="shortcut_books.php" id="searchForm">
+                            <div class="input-group mb-3">
+                                <input type="text" name="search" class="form-control" placeholder="Search for existing books..." value="<?php echo htmlspecialchars($searchQuery); ?>">
+                                <div class="input-group-append">
+                                    <button class="btn btn-primary" type="submit">Search</button>
+                                </div>
+                            </div>
+                        </form>
+
+                        <!-- Books Table -->
+                        <div class="table-responsive">
+                            <table class="table table-bordered" id="booksTable" width="100%" cellspacing="0">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Title</th>
+                                        <th>Author</th>
+                                        <th>Publisher</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php
+                                    if ($booksResult && $booksResult->num_rows > 0) {
+                                        while ($book = $booksResult->fetch_assoc()) {
+                                            echo "<tr>
+                                                <td>{$book['id']}</td>
+                                                <td>{$book['title']}</td>
+                                                <td>{$book['author_name']}</td>
+                                                <td>{$book['publisher_name']}</td>
+                                                <td>
+                                                    <form method='POST' action='shortcut_books.php'>
+                                                        <input type='hidden' name='book_title' value='" . htmlspecialchars($book['title'], ENT_QUOTES) . "'>
+                                                        <button type='submit' name='copy_title' class='btn btn-info btn-sm'>
+                                                            <i class='fas fa-copy'></i> Copy Title
+                                                        </button>
+                                                    </form>
+                                                </td>
+                                            </tr>";
+                                        }
+                                    }
+                                    ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    // Initialize DataTable
+    $('#booksTable').DataTable({
+        "paging": true,
+        "ordering": true,
+        "info": true,
+        "searching": false,
+        "pageLength": 10
+    });
+    
+    <?php if (isset($_POST['copy_title'])): ?>
+    // If a title was copied, update the input field
+    $('#new_title').val('<?php echo addslashes($_SESSION['book_shortcut']['book_title']); ?>');
+    // Show alert
+    Swal.fire({
+        icon: 'success',
+        title: 'Title Copied',
+        text: 'The book title has been copied to the form.',
+        timer: 2000,
+        showConfirmButton: false
+    });
+    <?php endif; ?>
+});
+</script>
+
+<?php include 'inc/footer.php'; ?>

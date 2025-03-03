@@ -53,6 +53,14 @@ $result = $conn->query($query);
                 </div>
             </div>
             <div class="card-body">
+                <style>
+                    .table-responsive {
+                        overflow-x: auto;
+                    }
+                    .table td, .table th {
+                        white-space: nowrap;
+                    }
+                </style>
                 <div class="table-responsive">
                     <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                         <thead>
@@ -60,12 +68,12 @@ $result = $conn->query($query);
                                 <th style="width: 30px;">
                                     <input type="checkbox" id="selectAll" title="Select/Unselect All">
                                 </th>
-                                <th>Accession No.</th>
-                                <th>Book Title</th>
-                                <th>Borrower's Name</th>
-                                <th>Borrow Date</th>
-                                <th>Due Date</th>
-                                <th>Status</th>
+                                <th class="text-center">Accession No.</th>
+                                <th class="text-center">Book Title</th>
+                                <th class="text-center">Borrower's Name</th>
+                                <th class="text-center">Borrow Date</th>
+                                <th class="text-center">Due Date</th>
+                                <th class="text-center">Status</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -78,12 +86,12 @@ $result = $conn->query($query);
                                                data-borrow-id="<?php echo $row['borrow_id']; ?>"
                                                data-current-due-date="<?php echo $row['due_date']; ?>">
                                     </td>
-                                    <td><?php echo $row['accession']; ?></td>
+                                    <td class="text-center"><?php echo $row['accession']; ?></td>
                                     <td><?php echo $row['title']; ?></td>
                                     <td><?php echo $row['borrower']; ?></td>
-                                    <td><?php echo date('M d, Y', strtotime($row['issue_date'])); ?></td>
-                                    <td><?php echo date('M d, Y', strtotime($row['due_date'])); ?></td>
-                                    <td>
+                                    <td class="text-center"><?php echo date('M d, Y', strtotime($row['issue_date'])); ?></td>
+                                    <td class="text-center"><?php echo date('M d, Y', strtotime($row['due_date'])); ?></td>
+                                    <td class="text-center">
                                         <?php
                                         $status = htmlspecialchars($row['status']);
                                         $statusClass = '';
@@ -164,7 +172,7 @@ $result = $conn->query($query);
             "pagingType": "simple_numbers",
             "pageLength": 10,
             "lengthMenu": [[10, 25, 50, 100, 500], [10, 25, 50, 100, 500]],
-            "responsive": true,
+            "responsive": false,
             "scrollY": "60vh",
             "scrollCollapse": true,
             "fixedHeader": true,

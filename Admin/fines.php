@@ -31,6 +31,15 @@ $query = "SELECT f.id, f.type, f.amount, f.status, f.date, f.payment_date,
 $result = $conn->query($query);
 ?>
 
+<style>
+    .table-responsive {
+        overflow-x: auto;
+    }
+    .table td, .table th {
+        white-space: nowrap;
+    }
+</style>
+
 <!-- Main Content -->
 <div id="content" class="d-flex flex-column min-vh-100">
     <div class="container-fluid px-4">
@@ -134,7 +143,7 @@ $(document).ready(function() {
         "pagingType": "simple_numbers",
         "pageLength": 25,
         "lengthMenu": [[10, 25, 50, 100, 500], [10, 25, 50, 100, 500]],
-        "responsive": true,
+        "responsive": false,
         "scrollY": "60vh",
         "scrollCollapse": true,
         "fixedHeader": true,

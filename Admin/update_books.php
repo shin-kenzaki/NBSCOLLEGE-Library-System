@@ -60,6 +60,7 @@ if (isset($_POST['submit'])) {
         $supplementary_contents = $_POST['supplementary_contents'] ?? array();
         $entered_by = $_POST['entered_by'] ?? array();
         $date_added = $_POST['date_added'] ?? array();
+        $statuses = $_POST['statuses'] ?? array();
 
         // Common data for all copies
         $title = mysqli_real_escape_string($conn, $_POST['title'] ?? '');
@@ -109,6 +110,7 @@ if (isset($_POST['submit'])) {
             $shelf_location = isset($shelf_locations[$index]) ? mysqli_real_escape_string($conn, $shelf_locations[$index]) : '';
             $call_number = isset($call_numbers[$index]) ? mysqli_real_escape_string($conn, $call_numbers[$index]) : '';
             $accession = isset($accessions[$index]) ? mysqli_real_escape_string($conn, $accessions[$index]) : '';
+            $status = isset($statuses[$index]) ? mysqli_real_escape_string($conn, $statuses[$index]) : '';
             
             // Use original data for entered_by and date_added
             $entered_by_value = $original_data['entered_by'];
@@ -183,7 +185,7 @@ if (isset($_POST['submit'])) {
                 $shelf_location,
                 $entered_by_value,    // Use preserved value for this specific copy
                 $date_added_value,    // Use preserved value for this specific copy
-                $status,
+                $status, // Use the status for this specific copy
                 $current_admin_id,
                 $update_date,
                 $accession,
@@ -340,6 +342,11 @@ $subject_options = array(
                 <!-- Hidden input for book IDs -->
                 <?php foreach ($books as $book): ?>
                     <input type="hidden" name="book_ids[]" value="<?php echo $book['id']; ?>">
+                <?php endforeach; ?>
+
+                <!-- Hidden input for statuses -->
+                <?php foreach ($books as $book): ?>
+                    <input type="hidden" name="statuses[]" value="<?php echo htmlspecialchars($book['status']); ?>">
                 <?php endforeach; ?>
 
                 <!-- Tab Navigation -->

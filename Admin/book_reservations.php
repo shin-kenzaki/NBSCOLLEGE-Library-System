@@ -86,14 +86,14 @@ $result = $conn->query($query);
                     <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
-                                <th style="width: 30px;">
+                                <th class="text-center" style="width: 30px;">
                                     <input type="checkbox" id="selectAll" title="Select/Unselect All">
                                 </th>
-                                <th>User</th>
-                                <th>Book</th>
-                                <th>Accession No.</th>
-                                <th>Reserve Date</th>
-                                <th>Status</th>
+                                <th class="text-center">User</th>
+                                <th class="text-center">Book</th>
+                                <th class="text-center">Accession No.</th>
+                                <th class="text-center">Reserve Date</th>
+                                <th class="text-center">Status</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -105,8 +105,8 @@ $result = $conn->query($query);
                                     <td><input type="checkbox" class="reservation-checkbox" data-id="<?php echo $row["reservation_id"]; ?>"></td>
                                     <td><?php echo $row["user_name"]; ?></td>
                                     <td><?php echo $row["book_title"]; ?></td>
-                                    <td><?php echo $row["accession"]; ?></td>
-                                    <td><?php echo $row["reserve_date"]; ?></td>
+                                    <td class="text-center"><?php echo $row["accession"]; ?></td>
+                                    <td class="text-center"><?php echo $row["reserve_date"]; ?></td>
                                     <?php
                                     $status = $row["status"];
                                     $statusClass = match($status) {
@@ -117,7 +117,7 @@ $result = $conn->query($query);
                                         default => 'text-secondary'
                                     };
                                     ?>
-                                    <td><span class='font-weight-bold <?php echo $statusClass; ?>'><?php echo $status; ?></span></td>
+                                    <td class="text-center"><span class='font-weight-bold <?php echo $statusClass; ?>'><?php echo $status; ?></span></td>
                                 </tr>
                             <?php 
                                 endwhile;
@@ -154,6 +154,18 @@ $result = $conn->query($query);
 <link href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bootstrap-4/bootstrap-4.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
+<style>
+    .table-responsive {
+        overflow-x: auto;
+    }
+    .table td, .table th {
+        white-space: nowrap;
+    }
+    .table th, .table td.text-center {
+        text-align: center;
+    }
+</style>
+
 <script>
     $(document).ready(function() {
         const table = $('#dataTable').DataTable({
@@ -163,7 +175,7 @@ $result = $conn->query($query);
             "pagingType": "simple_numbers",
             "pageLength": 10,
             "lengthMenu": [[10, 25, 50, 100, 500], [10, 25, 50, 100, 500]],
-            "responsive": true,
+            "responsive": false,
             "scrollY": "60vh",
             "scrollCollapse": true,
             "fixedHeader": true,

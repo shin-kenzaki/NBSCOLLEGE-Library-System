@@ -25,6 +25,15 @@ $query = "SELECT
 $result = $conn->query($query);
 ?>
 
+<style>
+    .table-responsive {
+        overflow-x: auto;
+    }
+    .table td, .table th {
+        white-space: nowrap;
+    }
+</style>
+
 <!-- Main Content -->
 <div id="content" class="d-flex flex-column min-vh-100">
     <div class="container-fluid px-4">
@@ -40,13 +49,13 @@ $result = $conn->query($query);
                     <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
-                                <th>Book Title</th>
-                                <th>Accession No.</th>
-                                <th>Borrower</th>
-                                <th>Borrow Date</th>
-                                <th>Report Date</th>
-                                <th>Replaced Date</th>
-                                <th>Status</th>
+                                <th class="text-center">Book Title</th>
+                                <th class="text-center">Accession No.</th>
+                                <th class="text-center">Borrower</th>
+                                <th class="text-center">Borrow Date</th>
+                                <th class="text-center">Report Date</th>
+                                <th class="text-center">Replaced Date</th>
+                                <th class="text-center">Status</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -54,12 +63,20 @@ $result = $conn->query($query);
                             <tr data-borrow-id="<?php echo $row['borrow_id']; ?>" 
                                 data-book-title="<?php echo htmlspecialchars($row['book_title']); ?>">
                                 <td><?php echo htmlspecialchars($row['book_title']); ?></td>
-                                <td><?php echo htmlspecialchars($row['accession']); ?></td>
+                                <td class="text-center"><?php echo htmlspecialchars($row['accession']); ?></td>
                                 <td><?php echo htmlspecialchars($row['borrower_name']); ?></td>
-                                <td><?php echo date('Y-m-d', strtotime($row['issue_date'])); ?></td>
-                                <td><?php echo date('Y-m-d', strtotime($row['report_date'])); ?></td>
-                                <td><?php echo $row['replacement_date'] ? date('Y-m-d', strtotime($row['replacement_date'])) : '-'; ?></td>
-                                <td><?php echo $row['replacement_date'] ? 'Replaced' : 'Pending Replacement'; ?></td>
+                                <td class="text-center"><?php echo date('Y-m-d', strtotime($row['issue_date'])); ?></td>
+                                <td class="text-center"><?php echo date('Y-m-d', strtotime($row['report_date'])); ?></td>
+                                <td class="text-center"><?php echo $row['replacement_date'] ? date('Y-m-d', strtotime($row['replacement_date'])) : '-'; ?></td>
+                                <td class="text-center">
+                                    <?php 
+                                        if ($row['replacement_date']) {
+                                            echo '<span class="badge badge-success">Replaced</span>';
+                                        } else {
+                                            echo '<span class="badge badge-warning">Pending Replacement</span>';
+                                        }
+                                    ?>
+                                </td>
                             </tr>
                             <?php endwhile; ?>
                         </tbody>
@@ -92,7 +109,7 @@ $(document).ready(function() {
         "pagingType": "simple_numbers",
         "pageLength": 10,
         "lengthMenu": [[10, 25, 50, 100, 500], [10, 25, 50, 100, 500]],
-        "responsive": true,
+        "responsive": false,
         "scrollY": "60vh",
         "scrollCollapse": true,
         "fixedHeader": true,

@@ -32,6 +32,15 @@ $query = "SELECT
 $result = $conn->query($query);
 ?>
 
+<style>
+    .table-responsive {
+        overflow-x: auto;
+    }
+    .table td, .table th {
+        white-space: nowrap;
+    }
+</style>
+
 <!-- Main Content -->
 <div id="content" class="d-flex flex-column min-vh-100">
     <div class="container-fluid px-4">
@@ -66,20 +75,20 @@ $result = $conn->query($query);
                                 <td><?php echo htmlspecialchars($row['book_title']); ?></td>
                                 <td class="text-center"><?php echo htmlspecialchars($row['accession']); ?></td>
                                 <td><?php echo htmlspecialchars($row['borrower_name']); ?></td>
-                                <td class="text-center"><?php echo date('Y-m-d', strtotime($row['issue_date'])); ?></td>
-                                <td class="text-center"><?php echo date('Y-m-d', strtotime($row['due_date'])); ?></td>
-                                <td><?php echo $row['issued_by_name']; ?></td>
-                                <td><?php echo $row['recieved_by_name'] ?? '-'; ?></td>
+                                <td class="text-center"><?php echo date('M d, Y', strtotime($row['issue_date'])); ?></td>
+                                <td class="text-center"><?php echo date('M d, Y', strtotime($row['due_date'])); ?></td>
+                                <td class="text-center"><?php echo $row['issued_by_name']; ?></td>
+                                <td class="text-center"><?php echo $row['recieved_by_name'] ?? '-'; ?></td>
                                 <td class="text-center"><?php 
                                     if ($row['return_date']) {
-                                        echo date('Y-m-d', strtotime($row['return_date']));
+                                        echo date('M d, Y', strtotime($row['return_date']));
                                     } elseif ($row['report_date']) {
-                                        echo date('Y-m-d', strtotime($row['report_date']));
+                                        echo date('M d, Y', strtotime($row['report_date']));
                                     } else {
                                         echo 'N/A';
                                     }
                                 ?></td>
-                                <td class="text-center"><?php echo $row['replacement_date'] ? date('Y-m-d', strtotime($row['replacement_date'])) : '-'; ?></td>
+                                <td class="text-center"><?php echo $row['replacement_date'] ? date('M d, Y', strtotime($row['replacement_date'])) : '-'; ?></td>
                                 <td class="text-center"><?php 
                                     $status = '';
                                     $status_color = '';
@@ -122,11 +131,11 @@ $(document).ready(function() {
         "pagingType": "simple_numbers",
         "pageLength": 10,
         "lengthMenu": [[10, 25, 50, 100, 500], [10, 25, 50, 100, 500]],
-        "responsive": true,
+        "responsive": false,
         "scrollY": "60vh",
         "scrollCollapse": true,
         "fixedHeader": true,
-        "order": [[3, "desc"]], // Sort by borrow date by default
+        "order": [[3, "desc"]],
         "language": {
             "search": "_INPUT_",
             "searchPlaceholder": "Search..."

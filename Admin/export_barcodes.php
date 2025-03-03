@@ -46,21 +46,23 @@ $y = 10;
 $colCount = 0;
 
 foreach ($copies as $copy) {
+    // Add library label
+    $pdf->SetXY($x, $y);
+    $pdf->Cell($labelWidth - 10, 5, 'NBS COLLEGE LIBRARY', 0, 1, 'C');
+    
     // Generate barcode as SVG
-    $svgBarcode = $generator->getBarcode($copy['accession'], $generator::TYPE_CODE_128);
+    $svgBarcode = $generator->getBarcode($copy['accession'], $generator::TYPE_CODE_39_CHECKSUM, 1, 30);
     
     // Create temporary file for SVG
     $tmpfile = tempnam(sys_get_temp_dir(), 'barcode');
     file_put_contents($tmpfile, $svgBarcode);
     
     // Add barcode image
-    $pdf->ImageSVG($tmpfile, $x, $y, $labelWidth - 10, 15);
+    $pdf->ImageSVG($tmpfile, $x, $y + 5, $labelWidth - 10, 15);
     
     // Add text under barcode
-    $pdf->SetXY($x, $y + 15);
-    $pdf->Cell($labelWidth - 10, 5, $copy['accession'], 0, 1, 'C');
     $pdf->SetXY($x, $y + 20);
-    $pdf->Cell($labelWidth - 10, 5, $copy['call_number'], 0, 1, 'C');
+    $pdf->Cell($labelWidth - 10, 5, $copy['accession'] . ' - ' . $copy['call_number'], 0, 1, 'C');
     
     // Delete temporary file
     unlink($tmpfile);
