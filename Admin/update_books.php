@@ -98,25 +98,27 @@ if (isset($_POST['submit'])) {
 
         // Update each book copy
         foreach ($bookIds as $index => $bookId) {
-            // Get original entered_by and date_added for this specific copy
-            $original_data_query = "SELECT entered_by, date_added FROM books WHERE id = ?";
+            // Get original entered_by, date_added, and status for this specific copy
+            $original_data_query = "SELECT entered_by, date_added, status FROM books WHERE id = ?";
             $stmt = $conn->prepare($original_data_query);
             $stmt->bind_param("i", $bookId);
             $stmt->execute();
             $original_data = $stmt->get_result()->fetch_assoc();
             $stmt->close();
             
+            // Preserve original status
+            $preserved_status = $original_data['status'];
+            
             // Safe array access with proper checks for each array
             $shelf_location = isset($shelf_locations[$index]) ? mysqli_real_escape_string($conn, $shelf_locations[$index]) : '';
             $call_number = isset($call_numbers[$index]) ? mysqli_real_escape_string($conn, $call_numbers[$index]) : '';
             $accession = isset($accessions[$index]) ? mysqli_real_escape_string($conn, $accessions[$index]) : '';
-            $status = isset($statuses[$index]) ? mysqli_real_escape_string($conn, $statuses[$index]) : '';
+            // Removed: $status = isset($statuses[$index]) ? mysqli_real_escape_string($conn, $statuses[$index]) : '';
             
-            // Use original data for entered_by and date_added
             $entered_by_value = $original_data['entered_by'];
             $date_added_value = $original_data['date_added'];
             
-            // Get copy-specific values
+            // Copy-specific values
             $url = isset($_POST['url']) ? mysqli_real_escape_string($conn, $_POST['url']) : '';
             $content_type = isset($_POST['content_type']) ? mysqli_real_escape_string($conn, $_POST['content_type']) : 'Text';
             $media_type = isset($_POST['media_type']) ? mysqli_real_escape_string($conn, $_POST['media_type']) : 'Print';
@@ -185,7 +187,7 @@ if (isset($_POST['submit'])) {
                 $shelf_location,
                 $entered_by_value,    // Use preserved value for this specific copy
                 $date_added_value,    // Use preserved value for this specific copy
-                $status, // Use the status for this specific copy
+                $preserved_status, // using preserved status here
                 $current_admin_id,
                 $update_date,
                 $accession,
@@ -671,7 +673,7 @@ $subject_options = array(
                                 <h5>Book Copies</h5>
                                 <div id="bookCopiesContainer">
                                     <?php foreach ($books as $index => $book): ?>
-                                        <div class="row book-copy align-items-center mb-1">
+                                        <div class="row book-copy align-items-center mb-1" data-book-id="<?php echo $book['id']; ?>">
                                             <div class="col-md-4">
                                                 <div class="form-group">
                                                     <label>Copy Number</label>
@@ -685,26 +687,38 @@ $subject_options = array(
                                                 </div>
                                             </div>
                                             <div class="col-md-4">
-                                                <div class="form-group">
-                                                    <label>Shelf Location</label>
-                                                    <select class="form-control shelf-location" name="shelf_location[]">
-                                                        <option value="TR" <?php echo ($book['shelf_location'] == 'TR') ? 'selected' : ''; ?>>Teachers Reference</option>
-                                                        <option value="FIL" <?php echo ($book['shelf_location'] == 'FIL') ? 'selected' : ''; ?>>Filipiniana</option>
-                                                        <option value="CIR" <?php echo ($book['shelf_location'] == 'CIR') ? 'selected' : ''; ?>>Circulation</option>
-                                                        <option value="REF" <?php echo ($book['shelf_location'] == 'REF') ? 'selected' : ''; ?>>Reference</option>
-                                                        <option value="SC" <?php echo ($book['shelf_location'] == 'SC') ? 'selected' : ''; ?>>Special Collection</option>
-                                                        <option value="BIO" <?php echo ($book['shelf_location'] == 'BIO') ? 'selected' : ''; ?>>Biography</option>
-                                                        <option value="RES" <?php echo ($book['shelf_location'] == 'RES') ? 'selected' : ''; ?>>Reserve</option>
-                                                        <option value="FIC" <?php echo ($book['shelf_location'] == 'FIC') ? 'selected' : ''; ?>>Fiction</option>
-                                                    </select>
-                                                    <input type="hidden" name="call_numbers[]" value="<?php echo htmlspecialchars($book['call_number']); ?>">
-                                                    <div class="call-number-display small text-muted mt-1">
-                                                        <?php echo htmlspecialchars($book['call_number']); ?>
+                                                <div class="form-group d-flex align-items-center">
+                                                    <div>
+                                                        <label>Shelf Location</label>
+                                                        <select class="form-control shelf-location" name="shelf_location[]">
+                                                            <option value="TR" <?php echo ($book['shelf_location'] == 'TR') ? 'selected' : ''; ?>>Teachers Reference</option>
+                                                            <option value="FIL" <?php echo ($book['shelf_location'] == 'FIL') ? 'selected' : ''; ?>>Filipiniana</option>
+                                                            <option value="CIR" <?php echo ($book['shelf_location'] == 'CIR') ? 'selected' : ''; ?>>Circulation</option>
+                                                            <option value="REF" <?php echo ($book['shelf_location'] == 'REF') ? 'selected' : ''; ?>>Reference</option>
+                                                            <option value="SC" <?php echo ($book['shelf_location'] == 'SC') ? 'selected' : ''; ?>>Special Collection</option>
+                                                            <option value="BIO" <?php echo ($book['shelf_location'] == 'BIO') ? 'selected' : ''; ?>>Biography</option>
+                                                            <option value="RES" <?php echo ($book['shelf_location'] == 'RES') ? 'selected' : ''; ?>>Reserve</option>
+                                                            <option value="FIC" <?php echo ($book['shelf_location'] == 'FIC') ? 'selected' : ''; ?>>Fiction</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="d-flex flex-column align-items-center ms-2">
+                                                        <span class="small">Delete</span>
+                                                        <button type="button" class="btn btn-outline-danger btn-sm delete-copy" title="Delete this copy">
+                                                            <i class="fa fa-trash-alt"></i>
+                                                        </button>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
                                     <?php endforeach; ?>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="form-group">
+                                    <label>Call Number Preview</label>
+                                    <div class="call-number-display form-control-plaintext"></div>
                                 </div>
                             </div>
                         </div>
@@ -860,13 +874,13 @@ document.addEventListener("DOMContentLoaded", function() {
         firstTabTrigger.show();
     }
 
-    // Updated formatCallNumber function
+    // Updated formatCallNumber function to handle all copies
     function formatCallNumber() {
         const rawCallNumber = document.querySelector('input[name="raw_call_number"]').value.trim();
         const publishYear = document.querySelector('input[name="publish_date"]').value;
-        const copies = document.querySelectorAll('.book-copy');
+        const bookCopies = document.querySelectorAll('.book-copy');
         
-        copies.forEach((copy) => {
+        bookCopies.forEach((copy) => {
             const copyNumberInput = copy.querySelector('input[name="copy_number[]"]');
             const copyNum = copyNumberInput.value.replace(/^c/, '');
             const shelfLocation = copy.querySelector('select[name="shelf_location[]"]').value;
@@ -884,66 +898,57 @@ document.addEventListener("DOMContentLoaded", function() {
                 `c${copyNum}`      // Copy number
             ].filter(Boolean).join(' ');
             
-            // Update hidden input with complete call number
-            const callNumberField = copy.querySelector('input[name="call_numbers[]"]');
-            if (callNumberField) {
-                callNumberField.value = formattedCallNumber;
+            // Create or update hidden input for call number
+            let hiddenInput = copy.querySelector('input[name="call_numbers[]"]');
+            if (!hiddenInput) {
+                hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = 'call_numbers[]';
+                copy.appendChild(hiddenInput);
             }
-
-            // Display only classification and cutter in the display element
+            hiddenInput.value = formattedCallNumber;
+            
+            // Update display if it exists
             const displayElement = copy.querySelector('.call-number-display');
             if (displayElement) {
-                displayElement.textContent = rawCallNumber; // Only show classification and cutter
+                displayElement.textContent = formattedCallNumber;
             }
         });
     }
 
-    // Single, unified updateCopyNumbers function
-    function updateCopyNumbers() {
-        formatCallNumber(); // Just update the call numbers without changing copy numbers
-    }
+    // Set up event listeners for changes that should trigger call number updates
+    function setupCallNumberEventListeners() {
+        // Listen for raw call number changes
+        const rawCallNumberInput = document.querySelector('input[name="raw_call_number"]');
+        if (rawCallNumberInput) {
+            rawCallNumberInput.addEventListener('input', formatCallNumber);
+        }
 
-    // Set up event listeners once
-    function setupEventListeners() {
-        const rawCallNumber = document.querySelector('input[name="raw_call_number"]');
-        const publishYear = document.querySelector('input[name="publish_date"]');
-        const shelfLocations = document.querySelectorAll('select[name="shelf_location[]"]');
+        // Listen for publication year changes
+        const publishYearInput = document.querySelector('input[name="publish_date"]');
+        if (publishYearInput) {
+            publishYearInput.addEventListener('input', formatCallNumber);
+        }
 
-        if (rawCallNumber) rawCallNumber.addEventListener('input', formatCallNumber);
-        if (publishYear) publishYear.addEventListener('input', formatCallNumber);
+        // Listen for shelf location changes
+        const shelfLocations = document.querySelectorAll('.shelf-location');
         shelfLocations.forEach(select => {
-            select.addEventListener('change', formatCallNumber);
+            select.addEventListener('change', function() {
+                const newValue = this.value;
+                const copyIndex = Array.from(shelfLocations).indexOf(this);
+                
+                // Update all subsequent copies to match the changed shelf location
+                for (let i = copyIndex; i < shelfLocations.length; i++) {
+                    shelfLocations[i].value = newValue;
+                }
+                formatCallNumber();
+            });
         });
     }
 
-    // Initialize on page load
-    setupEventListeners();
-    updateCopyNumbers();
-
-    // Replace the existing shelf location event listeners with this new implementation
-    const shelfLocationSelects = document.querySelectorAll('select[name="shelf_location[]"]');
-    shelfLocationSelects.forEach((select, index) => {
-        select.addEventListener('change', function() {
-            const newValue = this.value;
-            const totalSelects = shelfLocationSelects.length;
-
-            // If changing the first copy, update all subsequent copies
-            if (index === 0) {
-                for (let i = 1; i < totalSelects; i++) {
-                    shelfLocationSelects[i].value = newValue;
-                }
-            } else {
-                // For any other copy, only update copies that come after it
-                for (let i = index + 1; i < totalSelects; i++) {
-                    shelfLocationSelects[i].value = newValue;
-                }
-                // Copies before this one remain unchanged
-            }
-
-            // Trigger call number update after changing shelf locations
-            formatCallNumber();
-        });
-    });
+    // Initialize call number functionality
+    setupCallNumberEventListeners();
+    formatCallNumber();
 });
 
 // Add accession number validation
@@ -1003,5 +1008,35 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     // ...rest of your existing script...
+});
+
+// Add deletion functionality for Book Copies
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.delete-copy').forEach(function(button) {
+        button.addEventListener('click', function() {
+            const bookCopyRow = this.closest('.book-copy');
+            const bookId = bookCopyRow.getAttribute('data-book-id');
+            if (confirm('Are you sure you want to delete this copy?')) {
+                // Send AJAX POST request to delete the copy from the database
+                fetch('delete_copy.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ bookId: bookId })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        bookCopyRow.remove(); // Remove row from UI upon successful deletion
+                    } else {
+                        alert('Error deleting the copy: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Deletion error:', error);
+                    alert('An error occurred while deleting the copy.');
+                });
+            }
+        });
+    });
 });
 </script>

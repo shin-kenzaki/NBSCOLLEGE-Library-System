@@ -10,6 +10,72 @@ if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Lib
 include '../db.php'; // Database connection
 include 'lcc_generator.php'; // Add this line
 
+// Handle Add Copies via modal submission
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['num_copies']) && isset($_POST['modal_action']) && $_POST['modal_action'] === 'add_copies') {
+    $title = $_POST['title'];
+    // Fetch first copy to duplicate details
+    $stmt = $conn->prepare("SELECT * FROM books WHERE title = ? ORDER BY copy_number ASC LIMIT 1");
+    $stmt->bind_param("s", $title);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows == 0) {
+        die("Book not found.");
+    }
+    $firstCopy = $result->fetch_assoc();
+    // Get current max copy number and accession for this title
+    $stmt = $conn->prepare("SELECT MAX(copy_number) as max_copy, MAX(accession) as max_accession FROM books WHERE title = ?");
+    $stmt->bind_param("s", $title);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $maxInfo = $result->fetch_assoc();
+    $currentCopy = $maxInfo['max_copy'];
+    $currentAccession = $maxInfo['max_accession'];
+    
+    $numCopiesToAdd = intval($_POST['num_copies']);
+    $successCount = 0;
+    for ($i = 1; $i <= $numCopiesToAdd; $i++) {
+        $newCopyNumber = $currentCopy + $i;
+        $newAccession = $currentAccession + $i;
+        $query = "INSERT INTO books (
+            accession, title, preferred_title, parallel_title, subject_category,
+            subject_detail, summary, contents, front_image, back_image,
+            dimension, series, volume, edition, copy_number, total_pages,
+            supplementary_contents, ISBN, content_type, media_type, carrier_type,
+            call_number, URL, language, shelf_location, entered_by, date_added,
+            status, last_update
+        ) SELECT 
+            ?, title, preferred_title, parallel_title, subject_category,
+            subject_detail, summary, contents, front_image, back_image,
+            dimension, series, volume, edition, ?,
+            total_pages, supplementary_contents, ISBN, content_type, media_type, carrier_type,
+            call_number, URL, language, shelf_location, entered_by, date_added,
+            status, last_update
+         FROM books WHERE id = ?";
+        $stmt = $conn->prepare($query);
+        $stmt->bind_param("iii", $newAccession, $newCopyNumber, $firstCopy['id']);
+        if ($stmt->execute()) {
+            $newBookId = $conn->insert_id;
+            $successCount++;
+            // Duplicate publication
+            $pubQuery = "INSERT INTO publications (book_id, publisher_id, publish_date)
+                         SELECT ?, publisher_id, publish_date FROM publications WHERE book_id = ?";
+            $pubStmt = $conn->prepare($pubQuery);
+            $pubStmt->bind_param("ii", $newBookId, $firstCopy['id']);
+            $pubStmt->execute();
+            // Duplicate contributors
+            $contribQuery = "INSERT INTO contributors (book_id, writer_id, role)
+                             SELECT ?, writer_id, role FROM contributors WHERE book_id = ?";
+            $contribStmt = $conn->prepare($contribQuery);
+            $contribStmt->bind_param("ii", $newBookId, $firstCopy['id']);
+            $contribStmt->execute();
+        }
+    }
+    $_SESSION['success_message'] = "Successfully added {$successCount} new copies!";
+    // Optionally refresh page or redirect back to opac.php (keeping the same book details)
+    header("Location: opac.php?book_id=" . $firstCopy['id']);
+    exit();
+}
+
 // Add this function near the top of the file after database connection
 function parseDimension($dimension) {
     $dimensions = ['height' => '', 'width' => ''];
@@ -241,6 +307,11 @@ if ($bookId > 0) {
             margin-top: 1em;
             font-weight: bold;
         }
+        /* Add style rule to center all table columns */
+        table.table th,
+        table.table td {
+            text-align: center;
+        }
     </style>
     <!-- Add Bootstrap CSS and JS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -281,7 +352,7 @@ if ($bookId > 0) {
                     <a href="update_books.php?title=<?php echo urlencode($book['title']); ?>&id_range=<?php echo $book['id']; ?>" class="btn btn-primary">
                         <i class="fas fa-edit"></i> Update Books
                     </a>
-                    <a href="add_copies.php?title=<?php echo urlencode($book['title']); ?>" class="btn btn-success">
+                    <a href="javascript:void(0);" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addCopiesModal">
                         <i class="fas fa-plus"></i> Add Copies
                     </a>
                 </div>
@@ -882,6 +953,33 @@ if ($bookId > 0) {
         </div>
     </div>
     <!-- End of Main Content -->
+
+    <!-- Add the modal for 'Add Copies' -->
+    <div class="modal fade" id="addCopiesModal" tabindex="-1" aria-labelledby="addCopiesModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <form method="POST" action="opac.php?book_id=<?php echo urlencode($bookId); ?>">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="addCopiesModalLabel">Enter Number of Copies</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" name="modal_action" value="add_copies">
+                <input type="hidden" name="title" value="<?php echo htmlspecialchars($book['title']); ?>">
+                <div class="mb-3">
+                    <label for="num_copies" class="form-label">How many copies to add?</label>
+                    <input type="number" class="form-control" id="num_copies" name="num_copies" min="1" required>
+                </div>
+                <p class="small text-muted">New copies will duplicate the first copy’s information, including contributors and publication details.</p>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-primary">Add Copies</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
 
     <!-- Footer -->
     <?php include '../Admin/inc/footer.php' ?>

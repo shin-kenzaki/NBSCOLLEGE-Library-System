@@ -199,6 +199,22 @@ if (!empty($bookTitle)) {
                 margin-bottom: 60px;
             }
         }
+        /* Add style rule to center all table columns */
+        table.table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table.table thead {
+            background-color: #f8f9fa;
+        }
+        table.table th, table.table td {
+            border: 1px solid #e9ecef;
+            padding: 8px;
+        }
+        table.table th,
+        table.table td {
+            text-align: center;
+        }
     </style>
     <!-- Add Bootstrap CSS and JS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -304,7 +320,7 @@ if (!empty($bookTitle)) {
                                 <p><strong>Publication Details:</strong> 
                                     <?php
                                     $pub = $publications[0];
-                                    echo htmlspecialchars($pub['place'] . ' ' . $pub['publisher'] . ', ' . $pub['publish_date']);
+                                    echo htmlspecialchars($pub['place'] . '. ' . $pub['publisher'] . ', ' . $pub['publish_date']);
                                     ?>
                                 </p>
                             <?php endif; ?>

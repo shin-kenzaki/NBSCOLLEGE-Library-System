@@ -259,6 +259,36 @@ $result = $stmt->get_result();
         }
     }
 </style>
+    <style>
+    /* ...existing styles... */
+    /* Center align specified columns:
+       1: Check box,
+       2: ID Range,
+       4: Accession Range,
+       5: Call Number Range,
+       6: Copy Number Range,
+       7: Shelf Locations,
+       8: ISBN,
+       9: Total Copies */
+    #dataTable th:nth-child(1),
+    #dataTable th:nth-child(2),
+    #dataTable th:nth-child(4),
+    #dataTable th:nth-child(5),
+    #dataTable th:nth-child(6),
+    #dataTable th:nth-child(7),
+    #dataTable th:nth-child(8),
+    #dataTable th:nth-child(9),
+    #dataTable td:nth-child(1),
+    #dataTable td:nth-child(2),
+    #dataTable td:nth-child(4),
+    #dataTable td:nth-child(5),
+    #dataTable td:nth-child(6),
+    #dataTable td:nth-child(7),
+    #dataTable td:nth-child(8),
+    #dataTable td:nth-child(9) {
+        text-align: center;
+    }
+</style>
 </head>
 <body>
     <?php include '../admin/inc/header.php'; ?>
@@ -281,15 +311,15 @@ $result = $stmt->get_result();
                         <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
     <thead>
         <tr>
-            <th><input type="checkbox" id="selectAll"></th>
-            <th>ID Range</th>
-            <th>Title</th>
-            <th>Accession Range</th>
-            <th>Call Number Range</th>
-            <th>Copy Number Range</th>
-            <th>Shelf Locations</th>
-            <th>ISBN</th>
-            <th>Total Copies</th>
+            <th style="text-align: center"><input type="checkbox" id="selectAll"></th>
+            <th style="text-align: center">ID Range</th>
+            <th style="text-align: center">Title</th>
+            <th style="text-align: center">Accession Range</th>
+            <th style="text-align: center">Call Number Range</th>
+            <th style="text-align: center">Copy Number Range</th>
+            <th style="text-align: center">Shelf Locations</th>
+            <th style="text-align: center">ISBN</th>
+            <th style="text-align: center">Total Copies</th>
         </tr>
     </thead>
     <tbody>
@@ -521,25 +551,10 @@ $result = $stmt->get_result();
                     },
                     success: function(response) {
                         $('#dataTable tbody').html(response);
-                        restoreSelectedState(); // Restore the selected state after search results are loaded
+                        restoreSelectedState(); 
                     }
                 });
             }
-
-            // Function to toggle the visibility of the add contributors icons
-            function toggleAddContributorsIcons() {
-                // if ($('.selectRow:checked').length > 0) {
-                //     $('#addContributorsIcons').removeClass('d-none');
-                // } else {
-                //     $('#addContributorsIcons').addClass('d-none');
-                // }
-            }
-
-            // Remove the addContributorsIcons toggle function and related code
-            
-            // Remove the addContributorsPerson click handler
-            
-            // Remove the addPublisher click handler
 
             // Handle batch delete
             $('#batchDelete').click(function() {
