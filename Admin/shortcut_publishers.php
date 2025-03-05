@@ -245,7 +245,7 @@ $(document).ready(function() {
         $('#selectPublisherForm').submit();
     });
 
-    // Remove the auto-save handler for year input fields
+    // Remove the handler to automatically save when year is changed
     // $('input[name^="publish_year"]').change(function() {
     //     if ($('input[name="publisher_id"]:checked').length) {
     //         $('#saveSelections').click();
