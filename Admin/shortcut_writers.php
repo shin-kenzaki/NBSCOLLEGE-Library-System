@@ -105,12 +105,18 @@ if (isset($_POST['select_writers'])) {
         
         $_SESSION['book_shortcut']['steps_completed']['writer'] = true;
         
-        echo "<script>alert('Writers selected successfully'); window.location.href='add_book_shortcut.php';</script>";
+        // Move to the next step automatically
+        $_SESSION['book_shortcut']['current_step'] = 2;
+        
+        echo "<script>
+            alert('Writers selected successfully'); 
+            window.location.href='add_book_shortcut.php';
+        </script>";
         exit;
     }
 }
 
-// Get the search query if it exists
+// Get the search query if it exists - we'll keep this for URL parameters
 $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
 ?>
 
@@ -138,15 +144,15 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
                     <p><strong>Instructions:</strong> Select writers for your book. Use the checkboxes to select writers and choose their roles from the dropdown. The first writer you select will be considered the main author.</p>
                 </div>
 
-                <!-- Search Form -->
-                <form method="GET" action="shortcut_writers.php" id="searchForm">
+                <!-- Replace the search form with a simple input field -->
+                <div class="form-group">
                     <div class="input-group mb-3">
-                        <input type="text" name="search" class="form-control" placeholder="Search writers..." value="<?php echo htmlspecialchars($searchQuery); ?>">
-                        <div class="input-group-append">
-                            <button class="btn btn-primary" type="submit">Search</button>
+                        <div class="input-group-prepend">
+                            <span class="input-group-text"><i class="fas fa-search"></i></span>
                         </div>
+                        <input type="text" id="writerSearch" class="form-control" placeholder="Search writers..." value="<?php echo htmlspecialchars($searchQuery); ?>">
                     </div>
-                </form>
+                </div>
 
                 <form id="writersSelectionForm" method="POST">
                     <!-- Writers Table -->
@@ -164,12 +170,8 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
                             </thead>
                             <tbody>
                                 <?php
-                                // Fetch writers from database
-                                $writersQuery = "SELECT * FROM writers";
-                                if (!empty($searchQuery)) {
-                                    $searchQuery = $conn->real_escape_string($searchQuery);
-                                    $writersQuery .= " WHERE firstname LIKE '%$searchQuery%' OR middle_init LIKE '%$searchQuery%' OR lastname LIKE '%$searchQuery%'";
-                                }
+                                // Fetch ALL writers from database - client-side search will filter
+                                $writersQuery = "SELECT * FROM writers ORDER BY lastname, firstname";
                                 $writersResult = $conn->query($writersQuery);
 
                                 if ($writersResult->num_rows > 0) {
@@ -241,17 +243,30 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
 
 <script>
 $(document).ready(function() {
-    // Initialize DataTable
-    $('#writersTable').DataTable({
+    // Initialize DataTable with search enabled
+    var writersTable = $('#writersTable').DataTable({
         "paging": true,
         "ordering": true,
         "info": true,
-        "searching": false,
+        "searching": true, // Enable searching
         "pageLength": 10,
         "columnDefs": [
             { "orderable": false, "targets": [0, 5] } // Disable sorting on checkbox and role columns
-        ]
+        ],
+        // Hide the default search box
+        "dom": "<'row'<'col-sm-12'tr>>" +
+               "<'row'<'col-sm-5'i><'col-sm-7'p>>"
     });
+    
+    // Link our custom search box to DataTables search
+    $('#writerSearch').on('keyup', function() {
+        writersTable.search(this.value).draw();
+    });
+    
+    // Set initial search value if provided
+    if ($('#writerSearch').val()) {
+        writersTable.search($('#writerSearch').val()).draw();
+    }
     
     // Select/Deselect all writers
     $('#selectAll').change(function() {

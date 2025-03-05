@@ -43,13 +43,13 @@ if (isset($_POST['proceed_to_add'])) {
     }
 }
 
-// Get the search query if it exists
+// Get the search query if it exists - keep for URL parameter compatibility
 $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
 
 // Only include header AFTER all potential redirects
 include 'inc/header.php';
 
-// Fetch books from database for the table
+// Fetch ALL books from database for the table - we'll filter client-side
 $booksQuery = "SELECT 
     b.id, 
     b.title, 
@@ -59,14 +59,9 @@ $booksQuery = "SELECT
     LEFT JOIN contributors c ON b.id = c.book_id AND c.role = 'Author'
     LEFT JOIN writers w ON c.writer_id = w.id
     LEFT JOIN publications pub ON b.id = pub.book_id
-    LEFT JOIN publishers p ON pub.publisher_id = p.id";
-
-if (!empty($searchQuery)) {
-    $searchQuery = $conn->real_escape_string($searchQuery);
-    $booksQuery .= " WHERE b.title LIKE '%$searchQuery%' OR w.firstname LIKE '%$searchQuery%' OR w.lastname LIKE '%$searchQuery%'";
-}
-
-$booksQuery .= " GROUP BY b.id ORDER BY b.title LIMIT 50";
+    LEFT JOIN publishers p ON pub.publisher_id = p.id
+    GROUP BY b.id ORDER BY b.title";
+    
 $booksResult = $conn->query($booksQuery);
 ?>
 
@@ -111,27 +106,27 @@ $booksResult = $conn->query($booksQuery);
                     <div class="card-header">
                         <h6 class="m-0 font-weight-bold">Check Existing Books</h6>
                     </div>
-                    <div class="card-body">
-                        <!-- Search Form -->
-                        <form method="GET" action="shortcut_books.php" id="searchForm">
-                            <div class="input-group mb-3">
-                                <input type="text" name="search" class="form-control" placeholder="Search for existing books..." value="<?php echo htmlspecialchars($searchQuery); ?>">
-                                <div class="input-group-append">
-                                    <button class="btn btn-primary" type="submit">Search</button>
+                    <div class="card-body px-0"> <!-- Remove padding for full-width scroll -->
+                        <!-- Replace search form with real-time search input -->
+                        <div class="form-group px-3 mb-3">
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text"><i class="fas fa-search"></i></span>
                                 </div>
+                                <input type="text" id="bookSearch" class="form-control" placeholder="Search for existing books..." value="<?php echo htmlspecialchars($searchQuery); ?>">
                             </div>
-                        </form>
+                        </div>
 
                         <!-- Books Table -->
-                        <div class="table-responsive">
+                        <div class="table-responsive px-3"> <!-- Add padding inside scroll container -->
                             <table class="table table-bordered" id="booksTable" width="100%" cellspacing="0">
                                 <thead>
                                     <tr>
-                                        <th>ID</th>
-                                        <th>Title</th>
-                                        <th>Author</th>
-                                        <th>Publisher</th>
-                                        <th>Action</th>
+                                        <th style="text-align: center">ID</th>
+                                        <th style="text-align: center">Title</th>
+                                        <th style="text-align: center">Author</th>
+                                        <th style="text-align: center">Publisher</th>
+                                        <th style="text-align: center">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -139,11 +134,11 @@ $booksResult = $conn->query($booksQuery);
                                     if ($booksResult && $booksResult->num_rows > 0) {
                                         while ($book = $booksResult->fetch_assoc()) {
                                             echo "<tr>
-                                                <td>{$book['id']}</td>
+                                                <td style=\"text-align: center\">{$book['id']}</td>
                                                 <td>{$book['title']}</td>
                                                 <td>{$book['author_name']}</td>
                                                 <td>{$book['publisher_name']}</td>
-                                                <td>
+                                                <td style=\"text-align: center\">
                                                     <form method='POST' action='shortcut_books.php'>
                                                         <input type='hidden' name='book_title' value='" . htmlspecialchars($book['title'], ENT_QUOTES) . "'>
                                                         <button type='submit' name='copy_title' class='btn btn-info btn-sm'>
@@ -165,16 +160,74 @@ $booksResult = $conn->query($booksQuery);
     </div>
 </div>
 
+<style>
+/* Add DataTables styling similar to book_list.php */
+#booksTable th,
+#booksTable td {
+    min-width: 100px; 
+    white-space: nowrap;
+}
+
+/* Make the title column wider */
+#booksTable th:nth-child(2),
+#booksTable td:nth-child(2) {
+    min-width: 250px;
+}
+
+/* Author column */
+#booksTable th:nth-child(3),
+#booksTable td:nth-child(3) {
+    min-width: 180px;
+}
+
+/* Publisher column */
+#booksTable th:nth-child(4),
+#booksTable td:nth-child(4) {
+    min-width: 180px;
+}
+
+/* Make sure the table stretches full width */
+#booksTable {
+    width: 100% !important;
+}
+
+/* Add responsive table handling */
+.table-responsive {
+    width: 100%;
+    margin-bottom: 1rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+</style>
+
 <script>
 $(document).ready(function() {
-    // Initialize DataTable
-    $('#booksTable').DataTable({
-        "paging": true,
-        "ordering": true,
-        "info": true,
-        "searching": false,
-        "pageLength": 10
+    // Initialize DataTable with search enabled
+    var booksTable = $('#booksTable').DataTable({
+        "dom": "<'row mb-3'<'col-sm-12'tr>>" +
+               "<'row mt-3'<'col-sm-5'i><'col-sm-7'p>>",
+        "pageLength": 10,
+        "lengthMenu": [[10, 25, 50, 100], [10, 25, 50, 100]],
+        "responsive": false, // Disable DataTables responsive handling
+        "scrollX": true,     // Enable horizontal scrolling
+        "order": [[1, "asc"]], // Sort by title by default
+        "columnDefs": [
+            { "orderable": true, "targets": [0, 1, 2, 3] },
+            { "orderable": false, "targets": 4 } // Action column not sortable
+        ],
+        "searching": true,  // Enable client-side searching
+        "info": true
     });
+    
+    // Link our custom search box to DataTables search
+    $('#bookSearch').on('keyup', function() {
+        booksTable.search(this.value).draw();
+    });
+    
+    // Set initial search value if provided
+    if ($('#bookSearch').val()) {
+        booksTable.search($('#bookSearch').val()).draw();
+    }
     
     <?php if (isset($_POST['copy_title'])): ?>
     // If a title was copied, update the input field

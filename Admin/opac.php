@@ -407,7 +407,7 @@ if ($bookId > 0) {
                                 <p><strong>Volume:</strong> <?php echo htmlspecialchars($book['volume']); ?></p>
                                 <p><strong>Edition:</strong> <?php echo htmlspecialchars($book['edition']); ?></p>
                                 <p><strong>Language:</strong> <?php echo htmlspecialchars($book['language']); ?></p>
-                                <p><strong>Physical Description:</strong> <?php echo htmlspecialchars($book['total_pages']); ?> pages, <?php echo htmlspecialchars($book['dimension']); ?> cm</p>
+                                <p><strong>Physical Description:</strong> <?php echo htmlspecialchars($book['total_pages']); ?> pages <?php echo htmlspecialchars($book['supplementary_contents']); ?>, <?php echo htmlspecialchars($book['dimension']); ?> cm</p>
                                 <p><strong>Availability:</strong> <?php echo htmlspecialchars($inShelf); ?> of <?php echo htmlspecialchars($totalCopies); ?> copies available</p>
                             </div>
                             
@@ -525,6 +525,10 @@ if ($bookId > 0) {
                                                         <th>Status</th>
                                                         <th>Location</th>
                                                         <th>Last Update</th>
+                                                        <th>Series</th> <!-- New column -->
+                                                        <th>Volume</th> <!-- New column -->
+                                                        <th>Edition</th> <!-- New column -->
+                                                        <th>ISBN</th> <!-- New column -->
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -538,6 +542,10 @@ if ($bookId > 0) {
                                                             </td>
                                                             <td><?php echo htmlspecialchars($copy['shelf_location']); ?></td>
                                                             <td><?php echo htmlspecialchars(date('Y-m-d', strtotime($copy['last_update']))); ?></td>
+                                                            <td><?php echo htmlspecialchars($copy['series']); ?></td> <!-- New column -->
+                                                            <td><?php echo htmlspecialchars($copy['volume']); ?></td> <!-- New column -->
+                                                            <td><?php echo htmlspecialchars($copy['edition']); ?></td> <!-- New column -->
+                                                            <td><?php echo htmlspecialchars($copy['ISBN']); ?></td> <!-- New column -->
                                                         </tr>
                                                     <?php endforeach; ?>
                                                 </tbody>
@@ -637,7 +645,7 @@ if ($bookId > 0) {
 
                             // Physical Description
                             $marcFields[] = ['300', '##',
-                                'a', $book['total_pages'] . ' pages',
+                                'a', $book['total_pages'] . ' pages' . (isset($book['supplementary_contents']) ? ' ' . $book['supplementary_contents'] : ''),
                                 'b', 'illustrations',
                                 'c', $book['dimension'] . ' cm'
                             ];
@@ -855,7 +863,7 @@ if ($bookId > 0) {
             if (!empty($book['preliminaries'])) {
                 echo htmlspecialchars($book['preliminaries']) . ', ';
             }
-            echo htmlspecialchars($book['total_pages']) . ' pages';
+            echo htmlspecialchars($book['total_pages']) . ' pages' . htmlspecialchars($book['supplementary_contents']);
             if (!empty($book['illustrations'])) {
                 echo ' : illustrations';
             }
@@ -924,6 +932,10 @@ if ($bookId > 0) {
                                                     <th>Status</th>
                                                     <th>Location</th>
                                                     <th>Last Update</th>
+                                                    <th>Series</th> <!-- New column -->
+                                                    <th>Volume</th> <!-- New column -->
+                                                    <th>Edition</th> <!-- New column -->
+                                                    <th>ISBN</th> <!-- New column -->
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -937,6 +949,10 @@ if ($bookId > 0) {
                                                         </td>
                                                         <td><?php echo htmlspecialchars($copy['shelf_location']); ?></td>
                                                         <td><?php echo htmlspecialchars(date('Y-m-d', strtotime($copy['last_update']))); ?></td>
+                                                        <td><?php echo htmlspecialchars($copy['series']); ?></td> <!-- New column -->
+                                                        <td><?php echo htmlspecialchars($copy['volume']); ?></td> <!-- New column -->
+                                                        <td><?php echo htmlspecialchars($copy['edition']); ?></td> <!-- New column -->
+                                                        <td><?php echo htmlspecialchars($copy['ISBN']); ?></td> <!-- New column -->
                                                     </tr>
                                                 <?php endforeach; ?>
                                             </tbody>

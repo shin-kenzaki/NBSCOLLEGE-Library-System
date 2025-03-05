@@ -10,6 +10,14 @@ if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Lib
 include '../db.php';
 include '../admin/inc/header.php';
 
+// Fetch admin names and roles for the dropdown
+$admins_query = "SELECT id, CONCAT(firstname, ' ', lastname) AS name, role FROM admins";
+$admins_result = mysqli_query($conn, $admins_query);
+$admins = [];
+while ($row = mysqli_fetch_assoc($admins_result)) {
+    $admins[] = $row;
+}
+
 // Process form submission
 if (isset($_POST['submit'])) {
     try {
@@ -56,45 +64,71 @@ if (isset($_POST['submit'])) {
         $content_types = $_POST['content_type'] ?? array();
         $media_types = $_POST['media_type'] ?? array();
         $carrier_types = $_POST['carrier_type'] ?? array();
-        $total_pages = $_POST['total_pages'] ?? array();
-        $supplementary_contents = $_POST['supplementary_contents'] ?? array();
+        
+        // Fix: Handle total_pages variable properly
+        // Get prefix and main pages to combine into total_pages
+        $prefix_pages = $_POST['prefix_pages'] ?? '';
+        $main_pages = $_POST['main_pages'] ?? '';
+        
+        // Process supplementary contents
+        $supplementary_content = isset($_POST['supplementary_content']) && is_array($_POST['supplementary_content']) ? 
+            implode(', ', $_POST['supplementary_content']) : '';
+        
         $entered_by = $_POST['entered_by'] ?? array();
         $date_added = $_POST['date_added'] ?? array();
         $statuses = $_POST['statuses'] ?? array();
 
-        // Common data for all copies
-        $title = mysqli_real_escape_string($conn, $_POST['title'] ?? '');
-        $preferred_title = mysqli_real_escape_string($conn, $_POST['preferred_title'] ?? '');
-        $parallel_title = mysqli_real_escape_string($conn, $_POST['parallel_title'] ?? '');
-        $call_number = mysqli_real_escape_string($conn, $_POST['call_number'] ?? '');
-        $language = mysqli_real_escape_string($conn, $_POST['language'] ?? '');
-        $status = mysqli_real_escape_string($conn, $_POST['status'] ?? '');
-        $abstract = mysqli_real_escape_string($conn, $_POST['abstract'] ?? '');
-        $notes = mysqli_real_escape_string($conn, $_POST['notes'] ?? '');
-        $dimension = mysqli_real_escape_string($conn, $_POST['dimension'] ?? '');
-        $series = mysqli_real_escape_string($conn, $_POST['series'] ?? '');
-        $volume = mysqli_real_escape_string($conn, $_POST['volume'] ?? '');
-        $edition = mysqli_real_escape_string($conn, $_POST['edition'] ?? '');
-        $url = mysqli_real_escape_string($conn, $_POST['url'] ?? '');
-        $content_type = mysqli_real_escape_string($conn, $_POST['content_type'] ?? 'Text');
-        $media_type = mysqli_real_escape_string($conn, $_POST['media_type'] ?? 'Print');
-        $carrier_type = mysqli_real_escape_string($conn, $_POST['carrier_type'] ?? 'Book');
+        // Common data for all copies - make sure we're handling strings properly
+        $title = mysqli_real_escape_string($conn, is_array($_POST['title']) ? $_POST['title'][0] : ($_POST['title'] ?? ''));
+        $preferred_title = mysqli_real_escape_string($conn, is_array($_POST['preferred_title']) ? $_POST['preferred_title'][0] : ($_POST['preferred_title'] ?? ''));
+        $parallel_title = mysqli_real_escape_string($conn, is_array($_POST['parallel_title']) ? $_POST['parallel_title'][0] : ($_POST['parallel_title'] ?? ''));
+        $call_number = mysqli_real_escape_string($conn, is_array($_POST['call_number']) ? $_POST['call_number'][0] : ($_POST['call_number'] ?? ''));
+        $language = mysqli_real_escape_string($conn, is_array($_POST['language']) ? $_POST['language'][0] : ($_POST['language'] ?? ''));
+
+        // Properly handle status with default value
+        $status = isset($_POST['status']) ? (is_array($_POST['status']) ? $_POST['status'][0] : $_POST['status']) : 'Available';
+
+        $abstract = mysqli_real_escape_string($conn, is_array($_POST['abstract']) ? $_POST['abstract'][0] : ($_POST['abstract'] ?? ''));
+        $notes = mysqli_real_escape_string($conn, is_array($_POST['notes']) ? $_POST['notes'][0] : ($_POST['notes'] ?? ''));
+        $dimension = mysqli_real_escape_string($conn, is_array($_POST['dimension']) ? $_POST['dimension'][0] : ($_POST['dimension'] ?? ''));
+        $series = mysqli_real_escape_string($conn, is_array($_POST['series']) ? $_POST['series'][0] : ($_POST['series'] ?? ''));
+        $volume = mysqli_real_escape_string($conn, is_array($_POST['volume']) ? $_POST['volume'][0] : ($_POST['volume'] ?? ''));
+        $edition = mysqli_real_escape_string($conn, is_array($_POST['edition']) ? $_POST['edition'][0] : ($_POST['edition'] ?? ''));
+        $url = mysqli_real_escape_string($conn, is_array($_POST['url']) ? $_POST['url'][0] : ($_POST['url'] ?? ''));
+        $content_type = mysqli_real_escape_string($conn, is_array($_POST['content_type']) ? $_POST['content_type'][0] : ($_POST['content_type'] ?? 'Text'));
+        $media_type = mysqli_real_escape_string($conn, is_array($_POST['media_type']) ? $_POST['media_type'][0] : ($_POST['media_type'] ?? 'Print'));
+        $carrier_type = mysqli_real_escape_string($conn, is_array($_POST['carrier_type']) ? $_POST['carrier_type'][0] : ($_POST['carrier_type'] ?? 'Book'));
         $last_update = date('Y-m-d');
 
-        // Safely access array elements
+        // Safely access array elements for subject category and detail
         $subject_category = '';
-        if (isset($_POST['subject_categories']) && !empty($_POST['subject_categories'])) {
+        if (isset($_POST['subject_categories']) && is_array($_POST['subject_categories']) && !empty($_POST['subject_categories'])) {
             $subject_category = mysqli_real_escape_string($conn, $_POST['subject_categories'][0]);
+        } elseif (isset($_POST['subject_categories']) && is_string($_POST['subject_categories'])) {
+            $subject_category = mysqli_real_escape_string($conn, $_POST['subject_categories']);
         }
 
         $subject_detail = '';
-        if (isset($_POST['subject_paragraphs']) && !empty($_POST['subject_paragraphs'])) {
+        if (isset($_POST['subject_paragraphs']) && is_array($_POST['subject_paragraphs']) && !empty($_POST['subject_paragraphs'])) {
             $subject_detail = mysqli_real_escape_string($conn, $_POST['subject_paragraphs'][0]);
+        } elseif (isset($_POST['subject_paragraphs']) && is_string($_POST['subject_paragraphs'])) {
+            $subject_detail = mysqli_real_escape_string($conn, $_POST['subject_paragraphs']);
+        }
+
+        // Handle ISBN field - might be an array or a string
+        $ISBN = '';
+        if (isset($_POST['ISBN']) && is_array($_POST['ISBN'])) {
+            $ISBN = !empty($_POST['ISBN'][0]) ? mysqli_real_escape_string($conn, $_POST['ISBN'][0]) : '';
+        } elseif (isset($_POST['ISBN']) && is_string($_POST['ISBN'])) {
+            $ISBN = mysqli_real_escape_string($conn, $_POST['ISBN']);
         }
 
         // Get admin info for update tracking
         $current_admin_id = $_SESSION['admin_id'];
         $update_date = date('Y-m-d');
+
+        // Properly handle status with default value
+        $status = isset($_POST['status']) ? (is_array($_POST['status']) ? $_POST['status'][0] : $_POST['status']) : 'Available';
 
         // Update each book copy
         foreach ($bookIds as $index => $bookId) {
@@ -106,25 +140,40 @@ if (isset($_POST['submit'])) {
             $original_data = $stmt->get_result()->fetch_assoc();
             $stmt->close();
             
-            // Preserve original status
-            $preserved_status = $original_data['status'];
+            // Preserve original status with proper checks
+            $preserved_status = isset($original_data['status']) ? $original_data['status'] : 'Available';
             
             // Safe array access with proper checks for each array
             $shelf_location = isset($shelf_locations[$index]) ? mysqli_real_escape_string($conn, $shelf_locations[$index]) : '';
             $call_number = isset($call_numbers[$index]) ? mysqli_real_escape_string($conn, $call_numbers[$index]) : '';
             $accession = isset($accessions[$index]) ? mysqli_real_escape_string($conn, $accessions[$index]) : '';
-            // Removed: $status = isset($statuses[$index]) ? mysqli_real_escape_string($conn, $statuses[$index]) : '';
             
-            $entered_by_value = $original_data['entered_by'];
-            $date_added_value = $original_data['date_added'];
+            // Get individual series, volume, edition values from form inputs for each copy
+            $series_value = isset($series[$index]) ? mysqli_real_escape_string($conn, $series[$index]) : '';
+            $volume_value = isset($volumes[$index]) ? mysqli_real_escape_string($conn, $volumes[$index]) : '';
+            $edition_value = isset($editions[$index]) ? mysqli_real_escape_string($conn, $editions[$index]) : '';
             
+            $entered_by_value = isset($original_data['entered_by']) ? $original_data['entered_by'] : '';
+            $date_added_value = isset($original_data['date_added']) ? $original_data['date_added'] : date('Y-m-d');
+
             // Copy-specific values
-            $url = isset($_POST['url']) ? mysqli_real_escape_string($conn, $_POST['url']) : '';
-            $content_type = isset($_POST['content_type']) ? mysqli_real_escape_string($conn, $_POST['content_type']) : 'Text';
-            $media_type = isset($_POST['media_type']) ? mysqli_real_escape_string($conn, $_POST['media_type']) : 'Print';
-            $carrier_type = isset($_POST['carrier_type']) ? mysqli_real_escape_string($conn, $_POST['carrier_type']) : 'Book';
-            $total_page = isset($total_pages[$index]) ? mysqli_real_escape_string($conn, $total_pages[$index]) : '';
-            $supplementary_content = isset($supplementary_contents[$index]) ? mysqli_real_escape_string($conn, $supplementary_contents[$index]) : '';
+            $url = isset($_POST['url']) && is_string($_POST['url']) ? mysqli_real_escape_string($conn, $_POST['url']) : '';
+            $content_type = isset($_POST['content_type']) && is_string($_POST['content_type']) ? mysqli_real_escape_string($conn, $_POST['content_type']) : 'Text';
+            $media_type = isset($_POST['media_type']) && is_string($_POST['media_type']) ? mysqli_real_escape_string($conn, $_POST['media_type']) : 'Print';
+            $carrier_type = isset($_POST['carrier_type']) && is_string($_POST['carrier_type']) ? mysqli_real_escape_string($conn, $_POST['carrier_type']) : 'Book';
+            
+            // Calculate total pages from prefix and main
+            $total_page = '';
+            if (!empty($prefix_pages) && !empty($main_pages)) {
+                $total_page = $prefix_pages . ' ' . $main_pages;
+            } elseif (!empty($prefix_pages)) {
+                $total_page = $prefix_pages;
+            } elseif (!empty($main_pages)) {
+                $total_page = $main_pages;
+            }
+            
+            // Use same supplementary content for all copies
+            $supplementary_content_value = mysqli_real_escape_string($conn, $supplementary_content);
 
             $update_query = "UPDATE books SET 
                 title = ?, 
@@ -172,11 +221,11 @@ if (isset($_POST['submit'])) {
                 $front_image,
                 $back_image,
                 $dimension,
-                $series,
-                $volume,
-                $edition,
+                $series_value,     // Use individual series value for this copy
+                $volume_value,     // Use individual volume value for this copy
+                $edition_value,    // Use individual edition value for this copy
                 $total_page,
-                $supplementary_content,
+                $supplementary_content_value,
                 $ISBN,
                 $content_type,
                 $media_type,
@@ -185,9 +234,9 @@ if (isset($_POST['submit'])) {
                 $url,
                 $language,
                 $shelf_location,
-                $entered_by_value,    // Use preserved value for this specific copy
-                $date_added_value,    // Use preserved value for this specific copy
-                $preserved_status, // using preserved status here
+                $entered_by_value,
+                $date_added_value,
+                $preserved_status,
                 $current_admin_id,
                 $update_date,
                 $accession,
@@ -203,7 +252,7 @@ if (isset($_POST['submit'])) {
         }
 
         // Update contributors - MODIFIED SECTION
-        if (!empty($_POST['author'])) {
+        if (!empty($_POST['author']) || !empty($_POST['author'][0])) {
             foreach ($bookIds as $bookId) {
                 // Remove existing contributors
                 $delete_query = "DELETE FROM contributors WHERE book_id = ?";
@@ -211,11 +260,21 @@ if (isset($_POST['submit'])) {
                 $stmt->bind_param("i", $bookId);
                 $stmt->execute();
 
-                // Add author
+                // Add authors
                 $insert_author = "INSERT INTO contributors (book_id, writer_id, role) VALUES (?, ?, 'Author')";
                 $stmt = $conn->prepare($insert_author);
-                $stmt->bind_param("ii", $bookId, $_POST['author']);
-                $stmt->execute();
+                
+                if (is_array($_POST['author'])) {
+                    foreach ($_POST['author'] as $authorId) {
+                        if (!empty($authorId)) {
+                            $stmt->bind_param("ii", $bookId, $authorId);
+                            $stmt->execute();
+                        }
+                    }
+                } else {
+                    $stmt->bind_param("ii", $bookId, $_POST['author']);
+                    $stmt->execute();
+                }
 
                 // Add co-authors if any
                 if (!empty($_POST['co_authors']) && is_array($_POST['co_authors'])) {
@@ -348,7 +407,7 @@ $subject_options = array(
 
                 <!-- Hidden input for statuses -->
                 <?php foreach ($books as $book): ?>
-                    <input type="hidden" name="statuses[]" value="<?php echo htmlspecialchars($book['status']); ?>">
+                    <input type="hidden" name="statuses[]" value="<?php echo htmlspecialchars($book['status'] ?? 'Available'); ?>">
                 <?php endforeach; ?>
 
                 <!-- Tab Navigation -->
@@ -389,63 +448,90 @@ $subject_options = array(
                             <label>Parallel Title</label>
                             <input type="text" class="form-control" name="parallel_title" value="<?php echo htmlspecialchars($first_book['parallel_title'] ?? ''); ?>">
                         </div>
-                        <!-- Contributors section -->
-                        <div class="form-group">
-                            <label>Author</label>
-                            <select class="form-control" name="author" required>
-                                <option value="">Select Author</option>
-                                <?php foreach ($writers as $writer): 
-                                    $isAuthor = false;
-                                    foreach ($contributors as $contributor) {
-                                        if ($contributor['id'] == $writer['id'] && $contributor['role'] == 'Author') {
-                                            $isAuthor = true;
-                                            break;
-                                        }
-                                    }
-                                ?>
-                                    <option value="<?php echo $writer['id']; ?>" <?php echo $isAuthor ? 'selected' : ''; ?>>
-                                        <?php echo htmlspecialchars($writer['name']); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Co-Authors</label>
-                            <select class="form-control" name="co_authors[]" multiple>
-                                <?php foreach ($writers as $writer): 
-                                    $isCoAuthor = false;
-                                    foreach ($contributors as $contributor) {
-                                        if ($contributor['id'] == $writer['id'] && $contributor['role'] == 'Co-Author') {
-                                            $isCoAuthor = true;
-                                            break;
-                                        }
-                                    }
-                                ?>
-                                    <option value="<?php echo htmlspecialchars($writer['id']); ?>" <?php echo $isCoAuthor ? 'selected' : ''; ?>>
-                                        <?php echo htmlspecialchars($writer['name']); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                            <small class="text-muted">Hold Ctrl/Cmd to select multiple items</small>
-                        </div>
-                        <div class="form-group">
-                            <label>Editors</label>
-                            <select class="form-control" name="editors[]" multiple>
-                                <?php foreach ($writers as $writer): 
-                                    $isEditor = false;
-                                    foreach ($contributors as $contributor) {
-                                        if ($contributor['id'] == $writer['id'] && $contributor['role'] == 'Editor') {
-                                            $isEditor = true;
-                                            break;
-                                        }
-                                    }
-                                ?>
-                                    <option value="<?php echo htmlspecialchars($writer['id']); ?>" <?php echo $isEditor ? 'selected' : ''; ?>>
-                                        <?php echo htmlspecialchars($writer['name']); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                            <small class="text-muted">Hold Ctrl/Cmd to select multiple items</small>
+                        
+                        <!-- Contributors section - Updated layout -->
+                        <div class="form-group mt-4">
+                            <label class="mb-2">Contributors</label>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <label>Author</label>
+                                    <div class="input-group mb-2">
+                                        <span class="input-group-text"><i class="fa fa-search"></i></span>
+                                        <input type="text" class="form-control contributor-search" 
+                                               placeholder="Search authors..." data-target="authorSelect">
+                                    </div>
+                                    <select class="form-control" name="author[]" id="authorSelect" multiple>
+                                        <option value="">Select Author</option>
+                                        <?php foreach ($writers as $writer): 
+                                            $isAuthor = false;
+                                            foreach ($contributors as $contributor) {
+                                                if ($contributor['id'] == $writer['id'] && $contributor['role'] == 'Author') {
+                                                    $isAuthor = true;
+                                                    break;
+                                                }
+                                            }
+                                        ?>
+                                            <option value="<?php echo $writer['id']; ?>" <?php echo $isAuthor ? 'selected' : ''; ?>>
+                                                <?php echo htmlspecialchars($writer['name']); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <small class="text-muted">Hold Ctrl/Cmd to select multiple items</small>
+                                    <div id="authorPreview" class="mt-2 p-2 border rounded bg-light"></div>
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <label>Co-Authors</label>
+                                    <div class="input-group mb-2">
+                                        <span class="input-group-text"><i class="fa fa-search"></i></span>
+                                        <input type="text" class="form-control contributor-search" 
+                                               placeholder="Search co-authors..." data-target="coAuthorSelect">
+                                    </div>
+                                    <select class="form-control" name="co_authors[]" id="coAuthorSelect" multiple>
+                                        <?php foreach ($writers as $writer): 
+                                            $isCoAuthor = false;
+                                            foreach ($contributors as $contributor) {
+                                                if ($contributor['id'] == $writer['id'] && $contributor['role'] == 'Co-Author') {
+                                                    $isCoAuthor = true;
+                                                    break;
+                                                }
+                                            }
+                                        ?>
+                                            <option value="<?php echo htmlspecialchars($writer['id']); ?>" <?php echo $isCoAuthor ? 'selected' : ''; ?>>
+                                                <?php echo htmlspecialchars($writer['name']); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <small class="text-muted">Hold Ctrl/Cmd to select multiple items</small>
+                                    <div id="coAuthorPreview" class="mt-2 p-2 border rounded bg-light"></div>
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <label>Editors</label>
+                                    <div class="input-group mb-2">
+                                        <span class="input-group-text"><i class="fa fa-search"></i></span>
+                                        <input type="text" class="form-control contributor-search" 
+                                               placeholder="Search editors..." data-target="editorSelect">
+                                    </div>
+                                    <select class="form-control" name="editors[]" id="editorSelect" multiple>
+                                        <?php foreach ($writers as $writer): 
+                                            $isEditor = false;
+                                            foreach ($contributors as $contributor) {
+                                                if ($contributor['id'] == $writer['id'] && $contributor['role'] == 'Editor') {
+                                                    $isEditor = true;
+                                                    break;
+                                                }
+                                            }
+                                        ?>
+                                            <option value="<?php echo htmlspecialchars($writer['id']); ?>" <?php echo $isEditor ? 'selected' : ''; ?>>
+                                                <?php echo htmlspecialchars($writer['name']); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <small class="text-muted">Hold Ctrl/Cmd to select multiple items</small>
+                                    <div id="editorPreview" class="mt-2 p-2 border rounded bg-light"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -518,12 +604,22 @@ $subject_options = array(
                             <div class="row">
                                 <div class="col-md-4">
                                     <label class="small">Prefix (Roman)</label>
-                                    <input type="text" class="form-control" name="prefix_pages" placeholder="e.g. xvi">
+                                    <input type="text" class="form-control" name="prefix_pages" placeholder="e.g. xvi" 
+                                           value="<?php 
+                                               $pages = $first_book['total_pages'] ?? '';
+                                               $parts = explode(' ', $pages); // Changed from comma to space
+                                               echo htmlspecialchars($parts[0] ?? ''); 
+                                           ?>">
                                     <small class="text-muted">Use roman numerals</small>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="small">Main Pages</label>
-                                    <input type="text" class="form-control" name="main_pages" placeholder="e.g. 234a">
+                                    <input type="text" class="form-control" name="main_pages" placeholder="e.g. 234a"
+                                           value="<?php 
+                                               $pages = $first_book['total_pages'] ?? '';
+                                               $parts = explode(' ', $pages); // Changed from comma to space
+                                               echo htmlspecialchars($parts[1] ?? ''); 
+                                           ?>">
                                     <small class="text-muted">Can include letters (e.g. 123a, 456b)</small>
                                 </div>
                             </div>
@@ -531,26 +627,36 @@ $subject_options = array(
                                 <div class="col-md-6">
                                     <label class="small">Supplementary Contents</label>
                                     <select class="form-control" name="supplementary_content[]" multiple>
-                                        <!-- Standard Library Terms -->
-                                        <option value="includes bibliography">Includes bibliography</option>
-                                        <option value="includes index">Includes index</option>
-                                        <option value="includes glossary">Includes glossary</option>
-                                        <option value="includes appendix">Includes appendix</option>
-                                        <option value="includes notes">Includes notes</option>
-                                        <option value="includes references">Includes references</option>
+                                        <?php
+                                        // Create array of supplementary content options
+                                        $supplementary_options = [
+                                            "includes bibliography",
+                                            "includes index",
+                                            "includes glossary",
+                                            "includes appendix",
+                                            "includes notes",
+                                            "includes references",
+                                            "includes bibliography index",
+                                            "includes bibliography notes",
+                                            "includes bibliography references",
+                                            "includes index glossary",
+                                            "includes appendices index",
+                                            "includes bibliographical references",
+                                            "includes bibliography index glossary",
+                                            "includes bibliography index notes",
+                                            "includes bibliography references index"
+                                        ];
                                         
-                                        <!-- Common Library Combinations -->
-                                        <option value="includes bibliography index">Includes bibliography and index</option>
-                                        <option value="includes bibliography notes">Includes bibliography and notes</option>
-                                        <option value="includes bibliography references">Includes bibliography and references</option>
-                                        <option value="includes index glossary">Includes index and glossary</option>
-                                        <option value="includes appendices index">Includes appendices and index</option>
-                                        <option value="includes bibliographical references">Includes bibliographical references</option>
+                                        // Get existing supplementary contents as array
+                                        $existing_supplementary = explode(', ', $first_book['supplementary_contents'] ?? '');
                                         
-                                        <!-- Standard Multi-component Options -->
-                                        <option value="includes bibliography index glossary">Includes bibliography, index, and glossary</option>
-                                        <option value="includes bibliography index notes">Includes bibliography, index, and notes</option>
-                                        <option value="includes bibliography references index">Includes bibliography, references, and index</option>
+                                        // Output each option with selected state if applicable
+                                        foreach ($supplementary_options as $option) {
+                                            $selected = in_array($option, $existing_supplementary) ? 'selected' : '';
+                                            echo "<option value=\"" . htmlspecialchars($option) . "\" $selected>" . 
+                                                 htmlspecialchars(ucfirst($option)) . "</option>";
+                                        }
+                                        ?>
                                     </select>
                                     <small class="text-muted">Hold Ctrl/Cmd to select multiple items</small>
                                 </div>
@@ -602,7 +708,17 @@ $subject_options = array(
                                 <div class="form-group">
                                     <label>Original Entry By</label>
                                     <input type="text" class="form-control" 
-                                           value="<?php echo htmlspecialchars($first_book['entered_by'] ?? ''); ?>" readonly>
+                                           value="<?php 
+                                               $entered_by_id = $first_book['entered_by'] ?? '';
+                                               $entered_by_name = '';
+                                               foreach ($admins as $admin) {
+                                                   if ($admin['id'] == $entered_by_id) {
+                                                       $entered_by_name = $admin['name'] . ' (' . $admin['role'] . ')';
+                                                       break;
+                                                   }
+                                               }
+                                               echo htmlspecialchars($entered_by_name);
+                                           ?>" readonly>
                                     <input type="hidden" name="entered_by[]" 
                                            value="<?php echo htmlspecialchars($first_book['entered_by'] ?? ''); ?>">
                                 </div>
@@ -649,48 +765,36 @@ $subject_options = array(
                         </div>
 
                         <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Status</label>
-                                    <select class="form-control" name="status">
-                                        <option value="Available" <?php echo ($first_book['status'] ?? '') == 'Available' ? 'selected' : ''; ?>>Available</option>
-                                        <option value="Borrowed" <?php echo ($first_book['status'] ?? '') == 'Borrowed' ? 'selected' : ''; ?>>Borrowed</option>
-                                        <option value="Lost" <?php echo ($first_book['status'] ?? '') == 'Lost' ? 'selected' : ''; ?>>Lost</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Last Update</label>
-                                    <input type="text" class="form-control" name="last_update" 
-                                           value="<?php echo date('Y-m-d'); ?>" readonly>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
                             <div class="col-md-12">
                                 <!-- Display Copy Numbers and Accessions -->
                                 <h5>Book Copies</h5>
-                                <div id="bookCopiesContainer">
-                                    <?php foreach ($books as $index => $book): ?>
-                                        <div class="row book-copy align-items-center mb-1" data-book-id="<?php echo $book['id']; ?>">
-                                            <div class="col-md-4">
-                                                <div class="form-group">
-                                                    <label>Copy Number</label>
-                                                    <input type="text" class="form-control" name="copy_number[]" value="<?php echo htmlspecialchars($book['copy_number']); ?>" readonly>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <div class="form-group">
-                                                    <label>Accession Number</label>
-                                                    <input type="text" class="form-control" name="accession[]" value="<?php echo htmlspecialchars($book['accession']); ?>">
-                                                </div>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <div class="form-group d-flex align-items-center">
-                                                    <div>
-                                                        <label>Shelf Location</label>
-                                                        <select class="form-control shelf-location" name="shelf_location[]">
+                                <div id="bookCopiesContainer" class="table-responsive">
+                                    <table class="table table-bordered text-center" style="min-width: 1100px;">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 8%;">Copy Number</th>
+                                                <th style="width: 10%;">Accession Number</th>
+                                                <th style="width: 12%;">Shelf Location</th>
+                                                <th style="width: 14%;">Call Number</th>
+                                                <th style="width: 10%;">Series</th>
+                                                <th style="width: 8%;">Volume</th>
+                                                <th style="width: 8%;">Edition</th>
+                                                <th style="width: 12%;">ISBN</th>
+                                                <th style="width: 12%;">Status</th>
+                                                <th style="width: 6%;">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($books as $index => $book): ?>
+                                                <tr class="book-copy" data-book-id="<?php echo $book['id']; ?>">
+                                                    <td>
+                                                        <input type="text" class="form-control text-center" name="copy_number[]" value="<?php echo htmlspecialchars($book['copy_number']); ?>" readonly>
+                                                    </td>
+                                                    <td>
+                                                        <input type="text" class="form-control text-center" name="accession[]" value="<?php echo htmlspecialchars($book['accession']); ?>">
+                                                    </td>
+                                                    <td>
+                                                        <select class="form-control text-center shelf-location" name="shelf_location[]">
                                                             <option value="TR" <?php echo ($book['shelf_location'] == 'TR') ? 'selected' : ''; ?>>Teachers Reference</option>
                                                             <option value="FIL" <?php echo ($book['shelf_location'] == 'FIL') ? 'selected' : ''; ?>>Filipiniana</option>
                                                             <option value="CIR" <?php echo ($book['shelf_location'] == 'CIR') ? 'selected' : ''; ?>>Circulation</option>
@@ -700,25 +804,37 @@ $subject_options = array(
                                                             <option value="RES" <?php echo ($book['shelf_location'] == 'RES') ? 'selected' : ''; ?>>Reserve</option>
                                                             <option value="FIC" <?php echo ($book['shelf_location'] == 'FIC') ? 'selected' : ''; ?>>Fiction</option>
                                                         </select>
-                                                    </div>
-                                                    <div class="d-flex flex-column align-items-center ms-2">
-                                                        <span class="small">Delete</span>
+                                                    </td>
+                                                    <td>
+                                                        <input type="text" class="form-control text-center" name="call_numbers[]" value="<?php echo htmlspecialchars($book['call_number']); ?>">
+                                                    </td>
+                                                    <td>
+                                                        <input type="text" class="form-control text-center" name="series[]" value="<?php echo htmlspecialchars($book['series']); ?>">
+                                                    </td>
+                                                    <td>
+                                                        <input type="text" class="form-control text-center" name="volume[]" value="<?php echo htmlspecialchars($book['volume']); ?>">
+                                                    </td>
+                                                    <td>
+                                                        <input type="text" class="form-control text-center" name="edition[]" value="<?php echo htmlspecialchars($book['edition']); ?>">
+                                                    </td>
+                                                    <td>
+                                                        <input type="text" class="form-control text-center" name="ISBN[]" value="<?php echo htmlspecialchars($book['ISBN']); ?>">
+                                                    </td>
+                                                    <td>
+                                                        <input type="text" class="form-control text-center" 
+                                                               value="<?php echo htmlspecialchars($book['status'] ?? 'Available'); ?>" readonly>
+                                                        <input type="hidden" name="statuses[]" 
+                                                               value="<?php echo htmlspecialchars($book['status'] ?? 'Available'); ?>">
+                                                    </td>
+                                                    <td>
                                                         <button type="button" class="btn btn-outline-danger btn-sm delete-copy" title="Delete this copy">
                                                             <i class="fa fa-trash-alt"></i>
                                                         </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    <?php endforeach; ?>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-12">
-                                <div class="form-group">
-                                    <label>Call Number Preview</label>
-                                    <div class="call-number-display form-control-plaintext"></div>
+                                                    </td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>
@@ -754,26 +870,6 @@ $subject_options = array(
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label>Series</label>
-                                    <input type="text" class="form-control" name="series">
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Volume</label>
-                                    <input type="text" class="form-control" name="volume">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Edition</label>
-                                    <input type="text" class="form-control" name="edition">
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
                                     <label>ISBN</label>
                                     <input type="text" class="form-control" name="ISBN" 
                                            value="<?php echo htmlspecialchars($first_book['ISBN'] ?? ''); ?>" 
@@ -781,16 +877,17 @@ $subject_options = array(
                                     <small class="text-muted">This ISBN will be applied to all copies</small>
                                 </div>
                             </div>
-                        </div>
-                        <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label>URL</label>
                                     <input type="text" class="form-control" name="url">
                                 </div>
                             </div>
+                        </div>
 
-                            <div class="col-md-6">
+                        <!-- Content Type, Media Type, Carrier Type in One Row -->
+                        <div class="row">
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     <label>Content Type</label>
                                     <select class="form-control" name="content_type">
@@ -800,11 +897,7 @@ $subject_options = array(
                                     </select>
                                 </div>
                             </div>
-                        </div>
-
-                        <!-- Content Type, Media Type, Carrier Type in One Row -->
-                        <div class="row">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     <label>Media Type</label>
                                     <select class="form-control" name="media_type">
@@ -814,8 +907,7 @@ $subject_options = array(
                                     </select>
                                 </div>
                             </div>
-
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     <label>Carrier Type</label>
                                     <select class="form-control" name="carrier_type">
@@ -874,16 +966,18 @@ document.addEventListener("DOMContentLoaded", function() {
         firstTabTrigger.show();
     }
 
-    // Updated formatCallNumber function to handle all copies
+    // Updated formatCallNumber function
     function formatCallNumber() {
         const rawCallNumber = document.querySelector('input[name="raw_call_number"]').value.trim();
         const publishYear = document.querySelector('input[name="publish_date"]').value;
-        const bookCopies = document.querySelectorAll('.book-copy');
+        const copies = document.querySelectorAll('.book-copy');
         
-        bookCopies.forEach((copy) => {
+        copies.forEach((copy) => {
             const copyNumberInput = copy.querySelector('input[name="copy_number[]"]');
             const copyNum = copyNumberInput.value.replace(/^c/, '');
             const shelfLocation = copy.querySelector('select[name="shelf_location[]"]').value;
+            const volumeInput = copy.querySelector('input[name="volume[]"]');
+            const volumeText = volumeInput && volumeInput.value.trim() ? `vol${volumeInput.value.trim()} ` : '';
             
             // Validate raw call number format (only classification and cutter)
             if (!/^[A-Z0-9]+(\.[0-9]+)?\s[A-Z][0-9]+$/.test(rawCallNumber)) {
@@ -892,63 +986,89 @@ document.addEventListener("DOMContentLoaded", function() {
             
             // Store complete call number in hidden input
             const formattedCallNumber = [
-                shelfLocation,      // Location code (e.g., TR)
-                rawCallNumber,      // Classification and cutter (e.g., Z936.98 L39)
-                publishYear,        // Publication year
-                `c${copyNum}`      // Copy number
+                shelfLocation,         // Location code (e.g., TR)
+                rawCallNumber,         // Classification and cutter (e.g., Z936.98 L39)
+                publishYear            // Publication year
             ].filter(Boolean).join(' ');
             
-            // Create or update hidden input for call number
-            let hiddenInput = copy.querySelector('input[name="call_numbers[]"]');
-            if (!hiddenInput) {
-                hiddenInput = document.createElement('input');
-                hiddenInput.type = 'hidden';
-                hiddenInput.name = 'call_numbers[]';
-                copy.appendChild(hiddenInput);
+            // Append volume number if present
+            let finalCallNumber = formattedCallNumber;
+            if (volumeText) {
+                finalCallNumber += ` ${volumeText}`;
             }
-            hiddenInput.value = formattedCallNumber;
             
-            // Update display if it exists
+            // Append copy number
+            finalCallNumber += ` c${copyNum}`;
+            
+            // Update hidden input with complete call number
+            const callNumberField = copy.querySelector('input[name="call_numbers[]"]');
+            if (callNumberField) {
+                callNumberField.value = finalCallNumber;
+            }
+
+            // Display only classification and cutter in the display element
             const displayElement = copy.querySelector('.call-number-display');
             if (displayElement) {
-                displayElement.textContent = formattedCallNumber;
+                displayElement.textContent = rawCallNumber; // Only show classification and cutter
             }
         });
     }
 
-    // Set up event listeners for changes that should trigger call number updates
-    function setupCallNumberEventListeners() {
-        // Listen for raw call number changes
-        const rawCallNumberInput = document.querySelector('input[name="raw_call_number"]');
-        if (rawCallNumberInput) {
-            rawCallNumberInput.addEventListener('input', formatCallNumber);
-        }
+    // Single, unified updateCopyNumbers function
+    function updateCopyNumbers() {
+        formatCallNumber(); // Just update the call numbers without changing copy numbers
+    }
 
-        // Listen for publication year changes
-        const publishYearInput = document.querySelector('input[name="publish_date"]');
-        if (publishYearInput) {
-            publishYearInput.addEventListener('input', formatCallNumber);
-        }
+    // Set up event listeners once
+    function setupEventListeners() {
+        const rawCallNumber = document.querySelector('input[name="raw_call_number"]');
+        const publishYear = document.querySelector('input[name="publish_date"]');
+        const shelfLocations = document.querySelectorAll('select[name="shelf_location[]"]');
+        const volumeInputs = document.querySelectorAll('input[name="volume[]"]');
 
-        // Listen for shelf location changes
-        const shelfLocations = document.querySelectorAll('.shelf-location');
+        if (rawCallNumber) rawCallNumber.addEventListener('input', formatCallNumber);
+        if (publishYear) publishYear.addEventListener('input', formatCallNumber);
+        
         shelfLocations.forEach(select => {
-            select.addEventListener('change', function() {
-                const newValue = this.value;
-                const copyIndex = Array.from(shelfLocations).indexOf(this);
-                
-                // Update all subsequent copies to match the changed shelf location
-                for (let i = copyIndex; i < shelfLocations.length; i++) {
-                    shelfLocations[i].value = newValue;
-                }
-                formatCallNumber();
+            select.addEventListener('change', formatCallNumber);
+        });
+        
+        // Add event listeners to all volume inputs
+        volumeInputs.forEach(input => {
+            input.addEventListener('input', function() {
+                formatCallNumber(); // Update call numbers when volume changes
             });
         });
     }
 
-    // Initialize call number functionality
-    setupCallNumberEventListeners();
-    formatCallNumber();
+    // Initialize on page load
+    setupEventListeners();
+    updateCopyNumbers();
+
+    // Replace the existing shelf location event listeners with this new implementation
+    const shelfLocationSelects = document.querySelectorAll('select[name="shelf_location[]"]');
+    shelfLocationSelects.forEach((select, index) => {
+        select.addEventListener('change', function() {
+            const newValue = this.value;
+            const totalSelects = shelfLocationSelects.length;
+
+            // If changing the first copy, update all subsequent copies
+            if (index === 0) {
+                for (let i = 1; i < totalSelects; i++) {
+                    shelfLocationSelects[i].value = newValue;
+                }
+            } else {
+                // For any other copy, only update copies that come after it
+                for (let i = index + 1; i < totalSelects; i++) {
+                    shelfLocationSelects[i].value = newValue;
+                }
+                // Copies before this one remain unchanged
+            }
+
+            // Trigger call number update after changing shelf locations
+            formatCallNumber();
+        });
+    });
 });
 
 // Add accession number validation
@@ -1039,4 +1159,198 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+// Add preview function for total pages
+document.addEventListener('DOMContentLoaded', function() {
+    // Get page input elements
+    const prefixPagesInput = document.querySelector('input[name="prefix_pages"]');
+    const mainPagesInput = document.querySelector('input[name="main_pages"]');
+    
+    // Create a display element for previewing total pages
+    const pageContainer = document.querySelector('.form-group label:contains("Pages")').closest('.form-group');
+    const previewElement = document.createElement('div');
+    previewElement.className = 'alert alert-info mt-2';
+    previewElement.style.display = 'none';
+    previewElement.innerHTML = '<strong>Total pages will appear as:</strong> <span id="pagesPreview"></span>';
+    pageContainer.appendChild(previewElement);
+    
+    // Update preview function
+    function updatePagesPreview() {
+        const prefix = prefixPagesInput.value.trim();
+        const main = mainPagesInput.value.trim();
+        const previewSpan = document.getElementById('pagesPreview');
+        
+        if (prefix && main) {
+            previewSpan.textContent = `${prefix} ${main}`; // Changed from comma to space
+            previewElement.style.display = 'block';
+        } else if (prefix) {
+            previewSpan.textContent = prefix;
+            previewElement.style.display = 'block';
+        } else if (main) {
+            previewSpan.textContent = main;
+            previewElement.style.display = 'block';
+        } else {
+            previewElement.style.display = 'none';
+        }
+    }
+    
+    // Add event listeners
+    if (prefixPagesInput) prefixPagesInput.addEventListener('input', updatePagesPreview);
+    if (mainPagesInput) mainPagesInput.addEventListener('input', updatePagesPreview);
+    
+    // Initialize preview
+    updatePagesPreview();
+});
+
+// Preview functionality for contributors
+function updateContributorPreviews() {
+    const authorSelect = document.getElementById('authorSelect');
+    const coAuthorSelect = document.getElementById('coAuthorSelect');
+    const editorSelect = document.getElementById('editorSelect');
+    const authorPreview = document.getElementById('authorPreview');
+    const coAuthorPreview = document.getElementById('coAuthorPreview');
+    const editorPreview = document.getElementById('editorPreview');
+
+    // Update author preview
+    let authorHtml = '';
+    for (const option of authorSelect.selectedOptions) {
+        if (option.value) {
+            authorHtml += `<span class="badge bg-primary text-white me-1 mb-1" data-id="${option.value}" data-role="author">
+                           ${option.text} <i class="fa fa-times ms-1" style="cursor:pointer;" onclick="removeContributor(this)"></i></span>`;
+        }
+    }
+    authorPreview.innerHTML = authorHtml || '<em class="text-muted">No authors selected</em>';
+
+    // Update co-author preview
+    let coAuthorHtml = '';
+    for (const option of coAuthorSelect.selectedOptions) {
+        if (option.value) {
+            coAuthorHtml += `<span class="badge bg-secondary text-white me-1 mb-1" data-id="${option.value}" data-role="co-author">
+                            ${option.text} <i class="fa fa-times ms-1" style="cursor:pointer;" onclick="removeContributor(this)"></i></span>`;
+        }
+    }
+    coAuthorPreview.innerHTML = coAuthorHtml || '<em class="text-muted">No co-authors selected</em>';
+
+    // Update editor preview
+    let editorHtml = '';
+    for (const option of editorSelect.selectedOptions) {
+        if (option.value) {
+            editorHtml += `<span class="badge bg-info text-white me-1 mb-1" data-id="${option.value}" data-role="editor">
+                          ${option.text} <i class="fa fa-times ms-1" style="cursor:pointer;" onclick="removeContributor(this)"></i></span>`;
+        }
+    }
+    editorPreview.innerHTML = editorHtml || '<em class="text-muted">No editors selected</em>';
+}
+
+// Function to remove contributor when X is clicked
+function removeContributor(element) {
+    const badge = element.parentElement;
+    const id = badge.dataset.id;
+    const role = badge.dataset.role;
+    
+    let selectId;
+    if (role === 'author') {
+        selectId = 'authorSelect';
+    } else if (role === 'co-author') {
+        selectId = 'coAuthorSelect';
+    } else if (role === 'editor') {
+        selectId = 'editorSelect';
+    }
+    
+    const select = document.getElementById(selectId);
+    if (select) {
+        for (let i = 0; i < select.options.length; i++) {
+            if (select.options[i].value === id) {
+                select.options[i].selected = false;
+                break;
+            }
+        }
+        // Trigger change event to update preview
+        select.dispatchEvent(new Event('change'));
+    }
+}
+
+// Set up event listeners for contributor select changes
+const contributorSelects = ['authorSelect', 'coAuthorSelect', 'editorSelect'];
+contributorSelects.forEach(id => {
+    const select = document.getElementById(id);
+    if (select) {
+        select.addEventListener('change', updateContributorPreviews);
+    }
+});
+
+// Initialize previews
+document.addEventListener('DOMContentLoaded', function() {
+    updateContributorPreviews();
+});
+
+// Add search functionality for contributor dropdowns
+document.addEventListener('DOMContentLoaded', function() {
+    // Filter function for contributor search
+    const searchContributors = function() {
+        const searchInput = this;
+        const searchTerm = searchInput.value.toLowerCase();
+        const selectId = searchInput.dataset.target;
+        const selectElement = document.getElementById(selectId);
+        
+        // Store selected options to maintain them
+        const selectedOptions = [];
+        for (const option of selectElement.selectedOptions) {
+            selectedOptions.push(option.value);
+        }
+        
+        // Loop through all options to filter
+        for (let i = 0; i < selectElement.options.length; i++) {
+            const option = selectElement.options[i];
+            const optionText = option.textContent.toLowerCase();
+            
+            // Skip the empty "Select" option
+            if (option.value === "") continue;
+            
+            // Check if option text contains search term
+            if (optionText.includes(searchTerm)) {
+                option.style.display = "";
+            } else {
+                option.style.display = "none";
+            }
+        }
+        
+        // Restore selected options
+        for (let i = 0; i < selectElement.options.length; i++) {
+            if (selectedOptions.includes(selectElement.options[i].value)) {
+                selectElement.options[i].selected = true;
+            }
+        }
+    };
+    
+    // Add event listeners to search inputs
+    const searchInputs = document.querySelectorAll('.contributor-search');
+    searchInputs.forEach(input => {
+        input.addEventListener('input', searchContributors);
+    });
+    
+    // Function to clear search and reset dropdown
+    const clearSearch = function(selectId) {
+        const searchInput = document.querySelector(`[data-target="${selectId}"]`);
+        if (searchInput) {
+            searchInput.value = '';
+            const event = new Event('input');
+            searchInput.dispatchEvent(event);
+        }
+    };
+    
+    // Clear search when dropdown changes to ensure all options are visible for next interaction
+    document.getElementById('authorSelect').addEventListener('change', function() {
+        clearSearch('authorSelect');
+    });
+    
+    document.getElementById('coAuthorSelect').addEventListener('change', function() {
+        clearSearch('coAuthorSelect');
+    });
+    
+    document.getElementById('editorSelect').addEventListener('change', function() {
+        clearSearch('editorSelect');
+    });
+});
+
 </script>

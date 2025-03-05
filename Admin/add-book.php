@@ -35,7 +35,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $contents = mysqli_real_escape_string($conn, $_POST['notes']);
         
         // Process author, co-authors, and editors
-        $author_id = mysqli_real_escape_string($conn, $_POST['author']);
+        $author_ids = array_map(function($author) use ($conn) {
+            return mysqli_real_escape_string($conn, $author);
+        }, $_POST['author']);
         $co_authors_ids = isset($_POST['co_authors']) ? $_POST['co_authors'] : [];
         $editors_ids = isset($_POST['editors']) ? $_POST['editors'] : [];
 
@@ -96,9 +98,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
         $dimension = mysqli_real_escape_string($conn, $_POST['dimension']);
-        $series = mysqli_real_escape_string($conn, $_POST['series']);
-        $volume = mysqli_real_escape_string($conn, $_POST['volume']);
-        $edition = mysqli_real_escape_string($conn, $_POST['edition']);
+        // Remove old series, volume, and edition fields
+        // $series = mysqli_real_escape_string($conn, $_POST['series']);
+        // $volume = mysqli_real_escape_string($conn, $_POST['volume']);
+        // $edition = mysqli_real_escape_string($conn, $_POST['edition']);
         $content_type = mysqli_real_escape_string($conn, $_POST['content_type']);
         $media_type = mysqli_real_escape_string($conn, $_POST['media_type']);
         $carrier_type = mysqli_real_escape_string($conn, $_POST['carrier_type']);
@@ -208,8 +211,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     // Insert contributors in batches
                     $contributors = [];
 
-                    // Add author
-                    if (!empty($author_id)) {
+                    // Add authors
+                    foreach ($author_ids as $author_id) {
                         $contributors[] = "('$book_id', '$author_id', 'Author')";
                     }
 
@@ -350,38 +353,52 @@ $accession_error = '';
                                     <label>Parallel Title</label>
                                     <input type="text" class="form-control" name="parallel_title">
                                 </div>
-                                <div class="form-group">
-                                    <label>Author</label>
-                                    <select class="form-control" name="author" required>
-                                        <option value="">Select Author</option>
-                                        <?php foreach ($writers as $writer): ?>
-                                            <option value="<?php echo htmlspecialchars($writer['id']); ?>">
-                                                <?php echo htmlspecialchars($writer['name']); ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label>Co-Authors</label>
-                                    <select class="form-control" name="co_authors[]" multiple>
-                                        <?php foreach ($writers as $writer): ?>
-                                            <option value="<?php echo htmlspecialchars($writer['id']); ?>">
-                                                <?php echo htmlspecialchars($writer['name']); ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                    <small class="text-muted">Hold Ctrl/Cmd to select multiple items</small>
-                                </div>
-                                <div class="form-group">
-                                    <label>Editors</label>
-                                    <select class="form-control" name="editors[]" multiple>
-                                        <?php foreach ($writers as $writer): ?>
-                                            <option value="<?php echo htmlspecialchars($writer['id']); ?>">
-                                                <?php echo htmlspecialchars($writer['name']); ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                    <small class="text-muted">Hold Ctrl/Cmd to select multiple items</small>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label>Author</label>
+                                            <input type="text" class="form-control mb-2" id="authorSearch" placeholder="Search Author">
+                                            <select class="form-control" name="author[]" multiple required id="authorSelect">
+                                                <?php foreach ($writers as $writer): ?>
+                                                    <option value="<?php echo htmlspecialchars($writer['id']); ?>">
+                                                        <?php echo htmlspecialchars($writer['name']); ?>
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                            <small class="text-muted">Hold Ctrl/Cmd to select multiple items</small>
+                                            <div id="authorPreview" class="mt-2"></div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label>Co-Authors</label>
+                                            <input type="text" class="form-control mb-2" id="coAuthorsSearch" placeholder="Search Co-Authors">
+                                            <select class="form-control" name="co_authors[]" multiple id="coAuthorsSelect">
+                                                <?php foreach ($writers as $writer): ?>
+                                                    <option value="<?php echo htmlspecialchars($writer['id']); ?>">
+                                                        <?php echo htmlspecialchars($writer['name']); ?>
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                            <small class="text-muted">Hold Ctrl/Cmd to select multiple items</small>
+                                            <div id="coAuthorsPreview" class="mt-2"></div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label>Editors</label>
+                                            <input type="text" class="form-control mb-2" id="editorsSearch" placeholder="Search Editors">
+                                            <select class="form-control" name="editors[]" multiple id="editorsSelect">
+                                                <?php foreach ($writers as $writer): ?>
+                                                    <option value="<?php echo htmlspecialchars($writer['id']); ?>">
+                                                        <?php echo htmlspecialchars($writer['name']); ?>
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                            <small class="text-muted">Hold Ctrl/Cmd to select multiple items</small>
+                                            <div id="editorsPreview" class="mt-2"></div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -499,7 +516,7 @@ $accession_error = '';
                                                 <div class="row">
                                                     <div class="col-md-8">
                                                         <div class="form-group">
-                                                            <label>Accession (Copy 1)</label>
+                                                            <label>Accession Group 1</label>
                                                             <input type="text" class="form-control accession-input" name="accession[]" 
                                                                 placeholder="e.g., 2023-0001 (will auto-increment based on copies)" required>
                                                             <small class="text-muted">If you enter 2023-0001 and set 3 copies, it will create: 2023-0001, 2023-0002, 2023-0003</small>
@@ -624,36 +641,11 @@ $accession_error = '';
                                         </div>
                                     </div>
                                 </div>
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Series</label>
-                                            <input type="text" class="form-control" name="series">
-                                        </div>
+                                <div class="form-group">
+                                    <div id="isbnContainer">
+                                        <!-- Will be populated by JavaScript -->
                                     </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Volume</label>
-                                            <input type="text" class="form-control" name="volume">
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Edition</label>
-                                            <input type="text" class="form-control" name="edition">
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>ISBN Numbers</label>
-                                            <div id="isbnContainer">
-                                                <!-- Will be populated by JavaScript -->
-                                            </div>
-                                            <small class="text-muted">One ISBN per accession group</small>
-                                        </div>
-                                    </div>
+                                    <small class="text-muted">One set per accession group</small>
                                 </div>
                                 <div class="row">
                                     <div class="col-md-6">
@@ -662,7 +654,6 @@ $accession_error = '';
                                             <input type="text" class="form-control" name="url">
                                         </div>
                                     </div>
-
                                     <div class="col-md-6">
                                         <div class="form-group">
                                             <label>Content Type</label>
@@ -674,8 +665,6 @@ $accession_error = '';
                                         </div>
                                     </div>
                                 </div>
-
-                                <!-- Content Type, Media Type, Carrier Type in One Row -->
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="form-group">
@@ -687,7 +676,6 @@ $accession_error = '';
                                             </select>
                                         </div>
                                     </div>
-
                                     <div class="col-md-6">
                                         <div class="form-group">
                                             <label>Carrier Type</label>
@@ -726,6 +714,63 @@ document.addEventListener("DOMContentLoaded", function() {
             tabTrigger.show();
         });
     });
+
+    function filterDropdown(inputId, selectId) {
+        const input = document.getElementById(inputId);
+        const select = document.querySelector(selectId);
+        input.addEventListener("keyup", function() {
+            const filter = input.value.toLowerCase();
+            const options = select.options;
+            for (let i = 0; i < options.length; i++) {
+                const optionText = options[i].text.toLowerCase();
+                options[i].style.display = optionText.includes(filter) ? "" : "none";
+            }
+        });
+    }
+
+    function updatePreview(selectId, previewId) {
+        const select = document.getElementById(selectId);
+        const preview = document.getElementById(previewId);
+        const selectedOptions = Array.from(select.selectedOptions).map(option => {
+            return `<span class="badge bg-secondary mr-1 text-white">${option.text} <i class="fas fa-times remove-icon" data-value="${option.value}"></i></span>`;
+        });
+        preview.innerHTML = selectedOptions.join(' ');
+    }
+
+    function removeSelectedOption(selectId, previewId) {
+        const preview = document.getElementById(previewId);
+        preview.addEventListener("click", function(event) {
+            if (event.target.classList.contains("remove-icon")) {
+                const value = event.target.getAttribute("data-value");
+                const select = document.getElementById(selectId);
+                for (let i = 0; i < select.options.length; i++) {
+                    if (select.options[i].value === value) {
+                        select.options[i].selected = false;
+                        break;
+                    }
+                }
+                updatePreview(selectId, previewId);
+            }
+        });
+    }
+
+    filterDropdown("authorSearch", "select[name='author[]']");
+    filterDropdown("coAuthorsSearch", "select[name='co_authors[]']");
+    filterDropdown("editorsSearch", "select[name='editors[]']");
+
+    document.getElementById("authorSelect").addEventListener("change", function() {
+        updatePreview("authorSelect", "authorPreview");
+    });
+    document.getElementById("coAuthorsSelect").addEventListener("change", function() {
+        updatePreview("coAuthorsSelect", "coAuthorsPreview");
+    });
+    document.getElementById("editorsSelect").addEventListener("change", function() {
+        updatePreview("editorsSelect", "editorsPreview");
+    });
+
+    removeSelectedOption("authorSelect", "authorPreview");
+    removeSelectedOption("coAuthorsSelect", "coAuthorsPreview");
+    removeSelectedOption("editorsSelect", "editorsPreview");
 });
 
 function updateISBNFields() {
@@ -741,18 +786,71 @@ function updateISBNFields() {
         const accessionInput = group.querySelector('.accession-input').value;
         const copiesCount = parseInt(group.querySelector('.copies-input').value) || 1;
         
+        // Create a row for ISBN, series, volume, and edition inputs
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'row mb-3';
+
+        // Create label for the row
+        const labelDiv = document.createElement('div');
+        labelDiv.className = 'col-12';
+        const label = document.createElement('label');
+        label.textContent = `Details for Accession Group ${groupIndex + 1}`;
+        labelDiv.appendChild(label);
+        rowDiv.appendChild(labelDiv);
+
         // Create ISBN input (in Publication tab)
         const isbnDiv = document.createElement('div');
-        isbnDiv.className = 'form-group mb-3';
+        isbnDiv.className = 'col-md-3';
         
         const isbnInput = document.createElement('input');
         isbnInput.type = 'text';
         isbnInput.className = 'form-control';
         isbnInput.name = 'isbn[]';
-        isbnInput.placeholder = `ISBN for Accession Group ${groupIndex + 1}`;
+        isbnInput.placeholder = `ISBN`;
         
         isbnDiv.appendChild(isbnInput);
-        isbnContainer.appendChild(isbnDiv);
+        rowDiv.appendChild(isbnDiv);
+
+        // Create series input
+        const seriesDiv = document.createElement('div');
+        seriesDiv.className = 'col-md-3';
+
+        const seriesInput = document.createElement('input');
+        seriesInput.type = 'text';
+        seriesInput.className = 'form-control';
+        seriesInput.name = 'series[]';
+        seriesInput.placeholder = `Series`;
+        
+        seriesDiv.appendChild(seriesInput);
+        rowDiv.appendChild(seriesDiv);
+
+        // Create volume input
+        const volumeDiv = document.createElement('div');
+        volumeDiv.className = 'col-md-3';
+
+        const volumeInput = document.createElement('input');
+        volumeInput.type = 'text';
+        volumeInput.className = 'form-control';
+        volumeInput.name = 'volume[]';
+        volumeInput.placeholder = `Volume`;
+        
+        volumeDiv.appendChild(volumeInput);
+        rowDiv.appendChild(volumeDiv);
+
+        // Create edition input
+        const editionDiv = document.createElement('div');
+        editionDiv.className = 'col-md-3';
+
+        const editionInput = document.createElement('input');
+        editionInput.type = 'text';
+        editionInput.className = 'form-control';
+        editionInput.name = 'edition[]';
+        editionInput.placeholder = `Edition`;
+        
+        editionDiv.appendChild(editionInput);
+        rowDiv.appendChild(editionDiv);
+
+        isbnContainer.appendChild(rowDiv);
         
         // Create call number inputs (in Local Information tab)
         const groupLabel = document.createElement('h6');
@@ -841,7 +939,7 @@ document.addEventListener('click', function(e) {
             <div class="row">
                 <div class="col-md-8">
                     <div class="form-group">
-                        <label>Accession (Copy ${groupCount})</label>
+                        <label>Accession Group ${groupCount}</label>
                         <input type="text" class="form-control accession-input" name="accession[]" 
                             placeholder="e.g., 2023-0001" required>
                         <small class="text-muted">Format: YYYY-NNNN</small>

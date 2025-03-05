@@ -318,7 +318,10 @@ $result = $stmt->get_result();
             <th style="text-align: center">Call Number Range</th>
             <th style="text-align: center">Copy Number Range</th>
             <th style="text-align: center">Shelf Locations</th>
-            <th style="text-align: center">ISBN</th>
+            <th style="text-align: center">ISBN Range</th>
+            <th style="text-align: center">Series Range</th>
+            <th style="text-align: center">Volume Range</th>
+            <th style="text-align: center">Edition Range</th>
             <th style="text-align: center">Total Copies</th>
         </tr>
     </thead>
@@ -391,17 +394,32 @@ $result = $stmt->get_result();
             $isbns = array_unique(explode(',', $row['isbns']));
             $formatted_isbns = implode(', ', array_filter($isbns));
 
+            // Process series
+            $series = array_unique(explode(',', $row['series_data']));
+            $formatted_series = implode(', ', array_filter($series));
+
+            // Process volumes
+            $volumes = array_unique(explode(',', $row['volumes']));
+            $formatted_volumes = implode(', ', array_filter($volumes));
+
+            // Process editions
+            $editions = array_unique(explode(',', $row['editions']));
+            $formatted_editions = implode(', ', array_filter($editions));
+
             // Format all data for display
             echo "<tr>
-                <td><input type='checkbox' class='selectRow' value='" . implode(',', $ids) . "'></td>
-                <td>{$id_range}</td>
+                <td style='text-align: center'><input type='checkbox' class='selectRow' value='" . implode(',', $ids) . "'></td>
+                <td style='text-align: center'>{$id_range}</td>
                 <td>{$row['title']}</td>
-                <td>{$accession_range}</td>
-                <td>" . implode('<br>', $call_numbers) . "</td>
-                <td>{$copy_range}</td>
-                <td>{$formatted_shelf_locations}</td>
-                <td>" . ($formatted_isbns ?: 'N/A') . "</td>
-                <td>{$row['total_copies']}</td>
+                <td style='text-align: center'>{$accession_range}</td>
+                <td style='text-align: center'>" . implode('<br>', $call_numbers) . "</td>
+                <td style='text-align: center'>{$copy_range}</td>
+                <td style='text-align: center'>{$formatted_shelf_locations}</td>
+                <td style='text-align: center'>" . ($formatted_isbns ?: 'N/A') . "</td>
+                <td style='text-align: center'>" . ($formatted_series ?: 'N/A') . "</td>
+                <td style='text-align: center'>" . ($formatted_volumes ?: 'N/A') . "</td>
+                <td style='text-align: center'>" . ($formatted_editions ?: 'N/A') . "</td>
+                <td style='text-align: center'>{$row['total_copies']}</td>
             </tr>";
         }
 
@@ -629,10 +647,28 @@ $result = $stmt->get_result();
                 selectedIdRange = $(this).find('td:nth-child(2)').text(); // Get the ID range
                 var totalCopies = $(this).find('td:last').text(); // Get total copies from last column
                 $(this).data('totalCopies', totalCopies); // Store for later use
-                $('#contextMenu').css({
+
+                // Calculate the position of the context menu
+                var menu = $('#contextMenu');
+                var menuWidth = menu.outerWidth();
+                var menuHeight = menu.outerHeight();
+                var windowWidth = $(window).width();
+                var windowHeight = $(window).height();
+                var clickX = e.pageX;
+                var clickY = e.pageY;
+
+                // Adjust position to prevent overflow
+                if (clickX + menuWidth > windowWidth) {
+                    clickX = windowWidth - menuWidth;
+                }
+                if (clickY + menuHeight > windowHeight) {
+                    clickY = windowHeight - menuHeight;
+                }
+
+                menu.css({
                     display: 'block',
-                    left: e.pageX,
-                    top: e.pageY
+                    left: clickX,
+                    top: clickY
                 });
                 return false;
             });

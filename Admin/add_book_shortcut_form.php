@@ -60,9 +60,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
         $dimension = mysqli_real_escape_string($conn, $_POST['dimension']);
-        $series = mysqli_real_escape_string($conn, $_POST['series']);
-        $volume = mysqli_real_escape_string($conn, $_POST['volume']);
-        $edition = mysqli_real_escape_string($conn, $_POST['edition']);
         $content_type = mysqli_real_escape_string($conn, $_POST['content_type']);
         $media_type = mysqli_real_escape_string($conn, $_POST['media_type']);
         $carrier_type = mysqli_real_escape_string($conn, $_POST['carrier_type']);
@@ -87,14 +84,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $success_count = 0;
         $error_messages = array();
         $call_number_index = 0;
-        $copy_number = 1; // Initialize copy_number
 
         // Process each accession group
         for ($i = 0; $i < count($accessions); $i++) {
             $base_accession = $accessions[$i];
             $copies_for_this_accession = (int)$number_of_copies_array[$i];
+            $current_series = mysqli_real_escape_string($conn, $_POST['series'][$i]);
+            $current_volume = mysqli_real_escape_string($conn, $_POST['volume'][$i]);
+            $current_edition = mysqli_real_escape_string($conn, $_POST['edition'][$i]);
             $current_isbn = isset($_POST['isbn'][$i]) ? mysqli_real_escape_string($conn, $_POST['isbn'][$i]) : '';
             
+            // Reset copy number for each new accession group
+            $copy_number = 1;
+
             for ($j = 0; $j < $copies_for_this_accession; $j++) {
                 $current_accession = $base_accession + $j;
                 $current_call_number = isset($_POST['call_number'][$call_number_index]) ? 
@@ -114,12 +116,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $error_messages[] = "Accession number $current_accession already exists - skipping.";
                     continue;
                 }
-
-                // Get current copy number
-                $copy_query = "SELECT MAX(copy_number) as max_copy FROM books WHERE title = '$title'";
-                $copy_result = mysqli_query($conn, $copy_query);
-                $copy_row = mysqli_fetch_assoc($copy_result);
-                $copy_number = ($copy_row['max_copy'] !== null) ? $copy_row['max_copy'] + 1 : 1;
 
                 // Process subject entries for this copy
                 $subject_categories = isset($_POST['subject_categories']) ? $_POST['subject_categories'] : array();
@@ -152,7 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     '$current_accession', '$title', '$preferred_title', '$parallel_title',
                     '$subject_category', '$subject_detail',
                     '$summary', '$contents', '$front_image', '$back_image',
-                    '$dimension', '$series', '$volume', '$edition',
+                    '$dimension', '$current_series', '$current_volume', '$current_edition',
                     $copy_number, '$total_pages', '$supplementary_contents', '$current_isbn', '$content_type',
                     '$media_type', '$carrier_type', '$formatted_call_number', '$url',
                     '$language', '$current_shelf_location', '$entered_by', '$date_added',
@@ -197,6 +193,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 } else {
                     $error_messages[] = "Error adding book with accession $current_accession: " . mysqli_error($conn);
                 }
+
+                // Increment copy number for the next copy in the same accession group
+                $copy_number++;
             }
         }
 
@@ -204,6 +203,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             mysqli_commit($conn);
         }
         $_SESSION['success_message'] = "Successfully added all " . $success_count . " books!";
+        
+        // Clear the book shortcut session data
+        unset($_SESSION['book_shortcut']);
+        
+        // Redirect to book_list.php
         header("Location: book_list.php");
         exit();
     } catch (Exception $e) {
@@ -411,10 +415,24 @@ $accession_error = '';
                             <!-- Title Proper Tab -->
                             <div class="tab-pane fade show active" id="title-proper" role="tabpanel">
                                 <h4>Title Proper</h4>
-                                <div class="form-group">
-                                    <label>Title</label>
-                                    <input type="text" class="form-control" name="title" value="<?php echo isset($_SESSION['book_shortcut']['book_title']) ? htmlspecialchars($_SESSION['book_shortcut']['book_title']) : ''; ?>" required>
+                                
+                                <!-- Book Title from Shortcut in alert box, similar to Writers and Publisher -->
+                                <div class="alert alert-info mb-4">
+                                    <h5 class="mb-2">Book Title from Shortcut</h5>
+                                    <p>The following title will be used for this book:</p>
+                                    <div class="card mb-2">
+                                        <div class="card-body py-2">
+                                            <h6 class="mb-0 font-weight-bold">
+                                                <?php echo isset($_SESSION['book_shortcut']['book_title']) ? 
+                                                    htmlspecialchars($_SESSION['book_shortcut']['book_title']) : 
+                                                    '<span class="text-danger">No title set</span>'; ?>
+                                            </h6>
+                                        </div>
+                                    </div>
+                                    <p class="mt-2 mb-0"><small>To change the title, please <a href="shortcut_books.php">go back to the book title selection page</a>.</small></p>
                                 </div>
+                                <input type="hidden" name="title" value="<?php echo isset($_SESSION['book_shortcut']['book_title']) ? htmlspecialchars($_SESSION['book_shortcut']['book_title']) : ''; ?>">
+                                
                                 <div class="form-group">
                                     <label>Preferred Title</label>
                                     <input type="text" class="form-control" name="preferred_title">
@@ -767,37 +785,21 @@ $accession_error = '';
                                     <p class="mt-2 mb-0"><small>To change publisher information, please <a href="shortcut_publishers.php">go back to the publisher selection page</a>.</small></p>
                                 </div>
                                 
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Series</label>
-                                            <input type="text" class="form-control" name="series">
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Volume</label>
-                                            <input type="text" class="form-control" name="volume">
-                                        </div>
-                                    </div>
+                                <!-- Move Details for Accession Group fields just below the "Publisher from Shortcut" -->
+                                <div id="detailsForAccessionGroupContainer">
+                                    <!-- Will be populated by JavaScript -->
                                 </div>
+                                
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="form-group">
-                                            <label>Edition</label>
-                                            <input type="text" class="form-control" name="edition">
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>ISBN Numbers</label>
                                             <div id="isbnContainer">
                                                 <!-- Will be populated by JavaScript -->
                                             </div>
-                                            <small class="text-muted">One ISBN per accession group</small>
                                         </div>
                                     </div>
                                 </div>
+                                
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="form-group">
@@ -844,6 +846,11 @@ $accession_error = '';
                                 </div>
                             </div>
 
+                            <!-- Move Details for Accession Group fields outside the current column -->
+                            <div id="detailsForAccessionGroupContainer">
+                                <!-- Will be populated by JavaScript -->
+                            </div>
+
                         </div>
                     </div>
                 </div>
@@ -874,8 +881,10 @@ document.addEventListener("DOMContentLoaded", function() {
 function updateISBNFields() {
     const isbnContainer = document.getElementById('isbnContainer');
     const callNumberContainer = document.getElementById('callNumberContainer');
+    const detailsForAccessionGroupContainer = document.getElementById('detailsForAccessionGroupContainer');
     isbnContainer.innerHTML = '';
     callNumberContainer.innerHTML = '';
+    detailsForAccessionGroupContainer.innerHTML = '';
     
     // Get all accession groups
     const accessionGroups = document.querySelectorAll('.accession-group');
@@ -884,24 +893,77 @@ function updateISBNFields() {
         const accessionInput = group.querySelector('.accession-input').value;
         const copiesCount = parseInt(group.querySelector('.copies-input').value) || 1;
         
-        // Create ISBN input (in Publication tab)
+        // Create a container for Series, Volume, Edition, and ISBN inputs (in Publication tab)
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'form-group mb-3';
+        
+        const groupLabel = document.createElement('label');
+        groupLabel.textContent = `Details for Accession Group ${groupIndex + 1}`;
+        groupDiv.appendChild(groupLabel);
+        
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'row';
+        
+        // Create Series input
+        const seriesDiv = document.createElement('div');
+        seriesDiv.className = 'col-md-3';
+        
+        const seriesInput = document.createElement('input');
+        seriesInput.type = 'text';
+        seriesInput.className = 'form-control';
+        seriesInput.name = 'series[]';
+        seriesInput.placeholder = 'Series';
+        
+        seriesDiv.appendChild(seriesInput);
+        rowDiv.appendChild(seriesDiv);
+
+        // Create Volume input
+        const volumeDiv = document.createElement('div');
+        volumeDiv.className = 'col-md-3';
+        
+        const volumeInput = document.createElement('input');
+        volumeInput.type = 'text';
+        volumeInput.className = 'form-control';
+        volumeInput.name = 'volume[]';
+        volumeInput.placeholder = 'Volume';
+        
+        volumeDiv.appendChild(volumeInput);
+        rowDiv.appendChild(volumeDiv);
+
+        // Create Edition input
+        const editionDiv = document.createElement('div');
+        editionDiv.className = 'col-md-3';
+        
+        const editionInput = document.createElement('input');
+        editionInput.type = 'text';
+        editionInput.className = 'form-control';
+        editionInput.name = 'edition[]';
+        editionInput.placeholder = 'Edition';
+        
+        editionDiv.appendChild(editionInput);
+        rowDiv.appendChild(editionDiv);
+        
+        // Create ISBN input
         const isbnDiv = document.createElement('div');
-        isbnDiv.className = 'form-group mb-3';
+        isbnDiv.className = 'col-md-3';
         
         const isbnInput = document.createElement('input');
         isbnInput.type = 'text';
         isbnInput.className = 'form-control';
         isbnInput.name = 'isbn[]';
-        isbnInput.placeholder = `ISBN for Accession Group ${groupIndex + 1}`;
+        isbnInput.placeholder = 'ISBN';
         
         isbnDiv.appendChild(isbnInput);
-        isbnContainer.appendChild(isbnDiv);
+        rowDiv.appendChild(isbnDiv);
+        
+        groupDiv.appendChild(rowDiv);
+        detailsForAccessionGroupContainer.appendChild(groupDiv);
         
         // Create call number inputs (in Local Information tab)
-        const groupLabel = document.createElement('h6');
-        groupLabel.className = 'mt-3 mb-2';
-        groupLabel.textContent = `Call Numbers for Accession Group ${groupIndex + 1}`;
-        callNumberContainer.appendChild(groupLabel);
+        const callNumberGroupLabel = document.createElement('h6');
+        callNumberGroupLabel.className = 'mt-3 mb-2';
+        callNumberGroupLabel.textContent = `Call Numbers for Accession Group ${groupIndex + 1}`;
+        callNumberContainer.appendChild(callNumberGroupLabel);
         
         for (let i = 0; i < copiesCount; i++) {
             const currentAccession = calculateAccession(accessionInput, i);

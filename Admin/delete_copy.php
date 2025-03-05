@@ -1,32 +1,93 @@
 <?php
 session_start();
 
-// Check if user is logged in as an admin
-if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Librarian', 'Assistant', 'Encoder'])) {
-    http_response_code(403);
-    echo json_encode(['success' => false, 'error' => 'Access denied']);
+// Check if the user is logged in with appropriate role
+if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Librarian'])) {
+    header('Content-Type: application/json');
+    echo json_encode(['success' => false, 'error' => 'Unauthorized access']);
     exit();
 }
 
 include '../db.php';
 
+// Get JSON data from request
 $data = json_decode(file_get_contents('php://input'), true);
-if (!isset($data['bookId'])) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'Invalid request']);
-    exit();
-}
 
-$bookId = intval($data['bookId']);
+// Get book ID
+$bookId = isset($data['bookId']) ? (int)$data['bookId'] : 0;
 
-$stmt = $conn->prepare("DELETE FROM books WHERE id = ?");
-$stmt->bind_param("i", $bookId);
-if ($stmt->execute()) {
-    echo json_encode(['success' => true]);
+// Default response
+$response = ['success' => false];
+
+if ($bookId > 0) {
+    try {
+        $conn->begin_transaction();
+        
+        // Check if the book can be deleted (not borrowed, not in reservation)
+        $check_query = "SELECT b.id FROM borrowings b WHERE b.book_id = ? AND b.status IN ('Borrowed', 'Overdue')";
+        $stmt = $conn->prepare($check_query);
+        $stmt->bind_param("i", $bookId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        if ($result->num_rows > 0) {
+            throw new Exception("Cannot delete: Book is currently borrowed.");
+        }
+        
+        // Check reservations
+        $check_reservations = "SELECT r.id FROM reservations r WHERE r.book_id = ? AND r.status = 'Pending'";
+        $stmt = $conn->prepare($check_reservations);
+        $stmt->bind_param("i", $bookId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        if ($result->num_rows > 0) {
+            throw new Exception("Cannot delete: Book has pending reservations.");
+        }
+        
+        // Delete from contributors
+        $del_contributors = "DELETE FROM contributors WHERE book_id = ?";
+        $stmt = $conn->prepare($del_contributors);
+        $stmt->bind_param("i", $bookId);
+        $stmt->execute();
+        
+        // Delete from publications
+        $del_publications = "DELETE FROM publications WHERE book_id = ?";
+        $stmt = $conn->prepare($del_publications);
+        $stmt->bind_param("i", $bookId);
+        $stmt->execute();
+        
+        // Delete from cart
+        $del_cart = "DELETE FROM cart WHERE book_id = ?";
+        $stmt = $conn->prepare($del_cart);
+        $stmt->bind_param("i", $bookId);
+        $stmt->execute();
+        
+        // Delete the book
+        $del_book = "DELETE FROM books WHERE id = ?";
+        $stmt = $conn->prepare($del_book);
+        $stmt->bind_param("i", $bookId);
+        $stmt->execute();
+        
+        if ($stmt->affected_rows > 0) {
+            $conn->commit();
+            $response['success'] = true;
+        } else {
+            throw new Exception("Book not found or already deleted.");
+        }
+        
+    } catch (Exception $e) {
+        $conn->rollback();
+        $response['error'] = $e->getMessage();
+    }
 } else {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'error' => $stmt->error]);
+    $response['error'] = 'Invalid book ID.';
 }
+
+// Return JSON response
+header('Content-Type: application/json');
+echo json_encode($response);
+
 $stmt->close();
 $conn->close();
 ?>

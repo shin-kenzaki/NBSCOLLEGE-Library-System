@@ -70,6 +70,9 @@ if (isset($_POST['save_selection'])) {
         $_SESSION['book_shortcut']['publish_year'] = $publish_year;
         $_SESSION['book_shortcut']['steps_completed']['publisher'] = true;
         
+        // Move to the next step automatically
+        $_SESSION['book_shortcut']['current_step'] = 3;
+        
         echo "<script>
             alert('Publisher and publication year saved successfully!');
             window.location.href = 'add_book_shortcut.php';
@@ -80,7 +83,7 @@ if (isset($_POST['save_selection'])) {
     }
 }
 
-// Get the search query if it exists
+// Get the search query if it exists - keep for URL parameter compatibility
 $searchQuery = isset($_GET['search']) ? $conn->real_escape_string($_GET['search']) : '';
 ?>
 
@@ -107,15 +110,15 @@ $searchQuery = isset($_GET['search']) ? $conn->real_escape_string($_GET['search'
                     </button>
                 </div>
 
-                <!-- Search Form -->
-                <form method="GET" action="shortcut_publishers.php" id="searchForm">
+                <!-- Replace search form with real-time search input -->
+                <div class="form-group">
                     <div class="input-group mb-3">
-                        <input type="text" name="search" class="form-control" placeholder="Search publishers..." value="<?php echo htmlspecialchars($searchQuery); ?>">
-                        <div class="input-group-append">
-                            <button class="btn btn-primary" type="submit">Search</button>
+                        <div class="input-group-prepend">
+                            <span class="input-group-text"><i class="fas fa-search"></i></span>
                         </div>
+                        <input type="text" id="publisherSearch" class="form-control" placeholder="Search publishers..." value="<?php echo htmlspecialchars($searchQuery); ?>">
                     </div>
-                </form>
+                </div>
 
                 <!-- Publishers Table -->
                 <form method="POST" id="selectPublisherForm">
@@ -131,10 +134,8 @@ $searchQuery = isset($_GET['search']) ? $conn->real_escape_string($_GET['search'
                             </thead>
                             <tbody>
                                 <?php
-                                $query = "SELECT * FROM publishers";
-                                if (!empty($searchQuery)) {
-                                    $query .= " WHERE publisher LIKE '%$searchQuery%' OR place LIKE '%$searchQuery%'";
-                                }
+                                // Fetch ALL publishers from database - client-side search will filter
+                                $query = "SELECT * FROM publishers ORDER BY publisher";
                                 $result = $conn->query($query);
 
                                 if ($result->num_rows > 0) {
@@ -201,11 +202,30 @@ $searchQuery = isset($_GET['search']) ? $conn->real_escape_string($_GET['search'
 
 <script>
 $(document).ready(function() {
-    // Initialize DataTable
-    $('#publishersTable').DataTable({
+    // Initialize DataTable with search enabled
+    var publishersTable = $('#publishersTable').DataTable({
         "pageLength": 10,
-        "searching": false
+        "searching": true,  // Enable searching
+        "ordering": true,   // Enable column sorting
+        "info": true,       // Show info (Showing X of Y entries)
+        "paging": true,     // Enable pagination
+        "columnDefs": [
+            { "orderable": false, "targets": [0, 3] } // Disable sorting on checkbox and year columns
+        ],
+        // Hide the default search box
+        "dom": "<'row'<'col-sm-12'tr>>" +
+               "<'row'<'col-sm-5'i><'col-sm-7'p>>"
     });
+    
+    // Link our custom search box to DataTables search
+    $('#publisherSearch').on('keyup', function() {
+        publishersTable.search(this.value).draw();
+    });
+    
+    // Set initial search value if provided
+    if ($('#publisherSearch').val()) {
+        publishersTable.search($('#publisherSearch').val()).draw();
+    }
 
     // Save selections button handler
     $('#saveSelections').click(function() {
@@ -225,12 +245,12 @@ $(document).ready(function() {
         $('#selectPublisherForm').submit();
     });
 
-    // Add handler to automatically save when year is changed
-    $('input[name^="publish_year"]').change(function() {
-        if ($('input[name="publisher_id"]:checked').length) {
-            $('#saveSelections').click();
-        }
-    });
+    // Remove the auto-save handler for year input fields
+    // $('input[name^="publish_year"]').change(function() {
+    //     if ($('input[name="publisher_id"]:checked').length) {
+    //         $('#saveSelections').click();
+    //     }
+    // });
 });
 </script>
 
