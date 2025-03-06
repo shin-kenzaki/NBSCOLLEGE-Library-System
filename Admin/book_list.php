@@ -259,36 +259,6 @@ $result = $stmt->get_result();
         }
     }
 </style>
-    <style>
-    /* ...existing styles... */
-    /* Center align specified columns:
-       1: Check box,
-       2: ID Range,
-       4: Accession Range,
-       5: Call Number Range,
-       6: Copy Number Range,
-       7: Shelf Locations,
-       8: ISBN,
-       9: Total Copies */
-    #dataTable th:nth-child(1),
-    #dataTable th:nth-child(2),
-    #dataTable th:nth-child(4),
-    #dataTable th:nth-child(5),
-    #dataTable th:nth-child(6),
-    #dataTable th:nth-child(7),
-    #dataTable th:nth-child(8),
-    #dataTable th:nth-child(9),
-    #dataTable td:nth-child(1),
-    #dataTable td:nth-child(2),
-    #dataTable td:nth-child(4),
-    #dataTable td:nth-child(5),
-    #dataTable td:nth-child(6),
-    #dataTable td:nth-child(7),
-    #dataTable td:nth-child(8),
-    #dataTable td:nth-child(9) {
-        text-align: center;
-    }
-</style>
 </head>
 <body>
     <?php include '../admin/inc/header.php'; ?>

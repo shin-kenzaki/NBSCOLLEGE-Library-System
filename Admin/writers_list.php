@@ -88,10 +88,10 @@ $result = $conn->query($sql);
                     <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
-                                <th>ID</th>
-                                <th>First Name</th>
-                                <th>Middle Initial</th>
-                                <th>Last Name</th>
+                                <th class="text-center">ID</th>
+                                <th class="text-center">First Name</th>
+                                <th class="text-center">Middle Initial</th>
+                                <th class="text-center">Last Name</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -101,10 +101,10 @@ $result = $conn->query($sql);
                                 // Loop through the rows and display them in the table
                                 while ($row = $result->fetch_assoc()) {
                                     echo "<tr>
-                                            <td>{$row['id']}</td>
-                                            <td>{$row['firstname']}</td>
-                                            <td>{$row['middle_init']}</td>
-                                            <td>{$row['lastname']}</td>
+                                            <td style='text-align: center;'>{$row['id']}</td>
+                                            <td style='text-align: center;'>{$row['firstname']}</td>
+                                            <td style='text-align: center;'>{$row['middle_init']}</td>
+                                            <td style='text-align: center;'>{$row['lastname']}</td>
                                           </tr>";
                                 }
                             }

@@ -307,6 +307,17 @@ include '../admin/inc/header.php';
                                 <!-- Card Header - Changed Title -->
                                 <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
                                     <h6 class="m-0 font-weight-bold text-primary">Borrowings Overview (<?= date('F Y'); ?>)</h6>
+                                    <div class="dropdown no-arrow">
+                                        <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                            <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                                        </a>
+                                        <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="dropdownMenuLink">
+                                            <a class="dropdown-item" href="export_borrowings.php?type=previous_month">Export Previous Month</a>
+                                            <a class="dropdown-item" href="export_borrowings.php?type=current_month">Export Current Month</a>
+                                            <a class="dropdown-item" href="export_borrowings.php?type=last_year">Export Previous Year</a>
+                                            <a class="dropdown-item" href="export_borrowings.php?type=current_year">Export Current Year</a>
+                                        </div>
+                                    </div>
                                 </div>
                                 <!-- Card Body -->
                                 <div class="card-body">
@@ -793,6 +804,13 @@ include '../admin/inc/header.php';
                 mode: 'index',
                 caretPadding: 10,
             }
+        }
+    });
+
+    document.getElementById('exportButton').addEventListener('click', function() {
+        const exportType = prompt('Enter export type (current_month, previous_month, last_year, current_year):', 'current_month');
+        if (exportType) {
+            window.location.href = `export_borrowings.php?type=${exportType}`;
         }
     });
     </script>

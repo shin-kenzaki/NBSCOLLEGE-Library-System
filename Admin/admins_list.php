@@ -248,14 +248,14 @@ $result = mysqli_query($conn, $query);
                             <thead>
                                 <tr>
                                     <th><input type="checkbox" id="selectAll"></th>
-                                    <th>ID</th>
-                                    <th>Employee ID</th>
-                                    <th>Name</th>
-                                    <th>Email</th>
-                                    <th>Role</th>
-                                    <th>Status</th>
-                                    <th>Date Added</th>
-                                    <th>Last Update</th>
+                                    <th class="text-center">ID</th>
+                                    <th class="text-center">Employee ID</th>
+                                    <th class="text-center">Name</th>
+                                    <th class="text-center">Email</th>
+                                    <th class="text-center">Role</th>
+                                    <th class="text-center">Status</th>
+                                    <th class="text-center">Date Added</th>
+                                    <th class="text-center">Last Update</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -269,15 +269,15 @@ $result = mysqli_query($conn, $query);
                                     list($status_class, $status_text) = getStatusDisplay($row['status']);
                                     
                                     echo "<tr>";
-                                    echo "<td><input type='checkbox' class='selectRow'></td>";
-                                    echo "<td>{$row['id']}</td>";
-                                    echo "<td>{$row['employee_id']}</td>";
+                                    echo "<td style='text-align: center;'><input type='checkbox' class='selectRow'></td>";
+                                    echo "<td style='text-align: center;'>{$row['id']}</td>";
+                                    echo "<td style='text-align: center;'>{$row['employee_id']}</td>";
                                     echo "<td>" . htmlspecialchars($fullname) . "</td>";
-                                    echo "<td>{$row['email']}</td>";
-                                    echo "<td>{$row['role']}</td>";
-                                    echo "<td><span class='badge {$status_class}'>{$status_text}</span></td>";
-                                    echo "<td>" . date('M d, Y', strtotime($row['date_added'])) . "</td>";
-                                    echo "<td>" . ($row['last_update'] ? date('M d, Y', strtotime($row['last_update'])) : 'Never') . "</td>";
+                                    echo "<td>" . htmlspecialchars($row['email']) . "</td>";
+                                    echo "<td style='text-align: center;'>{$row['role']}</td>";
+                                    echo "<td style='text-align: center;'><span class='badge {$status_class}'>{$status_text}</span></td>";
+                                    echo "<td style='text-align: center;'>" . date('M d, Y', strtotime($row['date_added'])) . "</td>";
+                                    echo "<td style='text-align: center;'>" . ($row['last_update'] ? date('M d, Y', strtotime($row['last_update'])) : 'Never') . "</td>";
                                     echo "</tr>";
                                 }
                                 ?>

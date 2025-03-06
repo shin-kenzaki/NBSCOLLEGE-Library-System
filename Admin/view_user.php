@@ -151,58 +151,58 @@ $userImage = displayProfileImage($user['user_image']);
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
 
-                <!-- Borrowing History -->
-                <div class="card">
-                    <div class="card-header">Recent Borrowings</div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-bordered table-striped">
-                                <thead>
-                                    <tr>
-                                        <th class="text-center">Book</th>
-                                        <th class="text-center">Borrowed Date</th>
-                                        <th class="text-center">Due Date</th>
-                                        <th class="text-center">Return Date</th>
-                                        <th class="text-center">Received By</th>
-                                        <th class="text-center">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php
-                                    $borrowings = $conn->prepare("
-                                        SELECT b.*, bk.title as book_title, 
-                                               CONCAT(a.firstname, ' ', a.lastname) as recieved_by_name
-                                        FROM borrowings b 
-                                        JOIN books bk ON b.book_id = bk.id 
-                                        LEFT JOIN admins a ON b.recieved_by = a.id 
-                                        WHERE b.user_id = ? 
-                                        ORDER BY b.issue_date DESC 
-                                        LIMIT 10
-                                    ");
-                                    $borrowings->bind_param("i", $user_id);
-                                    $borrowings->execute();
-                                    $result = $borrowings->get_result();
-                                    
-                                    while ($row = $result->fetch_assoc()) {
-                                        echo "<tr>";
-                                        echo "<td>" . htmlspecialchars($row['book_title']) . "</td>";
-                                        echo "<td class='text-center'>" . date('M d, Y', strtotime($row['issue_date'])) . "</td>";
-                                        echo "<td class='text-center'>" . date('M d, Y', strtotime($row['due_date'])) . "</td>";
-                                        echo "<td class='text-center'>" . ($row['return_date'] ? date('M d, Y', strtotime($row['return_date'])) : '-') . "</td>";
-                                        echo "<td class='text-center'>" . ($row['recieved_by_name'] ? htmlspecialchars($row['recieved_by_name']) : '-') . "</td>";
-                                        echo "<td class='text-center'><span class='badge badge-" . 
-                                            ($row['status'] == 'Returned' ? 'success' : 
-                                            ($row['status'] == 'Damaged' ? 'warning' : 
-                                            ($row['status'] == 'Lost' ? 'danger' : 'info'))) . 
-                                            "'>" . ucfirst($row['status']) . "</span></td>";
-                                        echo "</tr>";
-                                    }
-                                    ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+        <!-- Borrowing History -->
+        <div class="card">
+            <div class="card-header">Recent Borrowings</div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped">
+                        <thead>
+                            <tr>
+                                <th class="text-center">Book</th>
+                                <th class="text-center">Borrowed Date</th>
+                                <th class="text-center">Due Date</th>
+                                <th class="text-center">Return Date</th>
+                                <th class="text-center">Received By</th>
+                                <th class="text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php
+                            $borrowings = $conn->prepare("
+                                SELECT b.*, bk.title as book_title, 
+                                       CONCAT(a.firstname, ' ', a.lastname) as recieved_by_name
+                                FROM borrowings b 
+                                JOIN books bk ON b.book_id = bk.id 
+                                LEFT JOIN admins a ON b.recieved_by = a.id 
+                                WHERE b.user_id = ? 
+                                ORDER BY b.issue_date DESC 
+                                LIMIT 10
+                            ");
+                            $borrowings->bind_param("i", $user_id);
+                            $borrowings->execute();
+                            $result = $borrowings->get_result();
+                            
+                            while ($row = $result->fetch_assoc()) {
+                                echo "<tr>";
+                                echo "<td>" . htmlspecialchars($row['book_title']) . "</td>";
+                                echo "<td class='text-center'>" . date('M d, Y', strtotime($row['issue_date'])) . "</td>";
+                                echo "<td class='text-center'>" . date('M d, Y', strtotime($row['due_date'])) . "</td>";
+                                echo "<td class='text-center'>" . ($row['return_date'] ? date('M d, Y', strtotime($row['return_date'])) : '-') . "</td>";
+                                echo "<td class='text-center'>" . ($row['recieved_by_name'] ? htmlspecialchars($row['recieved_by_name']) : '-') . "</td>";
+                                echo "<td class='text-center'><span class='badge badge-" . 
+                                    ($row['status'] == 'Returned' ? 'success' : 
+                                    ($row['status'] == 'Damaged' ? 'warning' : 
+                                    ($row['status'] == 'Lost' ? 'danger' : 'info'))) . 
+                                    "'>" . ucfirst($row['status']) . "</span></td>";
+                                echo "</tr>";
+                            }
+                            ?>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>

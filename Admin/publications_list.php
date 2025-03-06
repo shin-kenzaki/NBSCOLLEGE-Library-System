@@ -60,24 +60,24 @@ while ($row = $result->fetch_assoc()) {
                         <thead>
                             <tr>
                                 <th style="cursor: pointer;" id="checkboxHeader"><input type="checkbox" id="selectAll"></th>
-                                <th>ID</th>
-                                <th>Book Title</th>
-                                <th>Publisher</th>
-                                <th>Place</th>
-                                <th>Year</th>
-                                <th>Total Books</th>
+                                <th style='text-align: center;'>ID</th>
+                                <th style='text-align: center;'>Book Title</th>
+                                <th style='text-align: center;'>Publisher</th>
+                                <th style='text-align: center;'>Place</th>
+                                <th style='text-align: center;'>Year</th>
+                                <th style='text-align: center;'>Total Books</th>
                             </tr>
                         </thead>
                         <tbody id="publicationsTableBody">
                             <?php foreach ($publications_data as $row): ?>
                             <tr>
                                 <td><input type="checkbox" class="row-checkbox" value="<?php echo htmlspecialchars($row['id_ranges']); ?>"></td>
-                                <td><?php echo htmlspecialchars($row['id_ranges']); ?></td>
+                                <td style='text-align: center;'><?php echo htmlspecialchars($row['id_ranges']); ?></td>
                                 <td><?php echo htmlspecialchars($row['book_title']); ?></td>
                                 <td><?php echo htmlspecialchars($row['publisher']); ?></td>
-                                <td><?php echo htmlspecialchars($row['place']); ?></td>
-                                <td><?php echo htmlspecialchars(date('Y', strtotime($row['publish_date']))); ?></td>
-                                <td><?php 
+                                <td style='text-align: center;'><?php echo htmlspecialchars($row['place']); ?></td>
+                                <td style='text-align: center;'><?php echo htmlspecialchars(date('Y', strtotime($row['publish_date']))); ?></td>
+                                <td style='text-align: center;'><?php 
                                     $total = 0;
                                     $ranges = explode(',', $row['id_ranges']);
                                     foreach ($ranges as $range) {

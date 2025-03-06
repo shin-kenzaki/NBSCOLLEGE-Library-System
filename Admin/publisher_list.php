@@ -114,9 +114,9 @@ $result = $conn->query($sql);
                     <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
-                                <th>ID</th>
-                                <th>Publisher</th>
-                                <th>Place of Publication</th>
+                                <th class="text-center">ID</th>
+                                <th class="text-center">Publisher</th>
+                                <th class="text-center">Place of Publication</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -126,9 +126,9 @@ $result = $conn->query($sql);
                                 // Loop through the rows and display them in the table
                                 while ($row = $result->fetch_assoc()) {
                                     echo "<tr>
-                                            <td>" . $row['id'] . "</td>
-                                            <td>" . $row['publisher'] . "</td>
-                                            <td>" . $row['place'] . "</td>
+                                            <td style='text-align: center;'>" . $row['id'] . "</td>
+                                            <td style='text-align: center;'>" . $row['publisher'] . "</td>
+                                            <td style='text-align: center;'>" . $row['place'] . "</td>
                                           </tr>";
                                 }
                             }
