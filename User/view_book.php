@@ -272,42 +272,38 @@ if (!empty($bookTitle)) {
                             foreach ($contributors as $contributor) {
                                 $fullName = $contributor['lastname'] . ', ' . $contributor['firstname'] . ' ' . $contributor['middle_init'];
                                 if ($contributor['role'] == 'Author') {
-                                    $authorsList[] = $fullName;
+                                    $authorsList[] = $fullName . ' (Author)';
                                 } elseif ($contributor['role'] == 'Co-Author') {
-                                    $coAuthorsList[] = $fullName;
+                                    $coAuthorsList[] = $fullName . ' (Co-Author)';
                                 } elseif ($contributor['role'] == 'Editor') {
-                                    $editorsList[] = $fullName;
+                                    $editorsList[] = $fullName . ' (Editor)';
                                 }
                             }
                             
                             $allContributors = array_merge($authorsList, $coAuthorsList, $editorsList);
                             $contributorLine = implode(', ', $allContributors);
                             ?>
-                            <h4><?php echo htmlspecialchars($book['title'] . ' / ' . $contributorLine); ?></h4>
+                            <h4>
+                                <?php 
+                                echo htmlspecialchars($book['title']) . ' / ';
+                                $contributorNames = [];
+                                foreach ($contributors as $contributor) {
+                                    $contributorNames[] = htmlspecialchars($contributor['firstname'] . ' ' . $contributor['middle_init'] . ' ' . $contributor['lastname']);
+                                }
+                                if (count($contributorNames) > 1) {
+                                    $lastContributor = array_pop($contributorNames);
+                                    echo implode(', ', $contributorNames) . ' and ' . $lastContributor;
+                                } else {
+                                    echo implode('', $contributorNames);
+                                }
+                                ?>
+                            </h4>
 
                             <!-- Authors Line -->
-                            <?php if (!empty($authorsList)): ?>
+                            <?php if (!empty($authorsList) || !empty($coAuthorsList) || !empty($editorsList)): ?>
                                 <p><strong>By:</strong> 
                                     <?php 
-                                    foreach ($authorsList as $author) {
-                                        echo htmlspecialchars($author . ' [author] ');
-                                    }
-                                    ?>
-                                </p>
-                            <?php endif; ?>
-
-                            <!-- Contributors Line -->
-                            <?php if (!empty($coAuthorsList) || !empty($editorsList)): ?>
-                                <p><strong>Contributor(s):</strong>
-                                    <?php
-                                    $contributors = [];
-                                    foreach ($coAuthorsList as $coAuthor) {
-                                        $contributors[] = $coAuthor . ' [co-author]';
-                                    }
-                                    foreach ($editorsList as $editor) {
-                                        $contributors[] = $editor . ' [editor]';
-                                    }
-                                    echo htmlspecialchars(implode(' | ', $contributors));
+                                    echo implode(count($allContributors) > 1 ? ', ' : '', array_map('htmlspecialchars', $allContributors));
                                     ?>
                                 </p>
                             <?php endif; ?>

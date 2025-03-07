@@ -22,7 +22,7 @@ updateOverdueStatus($conn);
 
 // Fetch borrowed books data from the database
 $query = "SELECT b.id as borrow_id, b.book_id, b.user_id, b.issue_date, b.due_date, b.status,
-          bk.title, bk.accession, 
+          bk.title, bk.accession, bk.shelf_location,
           CONCAT(u.firstname, ' ', u.lastname) AS borrower,
           CONCAT(a.firstname, ' ', a.lastname) AS issued_by_name
           FROM borrowings b
@@ -73,6 +73,7 @@ $result = $conn->query($query);
                                 <th class="text-center">Borrower's Name</th>
                                 <th class="text-center">Borrow Date</th>
                                 <th class="text-center">Due Date</th>
+                                <th class="text-center">Shelf Location</th>
                                 <th class="text-center">Status</th>
                             </tr>
                         </thead>
@@ -91,6 +92,7 @@ $result = $conn->query($query);
                                     <td><?php echo $row['borrower']; ?></td>
                                     <td class="text-center"><?php echo date('M d, Y', strtotime($row['issue_date'])); ?></td>
                                     <td class="text-center"><?php echo date('M d, Y', strtotime($row['due_date'])); ?></td>
+                                    <td class="text-center"><?php echo htmlspecialchars($row['shelf_location']); ?></td>
                                     <td class="text-center">
                                         <?php
                                         $status = htmlspecialchars($row['status']);

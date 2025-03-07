@@ -65,15 +65,13 @@ if (isset($_POST['save_writers'])) {
         $_SESSION['book_shortcut']['writer_id'] = $selected_writer_id;
         $_SESSION['book_shortcut']['steps_completed']['writer'] = true;
         
-        echo "<script>alert('$valid_entries writer(s) saved successfully'); window.location.href='add_book_shortcut.php';</script>";
-        exit;
+        echo "<script>alert('$valid_entries writer(s) saved successfully');</script>";
     } elseif ($valid_entries === 0 && $selected_writer_id) {
         // Use the existing writer
         $_SESSION['book_shortcut']['writer_id'] = $selected_writer_id;
         $_SESSION['book_shortcut']['steps_completed']['writer'] = true;
         
-        echo "<script>alert('Writer already exists and has been selected'); window.location.href='add_book_shortcut.php';</script>";
-        exit;
+        echo "<script>alert('Writer already exists and has been selected');</script>";
     } elseif ($valid_entries === 0) {
         echo "<script>alert('No valid writers to save. Please provide both firstname and lastname.');</script>";
     } else {
@@ -191,9 +189,7 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
                                             </td>
                                         </tr>";
                                     }
-                                } else {
-                                    echo "<tr><td colspan='6'>No writers found matching your search criteria</td></tr>";
-                                }
+                                                                }
                                 ?>
                             </tbody>
                         </table>

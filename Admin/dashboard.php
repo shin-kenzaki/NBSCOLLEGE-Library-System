@@ -333,6 +333,7 @@ include '../admin/inc/header.php';
                             <div class="card shadow mb-4">
                                 <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
                                     <h6 class="m-0 font-weight-bold text-primary">Book Status Distribution</h6>
+                                    <a href="export_books_statuses.php" class="btn btn-sm btn-primary">Generate Report</a>
                                 </div>
                                 <div class="card-body">
                                     <div class="chart-pie pt-4 pb-2">

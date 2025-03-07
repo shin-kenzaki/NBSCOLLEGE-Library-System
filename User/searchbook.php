@@ -131,7 +131,15 @@ include '../db.php';
                                     if ($row['contributors']) {
                                         foreach (explode('|', $row['contributors']) as $contributor) {
                                             list($role, $name) = explode(':', $contributor);
-                                            $contributorsByRole[$role][] = $name;
+                                            $nameParts = explode(', ', $name);
+                                            $lastName = $nameParts[0];
+                                            $firstNameParts = explode(' ', $nameParts[1]);
+                                            $firstName = $firstNameParts[0];
+                                            $middleInit = isset($firstNameParts[1]) ? $firstNameParts[1][0] . '.' : '';
+                                            $formattedName = $firstName . ' ' . $middleInit . ' ' . $lastName;
+                                            $formattedByLineName = $lastName . ', ' . $firstName . ' ' . $middleInit;
+                                            $contributorsByRole[$role][] = $formattedName;
+                                            $contributors[] = $formattedByLineName . ' (' . $role . ')';
                                         }
                                     }
 
@@ -141,10 +149,16 @@ include '../db.php';
                                         $contributorsByRole['Co-Author'],
                                         $contributorsByRole['Editor']
                                     );
-                                    $firstLine = htmlspecialchars($row['title']) . ' / ' . implode(', ', $allContributors);
+                                    if (count($allContributors) > 1) {
+                                        $lastContributor = array_pop($allContributors);
+                                        $firstLineContributors = implode(', ', $allContributors) . ' and ' . $lastContributor;
+                                    } else {
+                                        $firstLineContributors = implode(', ', $allContributors);
+                                    }
+                                    $firstLine = htmlspecialchars($row['title']) . ' / ' . $firstLineContributors;
 
                                     // Format second line (By Contributors)
-                                    $byLine = 'By ' . implode('; ', $allContributors);
+                                    $byLine = 'By ' . implode('; ', $contributors);
 
                                     echo "<tr class='clickable-row' data-href='view_book.php?title=" . urlencode($row['title']) . "'>
                                         <td style='width: 80%'>

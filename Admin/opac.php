@@ -8,7 +8,6 @@ if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Lib
 }
 
 include '../db.php'; // Database connection
-include 'lcc_generator.php'; // Add this line
 
 // Handle Add Copies via modal submission
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['num_copies']) && isset($_POST['modal_action']) && $_POST['modal_action'] === 'add_copies') {
@@ -116,11 +115,7 @@ if ($bookId > 0) {
         $copies = $copiesResult->fetch_assoc();
         $totalCopies = $copies['total_copies'];
         $inShelf = $copies['in_shelf'];
-
-        // Only generate call number for display
-        $generatedCallNumber = generateCallNumber($book);
-        
-        // Remove the auto-update logic, just keep the display
+    
     } else {
         $error = "Book not found.";
     }
@@ -400,7 +395,6 @@ if ($bookId > 0) {
                             <div class="mb-4">
                                 <p><strong>Accession:</strong> <?php echo htmlspecialchars($book['accession']); ?></p>
                                 <p><strong>Call Number:</strong> <?php echo htmlspecialchars($book['call_number']); ?></p>
-                                <p><strong>Generated Call Number:</strong> <?php echo htmlspecialchars($generatedCallNumber); ?></p>
                                 <p><strong>Copy Number:</strong> <?php echo htmlspecialchars($book['copy_number']); ?></p>
                                 <p><strong>ISBN:</strong> <?php echo htmlspecialchars($book['ISBN']); ?></p>
                                 <p><strong>Series:</strong> <?php echo htmlspecialchars($book['series']); ?></p>

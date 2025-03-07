@@ -39,7 +39,7 @@ if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Lib
                                 <div class="mb-3">
                                     <label for="user_id" class="form-label">Select Borrower</label>
                                     <select class="form-control" id="user_id" name="user_id" required>
-                                        <option value="">Choose a borrower...</option>
+                                        <option value="" disabled selected>Choose a borrower...</option>
                                         <?php
                                         $users_query = "SELECT id, school_id, firstname, middle_init, lastname FROM users WHERE status IS NULL OR status IN ('1', '0')";
                                         $users_result = $conn->query($users_query);
@@ -71,19 +71,25 @@ if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Lib
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="book_id" class="form-label">Select Book</label>
-                                    <select class="form-control" id="book_id" name="book_id" required>
-                                        <option value="">Choose a book...</option>
+                                    <select class="form-control" id="book_id" name="book_id[]" multiple required>
+                                        <option value="" disabled selected>Choose a book...</option>
                                         <?php
-                                        $books_query = "SELECT id, title, accession FROM books WHERE status = 'Available'";
+                                        $books_query = "SELECT id, title, accession, shelf_location FROM books WHERE status = 'Available'";
                                         $books_result = $conn->query($books_query);
                                         while($book = $books_result->fetch_assoc()): ?>
                                             <option value="<?php echo $book['id']; ?>">
-                                                <?php echo htmlspecialchars($book['accession'] . ' - ' . $book['title']); ?>
+                                                <?php echo htmlspecialchars($book['accession'] . ' (' . $book['shelf_location'] . ') - ' . $book['title']); ?>
                                             </option>
                                         <?php endwhile; ?>
                                     </select>
+                                    <small class="text-muted">Hold Ctrl/Cmd to select multiple items</small>
                                 </div>
                             </div>
+                        </div>
+                        <!-- Preview Section -->
+                        <div class="mb-4">
+                            <h5 class="mb-3">Selected Books</h5>
+                            <div id="selectedBooksPreview" class="mt-2"></div>
                         </div>
                     </div>
                 </form>
@@ -244,9 +250,39 @@ $(document).ready(function() {
 
     // Update text inputs when dropdowns change
     $('#book_id').on('change', function() {
-        const selectedOption = $(this).find('option:selected');
-        const accessionNumber = selectedOption.text().split(' - ')[1];
-        $('#bookSearch').val(accessionNumber);
+        const selectedOptions = $(this).find('option:selected');
+        const selectedBooks = selectedOptions.map(function() {
+            return $(this).text();
+        }).get();
+
+        // Update the book search input with the first selected book's accession number
+        if (selectedBooks.length > 0) {
+            const firstSelectedBook = selectedBooks[0].split(' - ')[0];
+            $('#bookSearch').val(firstSelectedBook);
+        } else {
+            $('#bookSearch').val('');
+        }
+
+        // Update the preview section
+        const previewList = $('#selectedBooksPreview');
+        previewList.empty();
+        selectedBooks.forEach(function(book) {
+            previewList.append('<span class="badge bg-secondary mr-1 text-white">' + book + ' <i class="fas fa-times remove-book" data-value="' + book + '"></i></span>');
+        });
+    });
+
+    // Handle removal of selected books
+    $(document).on('click', '.remove-book', function() {
+        const bookText = $(this).data('value');
+        const bookValue = $('#book_id option').filter(function() {
+            return $(this).text().trim() === bookText;
+        }).val();
+
+        // Remove the book from the selected options
+        $('#book_id option[value="' + bookValue + '"]').prop('selected', false);
+
+        // Update the preview list
+        $(this).parent().remove();
     });
 
     $('#user_id').on('change', function() {
@@ -259,7 +295,9 @@ $(document).ready(function() {
     $('#borrowingForm').on('submit', function(e) {
         e.preventDefault();
         
-        const selectedBook = $('#book_id option:selected').text();
+        const selectedBooks = $('#book_id option:selected').map(function() {
+            return $(this).text();
+        }).get().join(', ');
         const selectedBorrower = $('#user_id option:selected').text();
 
         if (!$('#book_id').val() || !$('#user_id').val()) {
@@ -274,7 +312,7 @@ $(document).ready(function() {
         Swal.fire({
             title: 'Confirm Borrowing',
             html: `Are you sure you want to lend:<br>
-                  <b>${selectedBook}</b><br>
+                  <b>${selectedBooks}</b><br>
                   to<br>
                   <b>${selectedBorrower}</b>?`,
             icon: 'question',

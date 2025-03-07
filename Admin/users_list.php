@@ -134,8 +134,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->bind_param(
                 "sssssssssiiiisssi",
                 $school_id, $firstname, $middle_init, $lastname,
-                $email, $hashed_password, $contact_no, $image, // Added image parameter
+                $email, $hashed_password, $contact_no, $image,
                 $usertype, $borrowed_books, $returned_books,
+                $damaged_books, $lost_books, $address,
                 $id_type, $id_image, $status
             );
 
@@ -328,10 +329,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <label>User Type</label>
                         <select name="usertype" class="form-control">
                             <option value="" disabled <?= empty($values['usertype']) ? 'selected' : '' ?>>Select User Type</option>
-                            <option value="student" <?= ($values['usertype'] ?? '') == 'student' ? 'selected' : '' ?>>Student</option>
-                            <option value="faculty" <?= ($values['usertype'] ?? '') == 'faculty' ? 'selected' : '' ?>>Faculty</option>
-                            <option value="staff" <?= ($values['usertype'] ?? '') == 'staff' ? 'selected' : '' ?>>Staff</option>
-                            <option value="visitor" <?= ($values['usertype'] ?? '') == 'visitor' ? 'selected' : '' ?>>Visitor</option>
+                            <option value="Student" <?= ($values['usertype'] ?? '') == 'Student' ? 'selected' : '' ?>>Student</option>
+                            <option value="Faculty" <?= ($values['usertype'] ?? '') == 'Faculty' ? 'selected' : '' ?>>Faculty</option>
+                            <option value="Staff" <?= ($values['usertype'] ?? '') == 'Staff' ? 'selected' : '' ?>>Staff</option>
+                            <option value="Visitor" <?= ($values['usertype'] ?? '') == 'Visitor' ? 'selected' : '' ?>>Visitor</option>
                         </select>
                         <small class="text-danger"><?= $errors['usertype'] ?? '' ?></small>
                     </div>

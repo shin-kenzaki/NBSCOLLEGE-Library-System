@@ -269,9 +269,9 @@ $conn->query($update_image_query);
                         required
                       >
                         <option value="">Select User Type</option>
-                        <option value="student">Student</option>
-                        <option value="faculty">Faculty</option>
-                        <option value="staff">Staff</option>
+                        <option value="Student">Student</option>
+                        <option value="Faculty">Faculty</option>
+                        <option value="Staff">Staff</option>
                       </select>
                     </div>
                   </div>

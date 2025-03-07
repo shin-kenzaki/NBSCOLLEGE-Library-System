@@ -31,7 +31,24 @@ switch ($exportType) {
         break;
 }
 
-$query = "SELECT * FROM borrowings WHERE issue_date BETWEEN '$startDate' AND '$endDate'";
+$query = "
+    SELECT 
+        borrowings.*, 
+        books.title AS book_title, 
+        CAST(books.accession AS UNSIGNED) AS book_accession, 
+        CONCAT(users.firstname, ' ', COALESCE(users.middle_init, ''), ' ', users.lastname) AS user_fullname,
+        CAST(users.id AS UNSIGNED) AS user_id,
+        CAST(borrowings.book_id AS UNSIGNED) AS book_id
+    FROM borrowings 
+    JOIN books ON borrowings.book_id = books.id 
+    JOIN users ON borrowings.user_id = users.id";
+    
+if ($exportType == 'previous_month' || $exportType == 'current_month') {
+    $query .= " WHERE borrowings.issue_date BETWEEN '$startDate' AND '$endDate'";
+}
+
+$query .= " ORDER BY user_id DESC";
+
 $result = mysqli_query($conn, $query);
 
 $spreadsheet = new Spreadsheet();
@@ -44,53 +61,78 @@ if ($exportType == 'last_year' || $exportType == 'current_year') {
         // Set header row
         $sheet->setCellValue('A1', 'ID');
         $sheet->setCellValue('B1', 'Book ID');
-        $sheet->setCellValue('C1', 'User ID');
-        $sheet->setCellValue('D1', 'Issue Date');
-        $sheet->setCellValue('E1', 'Due Date');
-        $sheet->setCellValue('F1', 'Return Date');
-        $sheet->setCellValue('G1', 'Status');
+        $sheet->setCellValue('C1', 'Book Title');
+        $sheet->setCellValue('D1', 'Book Accession');
+        $sheet->setCellValue('E1', 'User ID');
+        $sheet->setCellValue('F1', 'User Fullname');
+        $sheet->setCellValue('G1', 'Issue Date');
+        $sheet->setCellValue('H1', 'Due Date');
+        $sheet->setCellValue('I1', 'Return Date');
+        $sheet->setCellValue('J1', 'Status');
 
         // Populate data rows
         $rowNumber = 2;
-        mysqli_data_seek($result, 0); // Reset result pointer
-        while ($row = mysqli_fetch_assoc($result)) {
+        $year = ($exportType == 'last_year') ? date('Y', strtotime('last year')) : date('Y');
+        $startDate = date($year . '-' . str_pad($month, 2, '0', STR_PAD_LEFT) . '-01');
+        $endDate = date($year . '-' . str_pad($month, 2, '0', STR_PAD_LEFT) . '-t');
+
+        $month_query = "SELECT 
+        borrowings.*, 
+        books.title AS book_title, 
+        CAST(books.accession AS UNSIGNED) AS book_accession, 
+        CONCAT(users.firstname, ' ', COALESCE(users.middle_init, ''), ' ', users.lastname) AS user_fullname,
+        CAST(users.id AS UNSIGNED) AS user_id,
+        CAST(borrowings.book_id AS UNSIGNED) AS book_id
+    FROM borrowings 
+    JOIN books ON borrowings.book_id = books.id 
+    JOIN users ON borrowings.user_id = users.id WHERE borrowings.issue_date BETWEEN '$startDate' AND '$endDate' ORDER BY user_id ASC";
+        $month_result = mysqli_query($conn, $month_query);
+
+        while ($row = mysqli_fetch_assoc($month_result)) {
             $issueMonth = date('n', strtotime($row['issue_date']));
             if ($issueMonth == $month) {
                 $sheet->setCellValue('A' . $rowNumber, $row['id']);
                 $sheet->setCellValue('B' . $rowNumber, $row['book_id']);
-                $sheet->setCellValue('C' . $rowNumber, $row['user_id']);
-                $sheet->setCellValue('D' . $rowNumber, $row['issue_date']);
-                $sheet->setCellValue('E' . $rowNumber, $row['due_date']);
-                $sheet->setCellValue('F' . $rowNumber, $row['return_date']);
-                $sheet->setCellValue('G' . $rowNumber, $row['status']);
+                $sheet->setCellValue('C' . $rowNumber, $row['book_title']);
+                $sheet->setCellValue('D' . $rowNumber, $row['book_accession']);
+                $sheet->setCellValue('E' . $rowNumber, $row['user_id']);
+                $sheet->setCellValue('F' . $rowNumber, $row['user_fullname']);
+                $sheet->setCellValue('G' . $rowNumber, $row['issue_date']);
+                $sheet->setCellValue('H' . $rowNumber, $row['due_date']);
+                $sheet->setCellValue('I' . $rowNumber, $row['return_date']);
+                $sheet->setCellValue('J' . $rowNumber, $row['status']);
                 $rowNumber++;
             }
         }
     }
-    $spreadsheet->removeSheetByIndex(0); // Remove the default sheet
-} else {
-    $sheet = $spreadsheet->getActiveSheet();
+} else {$sheet = $spreadsheet->getActiveSheet();
     $sheet->setTitle('Borrowings Export');
 
     // Set header row
     $sheet->setCellValue('A1', 'ID');
     $sheet->setCellValue('B1', 'Book ID');
-    $sheet->setCellValue('C1', 'User ID');
-    $sheet->setCellValue('D1', 'Issue Date');
-    $sheet->setCellValue('E1', 'Due Date');
-    $sheet->setCellValue('F1', 'Return Date');
-    $sheet->setCellValue('G1', 'Status');
+    $sheet->setCellValue('C1', 'Book Title');
+    $sheet->setCellValue('D1', 'Book Accession');
+    $sheet->setCellValue('E1', 'User ID');
+    $sheet->setCellValue('F1', 'User Fullname');
+    $sheet->setCellValue('G1', 'Issue Date');
+    $sheet->setCellValue('H1', 'Due Date');
+    $sheet->setCellValue('I1', 'Return Date');
+    $sheet->setCellValue('J1', 'Status');
 
     // Populate data rows
     $rowNumber = 2;
     while ($row = mysqli_fetch_assoc($result)) {
         $sheet->setCellValue('A' . $rowNumber, $row['id']);
         $sheet->setCellValue('B' . $rowNumber, $row['book_id']);
-        $sheet->setCellValue('C' . $rowNumber, $row['user_id']);
-        $sheet->setCellValue('D' . $rowNumber, $row['issue_date']);
-        $sheet->setCellValue('E' . $rowNumber, $row['due_date']);
-        $sheet->setCellValue('F' . $rowNumber, $row['return_date']);
-        $sheet->setCellValue('G' . $rowNumber, $row['status']);
+        $sheet->setCellValue('C' . $rowNumber, $row['book_title']);
+        $sheet->setCellValue('D' . $rowNumber, $row['book_accession']);
+        $sheet->setCellValue('E' . $rowNumber, $row['user_id']);
+        $sheet->setCellValue('F' . $rowNumber, $row['user_fullname']);
+        $sheet->setCellValue('G' . $rowNumber, $row['issue_date']);
+        $sheet->setCellValue('H' . $rowNumber, $row['due_date']);
+        $sheet->setCellValue('I' . $rowNumber, $row['return_date']);
+        $sheet->setCellValue('J' . $rowNumber, $row['status']);
         $rowNumber++;
     }
 }

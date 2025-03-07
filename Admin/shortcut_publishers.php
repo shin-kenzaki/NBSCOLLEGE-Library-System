@@ -28,18 +28,16 @@ if (isset($_POST['save_publisher'])) {
         $row = $check_result->fetch_assoc();
         $_SESSION['book_shortcut']['publisher_id'] = $row['id'];
         $_SESSION['book_shortcut']['steps_completed']['publisher'] = true;
-        echo "<script>alert('Publisher already exists and has been selected'); window.location.href='add_book_shortcut.php';</script>";
-        exit;
-    }
-    
-    $sql = "INSERT INTO publishers (publisher, place) VALUES ('$publisher', '$place')";
-    if ($conn->query($sql)) {
-        $_SESSION['book_shortcut']['publisher_id'] = $conn->insert_id;
-        $_SESSION['book_shortcut']['steps_completed']['publisher'] = true;
-        echo "<script>alert('Publisher added successfully'); window.location.href='add_book_shortcut.php';</script>";
-        exit;
+        echo "<script>alert('Publisher already exists and has been selected');</script>";
     } else {
-        echo "<script>alert('Failed to add publisher');</script>";
+        $sql = "INSERT INTO publishers (publisher, place) VALUES ('$publisher', '$place')";
+        if ($conn->query($sql)) {
+            $_SESSION['book_shortcut']['publisher_id'] = $conn->insert_id;
+            $_SESSION['book_shortcut']['steps_completed']['publisher'] = true;
+            echo "<script>alert('Publisher added successfully');</script>";
+        } else {
+            echo "<script>alert('Failed to add publisher');</script>";
+        }
     }
 }
 
@@ -53,8 +51,7 @@ if (isset($_POST['select_publisher'])) {
         $_SESSION['book_shortcut']['publish_year'] = $publish_year;
         $_SESSION['book_shortcut']['steps_completed']['publisher'] = true;
         
-        echo "<script>alert('Publisher selected successfully'); window.location.href='add_book_shortcut.php';</script>";
-        exit;
+        echo "<script>alert('Publisher selected successfully');</script>";
     } else {
         echo "<script>alert('Please select a publisher.');</script>";
     }
@@ -75,9 +72,8 @@ if (isset($_POST['save_selection'])) {
         
         echo "<script>
             alert('Publisher and publication year saved successfully!');
-            window.location.href = 'add_book_shortcut.php';
+            window.location.href='add_book_shortcut.php';
         </script>";
-        exit;
     } else {
         echo "<script>alert('Please select a publisher.');</script>";
     }
@@ -156,14 +152,11 @@ $searchQuery = isset($_GET['search']) ? $conn->real_escape_string($_GET['search'
                                             </td>
                                         </tr>";
                                     }
-                                } else {
-                                    echo "<tr><td colspan='4' class='text-center'>No publishers found</td></tr>";
-                                }
+                                                                }
                                 ?>
                             </tbody>
                         </table>
                     </div>
-                    <!-- Remove duplicate buttons here - the top buttons will handle all actions -->
                 </form>
             </div>
         </div>

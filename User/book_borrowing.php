@@ -11,7 +11,7 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['usertype'], ['Student',
 $user_id = $_SESSION['user_id'];
 
 // Fetch active and overdue borrowings
-$query = "SELECT b.id, bk.title, b.issue_date, b.due_date, b.status, b.allowed_days,
+$query = "SELECT b.id, bk.accession, bk.title, bk.shelf_location, b.issue_date, b.due_date, b.status,
                  a1.firstname AS issued_by_name, a2.firstname AS received_by_name 
           FROM borrowings b 
           JOIN books bk ON b.book_id = bk.id 
@@ -53,12 +53,14 @@ include 'inc/header.php';
                     <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
-                                <th>Title</th>
-                                <th>Issue Date</th>
-                                <th>Due Date</th>
-                                <th>Days Remaining</th>
-                                <th>Status</th>
-                                <th>Issued By</th>
+                                <th class="text-center">Accession</th>
+                                <th class="text-center">Title</th>
+                                <th class="text-center">Shelf Location</th>
+                                <th class="text-center">Issue Date</th>
+                                <th class="text-center">Due Date</th>
+                                <th class="text-center">Days Remaining</th>
+                                <th class="text-center">Status</th>
+                                <th class="text-center">Issued By</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -70,24 +72,26 @@ include 'inc/header.php';
                                     $is_overdue = $today > $due_date;
                             ?>
                                 <tr>
+                                    <td class="text-center"><?php echo htmlspecialchars($row['accession']); ?></td>
                                     <td><?php echo htmlspecialchars($row['title']); ?></td>
-                                    <td><?php echo date('Y-m-d', strtotime($row['issue_date'])); ?></td>
-                                    <td><?php echo date('Y-m-d', strtotime($row['due_date'])); ?></td>
-                                    <td>
+                                    <td class="text-center"><?php echo htmlspecialchars($row['shelf_location']); ?></td>
+                                    <td class="text-center"><?php echo date('Y-m-d', strtotime($row['issue_date'])); ?></td>
+                                    <td class="text-center"><?php echo date('Y-m-d', strtotime($row['due_date'])); ?></td>
+                                    <td class="text-center">
                                         <?php if ($is_overdue): ?>
                                             <span class="text-danger">Overdue by <?php echo $days_remaining; ?> day(s)</span>
                                         <?php else: ?>
                                             <?php echo $days_remaining; ?> days
                                         <?php endif; ?>
                                     </td>
-                                    <td>
+                                    <td class="text-center">
                                         <?php if ($is_overdue): ?>
                                             <span class="badge badge-danger">Overdue</span>
                                         <?php else: ?>
                                             <span class="badge badge-success">Active</span>
                                         <?php endif; ?>
                                     </td>
-                                    <td><?php echo htmlspecialchars($row['issued_by_name']); ?></td>
+                                    <td class="text-center"><?php echo htmlspecialchars($row['issued_by_name']); ?></td>
                                 </tr>
                             <?php endwhile; ?>
                             <?php endif; ?>
