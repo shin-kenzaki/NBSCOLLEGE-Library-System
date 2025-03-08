@@ -1,71 +1,6 @@
 <?php
 session_start();
 require '../db.php';
-
-$message = '';
-$messageType = '';
-$verified = false;
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['verify'])) {
-        // Step 1: Verify ID and email
-        $employee_id = trim($_POST['employee_id']);
-        $email = trim($_POST['email']);
-
-        $sql = "SELECT * FROM admins WHERE employee_id = ? AND email = ?";
-        if ($stmt = $conn->prepare($sql)) {
-            $stmt->bind_param("ss", $employee_id, $email);
-            $stmt->execute();
-            $result = $stmt->get_result();
-
-            if ($result->num_rows > 0) {
-                $admin = $result->fetch_assoc();
-                $_SESSION['reset_employee_id'] = $employee_id;
-                $verified = true;
-                $message = "Identity verified. Please enter your new password.";
-                $messageType = "success";
-            } else {
-                $message = "Invalid employee ID or email.";
-                $messageType = "danger";
-            }
-            $stmt->close();
-        }
-    } elseif (isset($_POST['reset'])) {
-        // Step 2: Reset Password
-        $password = $_POST['password'];
-        $confirm_password = $_POST['confirm_password'];
-        $employee_id = $_SESSION['reset_employee_id'];
-
-        if ($password === $confirm_password) {
-            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-            
-            $update_sql = "UPDATE admins SET password = ? WHERE employee_id = ?";
-            if ($update_stmt = $conn->prepare($update_sql)) {
-                $update_stmt->bind_param("ss", $hashed_password, $employee_id);
-                if ($update_stmt->execute()) {
-                    // Remove the direct header redirect
-                    $message = "Password successfully updated.";
-                    $messageType = "success";
-                    unset($_SESSION['reset_employee_id']);
-                } else {
-                    $message = "Error updating password.";
-                    $messageType = "danger";
-                    $verified = true; // Keep the password form visible
-                }
-                $update_stmt->close();
-            }
-        } else {
-            $message = "Passwords do not match.";
-            $messageType = "danger";
-            $verified = true; // Keep the password form visible
-        }
-    }
-}
-
-// Check if user is already verified from previous step
-if (isset($_SESSION['reset_employee_id'])) {
-    $verified = true;
-}
 ?>
 
 <!DOCTYPE html>
@@ -93,49 +28,23 @@ if (isset($_SESSION['reset_employee_id'])) {
                                     <div class="text-center">
                                         <h1 class="h4 text-gray-900 mb-4">Forgot Your Password?</h1>
                                     </div>
-                                    
-                                    <?php if ($message): ?>
-                                        <div class="alert alert-<?php echo $messageType; ?>" role="alert">
-                                            <?php echo $message; ?>
-                                        </div>
-                                    <?php endif; ?>
 
-                                    <?php if (!$verified): ?>
+
+
                                         <!-- Step 1: Verification Form -->
-                                        <form class="user" method="POST">
+                                        <form class="user" method="POST" action="forgot-password-send.php">
                                             <div class="form-group">
-                                                <input type="text" class="form-control form-control-user" 
-                                                       id="employee_id" name="employee_id" 
-                                                       placeholder="Enter Employee ID" required>
+                                                <input type="email" class="form-control form-control-user"
+                                                    id="email" name="email"
+                                                    placeholder="Enter Email Address" required>
                                             </div>
-                                            <div class="form-group">
-                                                <input type="email" class="form-control form-control-user" 
-                                                       id="email" name="email" 
-                                                       placeholder="Enter Email Address" required>
-                                            </div>
-                                            <button type="submit" name="verify" class="btn btn-primary btn-user btn-block">
-                                                Verify Identity
-                                            </button>
-                                        </form>
-                                    <?php else: ?>
-                                        <!-- Step 2: Password Reset Form -->
-                                        <form class="user" method="POST">
-                                            <div class="form-group">
-                                                <input type="password" class="form-control form-control-user"
-                                                       id="password" name="password"
-                                                       placeholder="Enter New Password" required>
-                                            </div>
-                                            <div class="form-group">
-                                                <input type="password" class="form-control form-control-user"
-                                                       id="confirm_password" name="confirm_password"
-                                                       placeholder="Confirm New Password" required>
-                                            </div>
-                                            <button type="submit" name="reset" class="btn btn-primary btn-user btn-block">
+                                            <button type="submit" class="btn btn-primary btn-user btn-block">
                                                 Reset Password
                                             </button>
                                         </form>
-                                    <?php endif; ?>
-                                    
+
+
+
                                     <hr>
                                     <div class="text-center">
                                         <a class="small" href="admin_registration.php">Create an Account!</a>
