@@ -119,6 +119,20 @@
             background-size: cover;
         }
 
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f8f9fc; /* Optional: set a background color */
+        }
+
+        .container {
+            width: 100%;
+            max-width: 960px; /* Optional: set a maximum width for the container */
+            margin: 0 auto; /* Center the container horizontally */
+        }
+
         /* Style for the select dropdown with larger size */
         .select-dropdown {
             display: block;

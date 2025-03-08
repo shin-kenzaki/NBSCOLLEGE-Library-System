@@ -126,6 +126,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 border-radius: 5px 5px 0 0;
             }
         }
+
+        /* Centering the card */
+        .row.justify-content-center {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh; /* Make sure the row takes at least the full viewport height */
+        }
     </style>
 </head>
 
