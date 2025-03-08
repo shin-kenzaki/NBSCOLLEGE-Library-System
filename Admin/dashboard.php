@@ -312,10 +312,11 @@ include '../admin/inc/header.php';
                                             <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
                                         </a>
                                         <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="dropdownMenuLink">
-                                            <a class="dropdown-item" href="export_borrowings.php?type=previous_month">Export Previous Month</a>
-                                            <a class="dropdown-item" href="export_borrowings.php?type=current_month">Export Current Month</a>
-                                            <a class="dropdown-item" href="export_borrowings.php?type=last_year">Export Previous Year</a>
-                                            <a class="dropdown-item" href="export_borrowings.php?type=current_year">Export Current Year</a>
+                                            <a class="dropdown-item" href="export_borrowings.php?type=previous_month">Export Previous Month (.xlxs)</a>
+                                            <a class="dropdown-item" href="export_borrowings.php?type=current_month">Export Current Month (.xlxs)</a>
+                                            <a class="dropdown-item" href="export_borrowings.php?type=last_year">Export Previous Year (.xlxs)</a>
+                                            <a class="dropdown-item" href="export_borrowings.php?type=current_year">Export Current Year (.xlxs)</a>
+                                            <a class="dropdown-item" href="export_top_borrowers.php">Export Top Borrowers (PDF)</a> <!-- New Option -->
                                         </div>
                                     </div>
                                 </div>
