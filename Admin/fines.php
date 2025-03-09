@@ -20,12 +20,14 @@ include('../db.php');
 $query = "SELECT f.id, f.type, f.amount, f.status, f.date, f.payment_date,
           b.issue_date, b.due_date, b.return_date,
           bk.title AS book_title,
-          CONCAT(u.firstname, ' ', u.lastname) AS borrower_name
+          CONCAT(u.firstname, ' ', u.lastname) AS borrower_name,
+          u.school_id
           FROM fines f
           JOIN borrowings b ON f.borrowing_id = b.id
           JOIN books bk ON b.book_id = bk.id
           JOIN users u ON b.user_id = u.id
           ORDER BY f.date DESC";
+
 
 // Run the query and store the result
 $result = $conn->query($query);
@@ -44,7 +46,7 @@ $result = $conn->query($query);
 <div id="content" class="d-flex flex-column min-vh-100">
     <div class="container-fluid px-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="h3 mb-0 text-gray-800">Borrowed Books</h1>
+    <h1 class="h3 mb-0 text-gray-800">Fines</h1>
 
             <!-- Generate Receipt Form -->
             <form action="fine-receipt.php" method="post" id="receiptForm" target="_blank" onsubmit="return validateForm()" class="d-flex align-items-center">
@@ -52,10 +54,10 @@ $result = $conn->query($query);
                     <label for="school_id" class="col-form-label" style="font-size:medium;">Enter ID Number:</label>
                 </div>
                 <div class="col-auto p-2" style="width:200px;">
-                    <input type="text" name="school_id" id="school_id" class="form-control custom" placeholder="Enter ID Number" required>
+                    <input type="text" name="school_id" id="school_id" class="form-control custom" placeholder="ID Number" required>
                 </div>
                 <div class="col-auto p-2">
-                    <button class="btn btn-danger btn-block" type="submit">Generate Loan Receipt</button>
+                    <button class="btn btn-danger btn-block" type="submit">Generate Fine Receipt</button>
                 </div>
             </form>
         </div>
@@ -85,6 +87,7 @@ $result = $conn->query($query);
                     <table class="table table-bordered" id="finesTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
+                                <th class="text-center">ID Number</th> <!-- New column for School ID -->
                                 <th class="text-center">Borrower</th>
                                 <th class="text-center">Book</th>
                                 <th class="text-center">Type</th>
@@ -100,19 +103,20 @@ $result = $conn->query($query);
                                     data-amount="<?php echo $row['amount']; ?>"
                                     data-borrower="<?php echo htmlspecialchars($row['borrower_name']); ?>"
                                     data-status="<?php echo $row['status']; ?>">
-                                    <td><?php echo htmlspecialchars($row['borrower_name']); ?></td>
-                                    <td><?php echo htmlspecialchars($row['book_title']); ?></td>
-                                    <td class="text-center"><?php echo htmlspecialchars($row['type']); ?></td>
-                                    <td class="text-center">₱<?php echo number_format($row['amount'], 2); ?></td>
-                                    <td class="text-center"><?php echo date('Y-m-d', strtotime($row['date'])); ?></td>
-                                    <td class="text-center">
+                                    <td class="text-left"><?php echo htmlspecialchars($row['school_id']); ?></td> <!-- Display School ID -->
+                                    <td class="text-left"><?php echo htmlspecialchars($row['borrower_name']); ?></td>
+                                    <td class="text-left"><?php echo htmlspecialchars($row['book_title']); ?></td>
+                                    <td class="text-left"><?php echo htmlspecialchars($row['type']); ?></td>
+                                    <td class="text-left">₱<?php echo number_format($row['amount'], 2); ?></td>
+                                    <td class="text-left"><?php echo date('Y-m-d', strtotime($row['date'])); ?></td>
+                                    <td class="text-left">
                                         <?php if ($row['status'] === 'Unpaid'): ?>
                                             <span class="badge badge-danger">Unpaid</span>
                                         <?php else: ?>
                                             <span class="badge badge-success">Paid</span>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="text-center">
+                                    <td class="text-left">
                                         <?php
                                         echo ($row['payment_date'] !== null && $row['payment_date'] !== '0000-00-00')
                                             ? date('Y-m-d', strtotime($row['payment_date']))
