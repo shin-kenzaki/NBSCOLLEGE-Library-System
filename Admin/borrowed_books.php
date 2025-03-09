@@ -124,7 +124,7 @@ while ($row = $emailResult->fetch_assoc()) {
     <!-- Generate Receipt Form -->
     <form action="borrowed-books-receipt.php" method="post" id="receiptForm" target="_blank" onsubmit="return validateForm()" class="d-flex align-items-center">
         <div class="col-auto p-2">
-            <label for="school_id" class="col-form-label" style="font-size:medium;">Enter User ID:</label>
+            <label for="school_id" class="col-form-label" style="font-size:medium;">Enter ID Number:</label>
         </div>
         <div class="col-auto p-2" style="width:200px;">
             <input type="text" name="school_id" id="school_id" class="form-control custom" placeholder="Enter User ID" required>
