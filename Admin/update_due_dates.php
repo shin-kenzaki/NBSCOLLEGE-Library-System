@@ -22,9 +22,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['borrowIds']) && isset
     $conn->begin_transaction();
     
     try {
-        // First get the borrow dates and calculate new allowed_days for each borrowing
-        $stmt = $conn->prepare("SELECT id, borrow_date FROM borrowings WHERE id = ?");
-        $updateStmt = $conn->prepare("UPDATE borrowings SET due_date = ?, allowed_days = ? WHERE id = ?");
+        // First get the borrow dates
+        $stmt = $conn->prepare("SELECT id, issue_date FROM borrowings WHERE id = ?");
+        $updateStmt = $conn->prepare("UPDATE borrowings SET due_date = ?, reminder_sent = 0 WHERE id = ?");
         
         foreach ($borrowIds as $borrowId) {
             // Get the borrow date
@@ -38,18 +38,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['borrowIds']) && isset
             }
 
             // Calculate days difference
-            $borrowDate = new DateTime($borrowing['borrow_date']);
+            $borrowDate = new DateTime($borrowing['issue_date']);
             $dueDate = new DateTime($newDueDate);
             $interval = $borrowDate->diff($dueDate);
             $allowedDays = $interval->days;
 
             // Check if new due date is at least 7 days after borrow date
             if ($allowedDays < 7) {
-                throw new Exception("Due date must be at least 7 days after the borrow date. Book borrowed on: " . $borrowing['borrow_date']);
+                throw new Exception("Due date must be at least 7 days after the borrow date. Book borrowed on: " . $borrowing['issue_date']);
             }
 
-            // Update both due_date and allowed_days
-            $updateStmt->bind_param('sii', $newDueDate, $allowedDays, $borrowId);
+            // Update due_date
+            $updateStmt->bind_param('si', $newDueDate, $borrowId);
             if (!$updateStmt->execute()) {
                 throw new Exception("Failed to update borrow ID: $borrowId");
             }
@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['borrowIds']) && isset
         $conn->commit();
         echo json_encode([
             'success' => true,
-            'message' => 'Due dates and allowed days updated successfully!'
+            'message' => 'Due dates updated successfully!'
         ]);
     } catch (Exception $e) {
         $conn->rollback();
@@ -73,3 +73,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['borrowIds']) && isset
         'message' => 'Invalid request parameters'
     ]);
 }
+?>

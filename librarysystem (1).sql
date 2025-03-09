@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Mar 09, 2025 at 04:31 AM
+-- Generation Time: Mar 09, 2025 at 10:23 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -96,11 +96,21 @@ CREATE TABLE `books` (
 --
 
 INSERT INTO `books` (`id`, `accession`, `title`, `preferred_title`, `parallel_title`, `subject_category`, `subject_detail`, `summary`, `contents`, `front_image`, `back_image`, `dimension`, `series`, `volume`, `edition`, `copy_number`, `total_pages`, `supplementary_contents`, `ISBN`, `content_type`, `media_type`, `carrier_type`, `call_number`, `URL`, `language`, `shelf_location`, `entered_by`, `date_added`, `status`, `updated_by`, `last_update`) VALUES
-(1, 6190, 'Entrepreneurship', '', '', 'Topical', '', '', '', NULL, NULL, '', '', '', '', 1, '', '', '9789395080545', 'Text', 'Print', 'Book', 'SC HB615 2024 c1', '', 'English', 'SC', 1, '2025-03-06', 'Borrowed', 1, '2025-03-06'),
-(2, 6191, 'Entrepreneurship', '', '', 'Topical', '', '', '', NULL, NULL, '', '', '', '', 2, '', '', '9789395080545', 'Text', 'Print', 'Book', 'SC HB615 2024 c2', '', 'English', 'SC', 1, '2025-03-06', 'Borrowed', 1, '2025-03-06'),
-(3, 6192, 'Entrepreneurship', '', '', 'Topical', '', '', '', NULL, NULL, '', '', '', '', 3, '', '', '9789395080545', 'Text', 'Print', 'Book', 'REF HB615 2024 c3', '', 'English', 'REF', 1, '2025-03-06', 'Borrowed', 1, '2025-03-06'),
-(4, 6193, 'Entrepreneurship', '', '', 'Topical', '', '', '', NULL, NULL, '', '', '', '', 4, '', '', '9789395080545', 'Text', 'Print', 'Book', 'REF HB615 2024 c4', '', 'English', 'REF', 1, '2025-03-06', 'Reserved', 1, '2025-03-06'),
-(5, 6194, 'Entrepreneurship', '', '', 'Topical', '', '', '', NULL, NULL, '', '', '', '', 5, '', '', '9789395080545', 'Text', 'Print', 'Book', 'RES HB615 2024 c5', '', 'English', 'RES', 1, '2025-03-06', 'Available', 1, '2025-03-06');
+(1, 6190, 'Entrepreneurship', '', '', 'Topical', '', '', '', NULL, NULL, '', '', '', '', 1, '', '', '9789395080545', 'Text', 'Print', 'Book', 'RES HB615 2024 c1', '', 'English', 'RES', 1, '2025-03-06', 'Borrowed', 1, '2025-03-09'),
+(2, 6191, 'Entrepreneurship', '', '', 'Topical', '', '', '', NULL, NULL, '', '', '', '', 2, '', '', '9789395080545', 'Text', 'Print', 'Book', 'RES HB615 2024 c2', '', 'English', 'RES', 1, '2025-03-06', 'Available', 1, '2025-03-09'),
+(3, 6192, 'Entrepreneurship', '', '', 'Topical', '', '', '', NULL, NULL, '', '', '', '', 3, '', '', '9789395080545', 'Text', 'Print', 'Book', 'RES HB615 2024 c3', '', 'English', 'RES', 1, '2025-03-06', 'Available', 1, '2025-03-09'),
+(4, 6193, 'Entrepreneurship', '', '', 'Topical', '', '', '', NULL, NULL, '', '', '', '', 4, '', '', '9789395080545', 'Text', 'Print', 'Book', 'RES HB615 2024 c4', '', 'English', 'RES', 1, '2025-03-06', 'Available', 1, '2025-03-09'),
+(5, 6194, 'Entrepreneurship', '', '', 'Topical', '', '', '', NULL, NULL, '', '', '', '', 5, '', '', '9789395080545', 'Text', 'Print', 'Book', 'RES HB615 2024 c5', '', 'English', 'RES', 1, '2025-03-06', 'Available', 1, '2025-03-09'),
+(6, 26, 'Classification and Cataloging', '', '', '', '', '', '', NULL, NULL, '', '', '', '', 1, '', '', '', 'Text', 'Print', 'Book', 'RES TR  c1 2017 c1', '', 'English', 'RES', 1, '2025-03-09', 'Borrowed', 1, '2025-03-09'),
+(7, 27, 'Classification and Cataloging', '', '', '', '', '', '', NULL, NULL, '', '', '', '', 2, '', '', '', 'Text', 'Print', 'Book', 'RES TR  c1 2017 c2', '', 'English', 'RES', 1, '2025-03-09', 'Available', 1, '2025-03-09'),
+(8, 28, 'Classification and Cataloging', '', '', '', '', '', '', NULL, NULL, '', '', '', '', 3, '', '', '', 'Text', 'Print', 'Book', 'RES TR  c1 2017 c3', '', 'English', 'RES', 1, '2025-03-09', 'Available', 1, '2025-03-09'),
+(9, 29, 'Classification and Cataloging', '', '', '', '', '', '', NULL, NULL, '', '', '', '', 4, '', '', '', 'Text', 'Print', 'Book', 'RES TR  c1 2017 c4', '', 'English', 'RES', 1, '2025-03-09', 'Available', 1, '2025-03-09'),
+(10, 30, 'Classification and Cataloging', '', '', '', '', '', '', NULL, NULL, '', '', '', '', 5, '', '', '', 'Text', 'Print', 'Book', 'RES TR  c1 2017 c5', '', 'English', 'RES', 1, '2025-03-09', 'Available', 1, '2025-03-09'),
+(11, 5986, 'The Colors of Lucban', '', '', '', '', '', '', NULL, NULL, '', '', '', '', 1, '', '', '', 'Text', 'Print', 'Book', 'REF FIL  c1 2010 c1', '', 'English', 'REF', 1, '2025-03-09', 'Available', 1, '2025-03-09'),
+(12, 5987, 'The Colors of Lucban', '', '', '', '', '', '', NULL, NULL, '', '', '', '', 2, '', '', '', 'Text', 'Print', 'Book', 'REF FIL  c1 2010 c2', '', 'English', 'REF', 1, '2025-03-09', 'Available', 1, '2025-03-09'),
+(13, 5988, 'The Colors of Lucban', '', '', '', '', '', '', NULL, NULL, '', '', '', '', 3, '', '', '', 'Text', 'Print', 'Book', 'REF FIL  c1 2010 c3', '', 'English', 'REF', 1, '2025-03-09', 'Borrowed', 1, '2025-03-09'),
+(14, 5989, 'The Colors of Lucban', '', '', '', '', '', '', NULL, NULL, '', '', '', '', 4, '', '', '', 'Text', 'Print', 'Book', 'REF FIL  c1 2010 c4', '', 'English', 'REF', 1, '2025-03-09', 'Available', 1, '2025-03-09'),
+(15, 5990, 'The Colors of Lucban', '', '', '', '', '', '', NULL, NULL, '', '', '', '', 5, '', '', '', 'Text', 'Print', 'Book', 'REF FIL  c1 2010 c5', '', 'English', 'REF', 1, '2025-03-09', 'Available', 1, '2025-03-09');
 
 -- --------------------------------------------------------
 
@@ -119,21 +129,55 @@ CREATE TABLE `borrowings` (
   `return_date` date DEFAULT NULL,
   `recieved_by` int(11) DEFAULT NULL,
   `report_date` date DEFAULT NULL,
-  `replacement_date` date DEFAULT NULL
+  `replacement_date` date DEFAULT NULL,
+  `reminder_sent` tinyint(4) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `borrowings`
 --
 
-INSERT INTO `borrowings` (`id`, `user_id`, `book_id`, `status`, `issue_date`, `issued_by`, `due_date`, `return_date`, `recieved_by`, `report_date`, `replacement_date`) VALUES
-(13, 1, 3, 'Returned', '2025-03-06', 1, '2025-03-13', '2025-03-06', 1, NULL, NULL),
-(14, 2, 5, 'Returned', '2025-03-06', 1, '2025-03-13', '2025-03-06', 1, NULL, NULL),
-(15, 1, 5, 'Returned', '2025-03-06', 1, '2025-03-07', '2025-03-06', 1, NULL, NULL),
-(16, 2, 4, 'Returned', '2025-03-06', 1, '2025-03-06', '2025-03-06', 1, NULL, NULL),
-(17, 1, 5, 'Returned', '2025-03-06', 1, '2025-03-07', '2025-03-06', 1, NULL, NULL),
-(18, 2, 3, 'Returned', '2025-03-06', 1, '2025-03-06', '2025-03-06', 1, NULL, NULL),
-(19, 1, 1, 'Returned', '2025-03-06', 1, '2025-03-13', '2025-03-06', 1, NULL, NULL);
+INSERT INTO `borrowings` (`id`, `user_id`, `book_id`, `status`, `issue_date`, `issued_by`, `due_date`, `return_date`, `recieved_by`, `report_date`, `replacement_date`, `reminder_sent`) VALUES
+(13, 1, 3, 'Returned', '2025-03-06', 1, '2025-03-13', '2025-03-06', 1, NULL, NULL, NULL),
+(14, 2, 5, 'Returned', '2025-03-06', 1, '2025-03-13', '2025-03-06', 1, NULL, NULL, NULL),
+(15, 1, 5, 'Returned', '2025-03-06', 1, '2025-03-07', '2025-03-06', 1, NULL, NULL, NULL),
+(16, 2, 4, 'Returned', '2025-03-06', 1, '2025-03-06', '2025-03-06', 1, NULL, NULL, NULL),
+(17, 1, 5, 'Returned', '2025-03-06', 1, '2025-03-07', '2025-03-06', 1, NULL, NULL, NULL),
+(18, 2, 3, 'Returned', '2025-03-06', 1, '2025-03-06', '2025-03-06', 1, NULL, NULL, NULL),
+(19, 1, 1, 'Returned', '2025-03-06', 1, '2025-03-13', '2025-03-06', 1, NULL, NULL, NULL),
+(20, 1, 4, 'Returned', '2025-03-09', 1, '2025-03-16', '2025-03-09', 1, NULL, NULL, NULL),
+(21, 1, 4, 'Returned', '2025-03-09', 1, '2025-03-09', '2025-03-09', 1, NULL, NULL, NULL),
+(22, 1, 5, 'Returned', '2025-03-09', 1, '2025-03-10', '2025-03-09', 1, NULL, NULL, NULL),
+(23, 1, 1, 'Returned', '2025-03-09', 1, '2025-03-16', '2025-03-09', 1, NULL, NULL, NULL),
+(25, 1, 1, 'Returned', '2025-03-09', 1, '2025-03-16', '2025-03-09', 1, NULL, NULL, NULL),
+(26, 1, 9, 'Returned', '2025-03-09', 1, '2025-03-16', '2025-03-09', 1, NULL, NULL, NULL),
+(27, 1, 13, 'Returned', '2025-03-09', 1, '2025-03-16', '2025-03-09', 1, NULL, NULL, NULL),
+(28, 1, 1, 'Returned', '2025-03-09', 1, '2025-03-16', '2025-03-09', 1, NULL, NULL, NULL),
+(29, 1, 7, 'Returned', '2025-03-09', 1, '2025-03-16', '2025-03-09', 1, NULL, NULL, NULL),
+(30, 1, 14, 'Returned', '2025-03-09', 1, '2025-03-16', '2025-03-09', 1, NULL, NULL, NULL),
+(31, 1, 1, 'Returned', '2025-03-09', 1, '2025-03-16', '2025-03-09', 1, NULL, NULL, NULL),
+(32, 1, 6, 'Returned', '2025-03-09', 1, '2025-03-16', '2025-03-09', 1, NULL, NULL, NULL),
+(33, 1, 12, 'Returned', '2025-03-09', 1, '2025-03-16', '2025-03-09', 1, NULL, NULL, NULL),
+(34, 1, 1, 'Returned', '2025-03-09', 1, '2025-03-16', '2025-03-09', 1, NULL, NULL, NULL),
+(35, 1, 11, 'Returned', '2025-03-09', 1, '2025-03-16', '2025-03-09', 1, NULL, NULL, NULL),
+(36, 1, 1, 'Returned', '2025-03-09', 1, '2025-03-16', '2025-03-09', 1, NULL, NULL, NULL),
+(37, 1, 6, 'Returned', '2025-03-09', 1, '2025-03-16', '2025-03-09', 1, NULL, NULL, NULL),
+(38, 1, 11, 'Returned', '2025-03-09', 1, '2025-03-16', '2025-03-09', 1, NULL, NULL, NULL),
+(39, 1, 1, 'Returned', '2025-03-09', 1, '2025-03-16', '2025-03-09', 1, NULL, NULL, NULL),
+(40, 1, 6, 'Returned', '2025-03-09', 1, '2025-03-16', '2025-03-09', 1, NULL, NULL, NULL),
+(41, 1, 11, 'Returned', '2025-03-09', 1, '2025-03-16', '2025-03-09', 1, NULL, NULL, NULL),
+(42, 1, 1, 'Returned', '2025-03-09', 1, '2025-03-16', '2025-03-09', 1, NULL, NULL, NULL),
+(43, 1, 6, 'Returned', '2025-03-09', 1, '2025-03-16', '2025-03-09', 1, NULL, NULL, NULL),
+(44, 1, 11, 'Returned', '2025-03-09', 1, '2025-03-16', '2025-03-09', 1, NULL, NULL, NULL),
+(45, 1, 1, 'Returned', '2025-03-09', 1, '2025-03-10', '2025-03-09', 1, NULL, NULL, NULL),
+(46, 1, 6, 'Returned', '2025-03-09', 1, '2025-03-10', '2025-03-09', 1, NULL, NULL, NULL),
+(47, 1, 11, 'Returned', '2025-03-09', 1, '2025-03-09', '2025-03-09', 1, NULL, NULL, NULL),
+(48, 1, 6, 'Returned', '2025-03-09', 1, '2025-03-10', '2025-03-09', 1, NULL, NULL, NULL),
+(49, 1, 1, 'Returned', '2025-03-09', 1, '2025-03-10', '2025-03-09', 1, NULL, NULL, NULL),
+(50, 1, 11, 'Returned', '2025-03-09', 1, '2025-03-09', '2025-03-09', 1, NULL, NULL, NULL),
+(51, 1, 1, 'Active', '2025-03-09', 1, '2025-03-10', NULL, NULL, NULL, NULL, NULL),
+(52, 1, 6, 'Active', '2025-03-09', 1, '2025-03-10', NULL, NULL, NULL, NULL, NULL),
+(53, 1, 13, 'Active', '2025-03-09', 1, '2025-03-09', NULL, NULL, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -167,11 +211,21 @@ CREATE TABLE `contributors` (
 --
 
 INSERT INTO `contributors` (`id`, `book_id`, `writer_id`, `role`) VALUES
-(46, 1, 1, 'Author'),
-(47, 2, 1, 'Author'),
-(48, 3, 1, 'Author'),
-(49, 4, 1, 'Author'),
-(50, 5, 1, 'Author');
+(61, 6, 2, 'Author'),
+(62, 7, 2, 'Author'),
+(63, 8, 2, 'Author'),
+(64, 9, 2, 'Author'),
+(65, 10, 2, 'Author'),
+(66, 1, 1, 'Author'),
+(67, 2, 1, 'Author'),
+(68, 3, 1, 'Author'),
+(69, 4, 1, 'Author'),
+(70, 5, 1, 'Author'),
+(71, 11, 3, 'Author'),
+(72, 12, 3, 'Author'),
+(73, 13, 3, 'Author'),
+(74, 14, 3, 'Author'),
+(75, 15, 3, 'Author');
 
 -- --------------------------------------------------------
 
@@ -235,7 +289,17 @@ INSERT INTO `publications` (`id`, `book_id`, `publisher_id`, `publish_date`) VAL
 (2, 2, 2, '2024'),
 (3, 3, 2, '2024'),
 (4, 4, 2, '2024'),
-(5, 5, 2, '2024');
+(5, 5, 2, '2024'),
+(6, 6, 3, '2017'),
+(7, 7, 3, '2017'),
+(8, 8, 3, '2017'),
+(9, 9, 3, '2017'),
+(10, 10, 3, '2017'),
+(11, 11, 4, '2010'),
+(12, 12, 4, '2010'),
+(13, 13, 4, '2010'),
+(14, 14, 4, '2010'),
+(15, 15, 4, '2010');
 
 -- --------------------------------------------------------
 
@@ -254,7 +318,9 @@ CREATE TABLE `publishers` (
 --
 
 INSERT INTO `publishers` (`id`, `publisher`, `place`) VALUES
-(2, 'Keya International Press LLP', 'Jaipur, India');
+(2, 'Keya International Press LLP', 'Jaipur, India'),
+(3, 'Chandos Publishing', 'USA'),
+(4, 'Business & Arts, Inc.', 'Iloilo, Philippines');
 
 -- --------------------------------------------------------
 
@@ -283,7 +349,14 @@ CREATE TABLE `reservations` (
 --
 
 INSERT INTO `reservations` (`id`, `user_id`, `book_id`, `reserve_date`, `ready_date`, `ready_by`, `issue_date`, `issued_by`, `cancel_date`, `cancelled_by`, `cancelled_by_role`, `recieved_date`, `status`) VALUES
-(1, 1, 4, '2025-03-08 20:27:01', '2025-03-09 03:30:56', 1, NULL, NULL, NULL, NULL, NULL, NULL, 'Ready');
+(1, 1, 4, '2025-03-08 20:27:01', '2025-03-09 03:30:56', 1, '2025-03-09 03:35:07', 1, NULL, NULL, NULL, '2025-03-09 03:35:07', 'Received'),
+(2, 1, 4, '2025-03-08 20:45:25', '2025-03-09 03:45:34', 1, '2025-03-09 03:45:38', 1, NULL, NULL, NULL, '2025-03-09 03:45:38', 'Received'),
+(3, 1, 5, '2025-03-08 20:47:03', '2025-03-09 03:47:15', 1, '2025-03-09 03:47:19', 1, NULL, NULL, NULL, '2025-03-09 03:47:19', 'Received'),
+(4, 1, 1, '2025-03-08 22:55:59', '2025-03-09 05:56:13', 1, '2025-03-09 05:56:19', 1, NULL, NULL, NULL, '2025-03-09 05:56:19', 'Received'),
+(5, 1, 11, '2025-03-08 22:56:03', '2025-03-09 05:56:13', 1, '2025-03-09 05:56:19', 1, NULL, NULL, NULL, '2025-03-09 05:56:19', 'Received'),
+(6, 1, 6, '2025-03-08 23:43:28', '2025-03-09 06:43:47', 1, '2025-03-09 06:43:51', 1, NULL, NULL, NULL, '2025-03-09 06:43:51', 'Received'),
+(7, 1, 1, '2025-03-08 23:43:31', '2025-03-09 06:43:47', 1, '2025-03-09 06:43:51', 1, NULL, NULL, NULL, '2025-03-09 06:43:51', 'Received'),
+(8, 1, 11, '2025-03-08 23:43:33', '2025-03-09 06:43:47', 1, '2025-03-09 06:43:51', 1, NULL, NULL, NULL, '2025-03-09 06:43:51', 'Received');
 
 -- --------------------------------------------------------
 
@@ -330,7 +403,13 @@ INSERT INTO `updates` (`id`, `user_id`, `role`, `status`, `update`) VALUES
 (24, 210078, 'Admin', 'Active Login', '2025-03-09 03:26:26'),
 (25, 210078, 'Student', 'Active Login', '2025-03-09 03:26:45'),
 (26, 210078, 'Admin', 'Active Login', '2025-03-09 03:28:21'),
-(27, 210078, 'Student', 'Active Login', '2025-03-09 03:30:23');
+(27, 210078, 'Student', 'Active Login', '2025-03-09 03:30:23'),
+(28, 210078, 'Admin', 'Active Login', '2025-03-09 03:54:49'),
+(29, 210078, 'Admin', 'Active Login', '2025-03-09 05:27:28'),
+(30, 210078, 'Student', 'Active Login', '2025-03-09 05:55:39'),
+(31, 210078, 'Admin', 'Active Login', '2025-03-09 06:17:07'),
+(32, 210078, 'Admin', 'Active Login', '2025-03-09 06:36:26'),
+(33, 210078, 'Student', 'Active Login', '2025-03-09 06:43:07');
 
 -- --------------------------------------------------------
 
@@ -366,7 +445,7 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `school_id`, `firstname`, `middle_init`, `lastname`, `email`, `password`, `contact_no`, `borrowed_books`, `returned_books`, `damaged_books`, `lost_books`, `user_image`, `usertype`, `address`, `id_type`, `id_image`, `date_added`, `status`, `last_update`) VALUES
-(1, 210078, 'Kenneth', 'P', 'Bonaagua', 'kbonaagua2021@student.nbscollege.edu.ph', '$2y$10$NEG2OTMfLQSGcoKbGvj1/u/NUagvasGN0C1WWK1/ErlZ41qI.4mt2', '09702582474', 8, 8, 0, 0, '../Images/Profile/default-avatar.jpg', 'Student', '', '', '/upload/default-id.png', '2025-03-06', '1', '2025-03-09'),
+(1, 210078, 'Kenneth', 'P', 'Bonaagua', 'kbonaagua2021@student.nbscollege.edu.ph', '$2y$10$NEG2OTMfLQSGcoKbGvj1/u/NUagvasGN0C1WWK1/ErlZ41qI.4mt2', '09702582474', 41, 38, 0, 0, '../Images/Profile/default-avatar.jpg', 'Student', '', '', '/upload/default-id.png', '2025-03-06', '1', '2025-03-09'),
 (2, 210069, 'Cayce', NULL, 'Evangelista', 'cevans@student.nbscollege.edu.ph', '$2y$10$ULOcdeaIOY8zf9H7N9pzq.LGg.6VwxSVxK8DInBCqsW1HrmRapwnO', '', 4, 4, 0, 0, '../Images/Profile/default-avatar.jpg', 'Student', '', '', '/upload/default-id.png', '2025-03-06', '1', '2025-03-06');
 
 -- --------------------------------------------------------
@@ -387,7 +466,9 @@ CREATE TABLE `writers` (
 --
 
 INSERT INTO `writers` (`id`, `firstname`, `middle_init`, `lastname`) VALUES
-(1, 'Ravi', '', 'Sharma');
+(1, 'Ravi', '', 'Sharma'),
+(2, 'Marie Keen', '', 'Shaw'),
+(3, 'Corazon', 'Pineda', 'Kabayao');
 
 --
 -- Indexes for dumped tables
@@ -488,13 +569,13 @@ ALTER TABLE `admins`
 -- AUTO_INCREMENT for table `books`
 --
 ALTER TABLE `books`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT for table `borrowings`
 --
 ALTER TABLE `borrowings`
-  MODIFY `id` int(225) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+  MODIFY `id` int(225) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=54;
 
 --
 -- AUTO_INCREMENT for table `cart`
@@ -506,7 +587,7 @@ ALTER TABLE `cart`
 -- AUTO_INCREMENT for table `contributors`
 --
 ALTER TABLE `contributors`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=51;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=76;
 
 --
 -- AUTO_INCREMENT for table `fines`
@@ -524,25 +605,25 @@ ALTER TABLE `messages`
 -- AUTO_INCREMENT for table `publications`
 --
 ALTER TABLE `publications`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT for table `publishers`
 --
 ALTER TABLE `publishers`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `reservations`
 --
 ALTER TABLE `reservations`
-  MODIFY `id` int(225) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(225) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `updates`
 --
 ALTER TABLE `updates`
-  MODIFY `id` int(225) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
+  MODIFY `id` int(225) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=34;
 
 --
 -- AUTO_INCREMENT for table `users`
@@ -554,7 +635,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `writers`
 --
 ALTER TABLE `writers`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

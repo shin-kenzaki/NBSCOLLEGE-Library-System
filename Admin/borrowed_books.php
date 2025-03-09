@@ -462,20 +462,19 @@ while ($row = $emailResult->fetch_assoc()) {
 
         // Handle update due date button click
         updateDueDateBtn.click(function() {
-            // Get minimum borrow date from selected books
-            let minBorrowDate = null;
+            // Get minimum issue date from selected books
+            let minIssueDate = null;
             $('.borrow-checkbox:checked').each(function() {
                 const row = $(this).closest('tr');
-                const borrowDate = new Date(row.find('td:eq(4)').text()); // Assuming borrow date is in 5th column
-                if (!minBorrowDate || borrowDate < minBorrowDate) {
-                    minBorrowDate = borrowDate;
+                const issueDate = new Date(row.find('td:eq(4)').text()); // Assuming issue date is in 5th column
+                if (!minIssueDate || issueDate < minIssueDate) {
+                    minIssueDate = issueDate;
                 }
             });
 
-            // Set minimum date to 7 days after the earliest borrow date
-            if (minBorrowDate) {
-                minBorrowDate.setDate(minBorrowDate.getDate() + 7);
-                const minDateStr = minBorrowDate.toISOString().split('T')[0];
+            // Set minimum date to the earliest issue date
+            if (minIssueDate) {
+                const minDateStr = minIssueDate.toISOString().split('T')[0];
                 $('#newDueDate').attr('min', minDateStr);
             }
 
