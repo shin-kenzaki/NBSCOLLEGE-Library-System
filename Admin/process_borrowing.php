@@ -24,7 +24,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     try {
         $processed_titles = []; // Track processed book titles
-        $success_count = 0;
 
         foreach ($book_ids as $book_id) {
             // Get the book title and accession first
@@ -112,13 +111,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             if (!$update_user->execute()) {
                 throw new Exception("Error updating user's borrow count");
             }
-            
-            $success_count++;
         }
-        
-        // Commit transaction after processing all books
+
+        // Commit transaction after all books are processed successfully
         $conn->commit();
-        echo json_encode(['status' => 'success', 'message' => "$success_count books borrowed successfully"]);
+        echo json_encode(['status' => 'success', 'message' => 'Books borrowed successfully']);
 
     } catch (Exception $e) {
         // Rollback transaction on error
