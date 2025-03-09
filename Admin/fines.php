@@ -43,8 +43,21 @@ $result = $conn->query($query);
 <!-- Main Content -->
 <div id="content" class="d-flex flex-column min-vh-100">
     <div class="container-fluid px-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1 class="h3 mb-0 text-gray-800">Fines</h1>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Borrowed Books</h1>
+
+            <!-- Generate Receipt Form -->
+            <form action="fine-receipt.php" method="post" id="receiptForm" target="_blank" onsubmit="return validateForm()" class="d-flex align-items-center">
+                <div class="col-auto p-2">
+                    <label for="school_id" class="col-form-label" style="font-size:medium;">Enter ID Number:</label>
+                </div>
+                <div class="col-auto p-2" style="width:200px;">
+                    <input type="text" name="school_id" id="school_id" class="form-control custom" placeholder="Enter ID Number" required>
+                </div>
+                <div class="col-auto p-2">
+                    <button class="btn btn-danger btn-block" type="submit">Generate Loan Receipt</button>
+                </div>
+            </form>
         </div>
         <div class="card shadow mb-4">
             <div class="card-header py-3">
@@ -83,7 +96,7 @@ $result = $conn->query($query);
                         </thead>
                         <tbody>
                             <?php while ($row = $result->fetch_assoc()): ?>
-                                <tr data-fine-id="<?php echo $row['id']; ?>" 
+                                <tr data-fine-id="<?php echo $row['id']; ?>"
                                     data-amount="<?php echo $row['amount']; ?>"
                                     data-borrower="<?php echo htmlspecialchars($row['borrower_name']); ?>"
                                     data-status="<?php echo $row['status']; ?>">
@@ -100,8 +113,8 @@ $result = $conn->query($query);
                                         <?php endif; ?>
                                     </td>
                                     <td class="text-center">
-                                        <?php 
-                                        echo ($row['payment_date'] !== null && $row['payment_date'] !== '0000-00-00') 
+                                        <?php
+                                        echo ($row['payment_date'] !== null && $row['payment_date'] !== '0000-00-00')
                                             ? date('Y-m-d', strtotime($row['payment_date']))
                                             : '-';
                                         ?>
@@ -168,7 +181,7 @@ $(document).ready(function() {
     // Right-click handler for table rows
     $('#finesTable tbody').on('contextmenu', 'tr', function(e) {
         e.preventDefault();
-        
+
         $selectedRow = $(this);
         const status = $selectedRow.data('status');
 
@@ -256,7 +269,7 @@ $(document).ready(function() {
                 });
             }
         });
-        
+
         contextMenu.hide();
     });
 
