@@ -127,7 +127,7 @@ while ($row = $emailResult->fetch_assoc()) {
             <label for="school_id" class="col-form-label" style="font-size:medium;">Enter ID Number:</label>
         </div>
         <div class="col-auto p-2" style="width:200px;">
-            <input type="text" name="school_id" id="school_id" class="form-control custom" placeholder="Enter User ID" required>
+            <input type="text" name="school_id" id="school_id" class="form-control custom" placeholder="Enter ID Number" required>
         </div>
         <div class="col-auto p-2">
             <button class="btn btn-danger btn-block" type="submit">Generate Loan Receipt</button>
