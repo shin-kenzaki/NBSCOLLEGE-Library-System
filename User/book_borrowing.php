@@ -70,6 +70,8 @@ include 'inc/header.php';
                                     $today = new DateTime();
                                     $days_remaining = $today->diff($due_date)->days;
                                     $is_overdue = $today > $due_date;
+                                    $is_today = $today->format('Y-m-d') == $due_date->format('Y-m-d');
+                                    $is_tomorrow = $today->modify('+1 day')->format('Y-m-d') == $due_date->format('Y-m-d');
                             ?>
                                 <tr>
                                     <td class="text-center"><?php echo htmlspecialchars($row['accession']); ?></td>
@@ -78,7 +80,11 @@ include 'inc/header.php';
                                     <td class="text-center"><?php echo date('Y-m-d', strtotime($row['issue_date'])); ?></td>
                                     <td class="text-center"><?php echo date('Y-m-d', strtotime($row['due_date'])); ?></td>
                                     <td class="text-center">
-                                        <?php if ($is_overdue): ?>
+                                        <?php if ($is_today): ?>
+                                            Library is open until 4 PM today
+                                        <?php elseif ($is_tomorrow): ?>
+                                            Library is open until 4 PM tomorrow
+                                        <?php elseif ($is_overdue): ?>
                                             <span class="text-danger">Overdue by <?php echo $days_remaining; ?> day(s)</span>
                                         <?php else: ?>
                                             <?php echo $days_remaining; ?> days

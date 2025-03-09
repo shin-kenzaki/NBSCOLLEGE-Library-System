@@ -17,7 +17,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // Set the default values
     $status = 'Active';
     $borrow_date = date('Y-m-d H:i:s'); // current timestamp
-    $allowed_days = 7; // default allowed days
 
     // Start transaction
     $conn->begin_transaction();
@@ -27,13 +26,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         foreach ($book_ids as $book_id) {
             // Get the book title and accession first
-            $get_book = $conn->prepare("SELECT title, accession FROM books WHERE id = ?");
+            $get_book = $conn->prepare("SELECT title, accession, shelf_location FROM books WHERE id = ?");
             $get_book->bind_param("i", $book_id);
             $get_book->execute();
             $book_result = $get_book->get_result();
             $book = $book_result->fetch_assoc();
             $book_title = $book['title'];
             $book_accession = $book['accession'];
+            $shelf_location = $book['shelf_location'];
 
             // Skip if the book title has already been processed
             if (in_array($book_title, $processed_titles)) {
@@ -70,18 +70,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 throw new Exception("Book is not available for borrowing");
             }
 
-            // Check the shelf location using the accession
-            $get_shelf_location = $conn->prepare("SELECT shelf_location FROM books WHERE accession = ?");
-            $get_shelf_location->bind_param("s", $book_accession);
-            $get_shelf_location->execute();
-            $shelf_result = $get_shelf_location->get_result();
-            $shelf_location = $shelf_result->fetch_assoc()['shelf_location'];
-
             // Adjust allowed days based on shelf location
             if ($shelf_location == 'RES') {
                 $allowed_days = 1;
             } elseif ($shelf_location == 'REF') {
                 $allowed_days = 0; // current day only
+            } else {
+                $allowed_days = 7; // default allowed days
             }
 
             $due_date = date('Y-m-d H:i:s', strtotime("+{$allowed_days} days")); // calculate due date
