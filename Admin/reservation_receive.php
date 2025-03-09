@@ -33,8 +33,8 @@ $conn->begin_transaction();
 try {
     $ids_string = implode(',', $ids);
     
-    // Get reservations that are in PENDING or READY status
-    $query = "SELECT r.id, r.book_id, r.user_id, b.title, u.firstname, u.lastname, r.status
+    // Get reservations that are in ACTIVE or READY status and include shelf_location
+    $query = "SELECT r.id, r.book_id, r.user_id, b.title, u.firstname, u.lastname, b.shelf_location, r.status
               FROM reservations r
               JOIN books b ON r.book_id = b.id
               JOIN users u ON r.user_id = u.id
@@ -52,8 +52,6 @@ try {
     // Remove the READY status validation since we now accept PENDING too
     $result->data_seek(0);
 
-    $allowed_days = 7;
-
     while ($row = $result->fetch_assoc()) {
         // Check if book is available when reservation is in PENDING status
         if ($row['status'] === 'Pending') {
@@ -67,6 +65,15 @@ try {
             if ($book_status['status'] !== 'Available') {
                 throw new Exception("Book '{$row['title']}' is not available for immediate borrowing");
             }
+        }
+
+        // Adjust allowed days based on shelf location
+        if ($row['shelf_location'] == 'RES') {
+            $allowed_days = 1;
+        } elseif ($row['shelf_location'] == 'REF') {
+            $allowed_days = 0;
+        } else {
+            $allowed_days = 7;
         }
 
         // Update reservation
@@ -92,12 +99,12 @@ try {
             throw new Exception("Error updating book status");
         }
 
-        // Create borrowing record
+        // Create borrowing record using adjusted allowed_days
         $sql = "INSERT INTO borrowings 
-                (user_id, book_id, status, issue_date, issued_by, allowed_days, due_date)
-                VALUES (?, ?, 'Active', NOW(), ?, ?, DATE_ADD(NOW(), INTERVAL ? DAY))";
+                (user_id, book_id, status, issue_date, issued_by, due_date)
+                VALUES (?, ?, 'Active', NOW(), ?, DATE_ADD(NOW(), INTERVAL ? DAY))";
         $stmt = $conn->prepare($sql);
-        $stmt->bind_param("iiiii", $row['user_id'], $row['book_id'], $admin_id, $allowed_days, $allowed_days);
+        $stmt->bind_param("iiii", $row['user_id'], $row['book_id'], $admin_id, $allowed_days);
         if (!$stmt->execute()) {
             throw new Exception("Error creating borrowing record");
         }

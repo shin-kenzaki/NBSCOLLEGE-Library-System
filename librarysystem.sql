@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Mar 06, 2025 at 03:23 PM
+-- Generation Time: Mar 09, 2025 at 04:31 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -49,7 +49,7 @@ CREATE TABLE `admins` (
 --
 
 INSERT INTO `admins` (`id`, `employee_id`, `firstname`, `middle_init`, `lastname`, `email`, `password`, `image`, `role`, `date_added`, `status`, `last_update`, `reset_token`, `reset_expires`) VALUES
-(1, 210078, 'Kenneth Laurence', 'P.', 'Bonaagua', 'kbonaagua2021@student.nbscollege.edu.ph', '$2y$10$pcuTpA26VUZhdIqe3QBkUu5oFHVbMig6nSa/Xr7QoaSLPn2sXVjbq', '../Images/Profile/default-avatar.jpg', 'Admin', '2025-02-15', '1', '2025-02-25', '60f7756dbb4033ffa7a6e3cc82a86f11d3b8d7ae70f0905e3900a0fbd4a00871', '2025-02-25 05:06:21');
+(1, 210078, 'Kenneth Laurence', 'P.', 'Bonaagua', 'kbonaagua2021@student.nbscollege.edu.ph', '$2y$10$pcuTpA26VUZhdIqe3QBkUu5oFHVbMig6nSa/Xr7QoaSLPn2sXVjbq', '../Images/Profile/default-avatar.jpg', 'Admin', '2025-02-15', '1', '2025-03-08', '60f7756dbb4033ffa7a6e3cc82a86f11d3b8d7ae70f0905e3900a0fbd4a00871', '2025-02-25 05:06:21');
 
 -- --------------------------------------------------------
 
@@ -96,10 +96,10 @@ CREATE TABLE `books` (
 --
 
 INSERT INTO `books` (`id`, `accession`, `title`, `preferred_title`, `parallel_title`, `subject_category`, `subject_detail`, `summary`, `contents`, `front_image`, `back_image`, `dimension`, `series`, `volume`, `edition`, `copy_number`, `total_pages`, `supplementary_contents`, `ISBN`, `content_type`, `media_type`, `carrier_type`, `call_number`, `URL`, `language`, `shelf_location`, `entered_by`, `date_added`, `status`, `updated_by`, `last_update`) VALUES
-(1, 6190, 'Entrepreneurship', '', '', 'Topical', '', '', '', NULL, NULL, '', '', '', '', 1, '', '', '9789395080545', 'Text', 'Print', 'Book', 'SC HB615 2024 c1', '', 'English', 'SC', 1, '2025-03-06', 'Available', 1, '2025-03-06'),
-(2, 6191, 'Entrepreneurship', '', '', 'Topical', '', '', '', NULL, NULL, '', '', '', '', 2, '', '', '9789395080545', 'Text', 'Print', 'Book', 'SC HB615 2024 c2', '', 'English', 'SC', 1, '2025-03-06', 'Available', 1, '2025-03-06'),
-(3, 6192, 'Entrepreneurship', '', '', 'Topical', '', '', '', NULL, NULL, '', '', '', '', 3, '', '', '9789395080545', 'Text', 'Print', 'Book', 'REF HB615 2024 c3', '', 'English', 'REF', 1, '2025-03-06', 'Available', 1, '2025-03-06'),
-(4, 6193, 'Entrepreneurship', '', '', 'Topical', '', '', '', NULL, NULL, '', '', '', '', 4, '', '', '9789395080545', 'Text', 'Print', 'Book', 'REF HB615 2024 c4', '', 'English', 'REF', 1, '2025-03-06', 'Available', 1, '2025-03-06'),
+(1, 6190, 'Entrepreneurship', '', '', 'Topical', '', '', '', NULL, NULL, '', '', '', '', 1, '', '', '9789395080545', 'Text', 'Print', 'Book', 'SC HB615 2024 c1', '', 'English', 'SC', 1, '2025-03-06', 'Borrowed', 1, '2025-03-06'),
+(2, 6191, 'Entrepreneurship', '', '', 'Topical', '', '', '', NULL, NULL, '', '', '', '', 2, '', '', '9789395080545', 'Text', 'Print', 'Book', 'SC HB615 2024 c2', '', 'English', 'SC', 1, '2025-03-06', 'Borrowed', 1, '2025-03-06'),
+(3, 6192, 'Entrepreneurship', '', '', 'Topical', '', '', '', NULL, NULL, '', '', '', '', 3, '', '', '9789395080545', 'Text', 'Print', 'Book', 'REF HB615 2024 c3', '', 'English', 'REF', 1, '2025-03-06', 'Borrowed', 1, '2025-03-06'),
+(4, 6193, 'Entrepreneurship', '', '', 'Topical', '', '', '', NULL, NULL, '', '', '', '', 4, '', '', '9789395080545', 'Text', 'Print', 'Book', 'REF HB615 2024 c4', '', 'English', 'REF', 1, '2025-03-06', 'Reserved', 1, '2025-03-06'),
 (5, 6194, 'Entrepreneurship', '', '', 'Topical', '', '', '', NULL, NULL, '', '', '', '', 5, '', '', '9789395080545', 'Text', 'Print', 'Book', 'RES HB615 2024 c5', '', 'English', 'RES', 1, '2025-03-06', 'Available', 1, '2025-03-06');
 
 -- --------------------------------------------------------
@@ -278,6 +278,13 @@ CREATE TABLE `reservations` (
   `status` varchar(100) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `reservations`
+--
+
+INSERT INTO `reservations` (`id`, `user_id`, `book_id`, `reserve_date`, `ready_date`, `ready_by`, `issue_date`, `issued_by`, `cancel_date`, `cancelled_by`, `cancelled_by_role`, `recieved_date`, `status`) VALUES
+(1, 1, 4, '2025-03-08 20:27:01', '2025-03-09 03:30:56', 1, NULL, NULL, NULL, NULL, NULL, NULL, 'Ready');
+
 -- --------------------------------------------------------
 
 --
@@ -315,7 +322,15 @@ INSERT INTO `updates` (`id`, `user_id`, `role`, `status`, `update`) VALUES
 (16, 210078, 'Student', 'Active Login', '2025-03-06 02:45:01'),
 (17, 210078, 'Admin', 'Active Login', '2025-03-06 02:45:39'),
 (18, 210069, 'Student', 'Active Login', '2025-03-06 02:49:58'),
-(19, 210078, 'Student', 'Active Login', '2025-03-15 03:12:14');
+(19, 210078, 'Student', 'Active Login', '2025-03-15 03:12:14'),
+(20, 210078, 'Admin', 'Active Login', '2025-03-07 13:13:14'),
+(21, 210078, 'Admin', 'Active Login', '2025-03-08 09:42:59'),
+(22, 210078, 'Admin', 'Active Login', '2025-03-08 11:13:08'),
+(23, 210078, 'Admin', 'Active Login', '2025-03-08 14:31:55'),
+(24, 210078, 'Admin', 'Active Login', '2025-03-09 03:26:26'),
+(25, 210078, 'Student', 'Active Login', '2025-03-09 03:26:45'),
+(26, 210078, 'Admin', 'Active Login', '2025-03-09 03:28:21'),
+(27, 210078, 'Student', 'Active Login', '2025-03-09 03:30:23');
 
 -- --------------------------------------------------------
 
@@ -351,7 +366,7 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `school_id`, `firstname`, `middle_init`, `lastname`, `email`, `password`, `contact_no`, `borrowed_books`, `returned_books`, `damaged_books`, `lost_books`, `user_image`, `usertype`, `address`, `id_type`, `id_image`, `date_added`, `status`, `last_update`) VALUES
-(1, 210078, 'Kenneth', 'P', 'Bonaagua', 'kbonaagua2021@student.nbscollege.edu.ph', '$2y$10$NEG2OTMfLQSGcoKbGvj1/u/NUagvasGN0C1WWK1/ErlZ41qI.4mt2', '09702582474', 8, 8, 0, 0, '../Images/Profile/default-avatar.jpg', 'Student', '', '', '/upload/default-id.png', '2025-03-06', '1', '2025-03-06'),
+(1, 210078, 'Kenneth', 'P', 'Bonaagua', 'kbonaagua2021@student.nbscollege.edu.ph', '$2y$10$NEG2OTMfLQSGcoKbGvj1/u/NUagvasGN0C1WWK1/ErlZ41qI.4mt2', '09702582474', 8, 8, 0, 0, '../Images/Profile/default-avatar.jpg', 'Student', '', '', '/upload/default-id.png', '2025-03-06', '1', '2025-03-09'),
 (2, 210069, 'Cayce', NULL, 'Evangelista', 'cevans@student.nbscollege.edu.ph', '$2y$10$ULOcdeaIOY8zf9H7N9pzq.LGg.6VwxSVxK8DInBCqsW1HrmRapwnO', '', 4, 4, 0, 0, '../Images/Profile/default-avatar.jpg', 'Student', '', '', '/upload/default-id.png', '2025-03-06', '1', '2025-03-06');
 
 -- --------------------------------------------------------
@@ -521,13 +536,13 @@ ALTER TABLE `publishers`
 -- AUTO_INCREMENT for table `reservations`
 --
 ALTER TABLE `reservations`
-  MODIFY `id` int(225) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(225) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `updates`
 --
 ALTER TABLE `updates`
-  MODIFY `id` int(225) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+  MODIFY `id` int(225) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
 
 --
 -- AUTO_INCREMENT for table `users`
