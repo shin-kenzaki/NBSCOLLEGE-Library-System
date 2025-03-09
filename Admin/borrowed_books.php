@@ -25,6 +25,7 @@ updateOverdueStatus($conn);
 $query = "SELECT b.id as borrow_id, b.book_id, b.user_id, b.issue_date, b.due_date, b.status,
           bk.title, bk.accession, bk.shelf_location,
           CONCAT(u.firstname, ' ', u.lastname) AS borrower,
+          u.school_id,
           CONCAT(a.firstname, ' ', a.lastname) AS issued_by_name
           FROM borrowings b
           JOIN books bk ON b.book_id = bk.id
@@ -113,15 +114,32 @@ while ($row = $emailResult->fetch_assoc()) {
 ?>
 
 
+
 <!-- Main Content -->
 <div id="content" class="d-flex flex-column min-vh-100">
     <div class="container-fluid px-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1 class="h3 mb-0 text-gray-800">Borrowed Books</h1>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Borrowed Books</h1>
+
+    <!-- Generate Receipt Form -->
+    <form action="borrowed-books-receipt.php" method="post" id="receiptForm" target="_blank" onsubmit="return validateForm()" class="d-flex align-items-center">
+        <div class="col-auto p-2">
+            <label for="school_id" class="col-form-label" style="font-size:medium;">Enter User ID:</label>
         </div>
+        <div class="col-auto p-2" style="width:200px;">
+            <input type="text" name="school_id" id="school_id" class="form-control custom" placeholder="Enter User ID" required>
+        </div>
+        <div class="col-auto p-2">
+            <button class="btn btn-danger btn-block" type="submit">Generate Loan Receipt</button>
+        </div>
+    </form>
+</div>
+
+
         <div class="card shadow mb-4">
             <div class="card-header py-3 d-flex justify-content-between align-items-center">
                 <h6 class="m-0 font-weight-bold text-primary">Borrowed Books List</h6>
+
                 <div>
                     <button id="returnSelectedBtn" class="btn btn-success btn-sm mr-2" disabled>
                         Return Selected (<span id="selectedCount">0</span>)
@@ -150,6 +168,7 @@ while ($row = $emailResult->fetch_assoc()) {
                                 <th class="text-center">Accession No.</th>
                                 <th class="text-center">Book Title</th>
                                 <th class="text-center">Borrower's Name</th>
+                                <th class="text-center">ID Number</th>
                                 <th class="text-center">Borrow Date</th>
                                 <th class="text-center">Due Date</th>
                                 <th class="text-center">Shelf Location</th>
@@ -163,16 +182,17 @@ while ($row = $emailResult->fetch_assoc()) {
                                     data-borrower="<?php echo htmlspecialchars($row['borrower']); ?>">
                                     <td>
                                         <input type="checkbox" class="borrow-checkbox"
-                                               data-borrow-id="<?php echo $row['borrow_id']; ?>"
-                                               data-current-due-date="<?php echo $row['due_date']; ?>">
+                                            data-borrow-id="<?php echo $row['borrow_id']; ?>"
+                                            data-current-due-date="<?php echo $row['due_date']; ?>">
                                     </td>
-                                    <td class="text-center"><?php echo $row['accession']; ?></td>
-                                    <td><?php echo $row['title']; ?></td>
-                                    <td><?php echo $row['borrower']; ?></td>
-                                    <td class="text-center"><?php echo date('M d, Y', strtotime($row['issue_date'])); ?></td>
-                                    <td class="text-center"><?php echo date('M d, Y', strtotime($row['due_date'])); ?></td>
-                                    <td class="text-center"><?php echo htmlspecialchars($row['shelf_location']); ?></td>
-                                    <td class="text-center">
+                                    <td class="text-left"><?php echo $row['accession']; ?></td>
+                                    <td><?php echo htmlspecialchars($row['title']); ?></td>
+                                    <td><?php echo htmlspecialchars($row['borrower']); ?></td>
+                                    <td class="text-left"><?php echo htmlspecialchars($row['school_id']); ?></td>
+                                    <td class="text-left"><?php echo date('M d, Y', strtotime($row['issue_date'])); ?></td>
+                                    <td class="text-left"><?php echo date('M d, Y', strtotime($row['due_date'])); ?></td>
+                                    <td class="text-left"><?php echo htmlspecialchars($row['shelf_location']); ?></td>
+                                    <td class="text-left">
                                         <?php
                                         $status = htmlspecialchars($row['status']);
                                         $statusClass = '';
@@ -187,6 +207,7 @@ while ($row = $emailResult->fetch_assoc()) {
                                 </tr>
                             <?php endwhile; ?>
                         </tbody>
+
                     </table>
                 </div>
             </div>
