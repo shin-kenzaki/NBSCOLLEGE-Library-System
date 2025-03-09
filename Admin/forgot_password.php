@@ -66,18 +66,25 @@ require '../db.php';
     <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
     <script src="inc/js/sb-admin-2.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script>
-        <?php if ($messageType === 'success' && strpos($message, 'successfully') !== false): ?>
-        Swal.fire({
-            title: 'Success!',
-            text: 'Password has been successfully updated',
-            icon: 'success',
-            timer: 1500,
-            showConfirmButton: false
-        }).then(() => {
-            window.location.href = 'index.php';
-        });
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        <?php if (isset($_SESSION['alert_type']) && isset($_SESSION['alert_message'])): ?>
+            Swal.fire({
+                icon: "<?php echo $_SESSION['alert_type']; ?>",
+                title: "<?php echo ucfirst($_SESSION['alert_type']); ?>",
+                text: "<?php echo $_SESSION['alert_message']; ?>",
+                timer: 3000,
+                showConfirmButton: false
+            });
+
+            <?php
+            // Clear session data after displaying the alert
+            unset($_SESSION['alert_type']);
+            unset($_SESSION['alert_message']);
+            ?>
         <?php endif; ?>
-    </script>
+    });
+</script>
+
 </body>
 </html>
