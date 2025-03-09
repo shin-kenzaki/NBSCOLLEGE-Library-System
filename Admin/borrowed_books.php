@@ -8,19 +8,20 @@ if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Lib
     exit();
 }
 
-// Check if the user has the correct role
 if ($_SESSION['role'] !== 'Admin' && $_SESSION['role'] !== 'Librarian') {
-    header('Location: dashboard.php'); // Redirect to a page appropriate for their role or an error page
+    header('Location: dashboard.php');
     exit();
 }
 
 include('../db.php');
 include('update_overdue_status.php');
 
+require 'mailer.php';
+
 // Update overdue status
 updateOverdueStatus($conn);
 
-// Fetch borrowed books data from the database
+// Fetch borrowed books data for the table
 $query = "SELECT b.id as borrow_id, b.book_id, b.user_id, b.issue_date, b.due_date, b.status,
           bk.title, bk.accession, bk.shelf_location,
           CONCAT(u.firstname, ' ', u.lastname) AS borrower,
@@ -32,7 +33,71 @@ $query = "SELECT b.id as borrow_id, b.book_id, b.user_id, b.issue_date, b.due_da
           WHERE b.status IN ('Active', 'Overdue')
           AND b.return_date IS NULL";
 $result = $conn->query($query);
+
+
+// NOTIFICATION LOGIC
+
+// Fetch users with books due tomorrow who haven't been notified yet
+$reminderQuery = "
+    SELECT u.email, u.firstname, u.lastname,
+           GROUP_CONCAT(bk.title SEPARATOR ', ') AS book_titles,
+           b.due_date,
+           GROUP_CONCAT(b.id) AS borrow_ids
+    FROM borrowings b
+    JOIN users u ON b.user_id = u.id
+    JOIN books bk ON b.book_id = bk.id
+    WHERE DATE(b.due_date) = CURDATE() + INTERVAL 1 DAY
+    AND b.status = 'Active'
+    AND b.reminder_sent = 0
+    GROUP BY u.email
+";
+
+$reminderResult = $conn->query($reminderQuery);
+
+
+$mail = require 'mailer.php';
+
+if ($reminderResult->num_rows > 0) {
+    while ($row = $reminderResult->fetch_assoc()) {
+        $email = $row['email'];
+        $bookTitles = $row['book_titles'];
+        $dueDate = date('M d, Y', strtotime($row['due_date']));
+        $borrowerName = $row['firstname'] . ' ' . $row['lastname'];
+        $borrowIds = explode(',', $row['borrow_ids']);
+
+        try {
+            $mail->setFrom('cevangelista2021@student.nbscollege.edu.ph', 'Library System');
+            $mail->addAddress($email, $borrowerName);
+
+            $mail->Subject = "Library Due Date Reminder";
+            $mail->Body = "
+                Hi $borrowerName,<br><br>
+                This is a reminder that the following books you borrowed are due tomorrow, <b>$dueDate</b>:<br>
+                <ul>
+                    " . implode('<li>', explode(', ', $bookTitles)) . "
+                </ul>
+                Please return them on time to avoid penalties.<br><br>
+                Thank you!
+            ";
+
+            $mail->send();
+
+
+            foreach ($borrowIds as $borrowId) {
+                $conn->query("UPDATE borrowings SET reminder_sent = 1 WHERE id = $borrowId");
+            }
+
+        } catch (Exception $e) {
+            echo "Email sending failed for {$email}. Error: {$mail->ErrorInfo}";
+        }
+
+        $mail->clearAddresses();
+    }
+} else {
+    // echo "No reminders to send today.";
+}
 ?>
+
 
 <!-- Main Content -->
 <div id="content" class="d-flex flex-column min-vh-100">
@@ -79,11 +144,11 @@ $result = $conn->query($query);
                         </thead>
                         <tbody>
                             <?php while ($row = $result->fetch_assoc()): ?>
-                                <tr data-book-id="<?php echo $row['book_id']; ?>" 
+                                <tr data-book-id="<?php echo $row['book_id']; ?>"
                                     data-book-title="<?php echo htmlspecialchars($row['title']); ?>"
                                     data-borrower="<?php echo htmlspecialchars($row['borrower']); ?>">
                                     <td>
-                                        <input type="checkbox" class="borrow-checkbox" 
+                                        <input type="checkbox" class="borrow-checkbox"
                                                data-borrow-id="<?php echo $row['borrow_id']; ?>"
                                                data-current-due-date="<?php echo $row['due_date']; ?>">
                                     </td>
@@ -198,7 +263,7 @@ $result = $conn->query($query);
         // Right-click handler for table rows
         $('#dataTable tbody').on('contextmenu', 'tr', function(e) {
             e.preventDefault();
-            
+
             $selectedRow = $(this);
             const status = $selectedRow.find('td:last').text().trim();
 
@@ -310,7 +375,7 @@ $result = $conn->query($query);
                     }
                 });
             }
-            
+
             contextMenu.hide();
         });
 
@@ -359,7 +424,7 @@ $result = $conn->query($query);
             selectedItems = $('.borrow-checkbox:checked').map(function() {
                 return $(this).data('borrow-id');
             }).get();
-            
+
             const count = selectedItems.length;
             $('#selectedCount, #selectedCountDueDate').text(count);
             $('#updateDueDateBtn, #returnSelectedBtn').prop('disabled', count === 0);
@@ -367,7 +432,7 @@ $result = $conn->query($query);
 
         // Initialize the modal
         const dueDateModal = $('#dueDateModal');
-        
+
         // Handle modal close buttons
         $('.close, button[data-dismiss="modal"]').on('click', function() {
             dueDateModal.modal('hide');
@@ -520,14 +585,14 @@ $result = $conn->query($query);
                 const status = $(this).closest('tr').find('td:eq(6) span').text().trim();
                 return status === 'Active' || status === 'Overdue';
             }).length;
-            
+
             const totalChecked = $('.borrow-checkbox:checked').length;
-            
+
             $('#selectAll').prop({
                 'checked': totalChecked > 0 && totalChecked === totalEligible,
                 'indeterminate': totalChecked > 0 && totalChecked < totalEligible
             });
-            
+
             updateSelectedCount();
         });
     });
