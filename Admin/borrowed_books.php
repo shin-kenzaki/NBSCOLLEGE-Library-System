@@ -37,65 +37,79 @@ $result = $conn->query($query);
 
 // NOTIFICATION LOGIC
 
-// Fetch users with books due tomorrow who haven't been notified yet
-$reminderQuery = "
-    SELECT u.email, u.firstname, u.lastname,
-           GROUP_CONCAT(bk.title SEPARATOR ', ') AS book_titles,
-           b.due_date,
-           GROUP_CONCAT(b.id) AS borrow_ids
+// 🟢 Email Reminder Query (Exclude Shelf Location 'RES' & Check `reminder_sent`)
+$emailQuery = "
+    SELECT u.id AS user_id, u.email, u.firstname, u.lastname,
+           GROUP_CONCAT(bk.title SEPARATOR '|') AS book_titles,
+           b.due_date
     FROM borrowings b
     JOIN users u ON b.user_id = u.id
     JOIN books bk ON b.book_id = bk.id
     WHERE DATE(b.due_date) = CURDATE() + INTERVAL 1 DAY
     AND b.status = 'Active'
-    AND b.reminder_sent = 0
-    GROUP BY u.email
+    AND bk.shelf_location != 'RES'
+    AND b.reminder_sent = 0  -- 🔹 Only get entries that haven’t been marked yet
+    GROUP BY u.id, b.due_date
 ";
+$emailResult = $conn->query($emailQuery);
 
-$reminderResult = $conn->query($reminderQuery);
+// Send Email Logic
+while ($row = $emailResult->fetch_assoc()) {
+    $userId = $row['user_id'];
+    $email = $row['email'];
+    $bookTitles = explode('|', $row['book_titles']);
+    $dueDate = date('M d, Y', strtotime($row['due_date']));
+    $borrowerName = $row['firstname'] . ' ' . $row['lastname'];
 
+    $mail = require 'mailer.php';
 
-$mail = require 'mailer.php';
+    $bookList = "<ul>";
+    foreach ($bookTitles as $title) {
+        $bookList .= "<li>" . htmlspecialchars($title) . "</li>";
+    }
+    $bookList .= "</ul>";
 
-if ($reminderResult->num_rows > 0) {
-    while ($row = $reminderResult->fetch_assoc()) {
-        $email = $row['email'];
-        $bookTitles = $row['book_titles'];
-        $dueDate = date('M d, Y', strtotime($row['due_date']));
-        $borrowerName = $row['firstname'] . ' ' . $row['lastname'];
-        $borrowIds = explode(',', $row['borrow_ids']);
+    try {
+        // ✅ Proper "No-Reply" Setup
+        $mail->setFrom('noreply@nbs-library-system.com', 'Library System (No-Reply)');
 
-        try {
-            $mail->setFrom('cevangelista2021@student.nbscollege.edu.ph', 'Library System');
-            $mail->addAddress($email, $borrowerName);
+        // ✅ Ensures replies go nowhere
+        $mail->addReplyTo('noreply@nbs-library-system.com', 'No-Reply');
 
-            $mail->Subject = "Library Due Date Reminder";
-            $mail->Body = "
-                Hi $borrowerName,<br><br>
-                This is a reminder that the following books you borrowed are due tomorrow, <b>$dueDate</b>:<br>
-                <ul>
-                    " . implode('<li>', explode(', ', $bookTitles)) . "
-                </ul>
-                Please return them on time to avoid penalties.<br><br>
-                Thank you!
-            ";
+        // ✅ Ensures new email threads
+        $uniqueId = uniqid() . "@nbs-library-system.com";
+        $mail->MessageID = "<$uniqueId>";
+        $mail->addCustomHeader("References", "");
+        $mail->addCustomHeader("In-Reply-To", "");
 
-            $mail->send();
+        $mail->addAddress($email, $borrowerName);
+        $mail->Subject = "Library Due Date Reminder - " . date('M d, Y H:i:s');
 
+        $mail->Body = "
+            Hi $borrowerName,<br><br>
+            This is a reminder that the following books you borrowed are due tomorrow, <b>$dueDate</b>:<br>
+            $bookList
+            Please return them tomorrow before 4:00PM(library closing time) to avoid penalties.<br><br>
+            <i><b>Note:</b> This is an automated email — please do not reply.</i><br><br>
+            Thank you!
+        ";
 
-            foreach ($borrowIds as $borrowId) {
-                $conn->query("UPDATE borrowings SET reminder_sent = 1 WHERE id = $borrowId");
-            }
-
-        } catch (Exception $e) {
-            echo "Email sending failed for {$email}. Error: {$mail->ErrorInfo}";
+        if ($mail->send()) {
+            $updateReminderQuery = "UPDATE borrowings
+                                    SET reminder_sent = 1
+                                    WHERE user_id = '$userId'
+                                    AND DATE(due_date) = CURDATE() + INTERVAL 1 DAY";
+            $conn->query($updateReminderQuery);
         }
 
-        $mail->clearAddresses();
+    } catch (Exception $e) {
+        echo "Email sending failed for {$email}. Error: {$mail->ErrorInfo}";
     }
-} else {
-    // echo "No reminders to send today.";
+
 }
+
+
+
 ?>
 
 
