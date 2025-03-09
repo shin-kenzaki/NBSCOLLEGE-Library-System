@@ -13,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $book_id = $_POST['book_id'];
     $user_id = $_POST['user_id'];
     $admin_id = $_SESSION['admin_id'];
-    
+
     // Set the default values
     $status = 'Active';
     $borrow_date = date('Y-m-d H:i:s'); // current timestamp
@@ -34,10 +34,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         // Check if user already has borrowed the same book title
         $check_duplicate = $conn->prepare("
-            SELECT b1.title 
+            SELECT b1.title
             FROM books b1
             JOIN borrowings br ON b1.id = br.book_id
-            WHERE br.user_id = ? 
+            WHERE br.user_id = ?
             AND b1.title = ?
             AND br.status = 'Active'
         ");
@@ -76,11 +76,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $due_date = date('Y-m-d H:i:s', strtotime("+{$allowed_days} days")); // calculate due date
 
         // Insert borrowing record
-        $sql = "INSERT INTO borrowings (user_id, book_id, issued_by, issue_date, due_date, status) 
+        $sql = "INSERT INTO borrowings (user_id, book_id, issued_by, issue_date, due_date, status)
                 VALUES (?, ?, ?, NOW(), ?, 'Active')";
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("iiis", $user_id, $book_id, $admin_id, $due_date);
-        
+
         if (!$stmt->execute()) {
             throw new Exception("Error creating borrowing record");
         }
@@ -88,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         // Update book status
         $update_book = $conn->prepare("UPDATE books SET status = 'Borrowed' WHERE id = ?");
         $update_book->bind_param("i", $book_id);
-        
+
         if (!$update_book->execute()) {
             throw new Exception("Error updating book status");
         }
@@ -96,7 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         // Increment user's borrowed_books count
         $update_user = $conn->prepare("UPDATE users SET borrowed_books = borrowed_books + 1 WHERE id = ?");
         $update_user->bind_param("i", $user_id);
-        
+
         if (!$update_user->execute()) {
             throw new Exception("Error updating user's borrow count");
         }
