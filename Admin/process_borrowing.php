@@ -13,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $book_ids = $_POST['book_id']; // Array of book IDs
     $user_id = $_POST['user_id'];
     $admin_id = $_SESSION['admin_id'];
-    
+
     // Set the default values
     $status = 'Active';
     $borrow_date = date('Y-m-d H:i:s'); // current timestamp
@@ -24,6 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     try {
         $processed_titles = []; // Track processed book titles
+        $success_count = 0;
 
         foreach ($book_ids as $book_id) {
             // Get the book title and accession first
@@ -39,6 +40,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             if (in_array($book_title, $processed_titles)) {
                 continue;
             }
+            
+            // Add to processed titles
+            $processed_titles[] = $book_title;
 
             // Check if user already has borrowed the same book title
             $check_duplicate = $conn->prepare("
@@ -108,14 +112,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             if (!$update_user->execute()) {
                 throw new Exception("Error updating user's borrow count");
             }
-
-            // Mark the book title as processed
-            $processed_titles[] = $book_title;
+            
+            $success_count++;
         }
-
-        // Commit transaction
+        
+        // Commit transaction after processing all books
         $conn->commit();
-        echo json_encode(['status' => 'success', 'message' => 'Books borrowed successfully']);
+        echo json_encode(['status' => 'success', 'message' => "$success_count books borrowed successfully"]);
 
     } catch (Exception $e) {
         // Rollback transaction on error
