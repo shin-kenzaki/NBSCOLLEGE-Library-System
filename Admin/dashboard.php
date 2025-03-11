@@ -75,7 +75,7 @@ echo "<input type='hidden' id='returned' value='" . $borrowings_stats['returned'
 echo "<input type='hidden' id='damaged_borrowings' value='" . $borrowings_stats['damaged'] . "'>";
 echo "<input type='hidden' id='lost_borrowings' value='" . $borrowings_stats['lost'] . "'>";
 
-// --- New Code for Borrowings Overview Chart ---
+// --- Enhanced Code for Borrowings Overview Chart ---
 // Get current month borrowings: count borrowings per day
 $firstDay = date('Y-m-01');
 $lastDay  = date('Y-m-t');
@@ -88,29 +88,114 @@ $borrowingsData = [];
 while ($row = mysqli_fetch_assoc($result_borrowings)) {
    $borrowingsData[(int)$row['day']] = (int)$row['count'];
 }
+
+// Get previous month borrowings
+$prevMonthFirstDay = date('Y-m-01', strtotime('-1 month'));
+$prevMonthLastDay = date('Y-m-t', strtotime('-1 month'));
+$query = "SELECT DAY(issue_date) as day, COUNT(*) as count 
+          FROM borrowings 
+          WHERE issue_date BETWEEN '$prevMonthFirstDay' AND '$prevMonthLastDay'
+          GROUP BY DAY(issue_date)";
+$result_prev_borrowings = mysqli_query($conn, $query);
+$prevBorrowingsData = [];
+while ($row = mysqli_fetch_assoc($result_prev_borrowings)) {
+   $prevBorrowingsData[(int)$row['day']] = (int)$row['count'];
+}
+
+// Get same month last year
+$lastYearFirstDay = date('Y-m-01', strtotime('-1 year'));
+$lastYearLastDay = date('Y-m-t', strtotime('-1 year'));
+$query = "SELECT DAY(issue_date) as day, COUNT(*) as count 
+          FROM borrowings 
+          WHERE issue_date BETWEEN '$lastYearFirstDay' AND '$lastYearLastDay'
+          GROUP BY DAY(issue_date)";
+$result_last_year_borrowings = mysqli_query($conn, $query);
+$lastYearBorrowingsData = [];
+while ($row = mysqli_fetch_assoc($result_last_year_borrowings)) {
+   $lastYearBorrowingsData[(int)$row['day']] = (int)$row['count'];
+}
+
+// Get returned books this month
+$query = "SELECT DAY(return_date) as day, COUNT(*) as count 
+          FROM borrowings 
+          WHERE return_date BETWEEN '$firstDay' AND '$lastDay'
+          GROUP BY DAY(return_date)";
+$result_returns = mysqli_query($conn, $query);
+$returnsData = [];
+while ($row = mysqli_fetch_assoc($result_returns)) {
+   $returnsData[(int)$row['day']] = (int)$row['count'];
+}
+
 $daysInMonth = date('t');
 $borrowingsLabels = [];
 $borrowingsCounts = [];
+$prevMonthCounts = [];
+$lastYearCounts = [];
+$returnsCounts = [];
+
 for ($day = 1; $day <= $daysInMonth; $day++) {
     $borrowingsLabels[] = $day;
     $borrowingsCounts[] = isset($borrowingsData[$day]) ? $borrowingsData[$day] : 0;
+    $prevMonthCounts[] = isset($prevBorrowingsData[$day]) ? $prevBorrowingsData[$day] : 0;
+    $lastYearCounts[] = isset($lastYearBorrowingsData[$day]) ? $lastYearBorrowingsData[$day] : 0;
+    $returnsCounts[] = isset($returnsData[$day]) ? $returnsData[$day] : 0;
 }
 
-// Get current month added books: count books added per day
-$query = "SELECT DAY(date_added) as day, COUNT(*) as count 
-          FROM books 
-          WHERE date_added BETWEEN '$firstDay' AND '$lastDay'
-          GROUP BY DAY(date_added)";
+// --- Enhanced Code for Books Overview Chart ---
+// Get current month added books by category
+$query = "SELECT DAY(b.date_added) as day, COUNT(*) as count 
+          FROM books b
+          WHERE b.date_added BETWEEN '$firstDay' AND '$lastDay'
+          GROUP BY DAY(b.date_added)";
 $result_books = mysqli_query($conn, $query);
 $booksData = [];
 while ($row = mysqli_fetch_assoc($result_books)) {
    $booksData[(int)$row['day']] = (int)$row['count'];
 }
+
+// Get books by subject category
+$query = "SELECT 
+            DAY(b.date_added) as day, 
+            b.subject_category,
+            COUNT(*) as count 
+          FROM books b
+          WHERE b.date_added BETWEEN '$firstDay' AND '$lastDay' 
+            AND b.subject_category IS NOT NULL AND b.subject_category != ''
+          GROUP BY DAY(b.date_added), b.subject_category";
+$result_books_by_category = mysqli_query($conn, $query);
+$booksByCategoryData = [];
+
+// Initialize common categories we want to track
+$categories = ['Topical', 'Fiction', 'Non-fiction', 'Reference', 'Academic'];
+foreach ($categories as $category) {
+    $booksByCategoryData[$category] = array_fill(1, $daysInMonth, 0);
+}
+
+while ($row = mysqli_fetch_assoc($result_books_by_category)) {
+    $day = (int)$row['day'];
+    $category = $row['subject_category'];
+    $count = (int)$row['count'];
+    
+    if (isset($booksByCategoryData[$category])) {
+        $booksByCategoryData[$category][$day] = $count;
+    }
+}
+
 $booksLabels = [];
 $booksCounts = [];
+$booksByCategoryCounts = [];
+
 for ($day = 1; $day <= $daysInMonth; $day++) {
     $booksLabels[] = $day;
     $booksCounts[] = isset($booksData[$day]) ? $booksData[$day] : 0;
+}
+
+foreach ($categories as $category) {
+    $categoryData = [];
+    for ($day = 1; $day <= $daysInMonth; $day++) {
+        $categoryData[] = isset($booksByCategoryData[$category][$day]) ? $booksByCategoryData[$category][$day] : 0;
+    }
+    $booksByCategoryCounts[$category] = $categoryData;
 }
 
 include '../admin/inc/header.php';
@@ -623,32 +708,92 @@ include '../admin/inc/header.php';
       }
     });
 
-    // Area Chart Borrowings Overview
+    // Enhanced Area Chart Borrowings Overview
     const borrowingsLabels = <?= json_encode($borrowingsLabels); ?>;
     const borrowingsCounts = <?= json_encode($borrowingsCounts); ?>;
+    const prevMonthCounts = <?= json_encode($prevMonthCounts); ?>;
+    const lastYearCounts = <?= json_encode($lastYearCounts); ?>;
+    const returnsCounts = <?= json_encode($returnsCounts); ?>;
     
     var ctxArea = document.getElementById("myAreaChart");
     var myAreaChart = new Chart(ctxArea, {
         type: 'line',
         data: {
             labels: borrowingsLabels,
-            datasets: [{
-                label: 'Daily Borrowings',
-                data: borrowingsCounts,
-                backgroundColor: "rgba(78, 115, 223, 0.05)",
-                borderColor: "rgba(78, 115, 223, 1)",
-                pointRadius: 3,
-                pointBackgroundColor: "rgba(78, 115, 223, 1)",
-                pointBorderColor: "rgba(78, 115, 223, 1)",
-                pointHoverRadius: 3,
-                pointHoverBackgroundColor: "rgba(78, 115, 223, 1)",
-                pointHoverBorderColor: "rgba(78, 115, 223, 1)",
-                pointHitRadius: 10,
-                pointBorderWidth: 2
-            }]
+            datasets: [
+                {
+                    label: 'Current Month Borrowings',
+                    data: borrowingsCounts,
+                    backgroundColor: "rgba(78, 115, 223, 0.05)",
+                    borderColor: "rgba(78, 115, 223, 1)",
+                    pointRadius: 3,
+                    pointBackgroundColor: "rgba(78, 115, 223, 1)",
+                    pointBorderColor: "rgba(78, 115, 223, 1)",
+                    pointHoverRadius: 3,
+                    pointHoverBackgroundColor: "rgba(78, 115, 223, 1)",
+                    pointHoverBorderColor: "rgba(78, 115, 223, 1)",
+                    pointHitRadius: 10,
+                    pointBorderWidth: 2,
+                    fill: false
+                },
+                {
+                    label: 'Last Month Borrowings',
+                    data: prevMonthCounts,
+                    backgroundColor: "rgba(28, 200, 138, 0.05)",
+                    borderColor: "rgba(28, 200, 138, 1)",
+                    pointRadius: 3,
+                    pointBackgroundColor: "rgba(28, 200, 138, 1)",
+                    pointBorderColor: "rgba(28, 200, 138, 1)",
+                    pointHoverRadius: 3,
+                    pointHoverBackgroundColor: "rgba(28, 200, 138, 1)",
+                    pointHoverBorderColor: "rgba(28, 200, 138, 1)",
+                    pointHitRadius: 10,
+                    pointBorderWidth: 2,
+                    fill: false
+                },
+                {
+                    label: 'Last Year Same Month',
+                    data: lastYearCounts,
+                    backgroundColor: "rgba(246, 194, 62, 0.05)",
+                    borderColor: "rgba(246, 194, 62, 1)",
+                    pointRadius: 3,
+                    pointBackgroundColor: "rgba(246, 194, 62, 1)",
+                    pointBorderColor: "rgba(246, 194, 62, 1)",
+                    pointHoverRadius: 3,
+                    pointHoverBackgroundColor: "rgba(246, 194, 62, 1)",
+                    pointHoverBorderColor: "rgba(246, 194, 62, 1)",
+                    pointHitRadius: 10,
+                    pointBorderWidth: 2,
+                    fill: false,
+                    borderDash: [5, 5]
+                },
+                {
+                    label: 'Returns This Month',
+                    data: returnsCounts,
+                    backgroundColor: "rgba(231, 74, 59, 0.05)",
+                    borderColor: "rgba(231, 74, 59, 1)",
+                    pointRadius: 3,
+                    pointBackgroundColor: "rgba(231, 74, 59, 1)",
+                    pointBorderColor: "rgba(231, 74, 59, 1)",
+                    pointHoverRadius: 3,
+                    pointHoverBackgroundColor: "rgba(231, 74, 59, 1)",
+                    pointHoverBorderColor: "rgba(231, 74, 59, 1)",
+                    pointHitRadius: 10,
+                    pointBorderWidth: 2,
+                    fill: false
+                }
+            ]
         },
         options: {
             maintainAspectRatio: false,
+            layout: {
+                padding: {
+                    left: 10,
+                    right: 25,
+                    top: 25,
+                    bottom: 0
+                }
+            },
             scales: {
                 xAxes: [{
                     time: {
@@ -677,7 +822,8 @@ include '../admin/inc/header.php';
                 }]
             },
             legend: {
-                display: false
+                display: true,
+                position: 'top'
             },
             tooltips: {
                 backgroundColor: "rgb(255,255,255)",
@@ -689,10 +835,23 @@ include '../admin/inc/header.php';
                 borderWidth: 1,
                 xPadding: 15,
                 yPadding: 15,
-                displayColors: false,
+                displayColors: true,
                 intersect: false,
                 mode: 'index',
                 caretPadding: 10,
+                callbacks: {
+                    title: function(tooltipItems, chart) {
+                        const dayOfMonth = tooltipItems[0].xLabel;
+                        const month = new Date().getMonth(); // 0-11
+                        const year = new Date().getFullYear();
+                        const date = new Date(year, month, dayOfMonth);
+                        return date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                    },
+                    label: function(tooltipItem, data) {
+                        const label = data.datasets[tooltipItem.datasetIndex].label || '';
+                        return `${label}: ${tooltipItem.yLabel}`;
+                    }
+                }
             }
         }
     });
@@ -735,32 +894,109 @@ include '../admin/inc/header.php';
       }
     });
 
-    // Area Chart Added Books Overview
+    // Enhanced Area Chart Added Books Overview
     const booksLabels = <?= json_encode($booksLabels); ?>;
     const booksCounts = <?= json_encode($booksCounts); ?>;
+    const categoryTopical = <?= json_encode($booksByCategoryCounts['Topical'] ?? []); ?>;
+    const categoryFiction = <?= json_encode($booksByCategoryCounts['Fiction'] ?? []); ?>;
+    const categoryNonFiction = <?= json_encode($booksByCategoryCounts['Non-fiction'] ?? []); ?>;
+    const categoryReference = <?= json_encode($booksByCategoryCounts['Reference'] ?? []); ?>;
+    const categoryAcademic = <?= json_encode($booksByCategoryCounts['Academic'] ?? []); ?>;
     
     var ctxBooks = document.getElementById("myBooksChart");
     var myBooksChart = new Chart(ctxBooks, {
         type: 'line',
         data: {
             labels: booksLabels,
-            datasets: [{
-                label: 'Daily Added Books',
-                data: booksCounts,
-                backgroundColor: "rgba(78, 115, 223, 0.05)",
-                borderColor: "rgba(78, 115, 223, 1)",
-                pointRadius: 3,
-                pointBackgroundColor: "rgba(78, 115, 223, 1)",
-                pointBorderColor: "rgba(78, 115, 223, 1)",
-                pointHoverRadius: 3,
-                pointHoverBackgroundColor: "rgba(78, 115, 223, 1)",
-                pointHoverBorderColor: "rgba(78, 115, 223, 1)",
-                pointHitRadius: 10,
-                pointBorderWidth: 2
-            }]
+            datasets: [
+                {
+                    label: 'Total Added Books',
+                    data: booksCounts,
+                    backgroundColor: "rgba(78, 115, 223, 0.05)",
+                    borderColor: "rgba(78, 115, 223, 1)",
+                    pointRadius: 3,
+                    pointBackgroundColor: "rgba(78, 115, 223, 1)",
+                    pointBorderColor: "rgba(78, 115, 223, 1)",
+                    pointHoverRadius: 3,
+                    pointHoverBackgroundColor: "rgba(78, 115, 223, 1)",
+                    pointHoverBorderColor: "rgba(78, 115, 223, 1)",
+                    pointHitRadius: 10,
+                    pointBorderWidth: 2,
+                    fill: false,
+                    borderWidth: 4
+                },
+                {
+                    label: 'Topical',
+                    data: categoryTopical,
+                    backgroundColor: "rgba(28, 200, 138, 0.05)",
+                    borderColor: "rgba(28, 200, 138, 1)",
+                    pointRadius: 3,
+                    pointBackgroundColor: "rgba(28, 200, 138, 1)",
+                    pointBorderColor: "rgba(28, 200, 138, 1)",
+                    pointHoverRadius: 3,
+                    pointHoverBackgroundColor: "rgba(28, 200, 138, 1)",
+                    pointHoverBorderColor: "rgba(28, 200, 138, 1)",
+                    pointHitRadius: 10,
+                    pointBorderWidth: 2,
+                    fill: false
+                },
+                {
+                    label: 'Fiction',
+                    data: categoryFiction,
+                    backgroundColor: "rgba(246, 194, 62, 0.05)",
+                    borderColor: "rgba(246, 194, 62, 1)",
+                    pointRadius: 3,
+                    pointBackgroundColor: "rgba(246, 194, 62, 1)",
+                    pointBorderColor: "rgba(246, 194, 62, 1)",
+                    pointHoverRadius: 3,
+                    pointHoverBackgroundColor: "rgba(246, 194, 62, 1)",
+                    pointHoverBorderColor: "rgba(246, 194, 62, 1)",
+                    pointHitRadius: 10,
+                    pointBorderWidth: 2,
+                    fill: false
+                },
+                {
+                    label: 'Non-fiction',
+                    data: categoryNonFiction,
+                    backgroundColor: "rgba(231, 74, 59, 0.05)",
+                    borderColor: "rgba(231, 74, 59, 1)",
+                    pointRadius: 3,
+                    pointBackgroundColor: "rgba(231, 74, 59, 1)",
+                    pointBorderColor: "rgba(231, 74, 59, 1)",
+                    pointHoverRadius: 3,
+                    pointHoverBackgroundColor: "rgba(231, 74, 59, 1)",
+                    pointHoverBorderColor: "rgba(231, 74, 59, 1)",
+                    pointHitRadius: 10,
+                    pointBorderWidth: 2,
+                    fill: false
+                },
+                {
+                    label: 'Reference',
+                    data: categoryReference,
+                    backgroundColor: "rgba(54, 185, 204, 0.05)",
+                    borderColor: "rgba(54, 185, 204, 1)",
+                    pointRadius: 3,
+                    pointBackgroundColor: "rgba(54, 185, 204, 1)",
+                    pointBorderColor: "rgba(54, 185, 204, 1)",
+                    pointHoverRadius: 3,
+                    pointHoverBackgroundColor: "rgba(54, 185, 204, 1)",
+                    pointHoverBorderColor: "rgba(54, 185, 204, 1)",
+                    pointHitRadius: 10,
+                    pointBorderWidth: 2,
+                    fill: false
+                }
+            ]
         },
         options: {
             maintainAspectRatio: false,
+            layout: {
+                padding: {
+                    left: 10,
+                    right: 25,
+                    top: 25,
+                    bottom: 0
+                }
+            },
             scales: {
                 xAxes: [{
                     time: {
@@ -789,7 +1025,8 @@ include '../admin/inc/header.php';
                 }]
             },
             legend: {
-                display: false
+                display: true,
+                position: 'top'
             },
             tooltips: {
                 backgroundColor: "rgb(255,255,255)",
@@ -801,18 +1038,24 @@ include '../admin/inc/header.php';
                 borderWidth: 1,
                 xPadding: 15,
                 yPadding: 15,
-                displayColors: false,
+                displayColors: true,
                 intersect: false,
                 mode: 'index',
                 caretPadding: 10,
+                callbacks: {
+                    title: function(tooltipItems, chart) {
+                        const dayOfMonth = tooltipItems[0].xLabel;
+                        const month = new Date().getMonth(); // 0-11
+                        const year = new Date().getFullYear();
+                        const date = new Date(year, month, dayOfMonth);
+                        return date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                    },
+                    label: function(tooltipItem, data) {
+                        const label = data.datasets[tooltipItem.datasetIndex].label || '';
+                        return `${label}: ${tooltipItem.yLabel}`;
+                    }
+                }
             }
-        }
-    });
-
-    document.getElementById('exportButton').addEventListener('click', function() {
-        const exportType = prompt('Enter export type (current_month, previous_month, last_year, current_year):', 'current_month');
-        if (exportType) {
-            window.location.href = `export_borrowings.php?type=${exportType}`;
         }
     });
     </script>

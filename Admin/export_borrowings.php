@@ -11,23 +11,23 @@ switch ($exportType) {
     case 'previous_month':
         $startDate = date('Y-m-01', strtotime('first day of last month'));
         $endDate = date('Y-m-t', strtotime('last day of last month'));
-        $filename = 'Borrowings_Overview_' . date('F_Y', strtotime('last month')) . '.xlsx';
+        $filename = 'NBS College Borrowings Overview ' . date('F Y', strtotime('last month')) . '.xlsx';
         break;
     case 'last_year':
         $startDate = date('Y-01-01', strtotime('first day of January last year'));
         $endDate = date('Y-12-31', strtotime('last day of December last year'));
-        $filename = 'Borrowings_Overview_' . date('Y', strtotime('last year')) . '.xlsx';
+        $filename = 'NBS College Borrowings Overview ' . date('Y', strtotime('last year')) . '.xlsx';
         break;
     case 'current_year':
         $startDate = date('Y-01-01');
         $endDate = date('Y-12-31');
-        $filename = 'Borrowings_Overview_' . date('Y') . '.xlsx';
+        $filename = 'NBS College Borrowings Overview ' . date('Y') . '.xlsx';
         break;
     case 'current_month':
     default:
         $startDate = date('Y-m-01');
         $endDate = date('Y-m-t');
-        $filename = 'Borrowings_Overview_' . date('F_Y') . '.xlsx';
+        $filename = 'NBS College Borrowings Overview ' . date('F Y') . '.xlsx';
         break;
 }
 
