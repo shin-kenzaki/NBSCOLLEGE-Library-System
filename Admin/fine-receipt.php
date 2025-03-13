@@ -2,10 +2,17 @@
 require('fpdf/fpdf.php');
 include('../db.php');
 
+class PDF extends FPDF {
+    function CheckPageBreak($h) {
+        if ($this->GetY() + $h > $this->GetPageHeight() - 22) {
+            $this->AddPage();
+        }
+    }
+}
+
 if (isset($_POST['school_id'])) {
     $school_id = mysqli_real_escape_string($conn, $_POST['school_id']);
 
-    // Step 1: Get the borrower's name and usertype linked to the given school_id
     $user_info_query = "SELECT CONCAT(firstname, ' ', lastname) AS borrower, usertype
                         FROM users
                         WHERE school_id = '$school_id'
@@ -45,11 +52,14 @@ if (isset($_POST['school_id'])) {
     $result = mysqli_query($conn, $sql);
 
     if (mysqli_num_rows($result) > 0) {
-        $pdf = new FPDF();
+
+        $pdf = new FPDF('P', 'mm', 'A4');
         $pdf->AddPage();
 
-        // Add Image Icon (Centered at the Top)
-        $pdf->Image('C:\\xampp\\htdocs\\Library-System\\Admin\\inc\\img\\nbs-icon.png', 85, 10, 40);
+        $pageWidth = $pdf->GetPageWidth();
+        $imageWidth = 60;
+        $xPos = ($pageWidth - $imageWidth) / 2;
+        $pdf->Image('C:\\xampp\\htdocs\\Library-System\\Admin\\inc\\img\\horizontal-nbs-logo.png', $xPos, 10, $imageWidth);
         $pdf->Ln(35);
 
         // Header Title
@@ -57,59 +67,65 @@ if (isset($_POST['school_id'])) {
         $pdf->Cell(0, 10, 'Library Fine Receipt', 0, 1, 'C');
         $pdf->Ln(5);
 
-        // Borrower Info
-        $pdf->SetFont('Arial', 'B', 12);
-        $pdf->Cell(145, 5, 'ID Number: ' . $school_id, 0, 0);
-        $pdf->Cell(22, 5, 'User Type: ', 0, 0);
+        // Borrower Details
+        $pdf->SetFont('Arial', 'B', 15);
+        $pdf->Cell(71, 5, 'Details', 0, 1);
+        $pdf->SetFont('Arial', '', 10);
+        $pdf->Cell(150, 5, 'ID Number: ' . $school_id, 0, 0);
+        $pdf->Cell(18, 5, 'User Type: ', 0, 0);
         $pdf->Cell(34, 5, $usertype, 0, 1);
 
         $receiptDate = date("m/d/Y");
-        $pdf->Cell(145, 5, "Borrower's name: " . $borrower, 0, 0);
-        $pdf->Cell(12, 5, 'Date: ', 0, 0);
+        $pdf->Cell(150, 5, "Borrower's Name: " . $borrower, 0, 0);
+        $pdf->Cell(10, 5, 'Date: ', 0, 0);
         $pdf->Cell(34, 5, $receiptDate, 0, 1);
         $pdf->Ln(5);
 
-        // Table Header
-        $pdf->SetFont('Arial', 'B', 12);
+
+
+        $pdf->SetFont('Arial', 'B', 10);
+        $pdf->Cell(10, 6, 'ID', 1, 0, 'C');
         $pdf->Cell(80, 6, 'Book Title', 1, 0, 'C');
         $pdf->Cell(40, 6, 'Fine Type', 1, 0, 'C');
-        $pdf->Cell(35, 6, 'Status', 1, 0, 'C');
-        $pdf->Cell(33, 6, 'Amount', 1, 1, 'C');
+        $pdf->Cell(30, 6, 'Status', 1, 0, 'C');
+        $pdf->Cell(30, 6, 'Amount', 1, 1, 'C');
 
-
-        // Table Data
-        $pdf->SetFont('Arial', '', 11);
+        $pdf->SetFont('Arial', '', 10);
+        $counter = 1;
         $totalAmount = 0; // Initialize total amount
 
         while ($row = mysqli_fetch_assoc($result)) {
             $yPos = $pdf->GetY();
 
-            $pdf->MultiCell(80, 6, $row['book_title'], 1, 'L');
-            $multiCellHeight = $pdf->GetY() - $yPos;
+            $titleWidth = 80;
+            $lineHeight = 6;
+            $numLines = ceil($pdf->GetStringWidth($row['book_title']) / $titleWidth);
+            $rowHeight = max($numLines * $lineHeight, 6);
+
+
+            $pdf->Cell(10, $rowHeight, $counter, 1, 0, 'C');
 
             $xPos = $pdf->GetX();
+            $pdf->MultiCell($titleWidth, $lineHeight, $row['book_title'], 1, 'L');
 
-            $pdf->SetXY($xPos + 80, $yPos);
-            $pdf->MultiCell(40, $multiCellHeight, $row['type'], 1, 'L');
+            $pdf->SetXY($xPos + $titleWidth, $yPos);
 
-            // Swap Amount and Status
-            $pdf->SetXY($xPos + 120, $yPos);
-            $pdf->MultiCell(35, $multiCellHeight, $row['status'], 1, 'L'); // Status goes here
+            $pdf->Cell(40, $rowHeight, $row['type'], 1,0, 'L');
+            $pdf->Cell(30, $rowHeight, $row['status'], 1,0, 'L'); // Status goes here
+            $pdf->Cell(30, $rowHeight, number_format($row['amount'], 2), 1, 1, 'L'); // Amount goes here
 
-            $pdf->SetXY($xPos + 155, $yPos);
-            $pdf->MultiCell(33, $multiCellHeight, number_format($row['amount'], 2), 1, 'L'); // Amount goes here
 
-            $pdf->SetXY($xPos, $yPos + $multiCellHeight);
 
             // Add the amount to the total
             $totalAmount += $row['amount'];
+            $counter++;
         }
 
         // Display Total Amount
         $pdf->SetFont('Arial', 'B', 12);
-        $pdf->Cell(120, 6, '', 0, 0); // Empty space for alignment
-        $pdf->Cell(35, 6, 'TOTAL:', 0, 0, 'R');
-        $pdf->Cell(33, 6, number_format($totalAmount, 2), 1, 1, 'L');
+        $pdf->Cell(130, 6, '', 0, 0);
+        $pdf->Cell(30, 6, 'TOTAL:', 0, 0, 'R');
+        $pdf->Cell(30, 6, number_format($totalAmount, 2), 1, 1, 'L');
 
 
 
