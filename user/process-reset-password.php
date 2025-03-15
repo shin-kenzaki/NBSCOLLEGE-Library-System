@@ -7,7 +7,7 @@ $token_hash = hash("sha256", $token);
 
 $conn = require __DIR__ . "/../db.php";  // ✅ Corrected path and variable
 
-$sql = "SELECT * FROM admins
+$sql = "SELECT * FROM users
         WHERE reset_token = ?";
 
 $stmt = $conn->prepare($sql);  // ✅ Changed from $mysqli to $conn
@@ -46,7 +46,7 @@ if ($_POST["password"] !== $_POST["confirm_password"]) {
 
 $password_hash = password_hash($_POST["password"], PASSWORD_DEFAULT);
 
-$sql = "UPDATE admins
+$sql = "UPDATE users
         SET password = ?,
             reset_token = NULL,
             reset_expires = NULL
