@@ -9,75 +9,60 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
   $middle_init = mysqli_real_escape_string($conn, $_POST['middle_init']);
   $lastname = mysqli_real_escape_string($conn, $_POST['lastname']);
   $email = mysqli_real_escape_string($conn, $_POST['email']);
-  // Hash the password
   $hashed_password = password_hash($_POST['password'], PASSWORD_DEFAULT);
   $usertype = mysqli_real_escape_string($conn, $_POST['usertype']);
-  // Update default image path to be consistent
-  $image = '../Images/Profile/default-avatar.jpg'; 
-  
-  // Create directory if it doesn't exist
-  if (!file_exists('../Images/Profile')) {
-    mkdir('../Images/Profile', 0777, true);
-  }
-  
-  // Ensure default avatar exists
-  if (!file_exists($image)) {
-    copy('../Images/default-avatar.jpg', $image);
-  }
-  
-  // Check if school_id already exists
-  $check_id_query = "SELECT school_id FROM users WHERE school_id = ?";
-  $stmt = $conn->prepare($check_id_query);
-  $stmt->bind_param("s", $school_id);
-  $stmt->execute();
-  if($stmt->get_result()->num_rows > 0) {
-      $error = "School ID is already registered!";
+  $image = '../Images/Profile/default-avatar.jpg';
+
+  // Validate email domain
+  if (!preg_match('/@(nbscollege\.edu\.ph|student\.nbscollege\.edu\.ph)$/', $email)) {
+    $error = "Invalid email. Please use your school email address.";
   } else {
+    // Check if school_id already exists
+    $check_id_query = "SELECT school_id FROM users WHERE school_id = ?";
+    $stmt = $conn->prepare($check_id_query);
+    $stmt->bind_param("s", $school_id);
+    $stmt->execute();
+    if ($stmt->get_result()->num_rows > 0) {
+      $error = "School ID is already registered!";
+    } else {
       // Check if full name already exists
       $check_name_query = "SELECT id FROM users WHERE firstname = ? AND lastname = ?";
       $stmt = $conn->prepare($check_name_query);
       $stmt->bind_param("ss", $firstname, $lastname);
       $stmt->execute();
-      if($stmt->get_result()->num_rows > 0) {
-          $error = "A user with this name already exists!";
+      if ($stmt->get_result()->num_rows > 0) {
+        $error = "A user with this name already exists!";
       } else {
-          // Check if email already exists
-          $check_email_query = "SELECT id FROM users WHERE email = ?";
-          $stmt = $conn->prepare($check_email_query);
-          $stmt->bind_param("s", $email);
-          $stmt->execute();
-          if($stmt->get_result()->num_rows > 0) {
-              $error = "Email address is already registered!";
-          } else {
-              // If all checks pass, proceed with insert
-              $sql = "INSERT INTO users (school_id, firstname, middle_init, lastname, email, password, 
-                      user_image, usertype, date_added) 
-                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())";
-              
-              if($stmt = $conn->prepare($sql)) {
-                  $stmt->bind_param("ssssssss", 
-                      $school_id, $firstname, $middle_init, $lastname, $email, $hashed_password, $image, $usertype);
-                  
-                  if($stmt->execute()) {
-                      $_SESSION['success'] = "Registration successful! You can now login with your School ID and password.";
-                      echo "<script>
-                          alert('Registration successful! You will be redirected to the login page.');
-                          window.location.href = 'index.php';
-                      </script>";
-                      exit();
-                  } else {
-                      $error = "Something went wrong! Please try again.";
-                  }
-              }
-          }
+        // Check if email already exists
+        $check_email_query = "SELECT id FROM users WHERE email = ?";
+        $stmt = $conn->prepare($check_email_query);
+        $stmt->bind_param("s", $email);
+        $stmt->execute();
+        if ($stmt->get_result()->num_rows > 0) {
+          $error = "Email address is already registered!";
+        } else {
+          // Store user data in session
+          $_SESSION['school_id'] = $school_id;
+          $_SESSION['firstname'] = $firstname;
+          $_SESSION['middle_init'] = $middle_init;
+          $_SESSION['lastname'] = $lastname;
+          $_SESSION['email'] = $email;
+          $_SESSION['hashed_password'] = $hashed_password;
+          $_SESSION['usertype'] = $usertype;
+          $_SESSION['image'] = $image;
+
+          // Redirect to OTP sending page
+          header("Location: send_otp.php");
+          exit();
+        }
       }
+    }
+    $stmt->close();
   }
-  $stmt->close();
 }
 
 // Update user_image paths to be consistent
-$update_image_query = "UPDATE users SET user_image = CONCAT('../Images/Profile/', SUBSTRING_INDEX(user_image, '/', -1))
-WHERE user_image IS NOT NULL AND user_image != ''";
+$update_image_query = "UPDATE users SET user_image = CONCAT('../Images/Profile/', SUBSTRING_INDEX(user_image, '/', -1)) WHERE user_image IS NOT NULL AND user_image != ''";
 $conn->query($update_image_query);
 ?>
 
@@ -156,34 +141,34 @@ $conn->query($update_image_query);
         box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
         outline: none;
       }
-      
+
       /* Mobile view adjustments */
       @media (max-width: 768px) {
         .card-body {
           padding: 0;
         }
-        
+
         .p-5 {
           padding: 1.5rem !important;
         }
-        
+
         .form-group {
           margin-bottom: 0.75rem;
         }
-        
+
         .form-control-user {
           font-size: 0.8rem;
           padding: 0.75rem 1rem;
         }
-        
+
         .btn-user {
           padding: 0.5rem 1rem;
         }
-        
+
         .h4 {
           font-size: 1.25rem;
         }
-        
+
         /* Stack form elements vertically on small screens */
         @media (max-width: 576px) {
           .form-group.row > div {
@@ -208,9 +193,38 @@ $conn->query($update_image_query);
                 </div>
 
                 <?php if(isset($error)): ?>
-                  <div class="alert alert-danger"><?php echo $error; ?></div>
+                  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+                  <script>
+                    Swal.fire({
+                      title: 'Error!',
+                      text: '<?php echo $error; ?>',
+                      icon: 'error'
+                    });
+                  </script>
                 <?php endif; ?>
-                
+
+                <?php if(isset($_GET['status']) && $_GET['status'] == 'success'): ?>
+                  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+                  <script>
+                    Swal.fire({
+                      title: 'Success!',
+                      text: 'OTP has been sent to your email. Please verify.',
+                      icon: 'success'
+                    });
+                  </script>
+                <?php endif; ?>
+
+                <?php if(isset($_GET['status']) && $_GET['status'] == 'error' && isset($_GET['message'])): ?>
+                  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+                  <script>
+                    Swal.fire({
+                      title: 'Error!',
+                      text: '<?php echo urldecode($_GET['message']); ?>',
+                      icon: 'error'
+                    });
+                  </script>
+                <?php endif; ?>
+
                 <form class="user" method="POST" action="">
                   <div class="form-group row">
                     <div class="col-sm-6 mb-3 mb-sm-0">
