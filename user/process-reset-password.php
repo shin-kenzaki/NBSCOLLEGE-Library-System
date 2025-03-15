@@ -1,62 +1,53 @@
 <?php
 session_start();
+require '../db.php';
 
-$token = $_POST["token"];
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $token = $_POST['token'];
+    $password = $_POST['password'];
+    $confirm_password = $_POST['confirm_password'];
 
-$token_hash = hash("sha256", $token);
+    if ($password !== $confirm_password) {
+        $_SESSION['error'] = "Passwords do not match!";
+        header("Location: forgot-reset-password.php?token=" . urlencode($token));
+        exit();
+    }
 
-$conn = require __DIR__ . "/../db.php";  // ✅ Corrected path and variable
+    $token_hash = hash("sha256", $token);
 
-$sql = "SELECT * FROM users
-        WHERE reset_token = ?";
+    $sql = "SELECT * FROM users WHERE reset_token = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("s", $token_hash);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $user = $result->fetch_assoc();
 
-$stmt = $conn->prepare($sql);  // ✅ Changed from $mysqli to $conn
+    if ($user === null) {
+        $_SESSION['error'] = "Invalid token!";
+        header("Location: forgot-reset-password.php?token=" . urlencode($token));
+        exit();
+    }
 
-$stmt->bind_param("s", $token_hash);
+    if (strtotime($user["reset_expires"]) <= time()) {
+        $_SESSION['error'] = "Token has expired!";
+        header("Location: forgot-reset-password.php?token=" . urlencode($token));
+        exit();
+    }
 
-$stmt->execute();
+    $password_hash = password_hash($password, PASSWORD_DEFAULT);
 
-$result = $stmt->get_result();
+    $sql = "UPDATE users SET password = ?, reset_token = NULL, reset_expires = NULL WHERE id = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("si", $password_hash, $user['id']);
 
-$user = $result->fetch_assoc();
-
-if ($user === null) {
-    die("Token not found");
+    if ($stmt->execute()) {
+        $_SESSION['success'] = "Password has been reset successfully!";
+        header("Location: success-reset-password.php");
+        exit();
+    } else {
+        $_SESSION['error'] = "Something went wrong! Please try again.";
+        header("Location: forgot-reset-password.php?token=" . urlencode($token));
+        exit();
+    }
 }
-
-if (strtotime($user["reset_expires"]) <= time()) {
-    die("Token has expired");
-}
-
-if (strlen($_POST["password"]) < 8) {
-    die("Password must be at least 8 characters");
-}
-
-if (!preg_match("/[a-z]/i", $_POST["password"])) {
-    die("Password must contain at least one letter");
-}
-
-if (!preg_match("/[0-9]/", $_POST["password"])) {
-    die("Password must contain at least one number");
-}
-
-if ($_POST["password"] !== $_POST["confirm_password"]) {
-    die("Passwords must match");
-}
-
-$password_hash = password_hash($_POST["password"], PASSWORD_DEFAULT);
-
-$sql = "UPDATE users
-        SET password = ?,
-            reset_token = NULL,
-            reset_expires = NULL
-        WHERE id = ?";
-
-$stmt = $conn->prepare($sql);  // ✅ Changed from $mysqli to $conn
-
-$stmt->bind_param("ss", $password_hash, $user["id"]);
-
-$stmt->execute();
-
-echo "Password updated. You can now log in. <a href='index.php'>Click here to login</a>";
 ?>

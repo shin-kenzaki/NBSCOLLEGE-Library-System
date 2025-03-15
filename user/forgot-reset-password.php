@@ -6,11 +6,11 @@ $token = $_GET["token"];
 
 $token_hash = hash("sha256", $token);
 
-$conn = require __DIR__ . "/../db.php";  // ✅ Fixed variable
+$conn = require __DIR__ . "/../db.php";
 
 $sql = "SELECT * FROM users WHERE reset_token = ?";
 
-$stmt = $conn->prepare($sql);  // ✅ Updated to use $conn
+$stmt = $conn->prepare($sql);
 
 $stmt->bind_param("s", $token_hash);
 
@@ -27,9 +27,6 @@ if ($user === null) {
 if (strtotime($user["reset_expires"]) <= time()) {
     die("Token has expired");
 }
-
-
-
 ?>
 
 <!DOCTYPE html>
@@ -42,6 +39,7 @@ if (strtotime($user["reset_expires"]) <= time()) {
     <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
     <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet">
     <link href="inc/css/sb-admin-2.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
 <body class="bg-gradient-primary">
@@ -76,7 +74,6 @@ if (strtotime($user["reset_expires"]) <= time()) {
                                             </button>
                                         </form>
 
-
                                     <hr>
                                     <div class="text-center">
                                         <a class="small" href="index.php">Back to Login</a>
@@ -94,5 +91,16 @@ if (strtotime($user["reset_expires"]) <= time()) {
     <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
     <script src="inc/js/sb-admin-2.min.js"></script>
+
+    <script>
+        <?php if (isset($_SESSION['error'])): ?>
+            Swal.fire({
+                title: 'Error!',
+                text: '<?php echo $_SESSION['error']; ?>',
+                icon: 'error'
+            });
+            <?php unset($_SESSION['error']); ?>
+        <?php endif; ?>
+    </script>
 </body>
 </html>
