@@ -42,7 +42,7 @@ if ($stmt->affected_rows > 0) {
     try {
         $mail->send();
         $_SESSION['alert_type'] = 'success';
-        $_SESSION['alert_message'] = 'Password reset email sent successfully!';
+        $_SESSION['alert_message'] = 'Password reset email sent successfully! Please check your email.';
     } catch (Exception $e) {
         $_SESSION['alert_type'] = 'error';
         $_SESSION['alert_message'] = 'Message could not be sent. Error: ' . $mail->ErrorInfo;
