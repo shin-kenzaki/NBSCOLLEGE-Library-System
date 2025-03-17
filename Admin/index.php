@@ -45,11 +45,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['admin_status'] = $admin['status'];
                 $_SESSION['admin_last_update'] = $admin['last_update'];
 
-                // Log the successful login
-                $log_query = "INSERT INTO updates (user_id, role, status, `update`) VALUES (?, ?, ?, NOW())";
+                // Log the successful login with title and message
+                $log_query = "INSERT INTO updates (user_id, role, title, message, `update`) VALUES (?, ?, ?, ?, NOW())";
                 if ($log_stmt = $conn->prepare($log_query)) {
-                    $login_status = "Active Login";
-                    $log_stmt->bind_param("sss", $admin['employee_id'], $admin['role'], $login_status);
+                    $login_title = "Admin Logged In";
+                    $full_name = $admin['firstname'] . ' ' . $admin['lastname'];
+                    
+                    // Set appropriate status message based on admin status
+                    if ($admin['status'] == '0') {
+                        $login_status = $admin['role'] . " " . $full_name . " Logged In as Inactive";
+                    } else if ($admin['status'] == '2') {
+                        $login_status = $admin['role'] . " " . $full_name . " Logged In as Banned";
+                    } else if ($admin['status'] == '3') {
+                        $login_status = $admin['role'] . " " . $full_name . " Logged In as Disabled";
+                    } else {
+                        $login_status = $admin['role'] . " " . $full_name . " Logged In as Active";
+                    }
+                    
+                    $log_stmt->bind_param("ssss", $admin['employee_id'], $admin['role'], $login_title, $login_status);
                     $log_stmt->execute();
                     $log_stmt->close();
                 }
@@ -180,9 +193,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <div class="text-center">
                                         <a class="small" href="forgot_password.php">Forgot Password?</a>
                                     </div>
-                                    <div class="text-center">
-                                        <a class="small" href="admin_registration.php">Create an Account!</a>
-                                    </div>
+                                    
                                 </div>
                             </div>
                         </div>

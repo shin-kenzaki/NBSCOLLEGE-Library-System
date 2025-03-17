@@ -42,11 +42,26 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 case null: // Treat null as inactive
                     // Only validate password if account status is acceptable
                     if (password_verify($password, $user['password'])) {
-                        // Log the successful login in updates table
-                        $log_query = "INSERT INTO updates (user_id, role, status, `update`) VALUES (?, ?, ?, CURRENT_TIMESTAMP)";
+                        // Log the successful login in updates table with title and message
+                        $log_query = "INSERT INTO updates (user_id, role, title, message, `update`) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)";
                         if ($log_stmt = $conn->prepare($log_query)) {
-                            $login_status = ($user['status'] == 1) ? "Active Login" : "Inactive Login";
-                            $log_stmt->bind_param("sss", $user['school_id'], $user['usertype'], $login_status);
+                            $login_title = "User Logged In";
+                            $full_name = $user['firstname'] . ' ' . $user['lastname'];
+                            
+                            // Set login status message based on user status
+                            if ($user['status'] == 1) {
+                                $login_message = $user['usertype'] . " " . $full_name . " Logged In as Active";
+                            } else if ($user['status'] == 0 || $user['status'] === null) {
+                                $login_message = $user['usertype'] . " " . $full_name . " Logged In as Inactive";
+                            } else if ($user['status'] == 2) {
+                                $login_message = $user['usertype'] . " " . $full_name . " Logged In as Banned";
+                            } else if ($user['status'] == 3) {
+                                $login_message = $user['usertype'] . " " . $full_name . " Logged In as Disabled";
+                            } else {
+                                $login_message = $user['usertype'] . " " . $full_name . " Logged In with Unknown Status";
+                            }
+                            
+                            $log_stmt->bind_param("ssss", $user['school_id'], $user['usertype'], $login_title, $login_message);
                             
                             if (!$log_stmt->execute()) {
                                 // Handle logging error if needed

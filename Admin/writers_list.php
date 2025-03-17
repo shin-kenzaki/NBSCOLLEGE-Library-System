@@ -10,6 +10,11 @@ if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Lib
 include '../admin/inc/header.php';
 include '../db.php';
 
+// Count total writers
+$totalWritersQuery = "SELECT COUNT(*) as total FROM writers";
+$totalWritersResult = $conn->query($totalWritersQuery);
+$totalWriters = $totalWritersResult->fetch_assoc()['total'];
+
 // Handle form submission to save writers
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $firstnames = $_POST['firstname'];
@@ -81,7 +86,12 @@ $result = $conn->query($sql);
         <div class="card shadow mb-4">
             <div class="card-header py-3 d-flex flex-wrap align-items-center justify-content-between">
                 <h6 class="m-0 font-weight-bold text-primary">Writers List</h6>
-                <button class="btn btn-primary" data-toggle="modal" data-target="#addWriterModal">Add Writer</button>
+                <div class="d-flex align-items-center">
+                    <span class="mr-3 total-writers-display">
+                        Total Writers: <?php echo number_format($totalWriters); ?>
+                    </span>
+                    <button class="btn btn-primary" data-toggle="modal" data-target="#addWriterModal">Add Writer</button>
+                </div>
             </div>
             <div class="card-body px-0"> <!-- Remove padding for full-width scroll -->
                 <div class="table-responsive px-3"> <!-- Add padding inside scroll container -->
@@ -228,6 +238,19 @@ $result = $conn->query($sql);
     /* Prevent text wrapping in cells */
     .table td, .table th {
         white-space: nowrap;
+    }
+    
+    /* Add styles for writer stats */
+    .writer-stats {
+        display: flex;
+        align-items: center;
+    }
+    
+    .total-writers-display {
+        font-size: 0.9rem;
+        color: #4e73df;
+        font-weight: 600;
+        margin-left: 10px;
     }
 </style>
 

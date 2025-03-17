@@ -8,29 +8,45 @@ if (!isset($_SESSION['admin_id']) || $_SESSION['role'] !== 'Admin') {
     exit();
 }
 
-// Get admin IDs from POST request
-$admin_ids = isset($_POST['admin_ids']) ? $_POST['admin_ids'] : [];
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['admin_ids'])) {
+    $admin_ids = $_POST['admin_ids'];
+    $admin_ids_string = implode(',', array_map('intval', $admin_ids));
 
-if (empty($admin_ids)) {
-    echo json_encode(['success' => false, 'message' => 'No admins selected']);
-    exit();
-}
+    // Retrieve admin info for updates log
+    $sql_select = "SELECT id, firstname, middle_init, lastname, role FROM admins WHERE id IN ($admin_ids_string)";
+    $result_select = $conn->query($sql_select);
 
-try {
-    // Convert array to comma-separated string and sanitize
-    $ids = array_map('intval', $admin_ids);
-    $ids_string = implode(',', $ids);
-    
-    // Update the status to inactive (0)
-    $sql = "UPDATE admins SET status = 0, last_update = NOW() WHERE id IN ($ids_string)";
-    
-    if ($conn->query($sql)) {
-        echo json_encode(['success' => true]);
+    if ($result_select->num_rows > 0) {
+        $updates_sql = "";
+        while($row = $result_select->fetch_assoc()) {
+            $admin_id = $_SESSION['admin_employee_id'];
+            $admin_role = $_SESSION['role'];
+            $admin_fullname = $_SESSION['admin_firstname'] . ' ' . $_SESSION['admin_lastname'];
+            $deactivated_admin_fullname = $row['firstname'] . ' ' . ($row['middle_init'] ? $row['middle_init'] . ' ' : '') . $row['lastname'];
+            $deactivated_admin_role = $row['role'];
+
+            $update_title = "$admin_role $admin_fullname Deactivated an Admin";
+            $update_message = "$admin_role $admin_fullname Deactivated $deactivated_admin_role $deactivated_admin_fullname";
+
+            // Prepare the SQL query for each admin
+            $updates_sql .= "INSERT INTO updates (user_id, role, title, message, `update`) VALUES ('$admin_id', '$admin_role', '$update_title', '$update_message', NOW());";
+        }
+
+        // Update the status and insert updates in a single query
+        $sql = "UPDATE admins SET status = 0 WHERE id IN ($admin_ids_string);";
+        $sql .= $updates_sql;
+
+        if (mysqli_multi_query($conn, $sql)) {
+            $response = ['success' => true, 'message' => 'Selected admins deactivated successfully.'];
+        } else {
+            $response = ['success' => false, 'message' => 'Error updating admins: ' . $conn->error];
+        }
     } else {
-        throw new Exception("Error updating admin status");
+        $response = ['success' => false, 'message' => 'No admins found with the provided IDs.'];
     }
-} catch (Exception $e) {
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+
+    echo json_encode($response);
 }
 
 $conn->close();
+?>

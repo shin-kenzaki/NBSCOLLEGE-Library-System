@@ -1,5 +1,5 @@
 <?php
-require_once '../vendor/autoload.php'; // Assuming you have autoload for mPDF
+require_once 'vendor/autoload.php'; // Assuming you have autoload for mPDF
 include '../db.php';
 
 // Fetch top borrowers

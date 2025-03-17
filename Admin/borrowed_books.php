@@ -21,6 +21,38 @@ require 'mailer.php';
 // Update overdue status
 updateOverdueStatus($conn);
 
+// Get total unpaid fines
+$finesQuery = "SELECT SUM(amount) as total_unpaid FROM fines WHERE status = 'Unpaid'";
+$finesResult = $conn->query($finesQuery);
+$finesRow = $finesResult->fetch_assoc();
+$totalUnpaidFines = $finesRow['total_unpaid'] ?? 0;
+$formattedFines = '₱' . number_format($totalUnpaidFines, 2);
+
+// Fetch statistics for the dashboard cards
+// Get total borrowed books items
+$totalBorrowedQuery = "SELECT COUNT(*) as total FROM borrowings";
+$totalBorrowedResult = $conn->query($totalBorrowedQuery);
+$totalBorrowedRow = $totalBorrowedResult->fetch_assoc();
+$totalBorrowed = $totalBorrowedRow['total'];
+
+// Get total borrowed books of the day
+$todayBorrowedQuery = "SELECT COUNT(*) as total FROM borrowings WHERE DATE(issue_date) = CURDATE()";
+$todayBorrowedResult = $conn->query($todayBorrowedQuery);
+$todayBorrowedRow = $todayBorrowedResult->fetch_assoc();
+$todayBorrowed = $todayBorrowedRow['total'];
+
+// Get total active items
+$activeItemsQuery = "SELECT COUNT(*) as total FROM borrowings WHERE status = 'Active'";
+$activeItemsResult = $conn->query($activeItemsQuery);
+$activeItemsRow = $activeItemsResult->fetch_assoc();
+$activeItems = $activeItemsRow['total'];
+
+// Get total overdue items
+$overdueItemsQuery = "SELECT COUNT(*) as total FROM borrowings WHERE status = 'Overdue'";
+$overdueItemsResult = $conn->query($overdueItemsQuery);
+$overdueItemsRow = $overdueItemsResult->fetch_assoc();
+$overdueItems = $overdueItemsRow['total'];
+
 // Fetch borrowed books data for the table
 $query = "SELECT b.id as borrow_id, b.book_id, b.user_id, b.issue_date, b.due_date, b.status,
           bk.title, bk.accession, bk.shelf_location,
@@ -113,13 +145,60 @@ while ($row = $emailResult->fetch_assoc()) {
 
 ?>
 
-
+<style>
+    .table-responsive {
+        overflow-x: auto;
+    }
+    .table td, .table th {
+        white-space: nowrap;
+    }
+    /* Add hover effect styles */
+    .stats-card {
+        transition: all 0.3s;
+        border-left: 4px solid;
+    }
+    .stats-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+    .stats-icon {
+        font-size: 2rem;
+        opacity: 0.6;
+    }
+    .stats-title {
+        font-size: 0.9rem;
+        font-weight: bold;
+        text-transform: uppercase;
+    }
+    .stats-number {
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+    .primary-card {
+        border-left-color: #4e73df;
+    }
+    .success-card {
+        border-left-color: #1cc88a;
+    }
+    .info-card {
+        border-left-color: #36b9cc;
+    }
+    .danger-card {
+        border-left-color: #e74a3b;
+    }
+</style>
 
 <!-- Main Content -->
 <div id="content" class="d-flex flex-column min-vh-100">
     <div class="container-fluid px-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3 mb-0 text-gray-800">Borrowed Books</h1>
+        <div class="d-flex align-items-center">
+            <h1 class="h3 mb-0 text-gray-800 mr-3">Borrowed Books</h1>
+            <a href="fines.php" class="btn btn-danger ml-3">
+                <i class="fas fa-exclamation-circle mr-1"></i>
+                Unpaid Fines: <span class="font-weight-bold"><?php echo $formattedFines; ?></span>
+            </a>
+        </div>
 
         <!-- Generate Receipt Form -->
         <form action="borrowed-books-receipt.php" method="post" id="receiptForm" target="_blank" onsubmit="return validateForm()" class="d-flex align-items-center">
@@ -133,6 +212,81 @@ while ($row = $emailResult->fetch_assoc()) {
                 <button class="btn btn-danger btn-block" type="submit">Generate Loan Receipt</button>
             </div>
         </form>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <!-- Total Borrowed Books -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2 stats-card primary-card">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1 stats-title">
+                                Total Borrowed Books</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number"><?php echo $totalBorrowed; ?></div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-book fa-2x text-gray-300 stats-icon"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Borrowed Today -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2 stats-card success-card">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1 stats-title">
+                                Borrowed Today</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number"><?php echo $todayBorrowed; ?></div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calendar-day fa-2x text-gray-300 stats-icon"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Items -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2 stats-card info-card">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1 stats-title">
+                                Active Items</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number"><?php echo $activeItems; ?></div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clipboard-list fa-2x text-gray-300 stats-icon"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Overdue Items -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-danger shadow h-100 py-2 stats-card danger-card">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1 stats-title">
+                                Overdue Items</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number"><?php echo $overdueItems; ?></div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exclamation-triangle fa-2x text-gray-300 stats-icon"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
 
@@ -180,19 +334,19 @@ while ($row = $emailResult->fetch_assoc()) {
                                 <tr data-book-id="<?php echo $row['book_id']; ?>"
                                     data-book-title="<?php echo htmlspecialchars($row['title']); ?>"
                                     data-borrower="<?php echo htmlspecialchars($row['borrower']); ?>">
-                                    <td>
+                                    <td class="text-center">
                                         <input type="checkbox" class="borrow-checkbox"
                                             data-borrow-id="<?php echo $row['borrow_id']; ?>"
                                             data-current-due-date="<?php echo $row['due_date']; ?>">
                                     </td>
-                                    <td class="text-left"><?php echo $row['accession']; ?></td>
-                                    <td><?php echo htmlspecialchars($row['title']); ?></td>
-                                    <td><?php echo htmlspecialchars($row['borrower']); ?></td>
-                                    <td class="text-left"><?php echo htmlspecialchars($row['school_id']); ?></td>
-                                    <td class="text-left"><?php echo date('M d, Y', strtotime($row['issue_date'])); ?></td>
-                                    <td class="text-left"><?php echo date('M d, Y', strtotime($row['due_date'])); ?></td>
-                                    <td class="text-left"><?php echo htmlspecialchars($row['shelf_location']); ?></td>
-                                    <td class="text-left">
+                                    <td class="text-center"><?php echo $row['accession']; ?></td>
+                                    <td class="text-left"><?php echo htmlspecialchars($row['title']); ?></td>
+                                    <td class="text-left"><?php echo htmlspecialchars($row['borrower']); ?></td>
+                                    <td class="text-center"><?php echo htmlspecialchars($row['school_id']); ?></td>
+                                    <td class="text-center"><?php echo date('M d, Y', strtotime($row['issue_date'])); ?></td>
+                                    <td class="text-center"><?php echo date('M d, Y', strtotime($row['due_date'])); ?></td>
+                                    <td class="text-center"><?php echo htmlspecialchars($row['shelf_location']); ?></td>
+                                    <td class="text-center">
                                         <?php
                                         $status = htmlspecialchars($row['status']);
                                         $statusClass = '';

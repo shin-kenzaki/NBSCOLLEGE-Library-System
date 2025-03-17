@@ -28,9 +28,22 @@ $query = "SELECT f.id, f.type, f.amount, f.status, f.date, f.payment_date,
           JOIN users u ON b.user_id = u.id
           ORDER BY f.date DESC";
 
-
 // Run the query and store the result
 $result = $conn->query($query);
+
+// Fetch total number of unpaid fines and total value of unpaid fines
+$unpaidFinesQuery = "SELECT COUNT(*) as total_unpaid_fines, SUM(amount) as total_unpaid_value FROM fines WHERE status = 'Unpaid'";
+$unpaidFinesResult = $conn->query($unpaidFinesQuery);
+$unpaidFinesRow = $unpaidFinesResult->fetch_assoc();
+$totalUnpaidFines = $unpaidFinesRow['total_unpaid_fines'] ?: 0;
+$totalUnpaidValue = $unpaidFinesRow['total_unpaid_value'] ?: 0;
+
+// Fetch total number of paid fines and total value of paid fines
+$paidFinesQuery = "SELECT COUNT(*) as total_paid_fines, SUM(amount) as total_paid_value FROM fines WHERE status = 'Paid'";
+$paidFinesResult = $conn->query($paidFinesQuery);
+$paidFinesRow = $paidFinesResult->fetch_assoc();
+$totalPaidFines = $paidFinesRow['total_paid_fines'] ?: 0;
+$totalPaidValue = $paidFinesRow['total_paid_value'] ?: 0;
 ?>
 
 <style>
@@ -39,6 +52,33 @@ $result = $conn->query($query);
     }
     .table td, .table th {
         white-space: nowrap;
+    }
+    .stats-card {
+        transition: all 0.3s;
+        border-left: 4px solid;
+    }
+    .stats-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+    .stats-icon {
+        font-size: 2rem;
+        opacity: 0.6;
+    }
+    .stats-title {
+        font-size: 0.9rem;
+        font-weight: bold;
+        text-transform: uppercase;
+    }
+    .stats-number {
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+    .unpaid-card {
+        border-left-color: #e74a3b;
+    }
+    .paid-card {
+        border-left-color: #1cc88a;
     }
 </style>
 
@@ -61,38 +101,103 @@ $result = $conn->query($query);
                 </div>
             </form>
         </div>
-        <div class="card shadow mb-4">
-            <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-primary">Fines List</h6>
-            </div>
-            <?php if (isset($_GET['success'])): ?>
-                <div class="alert alert-success alert-dismissible fade show mx-4 mt-3" role="alert">
-                    <?php echo htmlspecialchars($_GET['success']); ?>
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-            <?php endif; ?>
 
-            <?php if (isset($_GET['error'])): ?>
-                <div class="alert alert-danger alert-dismissible fade show mx-4 mt-3" role="alert">
-                    <?php echo htmlspecialchars($_GET['error']); ?>
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
+        <!-- Fines Statistics -->
+        <div class="row mb-4">
+            <!-- Total Unpaid Fines Card -->
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card shadow h-100 py-2 stats-card unpaid-card">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-danger text-uppercase mb-1 stats-title">
+                                    Total Unpaid Fines</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number"><?php echo $totalUnpaidFines; ?></div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-exclamation-circle text-danger stats-icon"></i>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            <?php endif; ?>
+            </div>
+
+            <!-- Total Paid Fines Card -->
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card shadow h-100 py-2 stats-card paid-card">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1 stats-title">
+                                    Total Paid Fines</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number"><?php echo $totalPaidFines; ?></div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-check-circle text-success stats-icon"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Value of Unpaid Fines Card -->
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card shadow h-100 py-2 stats-card unpaid-card">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-danger text-uppercase mb-1 stats-title">
+                                    Value of Unpaid Fines</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number">₱<?php echo number_format($totalUnpaidValue, 2); ?></div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-money-bill-wave text-danger stats-icon"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Value of Paid Fines Card -->
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card shadow h-100 py-2 stats-card paid-card">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1 stats-title">
+                                    Value of Paid Fines</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number">₱<?php echo number_format($totalPaidValue, 2); ?></div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-coins text-success stats-icon"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">Fines List</h6>
+                <div>
+                    <button id="exportPaidFinesBtn" class="btn btn-success btn-sm mr-2">Export Paid Fines</button>
+                    <button id="exportUnpaidFinesBtn" class="btn btn-danger btn-sm">Export Unpaid Fines</button>
+                </div>
+            </div>
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table table-bordered" id="finesTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
-                                <th class="text-center">ID Number</th> <!-- New column for School ID -->
+                                <th class="text-center">Borrower ID</th>
                                 <th class="text-center">Borrower</th>
                                 <th class="text-center">Book</th>
                                 <th class="text-center">Type</th>
                                 <th class="text-center">Amount</th>
+                                <th class="text-center">Fine Date</th>
                                 <th class="text-center">Issue Date</th>
+                                <th class="text-center">Return Date</th>
                                 <th class="text-center">Status</th>
                                 <th class="text-center">Payment Date</th>
                             </tr>
@@ -103,20 +208,28 @@ $result = $conn->query($query);
                                     data-amount="<?php echo $row['amount']; ?>"
                                     data-borrower="<?php echo htmlspecialchars($row['borrower_name']); ?>"
                                     data-status="<?php echo $row['status']; ?>">
-                                    <td class="text-left"><?php echo htmlspecialchars($row['school_id']); ?></td> <!-- Display School ID -->
+                                    <td class="text-center"><?php echo htmlspecialchars($row['school_id']); ?></td>
                                     <td class="text-left"><?php echo htmlspecialchars($row['borrower_name']); ?></td>
                                     <td class="text-left"><?php echo htmlspecialchars($row['book_title']); ?></td>
-                                    <td class="text-left"><?php echo htmlspecialchars($row['type']); ?></td>
-                                    <td class="text-left">₱<?php echo number_format($row['amount'], 2); ?></td>
-                                    <td class="text-left"><?php echo date('Y-m-d', strtotime($row['date'])); ?></td>
-                                    <td class="text-left">
+                                    <td class="text-center"><?php echo htmlspecialchars($row['type']); ?></td>
+                                    <td class="text-center">₱<?php echo number_format($row['amount'], 2); ?></td>
+                                    <td class="text-center"><?php echo date('Y-m-d', strtotime($row['date'])); ?></td>
+                                    <td class="text-center"><?php echo date('Y-m-d', strtotime($row['issue_date'])); ?></td>
+                                    <td class="text-center">
+                                        <?php
+                                        echo ($row['return_date'] !== null && $row['return_date'] !== '0000-00-00')
+                                            ? date('Y-m-d', strtotime($row['return_date']))
+                                            : '-';
+                                        ?>
+                                    </td>
+                                    <td class="text-center">
                                         <?php if ($row['status'] === 'Unpaid'): ?>
                                             <span class="badge badge-danger">Unpaid</span>
                                         <?php else: ?>
                                             <span class="badge badge-success">Paid</span>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="text-left">
+                                    <td class="text-center">
                                         <?php
                                         echo ($row['payment_date'] !== null && $row['payment_date'] !== '0000-00-00')
                                             ? date('Y-m-d', strtotime($row['payment_date']))
@@ -298,5 +411,15 @@ $(document).ready(function() {
             }
         `)
         .appendTo('head');
+
+    // Export Paid Fines
+    $('#exportPaidFinesBtn').click(function() {
+        window.location.href = 'export_fines.php?status=Paid';
+    });
+
+    // Export Unpaid Fines
+    $('#exportUnpaidFinesBtn').click(function() {
+        window.location.href = 'export_fines.php?status=Unpaid';
+    });
 });
 </script>

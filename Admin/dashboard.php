@@ -212,22 +212,64 @@ include '../admin/inc/header.php';
                                 class="fas fa-download fa-sm text-white-50"></i> Generate Report</a>
                     </div>
 
+                    <style>
+                        .stats-card {
+                            transition: all 0.3s;
+                            border-left: 4px solid;
+                        }
+                        .stats-card:hover {
+                            transform: translateY(-5px);
+                            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+                        }
+                        .stats-icon {
+                            font-size: 2rem;
+                            opacity: 0.6;
+                        }
+                        .stats-title {
+                            font-size: 0.9rem;
+                            font-weight: bold;
+                            text-transform: uppercase;
+                        }
+                        .stats-number {
+                            font-size: 1.5rem;
+                            font-weight: bold;
+                        }
+                        .primary-card {
+                            border-left-color: #4e73df;
+                        }
+                        .danger-card {
+                            border-left-color: #e74a3b;
+                        }
+                        .info-card {
+                            border-left-color: #36b9cc;
+                        }
+                        .warning-card {
+                            border-left-color: #f6c23e;
+                        }
+                        .success-card {
+                            border-left-color: #1cc88a;
+                        }
+                        .secondary-card {
+                            border-left-color: #858796;
+                        }
+                    </style>
+
                     <!-- Content Row 1 -->
                     <div class="row">
 
                         <!-- Active Borrowings Card -->
                         <div class="col-xl-3 col-md-6 mb-4">
                             <a href="borrowed_books.php" style="text-decoration: none;">
-                                <div class="card border-left-primary shadow h-100 py-2">
+                                <div class="card shadow h-100 py-2 stats-card primary-card">
                                     <div class="card-body">
                                         <div class="row no-gutters align-items-center">
                                             <div class="col mr-2">
-                                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1 stats-title">
                                                     Active Borrowings</div>
-                                                <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo $active_borrowings; ?></div>
+                                                <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number"><?php echo $active_borrowings; ?></div>
                                             </div>
                                             <div class="col-auto">
-                                                <i class="fas fa-book fa-2x text-gray-300"></i>
+                                                <i class="fas fa-book fa-2x text-gray-300 stats-icon"></i>
                                             </div>
                                         </div>
                                     </div>
@@ -238,16 +280,16 @@ include '../admin/inc/header.php';
                         <!-- Overdue Books Card -->
                         <div class="col-xl-3 col-md-6 mb-4">
                             <a href="borrowed_books.php" style="text-decoration: none;">
-                                <div class="card border-left-danger shadow h-100 py-2">
+                                <div class="card shadow h-100 py-2 stats-card danger-card">
                                     <div class="card-body">
                                         <div class="row no-gutters align-items-center">
                                             <div class="col mr-2">
-                                                <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                                <div class="text-xs font-weight-bold text-danger text-uppercase mb-1 stats-title">
                                                     Overdue Books</div>
-                                                <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo $overdue_books; ?></div>
+                                                <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number"><?php echo $overdue_books; ?></div>
                                             </div>
                                             <div class="col-auto">
-                                                <i class="fas fa-clock fa-2x text-gray-300"></i>
+                                                <i class="fas fa-clock fa-2x text-gray-300 stats-icon"></i>
                                             </div>
                                         </div>
                                     </div>
@@ -258,16 +300,16 @@ include '../admin/inc/header.php';
                         <!-- Pending Reservations Card -->
                         <div class="col-xl-3 col-md-6 mb-4">
                             <a href="book_reservations.php" style="text-decoration: none;">
-                                <div class="card border-left-info shadow h-100 py-2">
+                                <div class="card shadow h-100 py-2 stats-card info-card">
                                     <div class="card-body">
                                         <div class="row no-gutters align-items-center">
                                             <div class="col mr-2">
-                                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1 stats-title">
                                                     Pending Reservations</div>
-                                                <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo $pending_reservations; ?></div>
+                                                <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number"><?php echo $pending_reservations; ?></div>
                                             </div>
                                             <div class="col-auto">
-                                                <i class="fas fa-bookmark fa-2x text-gray-300"></i>
+                                                <i class="fas fa-bookmark fa-2x text-gray-300 stats-icon"></i>
                                             </div>
                                         </div>
                                     </div>
@@ -278,16 +320,16 @@ include '../admin/inc/header.php';
                         <!-- Pending Fines Card -->
                         <div class="col-xl-3 col-md-6 mb-4">
                             <a href="fines.php" style="text-decoration: none;">
-                                <div class="card border-left-warning shadow h-100 py-2">
+                                <div class="card shadow h-100 py-2 stats-card warning-card">
                                     <div class="card-body">
                                         <div class="row no-gutters align-items-center">
                                             <div class="col mr-2">
-                                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1 stats-title">
                                                     Pending Fines</div>
-                                                <div class="h5 mb-0 font-weight-bold text-gray-800">₱<?php echo number_format($pending_fines, 2); ?></div>
+                                                <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number">₱<?php echo number_format($pending_fines, 2); ?></div>
                                             </div>
                                             <div class="col-auto">
-                                                <i class="fas fa-money-bill fa-2x text-gray-300"></i>
+                                                <i class="fas fa-money-bill fa-2x text-gray-300 stats-icon"></i>
                                             </div>
                                         </div>
                                     </div>
@@ -302,16 +344,16 @@ include '../admin/inc/header.php';
                         <!-- Paid Fines Card -->
                         <div class="col-xl-3 col-md-6 mb-4">
                             <a href="fines.php" style="text-decoration: none;">
-                                <div class="card border-left-success shadow h-100 py-2">
+                                <div class="card shadow h-100 py-2 stats-card success-card">
                                     <div class="card-body">
                                         <div class="row no-gutters align-items-center">
                                             <div class="col mr-2">
-                                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1 stats-title">
                                                     Paid Fines</div>
-                                                <div class="h5 mb-0 font-weight-bold text-gray-800">₱<?php echo number_format($paid_fines, 2); ?></div>
+                                                <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number">₱<?php echo number_format($paid_fines, 2); ?></div>
                                             </div>
                                             <div class="col-auto">
-                                                <i class="fas fa-money-check-alt fa-2x text-gray-300"></i>
+                                                <i class="fas fa-money-check-alt fa-2x text-gray-300 stats-icon"></i>
                                             </div>
                                         </div>
                                     </div>
@@ -322,16 +364,16 @@ include '../admin/inc/header.php';
                         <!-- Add User Shortcut Card -->
                         <div class="col-xl-3 col-md-6 mb-4">
                             <a href="users_list.php" style="text-decoration: none;">
-                                <div class="card border-left-info shadow h-100 py-2">
+                                <div class="card shadow h-100 py-2 stats-card info-card">
                                     <div class="card-body">
                                         <div class="row no-gutters align-items-center">
                                             <div class="col mr-2">
-                                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1 stats-title">
                                                     Add User</div>
-                                                <div class="h5 mb-0 font-weight-bold text-gray-800">Shortcut</div>
+                                                <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number">Shortcut</div>
                                             </div>
                                             <div class="col-auto">
-                                                <i class="fas fa-user-plus fa-2x text-gray-300"></i>
+                                                <i class="fas fa-user-plus fa-2x text-gray-300 stats-icon"></i>
                                             </div>
                                         </div>
                                     </div>
@@ -342,16 +384,16 @@ include '../admin/inc/header.php';
                         <!-- Book Borrowing Shortcut Card -->
                         <div class="col-xl-3 col-md-6 mb-4">
                             <a href="book_borrowing.php" style="text-decoration: none;">
-                                <div class="card border-left-secondary shadow h-100 py-2">
+                                <div class="card shadow h-100 py-2 stats-card secondary-card">
                                     <div class="card-body">
                                         <div class="row no-gutters align-items-center">
                                             <div class="col mr-2">
-                                                <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">
+                                                <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1 stats-title">
                                                     Borrow a Book</div>
-                                                <div class="h5 mb-0 font-weight-bold text-gray-800">Shortcut</div>
+                                                <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number">Shortcut</div>
                                             </div>
                                             <div class="col-auto">
-                                                <i class="fas fa-book-reader fa-2x text-gray-300"></i>
+                                                <i class="fas fa-book-reader fa-2x text-gray-300 stats-icon"></i>
                                             </div>
                                         </div>
                                     </div>
@@ -361,20 +403,20 @@ include '../admin/inc/header.php';
                         
                         <!-- Add Book Shortcut Card -->
                         <div class="col-xl-3 col-md-6 mb-4">
-                            <div class="card border-left-primary shadow h-100 py-2">
+                            <div class="card shadow h-100 py-2 stats-card primary-card">
                                 <div class="card-body">
                                     <div class="row no-gutters align-items-center">
                                         <div class="col mr-2">
-                                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1 stats-title">
                                                 Add Book</div>
-                                            <div class="h5 mb-0 font-weight-bold text-gray-800">Shortcut</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number">Shortcut</div>
                                             <div class="mt-2">
                                                 <a href="add-book.php" class="btn btn-sm btn-primary mr-1">Standard</a>
                                                 <a href="add_book_shortcut.php" class="btn btn-sm btn-success">Quick Add</a>
                                             </div>
                                         </div>
                                         <div class="col-auto">
-                                            <i class="fas fa-plus fa-2x text-gray-300"></i>
+                                            <i class="fas fa-plus fa-2x text-gray-300 stats-icon"></i>
                                         </div>
                                     </div>
                                 </div>

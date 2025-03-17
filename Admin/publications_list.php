@@ -12,16 +12,17 @@ include '../db.php';
 
 // Query to fetch publications data
 $query = "SELECT 
-            GROUP_CONCAT(p.id ORDER BY p.id) as id_ranges,
-            b.title as book_title,
+            GROUP_CONCAT(p.id ORDER BY p.id) AS id_ranges,
             pb.publisher,
             pb.place,
-            p.publish_date
+            YEAR(p.publish_date) AS publish_year,  -- Extract the year
+            GROUP_CONCAT(DISTINCT b.title ORDER BY b.title SEPARATOR '; ') AS book_titles,
+            COUNT(p.id) AS total_books
           FROM publications p 
           JOIN books b ON p.book_id = b.id 
           JOIN publishers pb ON p.publisher_id = pb.id
-          GROUP BY b.title, pb.id, p.publish_date
-          ORDER BY b.title, p.publish_date";
+          GROUP BY pb.publisher, pb.place, YEAR(p.publish_date)  -- Group by publisher, place, and year
+          ORDER BY pb.publisher, YEAR(p.publish_date)";
 
 $result = $conn->query($query);
 $publications_data = array();
@@ -61,10 +62,10 @@ while ($row = $result->fetch_assoc()) {
                             <tr>
                                 <th style="cursor: pointer;" id="checkboxHeader"><input type="checkbox" id="selectAll"></th>
                                 <th style='text-align: center;'>ID</th>
-                                <th style='text-align: center;'>Book Title</th>
                                 <th style='text-align: center;'>Publisher</th>
                                 <th style='text-align: center;'>Place</th>
                                 <th style='text-align: center;'>Year</th>
+                                <th style='text-align: center;'>Book Titles</th>
                                 <th style='text-align: center;'>Total Books</th>
                             </tr>
                         </thead>
@@ -73,23 +74,11 @@ while ($row = $result->fetch_assoc()) {
                             <tr>
                                 <td><input type="checkbox" class="row-checkbox" value="<?php echo htmlspecialchars($row['id_ranges']); ?>"></td>
                                 <td style='text-align: center;'><?php echo htmlspecialchars($row['id_ranges']); ?></td>
-                                <td><?php echo htmlspecialchars($row['book_title']); ?></td>
                                 <td><?php echo htmlspecialchars($row['publisher']); ?></td>
-                                <td style='text-align: center;'><?php echo htmlspecialchars($row['place']); ?></td>
-                                <td style='text-align: center;'><?php echo htmlspecialchars(date('Y', strtotime($row['publish_date']))); ?></td>
-                                <td style='text-align: center;'><?php 
-                                    $total = 0;
-                                    $ranges = explode(',', $row['id_ranges']);
-                                    foreach ($ranges as $range) {
-                                        if (strpos($range, '-') !== false) {
-                                            list($start, $end) = explode('-', $range);
-                                            $total += ($end - $start + 1);
-                                        } else {
-                                            $total += 1;
-                                        }
-                                    }
-                                    echo $total;
-                                ?></td>
+                                <td><?php echo htmlspecialchars($row['place']); ?></td>
+                                <td style='text-align: center;'><?php echo htmlspecialchars($row['publish_year']); ?></td>
+                                <td><?php echo htmlspecialchars($row['book_titles']); ?></td>
+                                <td style='text-align: center;'><?php echo htmlspecialchars($row['total_books']); ?></td>
                             </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -162,7 +151,7 @@ $(document).ready(function() {
             "search": "_INPUT_",
             "searchPlaceholder": "Search..."
         },
-        "order": [[2, "asc"], [5, "asc"]], // Sort by book title then year
+        "order": [[2, "asc"], [4, "asc"]], // Sort by publisher then year
         "initComplete": function() {
             $('#dataTable_filter input').addClass('form-control form-control-sm');
             $('#dataTable_filter').addClass('d-flex align-items-center');

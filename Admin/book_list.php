@@ -9,6 +9,11 @@ if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Lib
 
 include '../db.php'; // Database connection
 
+// Count total books in database
+$totalBooksQuery = "SELECT COUNT(*) as total FROM books";
+$totalBooksResult = $conn->query($totalBooksQuery);
+$totalBooks = $totalBooksResult->fetch_assoc()['total'];
+
 // Handle book deletion
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_book_id'])) {
     $bookId = intval($_POST['delete_book_id']);
@@ -243,6 +248,18 @@ $result = $stmt->get_result();
         gap: 10px;
     }
     
+    .book-stats {
+        display: flex;
+        align-items: center;
+    }
+    
+    .total-books-display {
+        font-size: 0.9rem;
+        color: #4e73df;
+        font-weight: 600;
+        margin-right: 10px;
+    }
+    
     @media (max-width: 575.98px) {
         .card-header {
             flex-direction: column;
@@ -269,7 +286,10 @@ $result = $stmt->get_result();
             <div class="card shadow mb-4">
                 <div class="card-header py-3">
                     <h6 class="m-0 font-weight-bold text-primary">Book List</h6>
-                    <div class="btn-group">
+                    <div class="btn-group d-flex align-items-center">
+                        <span class="mr-2 total-books-display">
+                            Total Books: <?php echo number_format($totalBooks); ?>
+                        </span>
                         <button class="btn btn-danger btn-sm mx-1" id="batchDelete" disabled>
                             Delete Selected (<span id="selectedCountButton">0</span>)
                         </button>

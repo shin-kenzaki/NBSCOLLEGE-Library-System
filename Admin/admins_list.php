@@ -31,7 +31,15 @@ $values = [
     'role' => '',
 ];
 
-
+// Fix the password generation function
+function generatePassword($length = 10) {
+    $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()';
+    $password = '';
+    for ($i = 0; $i < $length; $i++) {
+        $password .= $chars[rand(0, strlen($chars) - 1)];
+    }
+    return $password;
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $employee_id = $_POST['employee_id']; 
@@ -39,20 +47,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $middle_init = trim($_POST['middle_init']) ?? NULL;
     $lastname = trim($_POST['lastname']);
     $email = $_POST['email']; 
-    $password = $_POST['password'];
     $role = $_POST['role'];
-    $status = null;
+    $status = 1; // Set status to active by default
     $image = '/upload/nbs-login.jpg';
 
+    // Generate password automatically
+    $password = generatePassword(12); // 12 characters long
+
     // Store values to retain input data
-    $values = compact('employee_id', 'firstname', 'middle_init', 'lastname', 'email', 'password', 'role');
+    $values = compact('employee_id', 'firstname', 'middle_init', 'lastname', 'email', 'role');
 
     // ✅ **VALIDATION RULES**
     if (empty($employee_id)) $errors['employee_id'] = "Employee ID is required.";
     if (empty($firstname)) $errors['firstname'] = "First name is required.";
     if (empty($lastname)) $errors['lastname'] = "Last name is required.";
     if (empty($email)) $errors['email'] = "Email is required.";
-    if (empty($password) || strlen($password) < 8) $errors['password'] = "Password must be at least 8 characters.";
     if (empty($role)) $errors['role'] = "Role is required.";
 
     // ✅ **CHECK FOR DUPLICATES**
@@ -81,16 +90,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->bind_param("ssssssssi", $employee_id, $firstname, $middle_init, $lastname, $email, $hashed_password, $image, $role, $status);
 
             if ($stmt->execute()) {
+                // Insert update for new admin
+                $admin_id = $_SESSION['admin_employee_id'];
+                $admin_role = $_SESSION['role'];
+                $admin_fullname = $_SESSION['admin_firstname'] . ' ' . $_SESSION['admin_lastname'];
+                $new_admin_fullname = $firstname . ' ' . ($middle_init ? $middle_init . ' ' : '') . $lastname;
+                $update_title = "$admin_role $admin_fullname Registered an Admin";
+                $update_message = "$admin_role $admin_fullname Registered $new_admin_fullname as $role";
+                $update_sql = "INSERT INTO updates (user_id, role, title, message, `update`) VALUES (?, ?, ?, ?, NOW())";
+                $update_stmt = $conn->prepare($update_sql);
+                $update_stmt->bind_param("isss", $admin_id, $admin_role, $update_title, $update_message);
+                $update_stmt->execute();
+                $update_stmt->close();
+
+                echo "<script src='https://cdn.jsdelivr.net/npm/sweetalert2@11'></script>";
                 echo "<script>
-                    alert('User has been added successfully.');
-                    window.location.href='admins_list.php';
+                    Swal.fire({
+                        title: 'Success!',
+                        html: `
+                            <div class='text-center'>
+                                <p>Admin added successfully!</p>
+                                <p><strong>Generated Password:</strong> " . $password . "</p>
+                                <p class='text-danger'><small>Please make sure to copy this information now!</small></p>
+                            </div>
+                        `,
+                        icon: 'success',
+                        confirmButtonText: 'OK'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            window.location.href = 'admins_list.php';
+                        }
+                    });
                 </script>";
                 exit;
             } else {
                 echo "<script>alert('Error adding user.');</script>";
             }
-
-
 
             $stmt->close();
         }
@@ -100,8 +135,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $formSubmitted = true; // Set flag to keep modal open
     }
 }
-
-
 
 $query = "SELECT id, employee_id, firstname, middle_init, lastname, email, role, status, date_added, last_update FROM admins";
 $result = mysqli_query($conn, $query);
@@ -289,9 +322,9 @@ $result = mysqli_query($conn, $query);
 
             <!-- Context Menu -->
             <div id="contextMenu" class="dropdown-menu" style="display:none; position:absolute;">
-                <a class="dropdown-item" href="#" id="viewAdmin">View Details</a>
-                <a class="dropdown-item" href="#" id="updateAdmin">Update</a>
-                <a class="dropdown-item" href="#" id="deleteAdmin">Delete</a>
+                <a class="dropdown-item" id="viewAdmin">View Details</a>
+                <a class="dropdown-item" id="updateAdmin">Update</a>
+                <a class="dropdown-item" id="deleteAdmin">Delete</a>
             </div>
 
                 </div>
@@ -313,13 +346,14 @@ $result = mysqli_query($conn, $query);
 
 <!-- Add User Modal -->
 <div class="modal fade <?php if (isset($formSubmitted) && $formSubmitted) echo 'show d-block'; ?>" id="addUserModal" tabindex="-1" role="dialog" aria-labelledby="addUserModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
+    <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="addUserModalLabel">Add New Admin</h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
+            </div> 
             <form id="addUserForm" action="" method="POST">
                 <div class="modal-body">
                     <div class="form-group">
@@ -327,29 +361,32 @@ $result = mysqli_query($conn, $query);
                         <input type="text" name="employee_id" class="form-control" value="<?= htmlspecialchars($values['employee_id'] ?? '') ?>">
                         <small class="text-danger"><?= $errors['employee_id'] ?? '' ?></small>
                     </div>
-                    <div class="form-group">
-                        <label>First Name</label>
-                        <input type="text" name="firstname" class="form-control" value="<?= htmlspecialchars($values['firstname'] ?? '') ?>">
-                        <small class="text-danger"><?= $errors['firstname'] ?? '' ?></small>
-                    </div>
-                    <div class="form-group">
-                        <label>Middle Initial</label>
-                        <input type="text" name="middle_init" class="form-control" value="<?= htmlspecialchars($values['middle_init'] ?? '') ?>">
-                    </div>
-                    <div class="form-group">
-                        <label>Last Name</label>
-                        <input type="text" name="lastname" class="form-control" value="<?= htmlspecialchars($values['lastname'] ?? '') ?>">
-                        <small class="text-danger"><?= $errors['lastname'] ?? '' ?></small>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label>First Name</label>
+                                <input type="text" name="firstname" class="form-control" value="<?= htmlspecialchars($values['firstname'] ?? '') ?>">
+                                <small class="text-danger"><?= $errors['firstname'] ?? '' ?></small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label>Middle Initial</label>
+                                <input type="text" name="middle_init" class="form-control" value="<?= htmlspecialchars($values['middle_init'] ?? '') ?>">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label>Last Name</label>
+                                <input type="text" name="lastname" class="form-control" value="<?= htmlspecialchars($values['lastname'] ?? '') ?>">
+                                <small class="text-danger"><?= $errors['lastname'] ?? '' ?></small>
+                            </div>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label>Email</label>
                         <input type="email" name="email" class="form-control" value="<?= htmlspecialchars($values['email'] ?? '') ?>">
                         <small class="text-danger"><?= $errors['email'] ?? '' ?></small>
-                    </div>
-                    <div class="form-group">
-                        <label>Password</label>
-                        <input type="password" name="password" class="form-control">
-                        <small class="text-danger"><?= $errors['password'] ?? '' ?></small>
                     </div>
                     <div class="form-group">
                         <label>Role</label>
@@ -361,15 +398,6 @@ $result = mysqli_query($conn, $query);
                             <option value="Encoder" <?= ($values['role'] ?? '') == 'Encoder' ? 'selected' : '' ?>>Encoder</option>
                         </select>
                         <small class="text-danger"><?= $errors['role'] ?? '' ?></small>
-                    </div>
-                    <div class="form-group">
-                        <label>Status</label>
-                        <select name="status" class="form-control">
-                            <option value="0" selected>Inactive</option>
-                            <option value="1">Active</option>
-                            <option value="2">Banned</option>
-                            <option value="3">Disabled</option>
-                        </select>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -407,7 +435,7 @@ $(document).ready(function() {
             // Add search icon
             $('#adminsTable_filter').addClass('d-flex align-items-center');
             $('#adminsTable_filter label').append('<i class="fas fa-search ml-2"></i>');
-            // Fix pagination buttons styling & spacing
+            // Fix pa"ination"buttons styling & spaci"g
             $('.dataTables_paginate .paginate_button').addClass('btn btn-sm btn-outline-primary mx-1');
         }
     });

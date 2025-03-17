@@ -2,7 +2,9 @@
     "require": {
         "picqer/php-barcode-generator": "^3.2",
         "phpmailer/phpmailer": "^6.9",
-        "tecnickcom/tcpdf": "^6.8"
+        "tecnickcom/tcpdf": "^6.8",
+        "phpoffice/phpspreadsheet": "^4.1",
+        "mpdf/mpdf": "^8.2"
     }
 
 }

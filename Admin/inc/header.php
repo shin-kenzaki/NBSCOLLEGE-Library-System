@@ -416,6 +416,27 @@
         // Prevent dropdown menu from closing when clicking on items in the Book Management section
         $('#collapseTwo .collapse-item').on('click', function(e) {
         });
+        
+        // Load sidebar state from localStorage when page loads
+        $(document).ready(function() {
+            // Check if sidebar state is saved in localStorage
+            const sidebarState = localStorage.getItem('sidebarToggled');
+            
+            // If the sidebar was toggled (minimized) previously
+            if (sidebarState === 'true') {
+                $('body').addClass('sidebar-toggled');
+                $('.sidebar').addClass('toggled');
+            }
+        });
+        
+        // Save sidebar state when toggle buttons are clicked
+        $('#sidebarToggle, #sidebarToggleTop').on('click', function() {
+            // If sidebar has toggled class after click, it's minimized
+            setTimeout(function() {
+                const isMinimized = $('.sidebar').hasClass('toggled');
+                localStorage.setItem('sidebarToggled', isMinimized);
+            }, 50); // Small delay to ensure classes are updated
+        });
     });
     </script>
 
@@ -562,6 +583,111 @@
     setInterval(updateMessages, 30000);
     // Initial load
     updateMessages();
+    </script>
+
+    <script>
+    // Function to update reservation alerts
+    function updateReservationAlerts() {
+        fetch('ajax/get_reservation_alerts.php')
+            .then(response => response.json())
+            .then(data => {
+                const alertsList = document.getElementById('alertsList');
+                const reservationCount = document.getElementById('reservationCount');
+
+                if (data.reservations && data.reservations.length > 0) {
+                    reservationCount.textContent = data.reservations.length;
+                    reservationCount.style.display = 'inline';
+
+                    alertsList.innerHTML = '';
+                    data.reservations.forEach(reservation => {
+                        alertsList.innerHTML += `
+                            <a class="dropdown-item d-flex align-items-center" href="book_reservations.php">
+                                <div class="mr-3">
+                                    <div class="icon-circle bg-primary">
+                                        <i class="fas fa-file-alt text-white"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="small text-gray-500">${reservation.reservation_date}</div>
+                                    <span class="font-weight-bold">${reservation.user_name} reserved ${reservation.book_title}</span>
+                                </div>
+                            </a>
+                        `;
+                    });
+                } else {
+                    reservationCount.style.display = 'none';
+                    alertsList.innerHTML = '<a class="dropdown-item text-center small text-gray-500">No new reservations</a>';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading reservation alerts:', error);
+                document.getElementById('alertsList').innerHTML = `
+                    <div class="text-center p-3">
+                        <p class="small text-gray-500">Error loading reservations</p>
+                    </div>`;
+            });
+    }
+
+    // Update reservation alerts every 30 seconds
+    setInterval(updateReservationAlerts, 30000);
+    // Initial load
+    updateReservationAlerts();
+    </script>
+
+    <script>
+    function updateMessagesAndCounts() {
+        // Update message count
+        fetch('ajax/get_unread_count.php')
+            .then(response => response.json())
+            .then(data => {
+                const messageCountBadge = document.getElementById('messageCount');
+                messageCountBadge.textContent = data.count > 99 ? '99+' : data.count;
+                messageCountBadge.style.display = data.count > 0 ? 'inline' : 'none';
+            })
+            .catch(error => console.error('Error updating message count:', error));
+
+        // Update messages
+        fetch('ajax/get_latest_messages.php')
+            .then(response => response.json())
+            .then(data => {
+                const messagesList = document.getElementById('messagesList');
+                messagesList.innerHTML = ''; // Clear existing messages
+
+                if (!data.messages || data.messages.length === 0) {
+                    messagesList.innerHTML = '<p class="text-center text-gray-500">No new messages</p>';
+                    return;
+                }
+
+                data.messages.forEach(msg => {
+                    const messageLink = `messages.php?user=${msg.sender_id}&role=${msg.sender_role}`;
+                    const messageItem = document.createElement('a');
+                    messageItem.classList.add('dropdown-item', 'd-flex', 'align-items-center');
+                    messageItem.href = messageLink;
+
+                    messageItem.innerHTML = `
+                        <div class="dropdown-list-image mr-3">
+                            <img class="rounded-circle" src="${msg.sender_image}" alt="${msg.sender_name}" style="width: 40px; height: 40px; object-fit: cover;">
+                            <div class="status-indicator ${msg.is_read ? 'bg-success' : 'bg-warning'}"></div>
+                        </div>
+                        <div class="font-weight-bold flex-grow-1">
+                            <div class="text-truncate">${msg.message}</div>
+                            <div class="small text-gray-500">${msg.sender_name} · ${msg.timestamp}</div>
+                        </div>
+                        ${!msg.is_read ? '<div class="ml-2"><span class="badge badge-danger">New</span></div>' : ''}
+                    `;
+                    messagesList.appendChild(messageItem);
+                });
+            })
+            .catch(error => {
+                console.error('Error loading messages:', error);
+                messagesList.innerHTML = '<p class="text-center text-gray-500">Error loading messages</p>';
+            });
+    }
+
+    // Update messages and counts every 30 seconds
+    setInterval(updateMessagesAndCounts, 30000);
+    // Initial load
+    updateMessagesAndCounts();
     </script>
 </body>
 </html>

@@ -141,6 +141,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             );
 
             if ($stmt->execute()) {
+                // Insert update for new user
+                $admin_id = $_SESSION['admin_employee_id'];
+                $admin_role = $_SESSION['role'];
+                $admin_fullname = $_SESSION['admin_firstname'] . ' ' . $_SESSION['admin_lastname'];
+                $user_fullname = $firstname . ' ' . ($middle_init ? $middle_init . ' ' : '') . $lastname;
+                $update_title = "$admin_role $admin_fullname Registered a User";
+                $update_message = "$admin_role $admin_fullname Registered $user_fullname as $usertype";
+                $update_sql = "INSERT INTO updates (user_id, role, title, message, `update`) VALUES (?, ?, ?, ?, NOW())";
+                $update_stmt = $conn->prepare($update_sql);
+                $update_stmt->bind_param("isss", $admin_id, $admin_role, $update_title, $update_message);
+                $update_stmt->execute();
+                $update_stmt->close();
+
                 echo "<script>
                     document.addEventListener('DOMContentLoaded', function() {
                         Swal.fire({
@@ -387,8 +400,6 @@ $(document).ready(function() {
     });
 
     // Context Menu Actions
-    // Remove the viewUser click handler
-    
     $('#updateUser').click(function() {
         window.location.href = `edit_user.php?id=${selectedUserId}`;
     });
@@ -402,9 +413,48 @@ $(document).ready(function() {
     });
 
     $('#deleteUser').click(function() {
-        if (confirm('Are you sure you want to delete this user?')) {
-            window.location.href = 'delete_user.php?id=' + selectedUserId;
-        }
+        Swal.fire({
+            title: 'Delete User?',
+            text: 'Are you sure you want to delete this user? This action cannot be undone.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: 'delete_user.php',
+                    method: 'GET',
+                    data: { id: selectedUserId },
+                    success: function(response) {
+                        const res = JSON.parse(response);
+                        if (res.status === 'success') {
+                            Swal.fire(
+                                'Deleted!',
+                                res.message,
+                                'success'
+                            ).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire(
+                                'Error!',
+                                res.message,
+                                'error'
+                            );
+                        }
+                    },
+                    error: function() {
+                        Swal.fire(
+                            'Error!',
+                            'An error occurred while deleting the user.',
+                            'error'
+                        );
+                    }
+                });
+            }
+        });
     });
 
     // Change this line to use a more specific selector

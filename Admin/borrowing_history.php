@@ -9,6 +9,32 @@ if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Lib
 }
 
 include('../db.php');
+
+// Statistics queries
+// Get total borrowed books count (all time)
+$totalBorrowedQuery = "SELECT COUNT(*) as total FROM borrowings";
+$totalBorrowedResult = $conn->query($totalBorrowedQuery);
+$totalBorrowedRow = $totalBorrowedResult->fetch_assoc();
+$totalBorrowed = $totalBorrowedRow['total'];
+
+// Get total returned books count
+$returnedBooksQuery = "SELECT COUNT(*) as total FROM borrowings WHERE status = 'Returned'";
+$returnedBooksResult = $conn->query($returnedBooksQuery);
+$returnedBooksRow = $returnedBooksResult->fetch_assoc();
+$returnedBooks = $returnedBooksRow['total'];
+
+// Get total damaged books count
+$damagedBooksQuery = "SELECT COUNT(*) as total FROM borrowings WHERE status = 'Damaged'";
+$damagedBooksResult = $conn->query($damagedBooksQuery);
+$damagedBooksRow = $damagedBooksResult->fetch_assoc();
+$damagedBooks = $damagedBooksRow['total'];
+
+// Get total lost books count
+$lostBooksQuery = "SELECT COUNT(*) as total FROM borrowings WHERE status = 'Lost'";
+$lostBooksResult = $conn->query($lostBooksQuery);
+$lostBooksRow = $lostBooksResult->fetch_assoc();
+$lostBooks = $lostBooksRow['total'];
+
 $query = "SELECT 
             b.id as borrow_id,
             b.issue_date,
@@ -39,6 +65,40 @@ $result = $conn->query($query);
     .table td, .table th {
         white-space: nowrap;
     }
+    /* Add hover effect styles */
+    .stats-card {
+        transition: all 0.3s;
+        border-left: 4px solid;
+    }
+    .stats-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+    .stats-icon {
+        font-size: 2rem;
+        opacity: 0.6;
+    }
+    .stats-title {
+        font-size: 0.9rem;
+        font-weight: bold;
+        text-transform: uppercase;
+    }
+    .stats-number {
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+    .primary-card {
+        border-left-color: #4e73df;
+    }
+    .success-card {
+        border-left-color: #1cc88a;
+    }
+    .danger-card {
+        border-left-color: #e74a3b;
+    }
+    .warning-card {
+        border-left-color: #f6c23e;
+    }
 </style>
 
 <!-- Main Content -->
@@ -47,6 +107,81 @@ $result = $conn->query($query);
         <!-- Page Heading -->
         <h1 class="h3 mb-2 text-gray-800">Borrowing History</h1>
         <p class="mb-4">Complete history of all book borrowing transactions including returns, losses, and damages.</p>
+
+        <!-- Statistics Cards -->
+        <div class="row mb-4">
+            <!-- Total Borrowed Books -->
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-primary shadow h-100 py-2 stats-card primary-card">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1 stats-title">
+                                    Overall Borrowed Items</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number"><?php echo $totalBorrowed; ?></div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-book fa-2x text-gray-300 stats-icon"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Returned Books -->
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-success shadow h-100 py-2 stats-card success-card">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1 stats-title">
+                                    Overall Returned Books</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number"><?php echo $returnedBooks; ?></div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-check-circle fa-2x text-gray-300 stats-icon"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lost Books -->
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-danger shadow h-100 py-2 stats-card danger-card">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-danger text-uppercase mb-1 stats-title">
+                                    Overall Lost Books</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number"><?php echo $lostBooks; ?></div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-times-circle fa-2x text-gray-300 stats-icon"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Damaged Books -->
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-warning shadow h-100 py-2 stats-card warning-card">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1 stats-title">
+                                    Overall Damaged Books</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number"><?php echo $damagedBooks; ?></div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-exclamation-triangle fa-2x text-gray-300 stats-icon"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <div class="card shadow mb-4">
             <div class="card-header py-3">

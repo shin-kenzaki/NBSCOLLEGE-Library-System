@@ -41,7 +41,83 @@ LEFT JOIN users u2 ON (r.cancelled_by = u2.id AND r.cancelled_by_role = 'User')
 WHERE r.recieved_date IS NULL 
 AND r.cancel_date IS NULL";
 $result = $conn->query($query);
+
+// Statistics queries
+// Current status statistics
+$pendingQuery = "SELECT COUNT(*) AS count FROM reservations WHERE status = 'Pending'";
+$pendingResult = $conn->query($pendingQuery);
+$pendingCount = $pendingResult->fetch_assoc()['count'];
+
+$readyQuery = "SELECT COUNT(*) AS count FROM reservations WHERE status = 'Ready'";
+$readyResult = $conn->query($readyQuery);
+$readyCount = $readyResult->fetch_assoc()['count'];
+
+// Today's statistics
+$todayReceivedQuery = "SELECT COUNT(*) AS count FROM reservations WHERE status = 'Received' AND DATE(recieved_date) = CURDATE()";
+$todayReceivedResult = $conn->query($todayReceivedQuery);
+$todayReceivedCount = $todayReceivedResult->fetch_assoc()['count'];
+
+$todayCancelledQuery = "SELECT COUNT(*) AS count FROM reservations WHERE status = 'Cancelled' AND DATE(cancel_date) = CURDATE()";
+$todayCancelledResult = $conn->query($todayCancelledQuery);
+$todayCancelledCount = $todayCancelledResult->fetch_assoc()['count'];
+
+$todayReservationsQuery = "SELECT COUNT(*) AS count FROM reservations WHERE DATE(reserve_date) = CURDATE()";
+$todayReservationsResult = $conn->query($todayReservationsQuery);
+$todayReservationsCount = $todayReservationsResult->fetch_assoc()['count'];
+
+// Overall statistics
+$totalReservationsQuery = "SELECT COUNT(*) AS count FROM reservations";
+$totalReservationsResult = $conn->query($totalReservationsQuery);
+$totalReservationsCount = $totalReservationsResult->fetch_assoc()['count'];
+
+$totalReceivedQuery = "SELECT COUNT(*) AS count FROM reservations WHERE status = 'Received'";
+$totalReceivedResult = $conn->query($totalReceivedQuery);
+$totalReceivedCount = $totalReceivedResult->fetch_assoc()['count'];
+
+$totalCancelledQuery = "SELECT COUNT(*) AS count FROM reservations WHERE status = 'Cancelled'";
+$totalCancelledResult = $conn->query($totalCancelledQuery);
+$totalCancelledCount = $totalCancelledResult->fetch_assoc()['count'];
 ?>
+
+<style>
+    /* Add hover effect styles */
+    .stats-card {
+        transition: all 0.3s;
+        border-left: 4px solid;
+    }
+    .stats-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+    .stats-icon {
+        font-size: 2rem;
+        opacity: 0.6;
+    }
+    .stats-title {
+        font-size: 0.9rem;
+        font-weight: bold;
+        text-transform: uppercase;
+    }
+    .stats-number {
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+    .primary-card {
+        border-left-color: #4e73df;
+    }
+    .success-card {
+        border-left-color: #1cc88a;
+    }
+    .info-card {
+        border-left-color: #36b9cc;
+    }
+    .danger-card {
+        border-left-color: #e74a3b;
+    }
+    .warning-card {
+        border-left-color: #f6c23e;
+    }
+</style>
 
 <!-- Main Content -->
 <div id="content" class="d-flex flex-column min-vh-100">
@@ -49,6 +125,165 @@ $result = $conn->query($query);
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1 class="h3 mb-0 text-gray-800">Book Reservations</h1>
         </div>
+
+        <!-- Statistics Dashboard -->
+        <div class="row mb-4">
+            <!-- Current Status Section -->
+            <div class="col-12 mb-3">
+                <h5 class="text-gray-800">Current Status</h5>
+            </div>
+            
+            <!-- Pending Reservations -->
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-warning shadow h-100 py-2 stats-card warning-card">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1 stats-title">
+                                    Pending Reservations</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number"><?php echo $pendingCount; ?></div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-clock fa-2x text-gray-300 stats-icon"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ready Reservations -->
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-info shadow h-100 py-2 stats-card info-card">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1 stats-title">
+                                    Ready Reservations</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number"><?php echo $readyCount; ?></div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-book fa-2x text-gray-300 stats-icon"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Today's Received (moved to Current Status) -->
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-success shadow h-100 py-2 stats-card success-card">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1 stats-title">
+                                    Received Today</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number"><?php echo $todayReceivedCount; ?></div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-check-circle fa-2x text-gray-300 stats-icon"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Today's Cancelled (moved to Current Status) -->
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-danger shadow h-100 py-2 stats-card danger-card">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-danger text-uppercase mb-1 stats-title">
+                                    Cancelled Today</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number"><?php echo $todayCancelledCount; ?></div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-ban fa-2x text-gray-300 stats-icon"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Overall Statistics Section -->
+            <div class="col-12 mb-3 mt-2">
+                <h5 class="text-gray-800">Overall Statistics</h5>
+            </div>
+            
+            <!-- Today's Reservations -->
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-primary shadow h-100 py-2 stats-card primary-card">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1 stats-title">
+                                    Total Reservations Today</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number"><?php echo $todayReservationsCount; ?></div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-calendar-day fa-2x text-gray-300 stats-icon"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Total Reservations -->
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-primary shadow h-100 py-2 stats-card primary-card">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1 stats-title">
+                                    Overall Total Reservations</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number"><?php echo $totalReservationsCount; ?></div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-bookmark fa-2x text-gray-300 stats-icon"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Received -->
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-success shadow h-100 py-2 stats-card success-card">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1 stats-title">
+                                    Overall Total Received</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number"><?php echo $totalReceivedCount; ?></div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-clipboard-check fa-2x text-gray-300 stats-icon"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Cancelled -->
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-danger shadow h-100 py-2 stats-card danger-card">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-danger text-uppercase mb-1 stats-title">
+                                    Overall Total Cancelled</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number"><?php echo $totalCancelledCount; ?></div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-times-circle fa-2x text-gray-300 stats-icon"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- End Statistics Dashboard -->
+
         <div class="card shadow mb-4">
             <div class="card-header py-3 d-flex justify-content-between align-items-center">
                 <h6 class="m-0 font-weight-bold text-primary">Book Reservations List</h6>
