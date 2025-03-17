@@ -16,6 +16,54 @@ require '../db.php';
     <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet">
     <link href="inc/css/sb-admin-2.min.css" rel="stylesheet">
 </head>
+<style>
+          .bg-login-image {
+      background: url("inc/img/bg-login.JPG") center center no-repeat;
+      background-size: cover;
+    }
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background-color: #f8f9fc; /* Optional: set a background color */
+    }
+
+    /* Mobile view adjustments */
+    @media (max-width: 768px) {
+      .card-body {
+        padding: 0;
+      }
+
+      .p-5 {
+        padding: 1.5rem !important;
+      }
+
+      .form-group {
+        margin-bottom: 0.75rem;
+      }
+
+      .form-control-user {
+        font-size: 0.8rem;
+        padding: 0.75rem 1rem;
+      }
+
+      .btn-user {
+        padding: 0.5rem 1rem;
+      }
+
+      .h4 {
+        font-size: 1.25rem;
+      }
+
+      /* Stack form elements vertically on small screens */
+      @media (max-width: 576px) {
+        .form-group.row > div {
+          margin-bottom: 0.75rem;
+        }
+      }
+    }
+</style>
 
 <body class="bg-gradient-primary">
     <div class="container">
@@ -24,17 +72,17 @@ require '../db.php';
                 <div class="card o-hidden border-0 shadow-lg my-5">
                     <div class="card-body p-0">
                         <div class="row">
-                            <div class="col-lg-6 d-none d-lg-block bg-password-image"></div>
-                            <div class="col-lg-6">
+                        <div class="col-lg-6 d-none d-lg-block bg-login-image"></div>
+                        <div class="col-lg-6">
                                 <div class="p-5">
                                     <div class="text-center">
                                         <h1 class="h4 text-gray-900 mb-4">Forgot Your Password?</h1>
                                     </div>
-                                    
-                
 
-                               
-                                   
+
+
+
+
                                         <!-- Step 1: Verification Form -->
                                         <form class="user" method="POST" action="forgot-password-send.php">
                                             <div class="form-group">
@@ -46,8 +94,8 @@ require '../db.php';
                                                 Reset Password
                                             </button>
                                         </form>
-                                   
-                                    
+
+
                                     <hr>
                                     <div class="text-center">
                                         <a class="small" href="register.php">Create an Account!</a>
