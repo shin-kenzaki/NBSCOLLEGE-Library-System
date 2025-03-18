@@ -248,7 +248,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 $fullname = $row['firstname'] . ' ' . ($row['middle_init'] ? $row['middle_init'] . ' ' : '') . $row['lastname'];
                                 list($status_class, $status_text) = getStatusDisplay($row['status']);
                                 
-                                echo "<tr style='cursor: pointer;' onclick=\"window.location='view_user.php?id={$row['id']}'\">";
+                                echo "<tr>";
                                 echo "<td><input type='checkbox' class='user-checkbox' data-user-id='{$row['id']}'></td>";
                                 echo "<td class='text-center'>{$row['id']}</td>";
                                 echo "<td class='text-center'>{$row['school_id']}</td>";
@@ -275,6 +275,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <!-- Context Menu -->
 <div id="contextMenu" class="dropdown-menu" style="display:none; position:absolute;">
+    <a class="dropdown-item" href="#" id="viewUser">View Details</a>
     <a class="dropdown-item" href="#" id="updateUser">Update</a>
     <a class="dropdown-item" href="#" id="banUser">Ban User</a>
     <a class="dropdown-item" href="#" id="disableUser">Disable User</a>
@@ -400,6 +401,10 @@ $(document).ready(function() {
     });
 
     // Context Menu Actions
+    $('#viewUser').click(function() {
+        window.location.href = `view_user.php?id=${selectedUserId}`;
+    });
+
     $('#updateUser').click(function() {
         window.location.href = `edit_user.php?id=${selectedUserId}`;
     });

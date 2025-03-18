@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Mar 17, 2025 at 05:13 AM
+-- Generation Time: Mar 18, 2025 at 02:45 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -96,27 +96,21 @@ CREATE TABLE `books` (
 --
 
 INSERT INTO `books` (`id`, `accession`, `title`, `preferred_title`, `parallel_title`, `subject_category`, `subject_detail`, `summary`, `contents`, `front_image`, `back_image`, `dimension`, `series`, `volume`, `edition`, `copy_number`, `total_pages`, `supplementary_contents`, `ISBN`, `content_type`, `media_type`, `carrier_type`, `call_number`, `URL`, `language`, `shelf_location`, `entered_by`, `date_added`, `status`, `updated_by`, `last_update`) VALUES
-(1, 6190, 'Entrepreneurship', '', '', 'Topical', '', '', '', NULL, NULL, '', '', '', '', 1, '', '', '9789395080545', 'Text', 'Print', 'Book', 'RES HB615 2024 c1', '', 'English', 'RES', 1, '2025-03-06', 'Borrowed', 1, '2025-03-09'),
-(2, 6191, 'Entrepreneurship', '', '', 'Topical', '', '', '', NULL, NULL, '', '', '', '', 2, '', '', '9789395080545', 'Text', 'Print', 'Book', 'RES HB615 2024 c2', '', 'English', 'RES', 1, '2025-03-06', 'Available', 1, '2025-03-09'),
+(1, 6190, 'Entrepreneurship', '', '', 'Topical', '', '', '', NULL, NULL, '', '', '', '', 1, '', '', '9789395080545', 'Text', 'Print', 'Book', 'RES HB615 2024 c1', '', 'English', 'RES', 1, '2025-03-06', 'Available', 1, '2025-03-09'),
+(2, 6191, 'Entrepreneurship', '', '', 'Topical', '', '', '', NULL, NULL, '', '', '', '', 2, '', '', '9789395080545', 'Text', 'Print', 'Book', 'RES HB615 2024 c2', '', 'English', 'RES', 1, '2025-03-06', 'Borrowed', 1, '2025-03-09'),
 (3, 6192, 'Entrepreneurship', '', '', 'Topical', '', '', '', NULL, NULL, '', '', '', '', 3, '', '', '9789395080545', 'Text', 'Print', 'Book', 'RES HB615 2024 c3', '', 'English', 'RES', 1, '2025-03-06', 'Available', 1, '2025-03-09'),
-(4, 6193, 'Entrepreneurship', '', '', 'Topical', '', '', '', NULL, NULL, '', '', '', '', 4, '', '', '9789395080545', 'Text', 'Print', 'Book', 'RES HB615 2024 c4', '', 'English', 'RES', 1, '2025-03-06', 'Borrowed', 1, '2025-03-09'),
+(4, 6193, 'Entrepreneurship', '', '', 'Topical', '', '', '', NULL, NULL, '', '', '', '', 4, '', '', '9789395080545', 'Text', 'Print', 'Book', 'RES HB615 2024 c4', '', 'English', 'RES', 1, '2025-03-06', 'Available', 1, '2025-03-09'),
 (5, 6194, 'Entrepreneurship', '', '', 'Topical', '', '', '', NULL, NULL, '', '', '', '', 5, '', '', '9789395080545', 'Text', 'Print', 'Book', 'RES HB615 2024 c5', '', 'English', 'RES', 1, '2025-03-06', 'Available', 1, '2025-03-09'),
 (6, 26, 'Classification and Cataloging', '', '', '', '', '', '', NULL, NULL, '', '', '', '', 1, '', '', '', 'Text', 'Print', 'Book', 'FIL TR  c1 2017 c1', '', 'English', 'FIL', 1, '2025-03-09', 'Available', 1, '2025-03-09'),
-(7, 27, 'Classification and Cataloging', '', '', '', '', '', '', NULL, NULL, '', '', '', '', 2, '', '', '', 'Text', 'Print', 'Book', 'FIL TR  c1 2017 c2', '', 'English', 'FIL', 1, '2025-03-09', 'Available', 1, '2025-03-09'),
+(7, 27, 'Classification and Cataloging', '', '', '', '', '', '', NULL, NULL, '', '', '', '', 2, '', '', '', 'Text', 'Print', 'Book', 'FIL TR  c1 2017 c2', '', 'English', 'FIL', 1, '2025-03-09', 'Borrowed', 1, '2025-03-09'),
 (8, 28, 'Classification and Cataloging', '', '', '', '', '', '', NULL, NULL, '', '', '', '', 3, '', '', '', 'Text', 'Print', 'Book', 'FIL TR  c1 2017 c3', '', 'English', 'FIL', 1, '2025-03-09', 'Available', 1, '2025-03-09'),
 (9, 29, 'Classification and Cataloging', '', '', '', '', '', '', NULL, NULL, '', '', '', '', 4, '', '', '', 'Text', 'Print', 'Book', 'FIL TR  c1 2017 c4', '', 'English', 'FIL', 1, '2025-03-09', 'Available', 1, '2025-03-09'),
-(10, 30, 'Classification and Cataloging', '', '', '', '', '', '', NULL, NULL, '', '', '', '', 5, '', '', '', 'Text', 'Print', 'Book', 'FIL TR  c1 2017 c5', '', 'English', 'FIL', 1, '2025-03-09', 'Borrowed', 1, '2025-03-09'),
+(10, 30, 'Classification and Cataloging', '', '', '', '', '', '', NULL, NULL, '', '', '', '', 5, '', '', '', 'Text', 'Print', 'Book', 'FIL TR  c1 2017 c5', '', 'English', 'FIL', 1, '2025-03-09', 'Available', 1, '2025-03-09'),
 (11, 5986, 'The Colors of Lucban', '', '', '', '', '', '', NULL, NULL, '', '', '', '', 1, '', '', '', 'Text', 'Print', 'Book', 'REF ASD WASD 2010 c1', '', 'English', 'REF', 1, '2025-03-09', 'Available', 1, '2025-03-11'),
 (12, 5987, 'The Colors of Lucban', '', '', '', '', '', '', NULL, NULL, '', '', '', '', 2, '', '', '', 'Text', 'Print', 'Book', 'REF ASD WASD 2010 c2', '', 'English', 'REF', 1, '2025-03-09', 'Available', 1, '2025-03-11'),
 (13, 5988, 'The Colors of Lucban', '', '', '', '', '', '', NULL, NULL, '', '', '', '', 3, '', '', '', 'Text', 'Print', 'Book', 'REF ASD WASD 2010 c3', '', 'English', 'REF', 1, '2025-03-09', 'Borrowed', 1, '2025-03-11'),
-(14, 5989, 'The Colors of Lucban', '', '', '', '', '', '', NULL, NULL, '', '', '', '', 4, '', '', '', 'Text', 'Print', 'Book', 'REF ASD WASD 2010 c4', '', 'English', 'REF', 1, '2025-03-09', 'Borrowed', 1, '2025-03-11'),
-(15, 5990, 'The Colors of Lucban', '', '', '', '', '', '', NULL, NULL, '', '', '', '', 5, '', '', '', 'Text', 'Print', 'Book', 'REF ASD WASD 2010 c5', '', 'English', 'REF', 1, '2025-03-09', 'Available', 1, '2025-03-11'),
-(16, 25, 'adqwe', '', '', '', '', '', '', '', '', '', '', '', '', 1, '', '', '', 'Text', 'Print', 'Book', 'TR  c1', '', 'English', 'TR', 1, '2025-03-16', 'Available', NULL, '2025-03-16'),
-(17, 35, 'koji', '', '', '', '', '', '', NULL, NULL, '', '', '', '', 1, '', '', '', 'Text', 'Print', 'Book', 'TR TR  c1 2010 c1', '', 'English', 'TR', 1, '2025-03-16', 'Available', 1, '2025-03-16'),
-(18, 36, 'koji', '', '', '', '', '', '', NULL, NULL, '', '', '', '', 2, '', '', '', 'Text', 'Print', 'Book', 'TR TR  c1 2010 c2', '', 'English', 'TR', 1, '2025-03-16', 'Available', 1, '2025-03-16'),
-(19, 37, 'koji', '', '', '', '', '', '', NULL, NULL, '', '', '', '', 3, '', '', '', 'Text', 'Print', 'Book', 'TR TR  c1 2010 c3', '', 'English', 'TR', 1, '2025-03-16', 'Available', 1, '2025-03-16'),
-(20, 38, 'koji', '', '', '', '', '', '', NULL, NULL, '', '', '', '', 4, '', '', '', 'Text', 'Print', 'Book', 'TR TR  c1 2010 c4', '', 'English', 'TR', 1, '2025-03-16', 'Available', 1, '2025-03-16'),
-(21, 39, 'koji', '', '', '', '', '', '', NULL, NULL, '', '', '', '', 5, '', '', '', 'Text', 'Print', 'Book', 'TR TR  c1 2010 c5', '', 'English', 'TR', 1, '2025-03-16', 'Available', 1, '2025-03-16');
+(14, 5989, 'The Colors of Lucban', '', '', '', '', '', '', NULL, NULL, '', '', '', '', 4, '', '', '', 'Text', 'Print', 'Book', 'REF ASD WASD 2010 c4', '', 'English', 'REF', 1, '2025-03-09', 'Available', 1, '2025-03-11'),
+(15, 5990, 'The Colors of Lucban', '', '', '', '', '', '', NULL, NULL, '', '', '', '', 5, '', '', '', 'Text', 'Print', 'Book', 'REF ASD WASD 2010 c5', '', 'English', 'REF', 1, '2025-03-09', 'Available', 1, '2025-03-11');
 
 -- --------------------------------------------------------
 
@@ -144,10 +138,9 @@ CREATE TABLE `borrowings` (
 --
 
 INSERT INTO `borrowings` (`id`, `user_id`, `book_id`, `status`, `issue_date`, `issued_by`, `due_date`, `return_date`, `recieved_by`, `report_date`, `replacement_date`, `reminder_sent`) VALUES
-(1, 2, 1, 'Active', '2025-03-16', 1, '2025-03-17', NULL, NULL, NULL, NULL, NULL),
-(2, 7, 4, 'Active', '2025-03-16', 1, '2025-03-17', NULL, NULL, NULL, NULL, NULL),
-(3, 7, 13, 'Overdue', '2025-03-16', 1, '2025-03-16', NULL, NULL, NULL, NULL, NULL),
-(4, 7, 10, 'Active', '2025-03-16', 1, '2025-03-23', NULL, NULL, NULL, NULL, NULL);
+(5, 31, 2, 'Active', '2025-03-18', 1, '2025-03-19', NULL, NULL, NULL, NULL, NULL),
+(6, 31, 7, 'Active', '2025-03-18', 1, '2025-03-25', NULL, NULL, NULL, NULL, NULL),
+(7, 31, 13, 'Active', '2025-03-18', 1, '2025-03-18', NULL, NULL, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -195,20 +188,7 @@ INSERT INTO `contributors` (`id`, `book_id`, `writer_id`, `role`) VALUES
 (82, 12, 3, 'Author'),
 (83, 13, 3, 'Author'),
 (84, 14, 3, 'Author'),
-(85, 15, 3, 'Author'),
-(86, 16, 3, 'Author'),
-(87, 16, 1, 'Co-Author'),
-(88, 16, 2, 'Editor'),
-(89, 17, 3, 'Co-Author'),
-(90, 17, 1, 'Editor'),
-(91, 18, 3, 'Co-Author'),
-(92, 18, 1, 'Editor'),
-(93, 19, 3, 'Co-Author'),
-(94, 19, 1, 'Editor'),
-(95, 20, 3, 'Co-Author'),
-(96, 20, 1, 'Editor'),
-(97, 21, 3, 'Co-Author'),
-(98, 21, 1, 'Editor');
+(85, 15, 3, 'Author');
 
 -- --------------------------------------------------------
 
@@ -275,13 +255,7 @@ INSERT INTO `publications` (`id`, `book_id`, `publisher_id`, `publish_date`) VAL
 (12, 12, 4, '2010'),
 (13, 13, 4, '2010'),
 (14, 14, 4, '2010'),
-(15, 15, 4, '2010'),
-(16, 16, 4, '2025'),
-(17, 17, 4, '2021'),
-(18, 18, 4, '2021'),
-(19, 19, 4, '2021'),
-(20, 20, 4, '2021'),
-(21, 21, 4, '2021');
+(15, 15, 4, '2010');
 
 -- --------------------------------------------------------
 
@@ -341,6 +315,50 @@ CREATE TABLE `updates` (
   `update` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `updates`
+--
+
+INSERT INTO `updates` (`id`, `user_id`, `role`, `title`, `message`, `update`) VALUES
+(83, 210078, 'Admin', 'Kenneth Laurence Bonaagua Registered an Admin', 'Kenneth Laurence Bonaagua Registered asdasd asdasda as Encoder', '2025-03-17 10:16:52'),
+(84, 210078, 'Admin', 'Kenneth Laurence Bonaagua Registered an Admin', 'Kenneth Laurence Bonaagua Registered sdasd asdasdas as Admin', '2025-03-17 10:18:50'),
+(85, 210078, 'Admin', 'Kenneth Laurence Bonaagua Registered an Admin', 'Kenneth Laurence Bonaagua Registered sdasd asdasdas as Admin', '2025-03-17 10:18:58'),
+(86, 210078, 'Admin', 'Kenneth Laurence Bonaagua Registered an Admin', 'Kenneth Laurence Bonaagua Registered asdasd asdasda as Admin', '2025-03-17 10:19:19'),
+(87, 210078, 'Admin', 'Kenneth Laurence Bonaagua Registered an Admin', 'Kenneth Laurence Bonaagua Registered asdasd asdasdas as Admin', '2025-03-17 10:19:48'),
+(88, 210078, 'Admin', 'Kenneth Laurence Bonaagua Registered an Admin', 'Kenneth Laurence Bonaagua Registered asdasd asdasd as Librarian', '2025-03-17 10:20:59'),
+(89, 210078, 'Admin', 'Kenneth Laurence Bonaagua Registered an Admin', 'Kenneth Laurence Bonaagua Registered asdasda asdasd as Admin', '2025-03-17 10:21:34'),
+(90, 210078, 'Admin', 'Kenneth Laurence Bonaagua Registered an Admin', 'Kenneth Laurence Bonaagua Registered asdasd adasdad as Admin', '2025-03-17 10:33:07'),
+(91, 210078, 'Admin', 'Kenneth Laurence Bonaagua Registered an Admin', 'Kenneth Laurence Bonaagua Registered sadasd adsad as Admin', '2025-03-17 10:47:58'),
+(92, 210078, 'Admin', 'Admin Logged In', 'Admin Kenneth Laurence Bonaagua Logged In as Active', '2025-03-17 15:07:23'),
+(93, 1, 'Admin', 'Admin   Registered an Admin', 'Admin   Registered Cayce Evangelista as Assistant', '2025-03-17 15:08:08'),
+(94, 1, 'Admin', 'Admin   Registered an Admin', 'Admin   Registered asd asd ads as Librarian', '2025-03-17 15:09:11'),
+(95, 1, 'Admin', 'Admin Kenneth Laurence Bonaagua Registered an Admin', 'Admin Kenneth Laurence Bonaagua Registered asdas asda as Librarian', '2025-03-17 15:10:54'),
+(96, 1, 'Admin', 'Admin Kenneth Laurence Bonaagua Registered a User', 'Admin Kenneth Laurence Bonaagua Registered asdas asd asda as Faculty', '2025-03-17 15:11:54'),
+(97, 210078, 'Admin', 'Admin Kenneth Laurence Bonaagua Registered an Admin', 'Admin Kenneth Laurence Bonaagua Registered sadasd asdasd as Librarian', '2025-03-17 15:34:09'),
+(98, 210078, 'Admin', 'Admin Kenneth Laurence Bonaagua Deactivated an Admin', 'Admin Kenneth Laurence Bonaagua Deactivated Librarian sadasd asdasd', '2025-03-17 15:34:18'),
+(99, 210078, 'Admin', 'Admin Kenneth Laurence Bonaagua Activated an Admin', 'Admin Kenneth Laurence Bonaagua Activated Librarian sadasd asdasd', '2025-03-17 15:34:42'),
+(100, 210078, 'Admin', 'Admin Kenneth Laurence Bonaagua Deleted an Admin', 'Admin Kenneth Laurence Bonaagua Deleted Librarian sadasd asdasd', '2025-03-17 15:41:37'),
+(101, 210078, 'Admin', 'Admin Kenneth Laurence Bonaagua Registered a User', 'Admin Kenneth Laurence Bonaagua Registered sadas adasd as Faculty', '2025-03-17 15:45:06'),
+(102, 210078, 'Admin', 'Admin Kenneth Laurence Bonaagua Registered a User', 'Admin Kenneth Laurence Bonaagua Registered asd asdasd as Faculty', '2025-03-17 15:45:20'),
+(103, 210078, 'Admin', 'Admin Kenneth Laurence Bonaagua Registered a User', 'Admin Kenneth Laurence Bonaagua Registered dasdasd asdas as Faculty', '2025-03-17 15:45:37'),
+(104, 210078, 'Admin', 'Admin Kenneth Laurence Bonaagua Registered a User', 'Admin Kenneth Laurence Bonaagua Registered asdad asdasd as Faculty', '2025-03-17 15:47:57'),
+(105, 210078, 'Admin', 'Admin Kenneth Laurence Bonaagua Registered a User', 'Admin Kenneth Laurence Bonaagua Registered sad asdasd as Faculty', '2025-03-17 15:53:48'),
+(106, 210078, 'Admin', 'Admin Kenneth Laurence Bonaagua Registered a User', 'Admin Kenneth Laurence Bonaagua Registered sadas asdads as Faculty', '2025-03-17 15:54:05'),
+(107, 210078, 'Admin', 'Admin Kenneth Laurence Bonaagua Registered a User', 'Admin Kenneth Laurence Bonaagua Registered asdas asdas as Faculty', '2025-03-17 15:54:25'),
+(108, 210078, 'Admin', 'Admin Kenneth Laurence Bonaagua Deleted a User', 'Admin Kenneth Laurence Bonaagua Deleted Faculty sad asdasd', '2025-03-17 15:54:30'),
+(109, 210078, 'Admin', 'Admin Kenneth Laurence Bonaagua Deleted a User', 'Admin Kenneth Laurence Bonaagua Deleted Faculty sadas asdads', '2025-03-17 15:54:30'),
+(110, 210078, 'Admin', 'Admin Kenneth Laurence Bonaagua Deleted a User', 'Admin Kenneth Laurence Bonaagua Deleted Faculty asdas asdas', '2025-03-17 15:54:30'),
+(111, 210078, 'Admin', 'Admin Kenneth Laurence Bonaagua Registered a User', 'Admin Kenneth Laurence Bonaagua Registered sad asd as Faculty', '2025-03-17 15:54:56'),
+(112, 210078, 'Admin', 'Admin Kenneth Laurence Bonaagua Registered a User', 'Admin Kenneth Laurence Bonaagua Registered sadasd asdas as Student', '2025-03-17 15:56:35'),
+(113, 210078, 'Admin', 'Admin Kenneth Laurence Bonaagua Deleted a User', 'Admin Kenneth Laurence Bonaagua Deleted Student sadasd asdas', '2025-03-17 15:56:48'),
+(114, 210078, 'Admin', 'Admin Kenneth Laurence Bonaagua Registered a User', 'Admin Kenneth Laurence Bonaagua Registered Kenneth Bonaagua as Faculty', '2025-03-17 15:58:34'),
+(115, 210078, 'Admin', 'Admin Kenneth Laurence Bonaagua Deleted a User', 'Admin Kenneth Laurence Bonaagua Deleted Faculty Kenneth Bonaagua', '2025-03-17 16:02:32'),
+(116, 210078, 'Admin', 'Admin Kenneth Laurence Bonaagua Registered a User', 'Admin Kenneth Laurence Bonaagua Registered asdsa sadasd as Faculty', '2025-03-17 16:12:59'),
+(117, 210078, 'Admin', 'Admin Kenneth Laurence Bonaagua Deleted a User', 'Admin Kenneth Laurence Bonaagua Deleted Faculty asdsa sadasd', '2025-03-17 16:13:21'),
+(118, 210078, 'Admin', 'Admin Logged In', 'Admin Kenneth Laurence Bonaagua Logged In as Active', '2025-03-18 01:09:37'),
+(119, 210078, 'Admin', 'Admin Kenneth Laurence Bonaagua Registered a User', 'Admin Kenneth Laurence Bonaagua Registered Kenneth Laurence Bonaagua as Student', '2025-03-18 01:10:20'),
+(120, 210078, 'Student', 'User Logged In', 'Student Kenneth Laurence Bonaagua Logged In as Active', '2025-03-18 01:11:13');
+
 -- --------------------------------------------------------
 
 --
@@ -375,8 +393,7 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `school_id`, `firstname`, `middle_init`, `lastname`, `email`, `password`, `contact_no`, `borrowed_books`, `returned_books`, `damaged_books`, `lost_books`, `user_image`, `usertype`, `address`, `id_type`, `id_image`, `date_added`, `status`, `last_update`) VALUES
-(2, 210069, 'Cayce', NULL, 'Evangelista', 'cevans@student.nbscollege.edu.ph', '$2y$10$ULOcdeaIOY8zf9H7N9pzq.LGg.6VwxSVxK8DInBCqsW1HrmRapwnO', '', 7, 5, 0, 0, '../Images/Profile/default-avatar.jpg', 'Student', '', '', '/upload/default-id.png', '2025-03-06', '1', '2025-03-06'),
-(7, 210078, 'Kenneth Laurence', 'P', 'Bonaagua', 'kbonaagua2021@student.nbscollege.edu.ph', '$2y$10$Ka/sEPhqNrxulR0Num4pGOx3dPKQfih0e9ywtsLzYTzJr0ytI3U6m', NULL, 5, 2, 0, 0, '../Images/Profile/default-avatar.jpg', 'Faculty', NULL, NULL, NULL, '2025-03-16', NULL, NULL);
+(31, 210078, 'Kenneth Laurence', NULL, 'Bonaagua', 'kbonaagua2021@student.nbscollege.edu.ph', '$2y$10$/Mp6RZAsEWMWNzTCNM.MLeF8e1dgWY2elORlDaJ3o57bB.zqrBJuu', '', 3, 0, 0, 0, '../Images/Profile/default-avatar.jpg', 'Student', '', '', '/upload/default-id.png', '2025-03-18', '1', '2025-03-18');
 
 -- --------------------------------------------------------
 
@@ -493,7 +510,7 @@ ALTER TABLE `writers`
 -- AUTO_INCREMENT for table `admins`
 --
 ALTER TABLE `admins`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=55;
 
 --
 -- AUTO_INCREMENT for table `books`
@@ -505,7 +522,7 @@ ALTER TABLE `books`
 -- AUTO_INCREMENT for table `borrowings`
 --
 ALTER TABLE `borrowings`
-  MODIFY `id` int(225) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(225) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `cart`
@@ -553,13 +570,13 @@ ALTER TABLE `reservations`
 -- AUTO_INCREMENT for table `updates`
 --
 ALTER TABLE `updates`
-  MODIFY `id` int(225) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=53;
+  MODIFY `id` int(225) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=121;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
 
 --
 -- AUTO_INCREMENT for table `writers`
