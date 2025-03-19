@@ -32,27 +32,27 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         if ($stmt->execute()) {
           // Use school_id instead of auto-incremented ID
           $user_id = $school_id;
-          
+
           // Construct full name (including middle initial if exists)
           $full_name = $firstname;
           if (!empty($middle_init)) {
             $full_name .= " " . $middle_init . ".";
           }
           $full_name .= " " . $lastname;
-          
+
           // Insert into updates table
           $update_title = "User Registered";
           $update_message = $full_name . " Registered as " . $usertype;
-          
-          $update_sql = "INSERT INTO updates (user_id, role, title, message, `update`) 
+
+          $update_sql = "INSERT INTO updates (user_id, role, title, message, `update`)
                          VALUES (?, ?, ?, ?, NOW())";
-          
+
           if ($update_stmt = $conn->prepare($update_sql)) {
             $update_stmt->bind_param("isss", $user_id, $usertype, $update_title, $update_message);
             $update_stmt->execute();
             $update_stmt->close();
           }
-          
+
           $_SESSION['success'] = "Registration successful! You can now login with your School ID and password.";
           $success = "Registration successful! You will be redirected to the login page.";
         } else {
