@@ -19,7 +19,7 @@ $error = '';
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $school_id = $_POST['school_id'];
     $password = $_POST['password'];
-    
+
     $query = "SELECT * FROM users WHERE school_id = ?";
     if ($stmt = $conn->prepare($query)) {
         $stmt->bind_param("s", $school_id);
@@ -28,7 +28,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         if ($result->num_rows > 0) {
             $user = $result->fetch_assoc();
-            
+
             // First check the account status
             switch ($user['status']) {
                 case 2: // Banned
@@ -47,7 +47,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         if ($log_stmt = $conn->prepare($log_query)) {
                             $login_title = "User Logged In";
                             $full_name = $user['firstname'] . ' ' . $user['lastname'];
-                            
+
                             // Set login status message based on user status
                             if ($user['status'] == 1) {
                                 $login_message = $user['usertype'] . " " . $full_name . " Logged In as Active";
@@ -60,9 +60,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                             } else {
                                 $login_message = $user['usertype'] . " " . $full_name . " Logged In with Unknown Status";
                             }
-                            
+
                             $log_stmt->bind_param("ssss", $user['school_id'], $user['usertype'], $login_title, $login_message);
-                            
+
                             if (!$log_stmt->execute()) {
                                 // Handle logging error if needed
                                 error_log("Failed to log login attempt: " . $log_stmt->error);
@@ -79,7 +79,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         $_SESSION['user_image'] = !empty($user['user_image']) ? $user['user_image'] : 'upload/default-profile.png';
                         $_SESSION['usertype'] = $user['usertype'];
                         $_SESSION['status'] = $user['status'];
-                        
+
                         $error = "success"; // Use error to trigger SweetAlert
                     } else {
                         $error = "Invalid password";
@@ -120,7 +120,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             background: url('../Images/BG/bg-login.JPG') center center no-repeat;
             background-size: cover;
         }
-        
+
         /* Mobile-specific styles */
         @media (max-width: 768px) {
             .card {
@@ -175,7 +175,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                     <form class="user" method="POST" action="">
                                         <div class="form-group">
                                             <input type="text" class="form-control form-control-user"
-                                                placeholder="School ID"
+                                                placeholder="ID Number"
                                                 id="school_id" name="school_id" required>
                                         </div>
                                         <div class="form-group">
