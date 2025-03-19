@@ -434,18 +434,9 @@ include '../admin/inc/header.php';
                                 <!-- Card Header - Changed Title -->
                                 <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
                                     <h6 class="m-0 font-weight-bold text-primary">Borrowings Overview (<?= date('F Y'); ?>)</h6>
-                                    <div class="dropdown no-arrow">
-                                        <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                            <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
-                                        </a>
-                                        <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="dropdownMenuLink">
-                                            <a class="dropdown-item" href="export_borrowings.php?type=previous_month">Export Previous Month (.xlxs)</a>
-                                            <a class="dropdown-item" href="export_borrowings.php?type=current_month">Export Current Month (.xlxs)</a>
-                                            <a class="dropdown-item" href="export_borrowings.php?type=last_year">Export Previous Year (.xlxs)</a>
-                                            <a class="dropdown-item" href="export_borrowings.php?type=current_year">Export Current Year (.xlxs)</a>
-                                            <a class="dropdown-item" href="export_top_borrowers.php">Export Top Borrowers (PDF)</a> <!-- New Option -->
-                                        </div>
-                                    </div>
+                                    <a href="reports.php" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
+                                        <i class="fas fa-chart-bar fa-sm text-white-50"></i> Reports
+                                    </a>
                                 </div>
                                 <!-- Card Body -->
                                 <div class="card-body">
@@ -461,7 +452,9 @@ include '../admin/inc/header.php';
                             <div class="card shadow mb-4">
                                 <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
                                     <h6 class="m-0 font-weight-bold text-primary">Book Status Distribution</h6>
-                                    <a href="export_books_statuses.php" class="btn btn-sm btn-primary">Generate Report</a>
+                            
+                                    <a href="export_books_statuses.php" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm"><i
+                                class="fas fa-download fa-sm text-white-50"></i> Generate Report</a>
                                 </div>
                                 <div class="card-body">
                                     <div class="chart-pie pt-4 pb-2">
