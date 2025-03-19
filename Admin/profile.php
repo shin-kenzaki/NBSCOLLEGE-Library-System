@@ -127,7 +127,7 @@ $result = $stmt->get_result();
 $admin = $result->fetch_assoc();
 
 // Get last login
-$sql = "SELECT * FROM updates WHERE user_id = ? AND role = ? AND (status = 'Active login' OR status = 'Inactive login') ORDER BY `update` DESC LIMIT 1";
+$sql = "SELECT * FROM updates WHERE user_id = ? AND role = ? AND (title = 'Active login' OR title = 'Inactive login') ORDER BY `update` DESC LIMIT 1";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("is", $admin_id, $_SESSION['role']);
 $stmt->execute();

@@ -15,7 +15,7 @@ if (isset($_GET['id'])) {
         $book_id = $_GET['id'];
 
         // Get borrowing record details with status check
-        $sql = "SELECT id, user_id, due_date, status FROM borrowings 
+        $sql = "SELECT id, user_id, due_date, status, book_id FROM borrowings 
                 WHERE book_id = ? AND return_date IS NULL 
                 AND status IN ('Active', 'Overdue')";
         $stmt = $conn->prepare($sql);
@@ -28,12 +28,27 @@ if (isset($_GET['id'])) {
             throw new Exception("Valid borrowing record not found");
         }
 
+        // Get the book's shelf location
+        $bookSql = "SELECT shelf_location FROM books WHERE id = ?";
+        $bookStmt = $conn->prepare($bookSql);
+        $bookStmt->bind_param("i", $borrowing['book_id']);
+        $bookStmt->execute();
+        $bookResult = $bookStmt->get_result();
+        $book = $bookResult->fetch_assoc();
+        $shelf_location = $book['shelf_location'];
+
         // Handle fine calculation only for Overdue status
         if ($borrowing['status'] === 'Overdue') {
             $due_date = new DateTime($borrowing['due_date']);
             $return_date = new DateTime(date('Y-m-d'));
             $days_overdue = $due_date->diff($return_date)->days;
-            $fine_amount = $days_overdue * 5; // 5 pesos per day
+
+            // Determine fine rate based on shelf location
+            if ($shelf_location === 'RES' || $shelf_location === 'REF') {
+                $fine_amount = $days_overdue * 30; // 30 pesos per day for RES and REF
+            } else {
+                $fine_amount = $days_overdue * 5; // 5 pesos per day for others
+            }
 
             // Insert fine record for overdue books
             $sql = "INSERT INTO fines (borrowing_id, type, amount, status, date, payment_date) 

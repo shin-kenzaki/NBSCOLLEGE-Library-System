@@ -88,7 +88,14 @@
                     </div>
                 </div>
             </li>
-            
+
+            <li class="nav-item">
+                <a class="nav-link" href="reports.php">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Reports</span>
+                </a>
+            </li>
+
             <!-- Divider -->
             <hr class="sidebar-divider">
 
