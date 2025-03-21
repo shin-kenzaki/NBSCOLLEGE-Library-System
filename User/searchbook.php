@@ -254,11 +254,21 @@ include '../db.php';
                         data: { title: title },
                         success: function(response) {
                             var res = JSON.parse(response);
-                            Swal.fire('Added!', res.message, 'success').then(() => {
-                                if (res.success) {
-                                    location.reload();
-                                }
-                            });
+                            
+                            // Check if the message is about reaching the maximum limit
+                            if (res.message && res.message.includes('maximum limit of 3 books')) {
+                                Swal.fire({
+                                    title: 'Limit Reached!', 
+                                    text: 'You can only have 3 books borrowed or reserved at once. You may add more books to your cart, but will be limited when checking out.',
+                                    icon: 'warning'
+                                });
+                            } else {
+                                Swal.fire('Added!', res.message, res.success ? 'success' : 'error').then(() => {
+                                    if (res.success) {
+                                        location.reload();
+                                    }
+                                });
+                            }
                         },
                         error: function() {
                             Swal.fire('Failed!', 'Failed to add "' + title + '" to cart.', 'error');
@@ -285,11 +295,21 @@ include '../db.php';
                         data: { title: title },
                         success: function(response) {
                             var res = JSON.parse(response);
-                            Swal.fire('Reserved!', res.message, 'success').then(() => {
-                                if (res.success) {
-                                    location.reload();
-                                }
-                            });
+                            
+                            // Check if the message is about reaching the maximum limit
+                            if (res.message && res.message.includes('maximum limit of 3 books')) {
+                                Swal.fire({
+                                    title: 'Limit Reached!', 
+                                    text: 'You can only have 3 books borrowed or reserved at once. You may add more books to your cart, but will be limited when checking out.',
+                                    icon: 'warning'
+                                });
+                            } else {
+                                Swal.fire('Reserved!', res.message, res.success ? 'success' : 'error').then(() => {
+                                    if (res.success) {
+                                        location.reload();
+                                    }
+                                });
+                            }
                         },
                         error: function() {
                             Swal.fire('Failed!', 'Failed to reserve "' + title + '".', 'error');

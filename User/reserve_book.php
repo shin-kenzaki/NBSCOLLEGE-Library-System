@@ -42,6 +42,25 @@ try {
         throw new Exception("You already have this book borrowed or reserved: " . $title);
     }
 
+    // Check if the user has reached the maximum limit of 3 books
+    $query = "SELECT 
+                (SELECT COUNT(*) FROM borrowings WHERE user_id = ? AND status = 'Active') +
+                (SELECT COUNT(*) FROM reservations WHERE user_id = ? AND status IN ('Pending', 'Ready')) as total_books";
+    $stmt = $conn->prepare($query);
+    if (!$stmt) {
+        throw new Exception("Prepare statement failed: " . $conn->error);
+    }
+    $stmt->bind_param('ii', $user_id, $user_id);
+    if (!$stmt->execute()) {
+        throw new Exception("Execute statement failed: " . $stmt->error);
+    }
+    $result = $stmt->get_result();
+    $total = $result->fetch_assoc();
+    
+    if ($total['total_books'] >= 3) {
+        throw new Exception("You have reached the maximum limit of 3 books that can be borrowed or reserved at once.");
+    }
+
     // Get book ID by title
     $query = "SELECT id FROM books WHERE title = ?";
     $stmt = $conn->prepare($query);

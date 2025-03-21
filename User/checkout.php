@@ -17,6 +17,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $response = ['success' => false, 'message' => 'Failed to checkout selected items.'];
 
     try {
+        // Check if the user has reached the maximum limit of 3 books
+        $query = "SELECT 
+                  (SELECT COUNT(*) FROM borrowings WHERE user_id = ? AND status = 'Active') +
+                  (SELECT COUNT(*) FROM reservations WHERE user_id = ? AND status IN ('Pending', 'Ready')) as total_active_books";
+        $stmt = $conn->prepare($query);
+        if (!$stmt) {
+            throw new Exception("Prepare statement failed: " . $conn->error);
+        }
+        $stmt->bind_param('ii', $user_id, $user_id);
+        if (!$stmt->execute()) {
+            throw new Exception("Execute statement failed: " . $stmt->error);
+        }
+        $result = $stmt->get_result();
+        $total = $result->fetch_assoc();
+        
+        // Check if adding these new books would exceed the limit
+        $new_total = $total['total_active_books'] + count($titles);
+        if ($new_total > 3) {
+            throw new Exception("You can only have 3 books borrowed or reserved at once. You currently have " . 
+                               $total['total_active_books'] . " active books. Please return some books before checking out more.");
+        }
+
         foreach ($titles as $title) {
             // Check if the user already has this book reserved
             $query = "SELECT COUNT(*) as count 

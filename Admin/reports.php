@@ -893,7 +893,8 @@ include 'inc/header.php';
                     <div class="table-responsive" id="usersTableContainer">
                         <!-- Table content will be loaded here -->
                         <div class="text-center my-4">
-                            <p>Use the filter above to search for users or admins</p>
+                            <i class="fas fa-spinner fa-spin fa-2x"></i>
+                            <p class="mt-2">Loading users data...</p>
                         </div>
                     </div>
                     
@@ -1007,7 +1008,8 @@ include 'inc/header.php';
                     <div class="table-responsive" id="booksTableContainer">
                         <!-- Table content will be loaded here -->
                         <div class="text-center my-4">
-                            <p>Use the filter above to search for books</p>
+                            <i class="fas fa-spinner fa-spin fa-2x"></i>
+                            <p class="mt-2">Loading books data...</p>
                         </div>
                     </div>
                     
@@ -1122,7 +1124,8 @@ include 'inc/header.php';
                     <div class="table-responsive" id="finesTableContainer">
                         <!-- Table content will be loaded here -->
                         <div class="text-center my-4">
-                            <p>Use the filter above to search for fines</p>
+                            <i class="fas fa-spinner fa-spin fa-2x"></i>
+                            <p class="mt-2">Loading fines data...</p>
                         </div>
                     </div>
                     
@@ -1372,6 +1375,13 @@ document.addEventListener('DOMContentLoaded', function() {
     createMultiLineChart('usersChart', chartLabels, usersData, 'New Users Registration - Last 7 Days');
     createMultiLineChart('booksChart', chartLabels, booksData, 'Book Additions - Last 7 Days');
     createMultiLineChart('finesChart', chartLabels, finesData, 'Fines Activity - Last 7 Days');
+    
+    // Load all tables on initial page load
+    loadBorrowingsTable();
+    loadReservationsTable();
+    loadUsersTable();
+    loadBooksTable();
+    loadFinesTable();
     
     // Toggle filter form visibility
     document.getElementById('toggleBorrowingsFilter').addEventListener('click', function() {
