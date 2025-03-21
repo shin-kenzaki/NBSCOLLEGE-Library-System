@@ -16,6 +16,43 @@ if ($_SESSION['role'] !== 'Admin' && $_SESSION['role'] !== 'Librarian') {
 
 // Fetch reservations data from the database
 include('../db.php');
+
+// Get filter parameters
+$statusFilter = isset($_GET['status']) ? $_GET['status'] : '';
+$dateStart = isset($_GET['date_start']) ? $_GET['date_start'] : '';
+$dateEnd = isset($_GET['date_end']) ? $_GET['date_end'] : '';
+$userFilter = isset($_GET['user']) ? $_GET['user'] : '';
+$bookFilter = isset($_GET['book']) ? $_GET['book'] : '';
+
+// Build the SQL WHERE clause for filtering
+$whereClause = "WHERE r.recieved_date IS NULL AND r.cancel_date IS NULL";
+$filterParams = [];
+
+if ($statusFilter) {
+    $whereClause .= " AND r.status = '$statusFilter'";
+    $filterParams[] = "status=$statusFilter";
+}
+
+if ($dateStart) {
+    $whereClause .= " AND DATE(r.reserve_date) >= '$dateStart'";
+    $filterParams[] = "date_start=$dateStart";
+}
+
+if ($dateEnd) {
+    $whereClause .= " AND DATE(r.reserve_date) <= '$dateEnd'";
+    $filterParams[] = "date_end=$dateEnd";
+}
+
+if ($userFilter) {
+    $whereClause .= " AND (u.firstname LIKE '%$userFilter%' OR u.lastname LIKE '%$userFilter%' OR u.school_id LIKE '%$userFilter%')";
+    $filterParams[] = "user=" . urlencode($userFilter);
+}
+
+if ($bookFilter) {
+    $whereClause .= " AND (b.title LIKE '%$bookFilter%' OR b.accession LIKE '%$bookFilter%')";
+    $filterParams[] = "book=" . urlencode($bookFilter);
+}
+
 $query = "SELECT 
     r.id AS reservation_id,
     CONCAT(u.firstname, ' ', u.lastname) AS user_name,
@@ -38,9 +75,20 @@ LEFT JOIN admins a1 ON r.ready_by = a1.id
 LEFT JOIN admins a2 ON r.issued_by = a2.id
 LEFT JOIN admins a3 ON (r.cancelled_by = a3.id AND r.cancelled_by_role = 'Admin')
 LEFT JOIN users u2 ON (r.cancelled_by = u2.id AND r.cancelled_by_role = 'User')
-WHERE r.recieved_date IS NULL 
-AND r.cancel_date IS NULL";
+$whereClause";
 $result = $conn->query($query);
+
+// Count total number of records for the filter summary
+$countQuery = "SELECT COUNT(*) as total FROM reservations r 
+              JOIN users u ON r.user_id = u.id
+              JOIN books b ON r.book_id = b.id
+              LEFT JOIN admins a1 ON r.ready_by = a1.id
+              LEFT JOIN admins a2 ON r.issued_by = a2.id
+              LEFT JOIN admins a3 ON (r.cancelled_by = a3.id AND r.cancelled_by_role = 'Admin')
+              LEFT JOIN users u2 ON (r.cancelled_by = u2.id AND r.cancelled_by_role = 'User')
+              $whereClause";
+$countResult = $conn->query($countQuery);
+$totalRecords = $countResult->fetch_assoc()['total'];
 
 // Statistics queries
 // Current status statistics
@@ -105,94 +153,79 @@ $checkboxStyles = "margin: 0; vertical-align: middle;";
             <h1 class="h3 mb-0 text-gray-800">Book Reservations</h1>
         </div>
 
-        <!-- Statistics Dashboard -->
-        <div class="row mb-4">
-            <!-- Pending Reservations -->
-            <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card shadow h-100 py-2" style="<?php echo $cardStyles; ?> border-left-color: <?php echo $warningCardBorder; ?>;" 
-                     onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 0.5rem 1rem rgba(0, 0, 0, 0.15)';" 
-                     onmouseout="this.style.transform=''; this.style.boxShadow='';">
-                    <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1" style="<?php echo $titleStyles; ?>">
-                                    Pending Reservations</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800" style="<?php echo $numberStyles; ?>"><?php echo $pendingCount; ?></div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-clock fa-2x text-gray-300" style="<?php echo $iconStyles; ?>"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        <!-- Reservations Filter Card -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">Filter Reservations</h6>
+                <button class="btn btn-sm btn-primary" id="toggleFilter">
+                    <i class="fas fa-filter"></i> Toggle Filter
+                </button>
             </div>
-
-            <!-- Ready Reservations -->
-            <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card shadow h-100 py-2" style="<?php echo $cardStyles; ?> border-left-color: <?php echo $infoCardBorder; ?>;"
-                     onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 0.5rem 1rem rgba(0, 0, 0, 0.15)';" 
-                     onmouseout="this.style.transform=''; this.style.boxShadow='';">
-                    <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1" style="<?php echo $titleStyles; ?>">
-                                    Ready Reservations</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800" style="<?php echo $numberStyles; ?>"><?php echo $readyCount; ?></div>
+            <div class="card-body <?= empty($filterParams) ? 'd-none' : '' ?>" id="filterForm">
+                <form method="get" action="" class="mb-0" id="reservationsFilterForm">
+                    <div class="row">
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label for="status">Status</label>
+                                <select class="form-control form-control-sm" id="status" name="status">
+                                    <option value="">All Statuses</option>
+                                    <option value="Pending" <?= ($statusFilter == 'Pending') ? 'selected' : '' ?>>Pending</option>
+                                    <option value="Ready" <?= ($statusFilter == 'Ready') ? 'selected' : '' ?>>Ready</option>
+                                </select>
                             </div>
-                            <div class="col-auto">
-                                <i class="fas fa-book fa-2x text-gray-300" style="<?php echo $iconStyles; ?>"></i>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label for="date_start">From Date</label>
+                                <input type="date" class="form-control form-control-sm" id="date_start" 
+                                       name="date_start" value="<?= $dateStart ?>">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label for="date_end">To Date</label>
+                                <input type="date" class="form-control form-control-sm" id="date_end" 
+                                       name="date_end" value="<?= $dateEnd ?>">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label for="user">User</label>
+                                <input type="text" class="form-control form-control-sm" id="user" 
+                                       name="user" placeholder="Name or ID" value="<?= htmlspecialchars($userFilter) ?>">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label for="book">Book</label>
+                                <input type="text" class="form-control form-control-sm" id="book" 
+                                       name="book" placeholder="Title or Accession" value="<?= htmlspecialchars($bookFilter) ?>">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group d-flex justify-content-center" style="margin-top: 2rem">
+                                <button type="submit" id="applyFilters" class="btn btn-primary btn-sm mr-2">
+                                    <i class="fas fa-filter"></i> Apply
+                                </button>
+                                <button type="button" id="resetFilters" class="btn btn-secondary btn-sm">
+                                    <i class="fas fa-undo"></i> Reset
+                                </button>
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- Today's Received -->
-            <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card shadow h-100 py-2" style="<?php echo $cardStyles; ?> border-left-color: <?php echo $successCardBorder; ?>;"
-                     onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 0.5rem 1rem rgba(0, 0, 0, 0.15)';" 
-                     onmouseout="this.style.transform=''; this.style.boxShadow='';">
-                    <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1" style="<?php echo $titleStyles; ?>">
-                                    Received Today</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800" style="<?php echo $numberStyles; ?>"><?php echo $todayReceivedCount; ?></div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-check-circle fa-2x text-gray-300" style="<?php echo $iconStyles; ?>"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Today's Cancelled -->
-            <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card shadow h-100 py-2" style="<?php echo $cardStyles; ?> border-left-color: <?php echo $dangerCardBorder; ?>;"
-                     onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 0.5rem 1rem rgba(0, 0, 0, 0.15)';" 
-                     onmouseout="this.style.transform=''; this.style.boxShadow='';">
-                    <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-danger text-uppercase mb-1" style="<?php echo $titleStyles; ?>">
-                                    Cancelled Today</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800" style="<?php echo $numberStyles; ?>"><?php echo $todayCancelledCount; ?></div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-ban fa-2x text-gray-300" style="<?php echo $iconStyles; ?>"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                </form>
             </div>
         </div>
-        <!-- End Statistics Dashboard -->
 
         <div class="card shadow mb-4">
             <div class="card-header py-3 d-flex justify-content-between align-items-center">
                 <h6 class="m-0 font-weight-bold text-primary">Book Reservations List</h6>
                 <div>
+                    <!-- Results summary - Moved from card-body to card-header -->
+                    <span id="filterSummary" class="mr-3 <?= empty($filterParams) ? 'd-none' : '' ?>">
+                        <span class="text-primary font-weight-bold">Filter applied:</span> 
+                        Showing <span id="totalResults"><?= $totalRecords ?></span> result<span id="pluralSuffix"><?= $totalRecords != 1 ? 's' : '' ?></span>
+                    </span>
                     <button id="bulkReadyBtn" class="btn btn-primary btn-sm mr-2" disabled>
                         Mark Ready (<span id="selectedCountReady">0</span>)
                     </button>
@@ -222,6 +255,8 @@ $checkboxStyles = "margin: 0; vertical-align: middle;";
             </div>
             <?php endif; ?>
             <div class="card-body">
+                <!-- Remove the old filter summary div that was here -->
+                
                 <div class="table-responsive" style="<?php echo $tableResponsiveStyles; ?>">
                     <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                         <thead>
@@ -273,6 +308,91 @@ $checkboxStyles = "margin: 0; vertical-align: middle;";
                 </div>
             </div>
         </div>
+
+        <!-- Statistics Dashboard -->
+        <h4 class="mb-3 text-gray-800">Statistics Overview</h4>
+        <div class="row mb-4">
+            <!-- Pending Reservations -->
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card shadow h-100 py-2" style="<?php echo $cardStyles; ?> border-left-color: <?php echo $warningCardBorder; ?>;" 
+                     onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 0.5rem 1rem rgba(0, 0, 0, 0.15)';" 
+                     onmouseout="this.style.transform=''; this.style.boxShadow='';">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1" style="<?php echo $titleStyles; ?>">
+                                    Pending Reservations</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800" style="<?php echo $numberStyles; ?>"><?php echo $pendingCount; ?></div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-clock fa-2x text-gray-300" style="<?php echo $iconStyles; ?>"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ready Reservations -->
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card shadow h-100 py-2" style="<?php echo $cardStyles; ?> border-left-color: <?php echo $infoCardBorder; ?>;"
+                     onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 0.5rem 1rem rgba(0, 0, 0, 0.15)';" 
+                     onmouseout="this.style.transform=''; this.style.boxShadow='';">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1" style="<?php echo $titleStyles; ?>">
+                                    Ready Reservations</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800" style="<?php echo $numberStyles; ?>"><?php echo $readyCount; ?></div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-book fa-2x text-gray-300" style="<?php echo $iconStyles; ?>"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Overall Received -->
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card shadow h-100 py-2" style="<?php echo $cardStyles; ?> border-left-color: <?php echo $successCardBorder; ?>;"
+                     onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 0.5rem 1rem rgba(0, 0, 0, 0.15)';" 
+                     onmouseout="this.style.transform=''; this.style.boxShadow='';">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1" style="<?php echo $titleStyles; ?>">
+                                    Overall Received</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800" style="<?php echo $numberStyles; ?>"><?php echo $totalReceivedCount; ?></div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-check-circle fa-2x text-gray-300" style="<?php echo $iconStyles; ?>"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Overall Cancelled -->
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card shadow h-100 py-2" style="<?php echo $cardStyles; ?> border-left-color: <?php echo $dangerCardBorder; ?>;"
+                     onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 0.5rem 1rem rgba(0, 0, 0, 0.15)';" 
+                     onmouseout="this.style.transform=''; this.style.boxShadow='';">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-danger text-uppercase mb-1" style="<?php echo $titleStyles; ?>">
+                                    Overall Cancelled</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800" style="<?php echo $numberStyles; ?>"><?php echo $totalCancelledCount; ?></div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-ban fa-2x text-gray-300" style="<?php echo $iconStyles; ?>"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- End Statistics Dashboard -->
     </div>
 </div>
 <!-- End of Main Content -->
@@ -300,6 +420,157 @@ $checkboxStyles = "margin: 0; vertical-align: middle;";
 
 <script>
     $(document).ready(function() {
+        // Toggle filter form visibility
+        $('#toggleFilter').on('click', function() {
+            $('#filterForm').toggleClass('d-none');
+        });
+
+        // Reset filters
+        $('#resetFilters').on('click', function(e) {
+            // Prevent default form submission
+            e.preventDefault();
+            
+            // Store the current visibility state of the filter form
+            const isFilterVisible = !$('#filterForm').hasClass('d-none');
+            
+            // Clear all filter values
+            $('#status').val('');
+            $('#date_start').val('');
+            $('#date_end').val('');
+            $('#user').val('');
+            $('#book').val('');
+            
+            // Update the filter summary to indicate no filters
+            $('#filterSummary').addClass('d-none');
+            
+            // Reload the current page with no filters but don't hide the filter form
+            $.ajax({
+                url: 'book_reservations.php',
+                type: 'GET',
+                success: function(data) {
+                    // Extract the table content from the response
+                    let tableHtml = $(data).find('#dataTable').parent().html();
+                    // Update just the table content, not the whole page
+                    $('.table-responsive').html(tableHtml);
+                    
+                    // Reinitialize DataTable
+                    initializeDataTable();
+                    
+                    // Restore the filter form visibility state
+                    if (isFilterVisible) {
+                        $('#filterForm').removeClass('d-none');
+                    }
+                }
+            });
+        });
+        
+        // Handle form submission (Apply filters)
+        $('#reservationsFilterForm').on('submit', function(e) {
+            e.preventDefault();
+            
+            // Store the current visibility state of the filter form
+            const isFilterVisible = !$('#filterForm').hasClass('d-none');
+            
+            // Submit the form using AJAX
+            $.ajax({
+                url: 'book_reservations.php',
+                type: 'GET',
+                data: $(this).serialize(),
+                success: function(data) {
+                    // Extract the relevant parts from the response
+                    let tableHtml = $(data).find('#dataTable').parent().html();
+                    let filterSummaryHtml = $(data).find('#filterSummary').html();
+                    
+                    // Update parts of the page
+                    $('.table-responsive').html(tableHtml);
+                    $('#filterSummary').html(filterSummaryHtml);
+                    
+                    // Show or hide the filter summary based on whether filters are applied
+                    if ($('#status').val() || $('#date_start').val() || $('#date_end').val() || 
+                        $('#user').val() || $('#book').val()) {
+                        $('#filterSummary').removeClass('d-none');
+                    } else {
+                        $('#filterSummary').addClass('d-none');
+                    }
+                    
+                    // Reinitialize DataTable
+                    initializeDataTable();
+                    
+                    // Restore the filter form visibility state
+                    if (isFilterVisible) {
+                        $('#filterForm').removeClass('d-none');
+                    }
+                }
+            });
+        });
+        
+        // Function to initialize DataTable with consistent settings
+        function initializeDataTable() {
+            if ($.fn.DataTable.isDataTable('#dataTable')) {
+                $('#dataTable').DataTable().destroy();
+            }
+            
+            const table = $('#dataTable').DataTable({
+                "dom": "<'row mb-3'<'col-sm-6'l><'col-sm-6 d-flex justify-content-end'f>>" +
+                       "<'row'<'col-sm-12'tr>>" +
+                       "<'row mt-3'<'col-sm-5'i><'col-sm-7 d-flex justify-content-end'p>>",
+                "pagingType": "simple_numbers",
+                "pageLength": 10,
+                "lengthMenu": [[10, 25, 50, 100, 500], [10, 25, 50, 100, 500]],
+                "responsive": false,
+                "scrollY": "60vh",
+                "scrollCollapse": true,
+                "fixedHeader": true,
+                "ordering": true,
+                "order": [[1, 'asc']], // Default sort by second column (user)
+                "columnDefs": [
+                    { "orderable": false, "targets": 0, "searchable": false } // Disable sorting for checkbox column completely
+                ],
+                "language": {
+                    "search": "_INPUT_",
+                    "searchPlaceholder": "Search..."
+                },
+                "initComplete": function() {
+                    $('#dataTable_filter input').addClass('form-control form-control-sm');
+                    $('#dataTable_filter').addClass('d-flex align-items-center');
+                    $('#dataTable_filter label').append('<i class="fas fa-search ml-2"></i>');
+                    $('.dataTables_paginate .paginate_button').addClass('btn btn-sm btn-outline-primary mx-1');
+                }
+            });
+            
+            // Re-bind checkbox events
+            $('#selectAll').change(function() {
+                const isChecked = $(this).prop('checked');
+                $('.reservation-checkbox').each(function() {
+                    const status = $(this).closest('tr').data('status');
+                    // Only allow selection of Pending and Ready items
+                    if (status === 'Pending' || status === 'Ready') {
+                        $(this).prop('checked', isChecked);
+                    } else {
+                        $(this).prop('checked', false);
+                        $(this).prop('disabled', true);
+                    }
+                });
+                updateBulkButtons();
+            });
+            
+            $(document).on('change', '.reservation-checkbox', function() {
+                const totalCheckable = $('.reservation-checkbox').filter(function() {
+                    const status = $(this).closest('tr').find('td:eq(5) span').text().trim();
+                    return status === 'Pending' || status === 'Ready';
+                }).length;
+                
+                const totalChecked = $('.reservation-checkbox:checked').length;
+                
+                $('#selectAll').prop({
+                    'checked': totalChecked > 0 && totalChecked === totalCheckable,
+                    'indeterminate': totalChecked > 0 && totalChecked < totalCheckable
+                });
+                
+                updateBulkButtons();
+            });
+        }
+
         // Add inline style for context menu hover
         $('.context-menu .list-group-item').hover(
             function() { $(this).css('background-color', '#f8f9fa'); },

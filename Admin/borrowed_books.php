@@ -21,6 +21,14 @@ require 'mailer.php';
 // Update overdue status
 updateOverdueStatus($conn);
 
+// Get filter parameters
+$statusFilter = isset($_GET['status']) ? $_GET['status'] : '';
+$dateStart = isset($_GET['date_start']) ? $_GET['date_start'] : '';
+$dateEnd = isset($_GET['date_end']) ? $_GET['date_end'] : '';
+$userFilter = isset($_GET['user']) ? $_GET['user'] : '';
+$bookFilter = isset($_GET['book']) ? $_GET['book'] : '';
+$shelfFilter = isset($_GET['shelf']) ? $_GET['shelf'] : '';
+
 // Get total unpaid fines
 $finesQuery = "SELECT SUM(amount) as total_unpaid FROM fines WHERE status = 'Unpaid'";
 $finesResult = $conn->query($finesQuery);
@@ -53,6 +61,40 @@ $overdueItemsResult = $conn->query($overdueItemsQuery);
 $overdueItemsRow = $overdueItemsResult->fetch_assoc();
 $overdueItems = $overdueItemsRow['total'];
 
+// Build the SQL WHERE clause for filtering
+$whereClause = "WHERE b.status IN ('Active', 'Overdue') AND b.return_date IS NULL";
+$filterParams = [];
+
+if ($statusFilter) {
+    $whereClause .= " AND b.status = '$statusFilter'";
+    $filterParams[] = "status=$statusFilter";
+}
+
+if ($dateStart) {
+    $whereClause .= " AND DATE(b.issue_date) >= '$dateStart'";
+    $filterParams[] = "date_start=$dateStart";
+}
+
+if ($dateEnd) {
+    $whereClause .= " AND DATE(b.issue_date) <= '$dateEnd'";
+    $filterParams[] = "date_end=$dateEnd";
+}
+
+if ($userFilter) {
+    $whereClause .= " AND (u.firstname LIKE '%$userFilter%' OR u.lastname LIKE '%$userFilter%' OR u.school_id LIKE '%$userFilter%')";
+    $filterParams[] = "user=" . urlencode($userFilter);
+}
+
+if ($bookFilter) {
+    $whereClause .= " AND (bk.title LIKE '%$bookFilter%' OR bk.accession LIKE '%$bookFilter%')";
+    $filterParams[] = "book=" . urlencode($bookFilter);
+}
+
+if ($shelfFilter) {
+    $whereClause .= " AND bk.shelf_location = '$shelfFilter'";
+    $filterParams[] = "shelf=$shelfFilter";
+}
+
 // Fetch borrowed books data for the table
 $query = "SELECT b.id as borrow_id, b.book_id, b.user_id, b.issue_date, b.due_date, b.status,
           bk.title, bk.accession, bk.shelf_location,
@@ -63,10 +105,25 @@ $query = "SELECT b.id as borrow_id, b.book_id, b.user_id, b.issue_date, b.due_da
           JOIN books bk ON b.book_id = bk.id
           JOIN users u ON b.user_id = u.id
           LEFT JOIN admins a ON b.issued_by = a.id
-          WHERE b.status IN ('Active', 'Overdue')
-          AND b.return_date IS NULL";
+          $whereClause";
 $result = $conn->query($query);
 
+// Count total number of records for the filter summary
+$countQuery = "SELECT COUNT(*) as total FROM borrowings b 
+              JOIN books bk ON b.book_id = bk.id
+              JOIN users u ON b.user_id = u.id
+              LEFT JOIN admins a ON b.issued_by = a.id
+              $whereClause";
+$countResult = $conn->query($countQuery);
+$totalRecords = $countResult->fetch_assoc()['total'];
+
+// Get shelf locations for dropdown filter
+$shelfQuery = "SELECT DISTINCT shelf_location FROM books ORDER BY shelf_location";
+$shelfResult = $conn->query($shelfQuery);
+$shelfLocations = [];
+while($row = $shelfResult->fetch_assoc()) {
+    $shelfLocations[] = $row['shelf_location'];
+}
 
 // NOTIFICATION LOGIC
 
@@ -214,7 +271,165 @@ while ($row = $emailResult->fetch_assoc()) {
         </form>
     </div>
 
-    <!-- Statistics Cards -->
+    <!-- Borrowed Books Filter Card -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">Filter Borrowed Books</h6>
+            <button class="btn btn-sm btn-primary" id="toggleFilter">
+                <i class="fas fa-filter"></i> Toggle Filter
+            </button>
+        </div>
+        <div class="card-body <?= empty($filterParams) ? 'd-none' : '' ?>" id="filterForm">
+            <form method="get" action="" class="mb-0" id="borrowingsFilterForm">
+                <div class="row">
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label for="status">Status</label>
+                            <select class="form-control form-control-sm" id="status" name="status">
+                                <option value="">All Statuses</option>
+                                <option value="Active" <?= ($statusFilter == 'Active') ? 'selected' : '' ?>>Active</option>
+                                <option value="Overdue" <?= ($statusFilter == 'Overdue') ? 'selected' : '' ?>>Overdue</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label for="date_start">From Date</label>
+                            <input type="date" class="form-control form-control-sm" id="date_start" 
+                                   name="date_start" value="<?= $dateStart ?>">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label for="date_end">To Date</label>
+                            <input type="date" class="form-control form-control-sm" id="date_end" 
+                                   name="date_end" value="<?= $dateEnd ?>">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label for="user">Borrower</label>
+                            <input type="text" class="form-control form-control-sm" id="user" 
+                                   name="user" placeholder="Name or ID" value="<?= htmlspecialchars($userFilter) ?>">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label for="book">Book</label>
+                            <input type="text" class="form-control form-control-sm" id="book" 
+                                   name="book" placeholder="Title or Accession" value="<?= htmlspecialchars($bookFilter) ?>">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label for="shelf">Shelf Location</label>
+                            <select class="form-control form-control-sm" id="shelf" name="shelf">
+                                <option value="">All Locations</option>
+                                <?php foreach($shelfLocations as $shelf): ?>
+                                <option value="<?= $shelf ?>" <?= ($shelfFilter == $shelf) ? 'selected' : '' ?>><?= $shelf ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-12 d-flex justify-content-end">
+                        <button type="submit" id="applyFilters" class="btn btn-primary btn-sm mr-2">
+                            <i class="fas fa-filter"></i> Apply Filters
+                        </button>
+                        <button type="button" id="resetFilters" class="btn btn-secondary btn-sm">
+                            <i class="fas fa-undo"></i> Reset
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Borrowed Books Table Card - Moved above statistics cards -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">Borrowed Books List</h6>
+
+            <div>
+                <!-- Results summary -->
+                <span id="filterSummary" class="mr-3 <?= empty($filterParams) ? 'd-none' : '' ?>">
+                    <span class="text-primary font-weight-bold">Filter applied:</span> 
+                    Showing <span id="totalResults"><?= $totalRecords ?></span> result<span id="pluralSuffix"><?= $totalRecords != 1 ? 's' : '' ?></span>
+                </span>
+                <button id="returnSelectedBtn" class="btn btn-success btn-sm mr-2" disabled>
+                    Return Selected (<span id="selectedCount">0</span>)
+                </button>
+                <button id="updateDueDateBtn" class="btn btn-primary btn-sm">
+                    Update Due Date (<span id="selectedCountDueDate">0</span>)
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <style>
+                .table-responsive {
+                    overflow-x: auto;
+                }
+                .table td, .table th {
+                    white-space: nowrap;
+                }
+            </style>
+            <div class="table-responsive">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th style="width: 30px;">
+                                <input type="checkbox" id="selectAll" title="Select/Unselect All">
+                            </th>
+                            <th class="text-center">Accession No.</th>
+                            <th class="text-center">Book Title</th>
+                            <th class="text-center">Borrower's Name</th>
+                            <th class="text-center">ID Number</th>
+                            <th class="text-center">Borrow Date</th>
+                            <th class="text-center">Due Date</th>
+                            <th class="text-center">Shelf Location</th>
+                            <th class="text-center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php while ($row = $result->fetch_assoc()): ?>
+                            <tr data-book-id="<?php echo $row['book_id']; ?>"
+                                data-book-title="<?php echo htmlspecialchars($row['title']); ?>"
+                                data-borrower="<?php echo htmlspecialchars($row['borrower']); ?>">
+                                <td class="text-center">
+                                    <input type="checkbox" class="borrow-checkbox"
+                                        data-borrow-id="<?php echo $row['borrow_id']; ?>"
+                                        data-current-due-date="<?php echo $row['due_date']; ?>">
+                                </td>
+                                <td class="text-center"><?php echo $row['accession']; ?></td>
+                                <td class="text-left"><?php echo htmlspecialchars($row['title']); ?></td>
+                                <td class="text-left"><?php echo htmlspecialchars($row['borrower']); ?></td>
+                                <td class="text-center"><?php echo htmlspecialchars($row['school_id']); ?></td>
+                                <td class="text-center"><?php echo date('M d, Y', strtotime($row['issue_date'])); ?></td>
+                                <td class="text-center"><?php echo date('M d, Y', strtotime($row['due_date'])); ?></td>
+                                <td class="text-center"><?php echo htmlspecialchars($row['shelf_location']); ?></td>
+                                <td class="text-center">
+                                    <?php
+                                    $status = htmlspecialchars($row['status']);
+                                    $statusClass = '';
+                                    if ($status === 'Active') {
+                                        $statusClass = 'badge badge-success';
+                                    } elseif ($status === 'Overdue') {
+                                        $statusClass = 'badge badge-danger';
+                                    }
+                                    echo "<span class='$statusClass'>$status</span>";
+                                    ?>
+                                </td>
+                            </tr>
+                        <?php endwhile; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards - Moved below the table card -->
+    <h4 class="mb-3 text-gray-800">Statistics Overview</h4>
     <div class="row mb-4">
         <!-- Total Borrowed Books -->
         <div class="col-xl-3 col-md-6 mb-4">
@@ -288,84 +503,6 @@ while ($row = $emailResult->fetch_assoc()) {
             </div>
         </div>
     </div>
-
-
-        <div class="card shadow mb-4">
-            <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                <h6 class="m-0 font-weight-bold text-primary">Borrowed Books List</h6>
-
-                <div>
-                    <button id="returnSelectedBtn" class="btn btn-success btn-sm mr-2" disabled>
-                        Return Selected (<span id="selectedCount">0</span>)
-                    </button>
-                    <button id="updateDueDateBtn" class="btn btn-primary btn-sm">
-                        Update Due Date (<span id="selectedCountDueDate">0</span>)
-                    </button>
-                </div>
-            </div>
-            <div class="card-body">
-                <style>
-                    .table-responsive {
-                        overflow-x: auto;
-                    }
-                    .table td, .table th {
-                        white-space: nowrap;
-                    }
-                </style>
-                <div class="table-responsive">
-                    <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
-                        <thead>
-                            <tr>
-                                <th style="width: 30px;">
-                                    <input type="checkbox" id="selectAll" title="Select/Unselect All">
-                                </th>
-                                <th class="text-center">Accession No.</th>
-                                <th class="text-center">Book Title</th>
-                                <th class="text-center">Borrower's Name</th>
-                                <th class="text-center">ID Number</th>
-                                <th class="text-center">Borrow Date</th>
-                                <th class="text-center">Due Date</th>
-                                <th class="text-center">Shelf Location</th>
-                                <th class="text-center">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php while ($row = $result->fetch_assoc()): ?>
-                                <tr data-book-id="<?php echo $row['book_id']; ?>"
-                                    data-book-title="<?php echo htmlspecialchars($row['title']); ?>"
-                                    data-borrower="<?php echo htmlspecialchars($row['borrower']); ?>">
-                                    <td class="text-center">
-                                        <input type="checkbox" class="borrow-checkbox"
-                                            data-borrow-id="<?php echo $row['borrow_id']; ?>"
-                                            data-current-due-date="<?php echo $row['due_date']; ?>">
-                                    </td>
-                                    <td class="text-center"><?php echo $row['accession']; ?></td>
-                                    <td class="text-left"><?php echo htmlspecialchars($row['title']); ?></td>
-                                    <td class="text-left"><?php echo htmlspecialchars($row['borrower']); ?></td>
-                                    <td class="text-center"><?php echo htmlspecialchars($row['school_id']); ?></td>
-                                    <td class="text-center"><?php echo date('M d, Y', strtotime($row['issue_date'])); ?></td>
-                                    <td class="text-center"><?php echo date('M d, Y', strtotime($row['due_date'])); ?></td>
-                                    <td class="text-center"><?php echo htmlspecialchars($row['shelf_location']); ?></td>
-                                    <td class="text-center">
-                                        <?php
-                                        $status = htmlspecialchars($row['status']);
-                                        $statusClass = '';
-                                        if ($status === 'Active') {
-                                            $statusClass = 'badge badge-success';
-                                        } elseif ($status === 'Overdue') {
-                                            $statusClass = 'badge badge-danger';
-                                        }
-                                        echo "<span class='$statusClass'>$status</span>";
-                                        ?>
-                                    </td>
-                                </tr>
-                            <?php endwhile; ?>
-                        </tbody>
-
-                    </table>
-                </div>
-            </div>
-        </div>
     </div>
 </div>
 
@@ -416,6 +553,114 @@ while ($row = $emailResult->fetch_assoc()) {
 <script src="inc/assets/DataTables/datatables.min.js"></script>
 <script>
     $(document).ready(function() {
+        // Toggle filter form visibility
+        $('#toggleFilter').on('click', function() {
+            $('#filterForm').toggleClass('d-none');
+        });
+
+        // Reset filters
+        $('#resetFilters').on('click', function(e) {
+            // Prevent default form submission
+            e.preventDefault();
+            
+            // Store the current visibility state of the filter form
+            const isFilterVisible = !$('#filterForm').hasClass('d-none');
+            
+            // Clear all filter values
+            $('#status').val('');
+            $('#date_start').val('');
+            $('#date_end').val('');
+            $('#user').val('');
+            $('#book').val('');
+            $('#shelf').val('');
+            
+            // Update the filter summary to indicate no filters
+            $('#filterSummary').addClass('d-none');
+            
+            // Use AJAX to reload content instead of full page reload
+            $.ajax({
+                url: 'borrowed_books.php',
+                type: 'GET',
+                success: function(data) {
+                    // Parse the response HTML
+                    const $data = $(data);
+                    
+                    // Extract the table content
+                    let tableHtml = $data.find('#dataTable').parent().html();
+                    // Update just the table content
+                    $('.table-responsive').html(tableHtml);
+                    
+                    // Update statistics cards
+                    let statsHtml = $data.find('.row.mb-4').html();
+                    $('.row.mb-4').html(statsHtml);
+                    
+                    // Reinitialize DataTable
+                    if ($.fn.DataTable.isDataTable('#dataTable')) {
+                        $('#dataTable').DataTable().destroy();
+                    }
+                    
+                    initializeDataTable();
+                    
+                    // Restore the filter form visibility state
+                    if (isFilterVisible) {
+                        $('#filterForm').removeClass('d-none');
+                    }
+                }
+            });
+        });
+
+        // Handle form submission (Apply filters)
+        $('#borrowingsFilterForm').on('submit', function(e) {
+            e.preventDefault();
+            
+            // Store the current visibility state of the filter form
+            const isFilterVisible = !$('#filterForm').hasClass('d-none');
+            
+            // Submit the form using AJAX
+            $.ajax({
+                url: 'borrowed_books.php',
+                type: 'GET',
+                data: $(this).serialize(),
+                success: function(data) {
+                    // Parse the response HTML
+                    const $data = $(data);
+                    
+                    // Extract the table content
+                    let tableHtml = $data.find('#dataTable').parent().html();
+                    // Update just the table content
+                    $('.table-responsive').html(tableHtml);
+                    
+                    // Update filter summary
+                    let filterSummaryHtml = $data.find('#filterSummary').html();
+                    $('#filterSummary').html(filterSummaryHtml);
+                    
+                    // Update statistics cards
+                    let statsHtml = $data.find('.row.mb-4').html();
+                    $('.row.mb-4').html(statsHtml);
+                    
+                    // Show or hide the filter summary based on whether filters are applied
+                    if ($('#status').val() || $('#date_start').val() || $('#date_end').val() || 
+                        $('#user').val() || $('#book').val() || $('#shelf').val()) {
+                        $('#filterSummary').removeClass('d-none');
+                    } else {
+                        $('#filterSummary').addClass('d-none');
+                    }
+                    
+                    // Reinitialize DataTable
+                    if ($.fn.DataTable.isDataTable('#dataTable')) {
+                        $('#dataTable').DataTable().destroy();
+                    }
+                    
+                    initializeDataTable();
+                    
+                    // Restore the filter form visibility state
+                    if (isFilterVisible) {
+                        $('#filterForm').removeClass('d-none');
+                    }
+                }
+            });
+        });
+
         // Store references
         const contextMenu = $('.context-menu');
         let $selectedRow = null;
@@ -822,6 +1067,91 @@ while ($row = $emailResult->fetch_assoc()) {
             });
 
             updateSelectedCount();
+        });
+
+        // Function to initialize DataTable with consistent settings
+        function initializeDataTable() {
+            if ($.fn.DataTable.isDataTable('#dataTable')) {
+                $('#dataTable').DataTable().destroy();
+            }
+            
+            const table = $('#dataTable').DataTable({
+                "dom": "<'row mb-3'<'col-sm-6'l><'col-sm-6 d-flex justify-content-end'f>>" +
+                       "<'row'<'col-sm-12'tr>>" +
+                       "<'row mt-3'<'col-sm-5'i><'col-sm-7 d-flex justify-content-end'p>>",
+                "pagingType": "simple_numbers",
+                "pageLength": 10,
+                "lengthMenu": [[10, 25, 50, 100, 500], [10, 25, 50, 100, 500]],
+                "responsive": false,
+                "scrollY": "60vh",
+                "scrollCollapse": true,
+                "fixedHeader": true,
+                "order": [[1, 'asc']], // Start with sorting on the second column
+                "columnDefs": [
+                    // Disable sorting for checkbox column and set minimal width
+                    { "orderable": false, "targets": 0, "searchable": false, "width": "30px" },
+                    // Column widths as in original code
+                    { "targets": 1, "width": "10%" },
+                    { "targets": 2, "width": "40%" },
+                    { "targets": 3, "width": "20%" },
+                    { "targets": 5, "width": "10%" },
+                    { "targets": 6, "width": "10%" },
+                    { "targets": 8, "width": "10%" }
+                ],
+                "language": {
+                    "search": "_INPUT_",
+                    "searchPlaceholder": "Search..."
+                },
+                "initComplete": function() {
+                    $('#dataTable_filter input').addClass('form-control form-control-sm');
+                    $('#dataTable_filter').addClass('d-flex align-items-center');
+                    $('#dataTable_filter label').append('<i class="fas fa-search ml-2"></i>');
+                    $('#dataTable_paginate .paginate_button').addClass('btn btn-sm btn-outline-primary mx-1');
+                    
+                    // Force re-apply the CSS for checkbox column icons
+                    setTimeout(function() {
+                        $('#dataTable thead th:first-child').removeClass('sorting').addClass('sorting_disabled');
+                    }, 0);
+                }
+            });
+            
+            // Re-bind checkbox events
+            $('#selectAll').change(function() {
+                const isChecked = $(this).prop('checked');
+                $('.borrow-checkbox').each(function() {
+                    const $row = $(this).closest('tr');
+                    const status = $row.find('td:eq(8) span').text().trim();
+                    // Only select checkboxes for Active or Overdue items
+                    if (status === 'Active' || status === 'Overdue') {
+                        $(this).prop('checked', isChecked);
+                    }
+                });
+                updateSelectedCount();
+            });
+            
+            $(document).on('change', '.borrow-checkbox', function() {
+                const totalEligible = $('.borrow-checkbox').filter(function() {
+                    const status = $(this).closest('tr').find('td:eq(8) span').text().trim();
+                    return status === 'Active' || status === 'Overdue';
+                }).length;
+                
+                const totalChecked = $('.borrow-checkbox:checked').length;
+                
+                $('#selectAll').prop({
+                    'checked': totalChecked > 0 && totalChecked === totalEligible,
+                    'indeterminate': totalChecked > 0 && totalChecked < totalEligible
+                });
+                
+                updateSelectedCount();
+            });
+        }
+
+        // Initialize DataTable on page load
+        initializeDataTable();
+
+        // Add window resize handler
+        $(window).on('resize', function() {
+            table.columns.adjust().draw();
         });
     });
 </script>

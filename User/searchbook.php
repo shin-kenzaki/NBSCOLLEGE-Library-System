@@ -52,9 +52,6 @@ include '../db.php';
             margin-right: 5px;
         }
         .bulk-actions {
-            display: none;
-        }
-        .bulk-actions.visible {
             display: inline-flex;
             align-items: center;
         }
@@ -367,12 +364,11 @@ include '../db.php';
         function updateSelectedCount() {
             const selectedCount = $('.book-select:checked').length;
             $('#selectedCount, #selectedCount2').text(selectedCount);
-            $('.bulk-actions').toggleClass('visible', selectedCount > 0);
         }
 
         // Bulk add to cart - enhanced version
         $('#bulk-cart').on('click', function() {
-            const titles = [];
+            const titles = [];        // Bulk add to cart - enhanced version
             $('.book-select:checked').each(function() {
                 titles.push($(this).data('title'));
             });
