@@ -42,6 +42,56 @@ try {
         throw new Exception("You already have this book borrowed or reserved: " . $title);
     }
 
+    // Get user type
+    $user_query = "SELECT usertype FROM users WHERE id = ?";
+    $stmt = $conn->prepare($user_query);
+    if (!$stmt) {
+        throw new Exception("Prepare statement failed: " . $conn->error);
+    }
+    $stmt->bind_param('i', $user_id);
+    $stmt->execute();
+    $user_result = $stmt->get_result();
+    $user = $user_result->fetch_assoc();
+    
+    // If user is a student, check for overdue books
+    if ($user && $user['usertype'] == 'Student') {
+        // Check if the student has any overdue books
+        $overdue_query = "SELECT COUNT(*) as overdue_count FROM borrowings 
+                          WHERE user_id = ? AND status = 'Overdue'";
+        $stmt = $conn->prepare($overdue_query);
+        if (!$stmt) {
+            throw new Exception("Prepare statement failed: " . $conn->error);
+        }
+        $stmt->bind_param('i', $user_id);
+        $stmt->execute();
+        $overdue_result = $stmt->get_result();
+        $overdue = $overdue_result->fetch_assoc();
+        
+        if ($overdue['overdue_count'] > 0) {
+            throw new Exception("You have " . $overdue['overdue_count'] . " overdue book(s). " .
+                                "All overdue books must be returned before reserving additional books.");
+        }
+    }
+
+    // Check if the user has reached the maximum limit of 3 books
+    $query = "SELECT 
+                (SELECT COUNT(*) FROM borrowings WHERE user_id = ? AND status = 'Active') +
+                (SELECT COUNT(*) FROM reservations WHERE user_id = ? AND status IN ('Pending', 'Ready')) as total_books";
+    $stmt = $conn->prepare($query);
+    if (!$stmt) {
+        throw new Exception("Prepare statement failed: " . $conn->error);
+    }
+    $stmt->bind_param('ii', $user_id, $user_id);
+    if (!$stmt->execute()) {
+        throw new Exception("Execute statement failed: " . $stmt->error);
+    }
+    $result = $stmt->get_result();
+    $total = $result->fetch_assoc();
+    
+    if ($total['total_books'] >= 3) {
+        throw new Exception("You have reached the maximum limit of 3 books that can be borrowed or reserved at once.");
+    }
+
     // Get book ID by title
     $query = "SELECT id FROM books WHERE title = ?";
     $stmt = $conn->prepare($query);

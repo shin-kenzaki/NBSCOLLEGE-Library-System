@@ -51,6 +51,17 @@ include '../db.php';
         .action-buttons button {
             margin-right: 5px;
         }
+        .bulk-actions {
+            display: none;
+        }
+        .bulk-actions.visible {
+            display: inline-flex;
+            align-items: center;
+        }
+        .table-responsive table td,
+        .table-responsive table th {
+            vertical-align: middle !important;
+        }
     </style>
     <!-- Include SweetAlert CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
@@ -64,15 +75,24 @@ include '../db.php';
             <div class="card shadow mb-4">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
                     <h6 class="m-0 font-weight-bold text-primary">Search Book</h6>
+                    <div class="bulk-actions">
+                        <button class="btn btn-primary btn-sm mr-2" id="bulk-cart">
+                            Add to Cart (<span id="selectedCount">0</span>)
+                        </button>
+                        <button class="btn btn-success btn-sm" id="bulk-reserve">
+                            Reserve Selected (<span id="selectedCount2">0</span>)
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body">
                     <!-- Books Table -->
                     <div class="table-responsive">
                         <table class="table" id="dataTable">
-                            <thead style="display: none;">
+                            <thead>
                                 <tr>
-                                    <th>Book Details</th>
-                                    <th>Image</th>
+                                    <th style="width: 5%">Select</th>
+                                    <th style="width: 75%">Book Details</th>
+                                    <th style="width: 20%">Image</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -161,7 +181,10 @@ include '../db.php';
                                     $byLine = 'By ' . implode('; ', $contributors);
 
                                     echo "<tr class='clickable-row' data-href='view_book.php?title=" . urlencode($row['title']) . "'>
-                                        <td style='width: 80%'>
+                                        <td style='width: 5%; text-align: center;'>
+                                            <input type='checkbox' class='book-select' data-title='" . htmlspecialchars($row['title']) . "'>
+                                        </td>
+                                        <td style='width: 75%'>
                                             <div class='book-entry'>
                                                 <p class='title-line'>" . $firstLine . "</p>
                                                 <p class='contributors-line'>" . $byLine . "</p>
@@ -221,11 +244,14 @@ include '../db.php';
                 "searchPlaceholder": "Search within results..."
             },
             "pageLength": 10,
-            "order": [[0, 'asc']],
-            "responsive": true,
+            "order": [[1, 'asc']], // Sort by book details column by default
+            "responsive": false,
+            "scrollX": true,
+            "autoWidth": false,
             "columns": [
-                { "orderable": true },
-                { "orderable": false }
+                { "orderable": false, "width": "5%" },  // Select checkbox column
+                { "orderable": true, "width": "75%" },  // Book details column
+                { "orderable": false, "width": "20%" }  // Image column
             ],
             "initComplete": function() {
                 $('#dataTable_filter input').addClass('form-control form-control-sm');
@@ -254,11 +280,20 @@ include '../db.php';
                         data: { title: title },
                         success: function(response) {
                             var res = JSON.parse(response);
-                            Swal.fire('Added!', res.message, 'success').then(() => {
-                                if (res.success) {
+                            
+                            if (res.success) {
+                                Swal.fire('Added!', `"${title}" added to cart.`, 'success').then(() => {
                                     location.reload();
-                                }
-                            });
+                                });
+                            } else {
+                                // Show error with specific message
+                                Swal.fire({
+                                    title: 'Cannot Add to Cart',
+                                    html: `<p>${res.message}</p>`,
+                                    icon: 'error',
+                                    confirmButtonText: 'OK'
+                                });
+                            }
                         },
                         error: function() {
                             Swal.fire('Failed!', 'Failed to add "' + title + '" to cart.', 'error');
@@ -272,10 +307,10 @@ include '../db.php';
         function borrowBook(title) {
             Swal.fire({
                 title: 'Are you sure?',
-                text: 'Do you want to borrow "' + title + '"?',
+                text: 'Do you want to reserve "' + title + '"?',
                 icon: 'question',
                 showCancelButton: true,
-                confirmButtonText: 'Yes, borrow it!',
+                confirmButtonText: 'Yes, reserve it!',
                 cancelButtonText: 'No, cancel'
             }).then((result) => {
                 if (result.isConfirmed) {
@@ -285,11 +320,20 @@ include '../db.php';
                         data: { title: title },
                         success: function(response) {
                             var res = JSON.parse(response);
-                            Swal.fire('Reserved!', res.message, 'success').then(() => {
-                                if (res.success) {
+                            
+                            if (res.success) {
+                                Swal.fire('Reserved!', `"${title}" reserved successfully.`, 'success').then(() => {
                                     location.reload();
-                                }
-                            });
+                                });
+                            } else {
+                                // Show error with specific message
+                                Swal.fire({
+                                    title: 'Cannot Reserve',
+                                    html: `<p>${res.message}</p>`,
+                                    icon: 'error',
+                                    confirmButtonText: 'OK'
+                                });
+                            }
                         },
                         error: function() {
                             Swal.fire('Failed!', 'Failed to reserve "' + title + '".', 'error');
@@ -312,6 +356,177 @@ include '../db.php';
             var title = $(this).data('title');
             borrowBook(title);
         });
+
+        // Handle checkbox clicks without triggering row click
+        $('.book-select').on('click', function(e) {
+            e.stopPropagation();
+            updateSelectedCount();
+        });
+
+        // Update the selected count and toggle bulk actions visibility
+        function updateSelectedCount() {
+            const selectedCount = $('.book-select:checked').length;
+            $('#selectedCount, #selectedCount2').text(selectedCount);
+            $('.bulk-actions').toggleClass('visible', selectedCount > 0);
+        }
+
+        // Bulk add to cart - enhanced version
+        $('#bulk-cart').on('click', function() {
+            const titles = [];
+            $('.book-select:checked').each(function() {
+                titles.push($(this).data('title'));
+            });
+
+            if (titles.length === 0) return;
+
+            Swal.fire({
+                title: 'Add to Cart',
+                html: 'Add these ' + titles.length + ' book(s) to cart?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, add them!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    let successes = [];
+                    let failures = [];
+                    let processed = 0;
+
+                    titles.forEach(title => {
+                        $.ajax({
+                            url: 'add_to_cart.php',
+                            type: 'POST',
+                            data: { title: title },
+                            success: function(response) {
+                                processed++;
+                                var res = JSON.parse(response);
+                                
+                                if (res.success) {
+                                    successes.push(title);
+                                } else {
+                                    failures.push({title: title, reason: res.message});
+                                }
+                                
+                                // When all requests are processed, show summary
+                                if (processed === titles.length) {
+                                    showResultSummary(successes, failures, 'cart');
+                                }
+                            },
+                            error: function() {
+                                processed++;
+                                failures.push({title: title, reason: "Network error occurred"});
+                                
+                                if (processed === titles.length) {
+                                    showResultSummary(successes, failures, 'cart');
+                                }
+                            }
+                        });
+                    });
+                }
+            });
+        });
+
+        // Bulk reserve - updated version
+        $('#bulk-reserve').on('click', function() {
+            const titles = [];
+            $('.book-select:checked').each(function() {
+                titles.push($(this).data('title'));
+            });
+
+            if (titles.length === 0) return;
+
+            // First check total books
+            $.ajax({
+                url: 'checkout.php',
+                type: 'POST',
+                data: { titles: titles },
+                success: function(response) {
+                    var res = JSON.parse(response);
+                    
+                    if (res.success) {
+                        Swal.fire({
+                            title: 'Success',
+                            text: res.message,
+                            icon: 'success'
+                        }).then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        // Show error with specific message
+                        Swal.fire({
+                            title: 'Cannot Reserve Books',
+                            html: `<p>${res.message}</p>`,
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                },
+                error: function() {
+                    Swal.fire('Failed!', 'Failed to reserve books. Please try again.', 'error');
+                }
+            });
+        });
+
+        // Update showResultSummary function to handle new error messages
+        function showResultSummary(successes, failures, action) {
+            let actionText = action === 'cart' ? 'added to cart' : 'reserved';
+            let successText = '';
+            let failureText = '';
+            
+            // Group failures by reason
+            const reasonGroups = {};
+            failures.forEach(failure => {
+                // Clean the reason message once before grouping
+                let cleanReason = failure.reason
+                    .replace(/^You already have ".*" in your cart\./, 'Already in cart')
+                    .replace(/^You already have a reservation for this book: .*/, 'Already reserved')
+                    .replace(/^You already have an active reservation for: .*/, 'Already reserved')
+                    .replace(/^You already have this book borrowed or reserved: .*/, 'Already borrowed/reserved')
+                    .replace(/^You have reached the maximum limit of 3 books.*/, 'Maximum limit reached (3 books)');
+                
+                if (!reasonGroups[cleanReason]) {
+                    reasonGroups[cleanReason] = [];
+                }
+                reasonGroups[cleanReason].push(failure.title);
+            });
+            
+            // Generate success message
+            if (successes.length > 0) {
+                successText = `<p><strong>${successes.length} book(s) successfully ${actionText}:</strong></p>
+                              <ul>${successes.map(title => `<li>${title}</li>`).join('')}</ul>`;
+            }
+            
+            // Generate failure messages by reason
+            if (failures.length > 0) {
+                failureText = `<p><strong>${failures.length} book(s) could not be ${actionText}:</strong></p>`;
+                
+                for (const reason in reasonGroups) {
+                    failureText += `<p class="text-danger">${reason}</p>
+                                  <ul>${reasonGroups[reason].map(title => `<li>${title}</li>`).join('')}</ul>`;
+                }
+            }
+            
+            // Show the summary
+            if (successes.length > 0) {
+                Swal.fire({
+                    title: successes.length > 0 ? 'Operation Completed' : 'Operation Failed',
+                    html: successText + failureText,
+                    icon: failures.length === 0 ? 'success' : 'info',
+                    confirmButtonText: 'OK'
+                }).then(() => {
+                    if (successes.length > 0) {
+                        location.reload();
+                    }
+                });
+            } else {
+                Swal.fire({
+                    title: 'Operation Failed',
+                    html: failureText,
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+            }
+        }
     });
     </script>
 </body>

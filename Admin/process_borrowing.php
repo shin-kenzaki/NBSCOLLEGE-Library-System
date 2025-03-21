@@ -1,124 +1,154 @@
 <?php
 session_start();
+include('../db.php');
 
-// Check if the user is logged in and has the appropriate admin role
-if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Librarian', 'Assistant', 'Encoder'])) {
+// Check if user is logged in and has appropriate role
+if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Librarian', 'Assistant'])) {
     echo json_encode(['status' => 'error', 'message' => 'Unauthorized access']);
     exit();
 }
 
-include('../db.php');
+$admin_id = $_SESSION['admin_id'];
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $book_ids = $_POST['book_id']; // Array of book IDs
-    $user_id = $_POST['user_id'];
-    $admin_id = $_SESSION['admin_id'];
-
-    // Set the default values
-    $status = 'Active';
-    $borrow_date = date('Y-m-d H:i:s'); // current timestamp
-
-    // Start transaction
-    $conn->begin_transaction();
-
-    try {
-        $processed_titles = []; // Track processed book titles
-
-        foreach ($book_ids as $book_id) {
-            // Get the book title and accession first
-            $get_book = $conn->prepare("SELECT title, accession, shelf_location FROM books WHERE id = ?");
-            $get_book->bind_param("i", $book_id);
-            $get_book->execute();
-            $book_result = $get_book->get_result();
-            $book = $book_result->fetch_assoc();
-            $book_title = $book['title'];
-            $book_accession = $book['accession'];
-            $shelf_location = $book['shelf_location'];
-
-            // Skip if the book title has already been processed
-            if (in_array($book_title, $processed_titles)) {
-                continue;
-            }
-            
-            // Add to processed titles
-            $processed_titles[] = $book_title;
-
-            // Check if user already has borrowed the same book title
-            $check_duplicate = $conn->prepare("
-                SELECT b1.title 
-                FROM books b1
-                JOIN borrowings br ON b1.id = br.book_id
-                WHERE br.user_id = ? 
-                AND b1.title = ?
-                AND br.status = 'Active'
-            ");
-            $check_duplicate->bind_param("is", $user_id, $book_title);
-            $check_duplicate->execute();
-            $duplicate_result = $check_duplicate->get_result();
-
-            if ($duplicate_result->num_rows > 0) {
-                throw new Exception("You already have an active loan for the book titled: " . $book_title);
-            }
-
-            // Check if book is available
-            $check_book = $conn->prepare("SELECT status FROM books WHERE id = ? AND status = 'Available'");
-            $check_book->bind_param("i", $book_id);
-            $check_book->execute();
-            $result = $check_book->get_result();
-
-            if ($result->num_rows === 0) {
-                throw new Exception("Book is not available for borrowing");
-            }
-
-            // Adjust allowed days based on shelf location
-            if ($shelf_location == 'RES') {
-                $allowed_days = 1;
-            } elseif ($shelf_location == 'REF') {
-                $allowed_days = 0; // current day only
-            } else {
-                $allowed_days = 7; // default allowed days
-            }
-
-            $due_date = date('Y-m-d H:i:s', strtotime("+{$allowed_days} days")); // calculate due date
-
-            // Insert borrowing record
-            $sql = "INSERT INTO borrowings (user_id, book_id, issued_by, issue_date, due_date, status) 
-                    VALUES (?, ?, ?, NOW(), ?, 'Active')";
-            $stmt = $conn->prepare($sql);
-            $stmt->bind_param("iiis", $user_id, $book_id, $admin_id, $due_date);
-            
-            if (!$stmt->execute()) {
-                throw new Exception("Error creating borrowing record");
-            }
-
-            // Update book status
-            $update_book = $conn->prepare("UPDATE books SET status = 'Borrowed' WHERE id = ?");
-            $update_book->bind_param("i", $book_id);
-            
-            if (!$update_book->execute()) {
-                throw new Exception("Error updating book status");
-            }
-
-            // Increment user's borrowed_books count
-            $update_user = $conn->prepare("UPDATE users SET borrowed_books = borrowed_books + 1 WHERE id = ?");
-            $update_user->bind_param("i", $user_id);
-            
-            if (!$update_user->execute()) {
-                throw new Exception("Error updating user's borrow count");
-            }
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $user_id = isset($_POST['user_id']) ? intval($_POST['user_id']) : 0;
+    $book_ids = isset($_POST['book_id']) ? $_POST['book_id'] : [];
+    
+    // Validate inputs
+    if ($user_id <= 0) {
+        echo json_encode(['status' => 'error', 'message' => 'Invalid user ID']);
+        exit();
+    }
+    
+    if (empty($book_ids)) {
+        echo json_encode(['status' => 'error', 'message' => 'No books selected']);
+        exit();
+    }
+    
+    // Check user type - if student, apply the 3-book limit
+    $user_query = "SELECT usertype, borrowed_books FROM users WHERE id = ?";
+    $stmt = $conn->prepare($user_query);
+    $stmt->bind_param('i', $user_id);
+    $stmt->execute();
+    $user_result = $stmt->get_result();
+    $user = $user_result->fetch_assoc();
+    
+    if (!$user) {
+        echo json_encode(['status' => 'error', 'message' => 'User not found']);
+        exit();
+    }
+    
+    // If the user is a student, check the book limit
+    if ($user['usertype'] == 'Student') {
+        // Get current active borrowings and reservations count
+        $count_query = "SELECT 
+                        (SELECT COUNT(*) FROM borrowings WHERE user_id = ? AND status = 'Active') +
+                        (SELECT COUNT(*) FROM reservations WHERE user_id = ? AND status IN ('Pending', 'Ready')) as total_books";
+        $stmt = $conn->prepare($count_query);
+        $stmt->bind_param('ii', $user_id, $user_id);
+        $stmt->execute();
+        $count_result = $stmt->get_result();
+        $total = $count_result->fetch_assoc();
+        
+        // Calculate if adding these books would exceed the limit
+        $new_total = $total['total_books'] + count($book_ids);
+        
+        if ($new_total > 3) {
+            echo json_encode([
+                'status' => 'error', 
+                'message' => 'Students can only borrow a maximum of 3 books. This student already has ' . 
+                             $total['total_books'] . ' books borrowed or reserved.'
+            ]);
+            exit();
         }
-
-        // Commit transaction after all books are processed successfully
+        
+        // Check if the student has any overdue books
+        $overdue_query = "SELECT COUNT(*) as overdue_count FROM borrowings 
+                          WHERE user_id = ? AND status = 'Overdue'";
+        $stmt = $conn->prepare($overdue_query);
+        $stmt->bind_param('i', $user_id);
+        $stmt->execute();
+        $overdue_result = $stmt->get_result();
+        $overdue = $overdue_result->fetch_assoc();
+        
+        if ($overdue['overdue_count'] > 0) {
+            echo json_encode([
+                'status' => 'error', 
+                'message' => 'This student has ' . $overdue['overdue_count'] . ' overdue book(s). ' .
+                             'All overdue books must be returned before borrowing additional books.'
+            ]);
+            exit();
+        }
+    }
+    
+    // Begin transaction
+    $conn->begin_transaction();
+    
+    try {
+        // For each book
+        foreach ($book_ids as $book_id) {
+            $book_id = intval($book_id);
+            
+            // Check if book is available
+            $book_query = "SELECT status, shelf_location FROM books WHERE id = ?";
+            $stmt = $conn->prepare($book_query);
+            $stmt->bind_param('i', $book_id);
+            $stmt->execute();
+            $book_result = $stmt->get_result();
+            $book = $book_result->fetch_assoc();
+            
+            if (!$book || $book['status'] !== 'Available') {
+                throw new Exception("Book ID $book_id is not available for borrowing");
+            }
+            
+            // Determine loan period based on shelf location
+            $allowed_days = 7; // Default
+            if ($book['shelf_location'] == 'RES') {
+                $allowed_days = 1;
+            } elseif ($book['shelf_location'] == 'REF') {
+                $allowed_days = 0;
+            }
+            
+            // Insert borrowing record
+            $borrow_query = "INSERT INTO borrowings 
+                            (user_id, book_id, status, issue_date, issued_by, due_date)
+                            VALUES (?, ?, 'Active', NOW(), ?, DATE_ADD(NOW(), INTERVAL ? DAY))";
+            $stmt = $conn->prepare($borrow_query);
+            $stmt->bind_param('iiii', $user_id, $book_id, $admin_id, $allowed_days);
+            $stmt->execute();
+            
+            // Update book status
+            $update_book = "UPDATE books SET status = 'Borrowed' WHERE id = ?";
+            $stmt = $conn->prepare($update_book);
+            $stmt->bind_param('i', $book_id);
+            $stmt->execute();
+        }
+        
+        // Update user's borrowed books count
+        $update_user = "UPDATE users SET 
+                        borrowed_books = borrowed_books + ?,
+                        last_update = CURDATE()
+                        WHERE id = ?";
+        $book_count = count($book_ids);
+        $stmt = $conn->prepare($update_user);
+        $stmt->bind_param('ii', $book_count, $user_id);
+        $stmt->execute();
+        
+        // Commit transaction
         $conn->commit();
-        echo json_encode(['status' => 'success', 'message' => 'Books borrowed successfully']);
-
+        
+        echo json_encode([
+            'status' => 'success', 
+            'message' => count($book_ids) . ' book(s) have been successfully borrowed'
+        ]);
+        
     } catch (Exception $e) {
-        // Rollback transaction on error
+        // Rollback in case of error
         $conn->rollback();
         echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
     }
-
-    $conn->close();
+    
 } else {
     echo json_encode(['status' => 'error', 'message' => 'Invalid request method']);
 }
+?>

@@ -38,6 +38,29 @@ include 'inc/header.php';
         .dataTables_wrapper .dataTables_paginate {
             margin-bottom: 1rem; 
         }
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            width: 100%;
+        }
+        table.dataTable {
+            width: 100% !important;
+        }
+        @media screen and (max-width: 767px) {
+            .table-responsive {
+                border: none;
+                margin-bottom: 15px;
+            }
+        }
+        .table-responsive table td {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .table-responsive table td,
+        .table-responsive table th {
+            vertical-align: middle !important;
+        }
     </style>
 </head>
 
@@ -53,21 +76,21 @@ include 'inc/header.php';
                     <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
-                                <th>Title</th>
-                                <th>Reserve Date</th>
-                                <th>Received Date</th>
-                                <th>Cancel Date</th>
-                                <th>Status</th>
+                                <th class="text-center">Title</th>
+                                <th class="text-center">Reserve Date</th>
+                                <th class="text-center">Received Date</th>
+                                <th class="text-center">Cancel Date</th>
+                                <th class="text-center">Status</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php while ($row = $result->fetch_assoc()): ?>
                                 <tr>
                                     <td><?php echo htmlspecialchars($row['title']); ?></td>
-                                    <td><?php echo date('Y-m-d h:i A', strtotime($row['reserve_date'])); ?></td>
-                                    <td><?php echo $row['recieved_date'] ? date('Y-m-d h:i A', strtotime($row['recieved_date'])) : '-'; ?></td>
-                                    <td><?php echo $row['cancel_date'] ? date('Y-m-d h:i A', strtotime($row['cancel_date'])) : '-'; ?></td>
-                                    <td><?php echo htmlspecialchars($row['status_text']); ?></td>
+                                    <td class="text-center"><?php echo date('Y-m-d h:i A', strtotime($row['reserve_date'])); ?></td>
+                                    <td class="text-center"><?php echo $row['recieved_date'] ? date('Y-m-d h:i A', strtotime($row['recieved_date'])) : '-'; ?></td>
+                                    <td class="text-center"><?php echo $row['cancel_date'] ? date('Y-m-d h:i A', strtotime($row['cancel_date'])) : '-'; ?></td>
+                                    <td class="text-center"><?php echo htmlspecialchars($row['status_text']); ?></td>
                                 </tr>
                             <?php endwhile; ?>
                         </tbody>
@@ -92,7 +115,9 @@ $(document).ready(function() {
         },
         "pageLength": 10,
         "order": [[0, 'asc']], // Sort by ID by default
-        "responsive": true,
+        "responsive": false, // Disable responsive mode to remove dropdown arrows
+        "scrollX": true, // Keep horizontal scrolling
+        "autoWidth": false, // Fixed width columns for better control
         "initComplete": function() {
             $('#dataTable_filter input').addClass('form-control form-control-sm');
         }

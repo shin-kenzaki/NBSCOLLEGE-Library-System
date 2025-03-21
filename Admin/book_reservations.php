@@ -77,47 +77,26 @@ $totalReceivedCount = $totalReceivedResult->fetch_assoc()['count'];
 $totalCancelledQuery = "SELECT COUNT(*) AS count FROM reservations WHERE status = 'Cancelled'";
 $totalCancelledResult = $conn->query($totalCancelledQuery);
 $totalCancelledCount = $totalCancelledResult->fetch_assoc()['count'];
-?>
 
-<style>
-    /* Add hover effect styles */
-    .stats-card {
-        transition: all 0.3s;
-        border-left: 4px solid;
-    }
-    .stats-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-    }
-    .stats-icon {
-        font-size: 2rem;
-        opacity: 0.6;
-    }
-    .stats-title {
-        font-size: 0.9rem;
-        font-weight: bold;
-        text-transform: uppercase;
-    }
-    .stats-number {
-        font-size: 1.5rem;
-        font-weight: bold;
-    }
-    .primary-card {
-        border-left-color: #4e73df;
-    }
-    .success-card {
-        border-left-color: #1cc88a;
-    }
-    .info-card {
-        border-left-color: #36b9cc;
-    }
-    .danger-card {
-        border-left-color: #e74a3b;
-    }
-    .warning-card {
-        border-left-color: #f6c23e;
-    }
-</style>
+// Define styles as PHP variables to use inline
+$cardStyles = "transition: all 0.3s; border-left: 4px solid;";
+$cardHoverStyles = "transform: translateY(-5px); box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);";
+$iconStyles = "font-size: 2rem; opacity: 0.6;";
+$titleStyles = "font-size: 0.9rem; font-weight: bold; text-transform: uppercase;";
+$numberStyles = "font-size: 1.5rem; font-weight: bold;";
+
+$primaryCardBorder = "#4e73df";
+$successCardBorder = "#1cc88a";
+$infoCardBorder = "#36b9cc";
+$dangerCardBorder = "#e74a3b";
+$warningCardBorder = "#f6c23e";
+
+$tableResponsiveStyles = "overflow-x: auto;";
+$tableCellStyles = "white-space: nowrap;";
+$tableCenterStyles = "text-align: center;";
+$checkboxColumnStyles = "text-align: center; width: 40px; padding-left: 15px;";
+$checkboxStyles = "margin: 0; vertical-align: middle;";
+?>
 
 <!-- Main Content -->
 <div id="content" class="d-flex flex-column min-vh-100">
@@ -128,23 +107,20 @@ $totalCancelledCount = $totalCancelledResult->fetch_assoc()['count'];
 
         <!-- Statistics Dashboard -->
         <div class="row mb-4">
-            <!-- Current Status Section -->
-            <div class="col-12 mb-3">
-                <h5 class="text-gray-800">Current Status</h5>
-            </div>
-            
             <!-- Pending Reservations -->
             <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card border-left-warning shadow h-100 py-2 stats-card warning-card">
+                <div class="card shadow h-100 py-2" style="<?php echo $cardStyles; ?> border-left-color: <?php echo $warningCardBorder; ?>;" 
+                     onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 0.5rem 1rem rgba(0, 0, 0, 0.15)';" 
+                     onmouseout="this.style.transform=''; this.style.boxShadow='';">
                     <div class="card-body">
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1 stats-title">
+                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1" style="<?php echo $titleStyles; ?>">
                                     Pending Reservations</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number"><?php echo $pendingCount; ?></div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800" style="<?php echo $numberStyles; ?>"><?php echo $pendingCount; ?></div>
                             </div>
                             <div class="col-auto">
-                                <i class="fas fa-clock fa-2x text-gray-300 stats-icon"></i>
+                                <i class="fas fa-clock fa-2x text-gray-300" style="<?php echo $iconStyles; ?>"></i>
                             </div>
                         </div>
                     </div>
@@ -153,129 +129,58 @@ $totalCancelledCount = $totalCancelledResult->fetch_assoc()['count'];
 
             <!-- Ready Reservations -->
             <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card border-left-info shadow h-100 py-2 stats-card info-card">
+                <div class="card shadow h-100 py-2" style="<?php echo $cardStyles; ?> border-left-color: <?php echo $infoCardBorder; ?>;"
+                     onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 0.5rem 1rem rgba(0, 0, 0, 0.15)';" 
+                     onmouseout="this.style.transform=''; this.style.boxShadow='';">
                     <div class="card-body">
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1 stats-title">
+                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1" style="<?php echo $titleStyles; ?>">
                                     Ready Reservations</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number"><?php echo $readyCount; ?></div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800" style="<?php echo $numberStyles; ?>"><?php echo $readyCount; ?></div>
                             </div>
                             <div class="col-auto">
-                                <i class="fas fa-book fa-2x text-gray-300 stats-icon"></i>
+                                <i class="fas fa-book fa-2x text-gray-300" style="<?php echo $iconStyles; ?>"></i>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Today's Received (moved to Current Status) -->
+            <!-- Today's Received -->
             <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card border-left-success shadow h-100 py-2 stats-card success-card">
+                <div class="card shadow h-100 py-2" style="<?php echo $cardStyles; ?> border-left-color: <?php echo $successCardBorder; ?>;"
+                     onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 0.5rem 1rem rgba(0, 0, 0, 0.15)';" 
+                     onmouseout="this.style.transform=''; this.style.boxShadow='';">
                     <div class="card-body">
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1 stats-title">
+                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1" style="<?php echo $titleStyles; ?>">
                                     Received Today</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number"><?php echo $todayReceivedCount; ?></div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800" style="<?php echo $numberStyles; ?>"><?php echo $todayReceivedCount; ?></div>
                             </div>
                             <div class="col-auto">
-                                <i class="fas fa-check-circle fa-2x text-gray-300 stats-icon"></i>
+                                <i class="fas fa-check-circle fa-2x text-gray-300" style="<?php echo $iconStyles; ?>"></i>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Today's Cancelled (moved to Current Status) -->
+            <!-- Today's Cancelled -->
             <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card border-left-danger shadow h-100 py-2 stats-card danger-card">
+                <div class="card shadow h-100 py-2" style="<?php echo $cardStyles; ?> border-left-color: <?php echo $dangerCardBorder; ?>;"
+                     onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 0.5rem 1rem rgba(0, 0, 0, 0.15)';" 
+                     onmouseout="this.style.transform=''; this.style.boxShadow='';">
                     <div class="card-body">
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-danger text-uppercase mb-1 stats-title">
+                                <div class="text-xs font-weight-bold text-danger text-uppercase mb-1" style="<?php echo $titleStyles; ?>">
                                     Cancelled Today</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number"><?php echo $todayCancelledCount; ?></div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800" style="<?php echo $numberStyles; ?>"><?php echo $todayCancelledCount; ?></div>
                             </div>
                             <div class="col-auto">
-                                <i class="fas fa-ban fa-2x text-gray-300 stats-icon"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Overall Statistics Section -->
-            <div class="col-12 mb-3 mt-2">
-                <h5 class="text-gray-800">Overall Statistics</h5>
-            </div>
-            
-            <!-- Today's Reservations -->
-            <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card border-left-primary shadow h-100 py-2 stats-card primary-card">
-                    <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1 stats-title">
-                                    Total Reservations Today</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number"><?php echo $todayReservationsCount; ?></div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-calendar-day fa-2x text-gray-300 stats-icon"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Total Reservations -->
-            <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card border-left-primary shadow h-100 py-2 stats-card primary-card">
-                    <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1 stats-title">
-                                    Overall Total Reservations</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number"><?php echo $totalReservationsCount; ?></div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-bookmark fa-2x text-gray-300 stats-icon"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Total Received -->
-            <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card border-left-success shadow h-100 py-2 stats-card success-card">
-                    <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1 stats-title">
-                                    Overall Total Received</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number"><?php echo $totalReceivedCount; ?></div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-clipboard-check fa-2x text-gray-300 stats-icon"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Total Cancelled -->
-            <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card border-left-danger shadow h-100 py-2 stats-card danger-card">
-                    <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-danger text-uppercase mb-1 stats-title">
-                                    Overall Total Cancelled</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number"><?php echo $totalCancelledCount; ?></div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-times-circle fa-2x text-gray-300 stats-icon"></i>
+                                <i class="fas fa-ban fa-2x text-gray-300" style="<?php echo $iconStyles; ?>"></i>
                             </div>
                         </div>
                     </div>
@@ -317,18 +222,18 @@ $totalCancelledCount = $totalCancelledResult->fetch_assoc()['count'];
             </div>
             <?php endif; ?>
             <div class="card-body">
-                <div class="table-responsive">
+                <div class="table-responsive" style="<?php echo $tableResponsiveStyles; ?>">
                     <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
-                                <th class="text-center" style="width: 30px;">
-                                    <input type="checkbox" id="selectAll" title="Select/Unselect All">
+                                <th style="<?php echo $checkboxColumnStyles; ?> width: 30px;">
+                                    <input type="checkbox" id="selectAll" title="Select/Unselect All" style="<?php echo $checkboxStyles; ?>">
                                 </th>
-                                <th class="text-center">User</th>
-                                <th class="text-center">Book</th>
-                                <th class="text-center">Accession No.</th>
-                                <th class="text-center">Reserve Date</th>
-                                <th class="text-center">Status</th>
+                                <th style="<?php echo $tableCenterStyles; ?>">User</th>
+                                <th style="<?php echo $tableCenterStyles; ?>">Book</th>
+                                <th style="<?php echo $tableCenterStyles; ?>">Accession No.</th>
+                                <th style="<?php echo $tableCenterStyles; ?>">Reserve Date</th>
+                                <th style="<?php echo $tableCenterStyles; ?>">Status</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -337,11 +242,13 @@ $totalCancelledCount = $totalCancelledResult->fetch_assoc()['count'];
                                 while ($row = $result->fetch_assoc()): 
                             ?>
                                 <tr data-reservation-id='<?php echo $row["reservation_id"]; ?>' data-status='<?php echo $row["status"]; ?>'>
-                                    <td><input type="checkbox" class="reservation-checkbox" data-id="<?php echo $row["reservation_id"]; ?>"></td>
-                                    <td><?php echo $row["user_name"]; ?></td>
-                                    <td><?php echo $row["book_title"]; ?></td>
-                                    <td class="text-center"><?php echo $row["accession"]; ?></td>
-                                    <td class="text-center"><?php echo $row["reserve_date"]; ?></td>
+                                    <td style="<?php echo $checkboxColumnStyles; ?>">
+                                        <input type="checkbox" class="reservation-checkbox" data-id="<?php echo $row["reservation_id"]; ?>" style="<?php echo $checkboxStyles; ?>">
+                                    </td>
+                                    <td style="<?php echo $tableCellStyles; ?>"><?php echo $row["user_name"]; ?></td>
+                                    <td style="<?php echo $tableCellStyles; ?>"><?php echo $row["book_title"]; ?></td>
+                                    <td style="<?php echo $tableCellStyles . $tableCenterStyles; ?>"><?php echo $row["accession"]; ?></td>
+                                    <td style="<?php echo $tableCellStyles . $tableCenterStyles; ?>"><?php echo $row["reserve_date"]; ?></td>
                                     <?php
                                     $status = $row["status"];
                                     $statusClass = match($status) {
@@ -352,7 +259,9 @@ $totalCancelledCount = $totalCancelledResult->fetch_assoc()['count'];
                                         default => 'text-secondary'
                                     };
                                     ?>
-                                    <td class="text-center"><span class='font-weight-bold <?php echo $statusClass; ?>'><?php echo $status; ?></span></td>
+                                    <td style="<?php echo $tableCellStyles . $tableCenterStyles; ?>">
+                                        <span class='font-weight-bold <?php echo $statusClass; ?>'><?php echo $status; ?></span>
+                                    </td>
                                 </tr>
                             <?php 
                                 endwhile;
@@ -377,11 +286,11 @@ $totalCancelledCount = $totalCancelledResult->fetch_assoc()['count'];
     <i class="fas fa-angle-up"></i>
 </a>
 
-<div class="context-menu" style="display: none; position: absolute; z-index: 1000;">
+<div class="context-menu" style="display: none; position: absolute; z-index: 1000; background: white; border: 1px solid #ddd; border-radius: 4px; box-shadow: 2px 2px 5px rgba(0,0,0,0.1);">
     <ul class="list-group">
-        <li class="list-group-item" data-action="ready">Mark as Ready</li>
-        <li class="list-group-item" data-action="received">Mark as Received</li>
-        <li class="list-group-item" data-action="cancel">Cancel Reservation</li>
+        <li class="list-group-item" data-action="ready" style="cursor: pointer; padding: 8px 20px;">Mark as Ready</li>
+        <li class="list-group-item" data-action="received" style="cursor: pointer; padding: 8px 20px;">Mark as Received</li>
+        <li class="list-group-item" data-action="cancel" style="cursor: pointer; padding: 8px 20px;">Cancel Reservation</li>
     </ul>
 </div>
 
@@ -389,20 +298,31 @@ $totalCancelledCount = $totalCancelledResult->fetch_assoc()['count'];
 <link href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bootstrap-4/bootstrap-4.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-<style>
-    .table-responsive {
-        overflow-x: auto;
-    }
-    .table td, .table th {
-        white-space: nowrap;
-    }
-    .table th, .table td.text-center {
-        text-align: center;
-    }
-</style>
-
 <script>
     $(document).ready(function() {
+        // Add inline style for context menu hover
+        $('.context-menu .list-group-item').hover(
+            function() { $(this).css('background-color', '#f8f9fa'); },
+            function() { $(this).css('background-color', ''); }
+        );
+
+        // Add style for table rows
+        $('tr[data-reservation-id]').css('cursor', 'context-menu');
+
+        // Add CSS to hide sorting icons for checkbox column
+        $('<style>')
+            .text(`
+                #dataTable thead th:first-child.sorting::before,
+                #dataTable thead th:first-child.sorting::after,
+                #dataTable thead th:first-child.sorting_asc::before,
+                #dataTable thead th:first-child.sorting_asc::after,
+                #dataTable thead th:first-child.sorting_desc::before,
+                #dataTable thead th:first-child.sorting_desc::after {
+                    display: none !important;
+                }
+            `)
+            .appendTo('head');
+
         const table = $('#dataTable').DataTable({
             "dom": "<'row mb-3'<'col-sm-6'l><'col-sm-6 d-flex justify-content-end'f>>" +
                    "<'row'<'col-sm-12'tr>>" +
@@ -414,6 +334,11 @@ $totalCancelledCount = $totalCancelledResult->fetch_assoc()['count'];
             "scrollY": "60vh",
             "scrollCollapse": true,
             "fixedHeader": true,
+            "ordering": true,
+            "order": [[1, 'asc']], // Default sort by second column (user)
+            "columnDefs": [
+                { "orderable": false, "targets": 0, "searchable": false } // Disable sorting for checkbox column completely
+            ],
             "language": {
                 "search": "_INPUT_",
                 "searchPlaceholder": "Search..."

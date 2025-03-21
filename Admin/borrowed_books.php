@@ -420,6 +420,20 @@ while ($row = $emailResult->fetch_assoc()) {
         const contextMenu = $('.context-menu');
         let $selectedRow = null;
 
+        // Add CSS to hide sorting icons for checkbox column BEFORE initializing DataTable
+        $('<style>')
+            .text(`
+                #dataTable thead th:first-child.sorting::before,
+                #dataTable thead th:first-child.sorting::after,
+                #dataTable thead th:first-child.sorting_asc::before,
+                #dataTable thead th:first-child.sorting_asc::after,
+                #dataTable thead th:first-child.sorting_desc::before,
+                #dataTable thead th:first-child.sorting_desc::after {
+                    display: none !important;
+                }
+            `)
+            .appendTo('head');
+
         // Initialize DataTable
         const table = $('#dataTable').DataTable({
             "dom": "<'row mb-3'<'col-sm-6'l><'col-sm-6 d-flex justify-content-end'f>>" +
@@ -432,6 +446,27 @@ while ($row = $emailResult->fetch_assoc()) {
             "scrollY": "60vh",
             "scrollCollapse": true,
             "fixedHeader": true,
+            "order": [[1, 'asc']], // Start with sorting on the second column
+            "columnDefs": [
+                // Disable sorting for checkbox column and set minimal width
+                { "orderable": false, "targets": 0, "searchable": false, "width": "30px" },
+                // Accession No. - 10%
+                { "targets": 1, "width": "10%" },
+                // Book Title - 40%
+                { "targets": 2, "width": "40%" },
+                // Borrower's Name - 20%
+                { "targets": 3, "width": "20%" },
+                // ID Number - auto width
+                { "targets": 4 },
+                // Borrow Date - 10%
+                { "targets": 5, "width": "10%" },
+                // Due Date - 10%
+                { "targets": 6, "width": "10%" },
+                // Shelf Location - auto width
+                { "targets": 7 },
+                // Status - 10%
+                { "targets": 8, "width": "10%" }
+            ],
             "language": {
                 "search": "_INPUT_",
                 "searchPlaceholder": "Search..."
@@ -441,6 +476,11 @@ while ($row = $emailResult->fetch_assoc()) {
                 $('#dataTable_filter').addClass('d-flex align-items-center');
                 $('#dataTable_filter label').append('<i class="fas fa-search ml-2"></i>');
                 $('#dataTable_paginate .paginate_button').addClass('btn btn-sm btn-outline-primary mx-1');
+                
+                // Force re-apply the CSS for checkbox column icons
+                setTimeout(function() {
+                    $('#dataTable thead th:first-child').removeClass('sorting').addClass('sorting_disabled');
+                }, 0);
             }
         });
 
