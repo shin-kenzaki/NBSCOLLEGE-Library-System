@@ -31,82 +31,27 @@ $result = $stmt->get_result();
     <meta charset="UTF-8">
     <title>Cart</title>
     <style>
-        .dataTables_filter input {
-            width: 400px; 
-        }
-        .dataTables_wrapper .dataTables_length,
-        .dataTables_wrapper .dataTables_filter,
-        .dataTables_wrapper .dataTables_info,
-        .dataTables_wrapper .dataTables_paginate {
-            margin-bottom: 1rem; 
-        }
         .selected-row {
             background-color: #f0f8ff; /* Light blue background for selected rows */
         }
-
-        /* Add custom CSS for responsive table */
-        .table-responsive {
-            width: 100%;
-            margin-bottom: 1rem;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
         
-        /* Ensure minimum width for table columns */
-        #dataTable th,
-        #dataTable td {
+        #select-all,
+        .select-item {
+            margin: 0;
+            vertical-align: middle;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .table-responsive table td {
             white-space: nowrap;
-        }
-        
-        /* Specific column widths */
-        #dataTable th:nth-child(1),
-        #dataTable td:nth-child(1) {
-            min-width: 50px; /* Checkbox column */
-        }
-        #dataTable th:nth-child(2),
-        #dataTable td:nth-child(2) {
-            min-width: 200px; /* Title column */
-        }
-        #dataTable th:nth-child(3),
-        #dataTable td:nth-child(3) {
-            min-width: 150px; /* Author column */
-        }
-        #dataTable th:nth-child(4),
-        #dataTable td:nth-child(4) {
-            min-width: 150px; /* Date Added column */
-            text-align: center;
-            vertical-align: middle;
-        }
-        #dataTable th:nth-child(5),
-        #dataTable td:nth-child(5) {
-            min-width: 100px; /* Actions column */
-            text-align: center;
-            vertical-align: middle;
-        }
-        
-        /* Make the table stretch full width */
-        #dataTable {
-            width: 100% !important;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
-        /* Center align all table cells vertically */
-        #dataTable td, 
-        #dataTable th {
+        .table-responsive table td,
+        .table-responsive table th {
             vertical-align: middle !important;
-        }
-
-        /* Actions column horizontal and vertical centering */
-        #dataTable th:nth-child(5),
-        #dataTable td:nth-child(5) {
-            text-align: center;
-            vertical-align: middle;
-        }
-
-        /* Center checkbox in first column */
-        #dataTable th:first-child,
-        #dataTable td:first-child {
-            text-align: center;
-            vertical-align: middle;
         }
     </style>
     <!-- Include SweetAlert CSS -->
@@ -122,35 +67,34 @@ $result = $stmt->get_result();
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
                     <h6 class="m-0 font-weight-bold text-primary">Cart</h6>
                     <div>
-                        <span id="selectedCount">(0 items selected)</span>
+                        <button class="btn btn-danger btn-sm mr-2" id="bulk-remove" disabled>
+                            Remove Selected (<span id="selectedCount">0</span>)
+                        </button>
                         <button class="btn btn-primary btn-sm" id="checkout">Checkout</button>
                     </div>
                 </div>
                 <div class="card-body px-0"> <!-- Remove padding for full-width scroll -->
                     <div class="table-responsive px-3"> <!-- Add padding inside scroll container -->
-                        <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                        <table class="table table-bordered" id="dataTable" width="30px" cellspacing="0">
                             <thead>
                                 <tr>
-                                    <th><input type="checkbox" id="select-all"></th>
-                                    <th>Title</th>
-                                    <th>Author</th>
-                                    <th>Date Added</th>
-                                    <th>Actions</th>
+                                    <th class="text-center" style="width: 10%"><input type="checkbox" id="select-all"></th>
+                                    <th class="text-center" style="width: 40%">Title</th>
+                                    <th class="text-center" style="width: 30%">Author</th>
+                                    <th class="text-center" style="width: 20%">Date Added</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php
                                 while ($row = $result->fetch_assoc()) {
+                                    // Format the date to Month Abbrev, date, year and 12hr format time
+                                    $formattedDate = date('M j, Y h:i A', strtotime($row['date']));
+                                    
                                     echo "<tr>
-                                        <td><input type='checkbox' class='select-item' data-title='" . htmlspecialchars($row['title']) . "'></td>
-                                        <td>" . htmlspecialchars($row['title']) . "</td>
-                                        <td>" . htmlspecialchars($row['author'] ?? 'N/A') . "</td>
-                                        <td>" . htmlspecialchars($row['date']) . "</td>
-                                        <td>
-                                            <button class='btn btn-danger btn-sm remove-from-cart' data-title='" . htmlspecialchars($row['title']) . "' title='Remove from Cart'>
-                                                <i class='fas fa-trash'></i> <!-- Remove from Cart icon -->
-                                            </button>
-                                        </td>
+                                        <td class=\"text-center\" style=\"width: 10%\"><input type='checkbox' class='select-item' data-title='" . htmlspecialchars($row['title']) . "'></td>
+                                        <td style=\"width: 40%\">" . htmlspecialchars($row['title']) . "</td>
+                                        <td style=\"width: 30%\">" . htmlspecialchars($row['author'] ?? 'N/A') . "</td>
+                                        <td class=\"text-center\" style=\"width: 20%\">" . htmlspecialchars($formattedDate) . "</td>
                                     </tr>";
                                 }
                                 ?>
@@ -174,6 +118,20 @@ $result = $stmt->get_result();
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
     <script>
     $(document).ready(function() {
+        // Add CSS to hide sorting icons for checkbox column
+        $('<style>')
+            .text(`
+                #dataTable thead th:first-child.sorting::before,
+                #dataTable thead th:first-child.sorting::after,
+                #dataTable thead th:first-child.sorting_asc::before,
+                #dataTable thead th:first-child.sorting_asc::after,
+                #dataTable thead th:first-child.sorting_desc::before,
+                #dataTable thead th:first-child.sorting_desc::after {
+                    display: none !important;
+                }
+            `)
+            .appendTo('head');
+            
         $('#dataTable').DataTable({
             "dom": "<'row mb-3'<'col-sm-6'l><'col-sm-6 d-flex justify-content-end'f>>" +
                    "<'row'<'col-sm-12'tr>>" +
@@ -184,6 +142,9 @@ $result = $stmt->get_result();
             },
             "pageLength": 10,
             "order": [[1, 'asc']], // Sort by title by default
+            "columnDefs": [
+                { "orderable": false, "targets": 0, "searchable": false } // Disable sorting & searching for checkbox
+            ],
             "responsive": false, // Disable DataTables responsive handling
             "scrollX": true, // Enable horizontal scrolling
             "autoWidth": false, // Disable auto-width calculation
@@ -197,10 +158,13 @@ $result = $stmt->get_result();
             $('#dataTable').DataTable().columns.adjust();
         });
 
-        // Function to update the selected item count
+        // Function to update the selected item count and button state
         function updateSelectedItemCount() {
             var selectedCount = $('.select-item:checked').length;
-            $('#selectedCount').text(`(${selectedCount} items selected)`);
+            $('#selectedCount').text(selectedCount);
+            
+            // Enable or disable the bulk remove button based on selections
+            $('#bulk-remove').prop('disabled', selectedCount === 0);
         }
 
         // Select/Deselect all checkboxes
@@ -216,39 +180,6 @@ $result = $stmt->get_result();
             updateSelectedItemCount();
         });
 
-        // Add click event listener to 'Remove from Cart' buttons
-        $('.remove-from-cart').on('click', function(event) {
-            event.stopPropagation();
-            var title = $(this).data('title');
-            Swal.fire({
-                title: 'Are you sure?',
-                text: 'You won\'t be able to revert this!',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'Yes, remove it!',
-                cancelButtonText: 'No, keep it'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    $.ajax({
-                        url: 'remove_from_cart.php',
-                        type: 'POST',
-                        data: { title: title },
-                        success: function(response) {
-                            var res = JSON.parse(response);
-                            Swal.fire('Removed!', res.message, 'success').then(() => {
-                                if (res.success) {
-                                    location.reload();
-                                }
-                            });
-                        },
-                        error: function() {
-                            Swal.fire('Failed!', 'Failed to remove "' + title + '" from cart.', 'error');
-                        }
-                    });
-                }
-            });
-        });
-
         // Add bulk remove functionality
         $('#bulk-remove').on('click', function() {
             var titles = [];
@@ -257,13 +188,17 @@ $result = $stmt->get_result();
             });
 
             if (titles.length > 0) {
+                var bookList = '<ul>' + titles.map(title => '<li>' + title + '</li>').join('') + '</ul>';
+                
                 Swal.fire({
-                    title: 'Are you sure?',
-                    text: 'You won\'t be able to revert this!',
+                    title: 'Remove from Cart',
+                    html: 'Are you sure you want to remove these items from your cart?<br>' + bookList,
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonText: 'Yes, remove them!',
-                    cancelButtonText: 'No, keep them'
+                    cancelButtonText: 'No, keep them',
+                    confirmButtonColor: '#dc3545',
+                    cancelButtonColor: '#6c757d'
                 }).then((result) => {
                     if (result.isConfirmed) {
                         $.ajax({
@@ -313,11 +248,19 @@ $result = $stmt->get_result();
                             data: { titles: titles },
                             success: function(response) {
                                 var res = JSON.parse(response);
-                                Swal.fire('Checked out!', res.message, 'success').then(() => {
-                                    if (res.success) {
-                                        location.reload();
-                                    }
-                                });
+                                
+                                // Check if the message is about overdue books
+                                if (!res.success && res.message && res.message.includes('overdue book(s)')) {
+                                    // Use error icon for overdue books warning
+                                    Swal.fire('Cannot Checkout', res.message, 'error');
+                                } else {
+                                    // Regular success/error styling
+                                    Swal.fire('Checked out!', res.message, res.success ? 'success' : 'error').then(() => {
+                                        if (res.success) {
+                                            location.reload();
+                                        }
+                                    });
+                                }
                             },
                             error: function() {
                                 Swal.fire('Failed!', 'Failed to checkout selected items.', 'error');

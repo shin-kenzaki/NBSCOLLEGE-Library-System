@@ -17,6 +17,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $response = ['success' => false, 'message' => 'Failed to checkout selected items.'];
 
     try {
+        // Get user type
+        $user_query = "SELECT usertype FROM users WHERE id = ?";
+        $stmt = $conn->prepare($user_query);
+        if (!$stmt) {
+            throw new Exception("Prepare statement failed: " . $conn->error);
+        }
+        $stmt->bind_param('i', $user_id);
+        $stmt->execute();
+        $user_result = $stmt->get_result();
+        $user = $user_result->fetch_assoc();
+        
+        // If user is a student, check for overdue books
+        if ($user && $user['usertype'] == 'Student') {
+            // Check if the student has any overdue books
+            $overdue_query = "SELECT COUNT(*) as overdue_count FROM borrowings 
+                              WHERE user_id = ? AND status = 'Overdue'";
+            $stmt = $conn->prepare($overdue_query);
+            if (!$stmt) {
+                throw new Exception("Prepare statement failed: " . $conn->error);
+            }
+            $stmt->bind_param('i', $user_id);
+            $stmt->execute();
+            $overdue_result = $stmt->get_result();
+            $overdue = $overdue_result->fetch_assoc();
+            
+            if ($overdue['overdue_count'] > 0) {
+                throw new Exception("You have " . $overdue['overdue_count'] . " overdue book(s). " .
+                                   "All overdue books must be returned before checking out additional books.");
+            }
+        }
+
         // Check if the user has reached the maximum limit of 3 books
         $query = "SELECT 
                   (SELECT COUNT(*) FROM borrowings WHERE user_id = ? AND status = 'Active') +

@@ -53,119 +53,83 @@ include 'inc/header.php';
 ?>
 
 <head>
-    <style>
-        .dataTables_filter input {
-            width: 400px; 
-        }
-        .dataTables_wrapper .dataTables_length,
-        .dataTables_wrapper .dataTables_filter,
-        .dataTables_wrapper .dataTables_info,
-        .dataTables_wrapper .dataTables_paginate {
-            margin-bottom: 1rem; 
-        }
-        /* Add custom CSS for responsive table */
-        .table-responsive {
-            width: 100%;
-            margin-bottom: 1rem;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-        
-        /* Ensure minimum width for table columns */
-        #dataTable th,
-        #dataTable td {
-            white-space: nowrap;
-        }
-        
-        /* Specific column widths */
-        #dataTable th:nth-child(1),
-        #dataTable td:nth-child(1) {
-            min-width: 80px; /* ID column */
-        }
-        #dataTable th:nth-child(2),
-        #dataTable td:nth-child(2) {
-            min-width: 200px; /* Title column */
-        }
-        #dataTable th:nth-child(3),
-        #dataTable td:nth-child(3) {
-            min-width: 150px; /* Reserve Date column */
-        }
-        #dataTable th:nth-child(4),
-        #dataTable td:nth-child(4),
-        #dataTable th:nth-child(5),
-        #dataTable td:nth-child(5) {
-            text-align: center;
-        }
-        
-        /* Make the table stretch full width */
-        #dataTable {
-            width: 100% !important;
-        }
-
-        /* Center the badge content */
-        .badge {
-            display: inline-block;
-            width: 100%;
-            text-align: center;
-        }
-
-        /* Center align all table cells vertically */
-        #dataTable td, 
-        #dataTable th {
-            vertical-align: middle !important;
-        }
-
-        /* Status and Actions columns horizontal and vertical centering */
-        #dataTable th:nth-child(4),
-        #dataTable td:nth-child(4),
-        #dataTable th:nth-child(5),
-        #dataTable td:nth-child(5) {
-            text-align: center;
-            vertical-align: middle;
-        }
-    </style>
     <!-- Include SweetAlert CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <style>
+        .table-responsive table td {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        /* Allow status column to wrap */
+        .table-responsive table td:last-child {
+            white-space: normal;
+        }
+        /* Keep status badge content together */
+        .badge {
+            display: inline-block;
+            white-space: normal;
+            text-align: center;
+            line-height: 1.2;
+        }
+        .badge br {
+            display: block; /* Allow line breaks in badges */
+        }
+        .badge small {
+            display: block;
+            margin-top: 3px;
+        }
+        .table-responsive table td,
+        .table-responsive table th {
+            vertical-align: middle !important;
+        }
+    </style>
 </head>
 
 <!-- Main Content -->
 <div id="content" class="d-flex flex-column min-vh-100">
     <div class="container-fluid">
         <div class="card shadow mb-4">
-            <div class="card-header py-3">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
                 <h6 class="m-0 font-weight-bold text-primary">Current Reservations</h6>
+                <div>
+                    <button id="bulkCancelBtn" class="btn btn-danger btn-sm" disabled>
+                        Cancel Selected (<span id="selectedCount">0</span>)
+                    </button>
+                </div>
             </div>
-            <div class="card-body px-0"> <!-- Remove padding for full-width scroll -->
-                <div class="table-responsive px-3"> <!-- Add padding inside scroll container -->
+            <div class="card-body">
+                <div class="table-responsive">
                     <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
-                                <th>ID</th>
-                                <th>Title</th>
-                                <th>Reserve Date</th>
-                                <th>Status</th>
-                                <th>Actions</th>
+                                <th class="text-center" style="width: 10%;">
+                                    <input type="checkbox" id="selectAll" title="Select/Unselect All">
+                                </th>
+                                <th class="text-center" style="width: 10%;">ID</th>
+                                <th class="text-center" style="width: 40%;">Title</th>
+                                <th class="text-center" style="width: 20%;">Reserve Date</th>
+                                <th class="text-center" style="width: 20%;">Status</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php 
                             if ($result && $result->num_rows > 0): 
                                 while ($row = $result->fetch_assoc()): 
-                                    // Debug output
-                                    echo "<!-- Debug: Row data: " . print_r($row, true) . " -->";
                             ?>
-                                    <tr>
-                                        <td><?php echo htmlspecialchars($row['id']); ?></td>
+                                    <tr data-status="<?php echo htmlspecialchars($row['status']); ?>">
+                                        <td class="text-center">
+                                            <input type="checkbox" class="reservation-checkbox" data-id="<?php echo $row['id']; ?>">
+                                        </td>
+                                        <td class="text-center"><?php echo htmlspecialchars($row['id']); ?></td>
                                         <td><?php echo htmlspecialchars($row['title']); ?></td>
-                                        <td><?php echo date('Y-m-d h:i A', strtotime($row['reserve_date'])); ?></td>
-                                        <td>
+                                        <td class="text-center"><?php echo date('Y-m-d h:i A', strtotime($row['reserve_date'])); ?></td>
+                                        <td class="text-center">
                                             <?php if ($row["status"] == 'Ready'): ?>
                                                 <span class="badge badge-success p-2" 
                                                       data-toggle="tooltip" 
-                                                      title="Made ready by: <?php echo htmlspecialchars($row["ready_by_name"]); ?> 
-                                                             on <?php echo date('Y-m-d h:i A', strtotime($row["ready_date"])); ?>">
+                                                      title="Made ready by: <?php echo htmlspecialchars($row["ready_by_name"]); ?> on <?php echo date('Y-m-d h:i A', strtotime($row["ready_date"])); ?>">
                                                     <i class="fas fa-check"></i> READY
-                                                    <br>
                                                     <small>Your book is ready for pickup</small>
                                                 </span>
                                             <?php elseif ($row["status"] == 'Cancelled'): ?>
@@ -178,15 +142,9 @@ include 'inc/header.php';
                                             <?php else: ?>
                                                 <span class="badge badge-warning p-2">
                                                     <i class="fas fa-clock"></i> Pending
-                                                    <br>
                                                     <small>Waiting for librarian to process</small>
                                                 </span>
                                             <?php endif; ?>
-                                        </td>
-                                        <td>
-                                            <button class="btn btn-danger btn-sm cancel-reservation" data-id="<?php echo $row['id']; ?>" title="Cancel Reservation">
-                                                Cancel
-                                            </button>
                                         </td>
                                     </tr>
                                 <?php endwhile; ?>
@@ -214,10 +172,13 @@ $(document).ready(function() {
             "searchPlaceholder": "Search within results..."
         },
         "pageLength": 10,
-        "order": [[0, 'asc']],
-        "responsive": false, // Disable DataTables responsive handling
-        "scrollX": true, // Enable horizontal scrolling
-        "autoWidth": false, // Disable auto-width calculation
+        "order": [[1, 'asc']], // Changed from column 0 to 1 since we added checkbox
+        "columnDefs": [
+            { "orderable": false, "targets": 0 } // Disable sorting for checkbox column
+        ],
+        "responsive": false,
+        "scrollX": true,
+        "autoWidth": false,
         "initComplete": function() {
             $('#dataTable_filter input').addClass('form-control form-control-sm');
         }
@@ -228,32 +189,83 @@ $(document).ready(function() {
         $('#dataTable').DataTable().columns.adjust();
     });
 
-    $('.cancel-reservation').on('click', function() {
-        var reservationId = $(this).data('id');
+    // Handle select all checkbox
+    $('#selectAll').change(function() {
+        const isChecked = $(this).prop('checked');
+        $('.reservation-checkbox').prop('checked', isChecked);
+        updateBulkButtons();
+    });
+
+    // Handle individual checkboxes
+    $(document).on('change', '.reservation-checkbox', function() {
+        const totalCheckable = $('.reservation-checkbox').length;
+        const totalChecked = $('.reservation-checkbox:checked').length;
+        
+        $('#selectAll').prop({
+            'checked': totalChecked > 0 && totalChecked === totalCheckable,
+            'indeterminate': totalChecked > 0 && totalChecked < totalCheckable
+        });
+        
+        updateBulkButtons();
+    });
+
+    // Update bulk cancel button visibility
+    function updateBulkButtons() {
+        const checkedBoxes = $('.reservation-checkbox:checked').length;
+        $('#selectedCount').text(checkedBoxes);
+        $('#bulkCancelBtn').prop('disabled', checkedBoxes === 0);
+    }
+
+    // Handle bulk cancel button click
+    $('#bulkCancelBtn').click(function() {
+        const selectedIds = [];
+        
+        $('.reservation-checkbox:checked').each(function() {
+            selectedIds.push($(this).data('id'));
+        });
+
+        if (selectedIds.length === 0) return;
+
         Swal.fire({
-            title: 'Are you sure?',
-            text: 'You won\'t be able to revert this!',
+            title: 'Cancel Multiple Reservations?',
+            text: `Are you sure you want to cancel ${selectedIds.length} reservation(s)?`,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonText: 'Yes, cancel it!',
-            cancelButtonText: 'No, keep it'
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, Cancel Them',
+            cancelButtonText: 'No, Keep Them',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showLoaderOnConfirm: true,
+            preConfirm: () => {
+                return fetch('cancel_reservation.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ ids: selectedIds })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        throw new Error(data.message || 'Error cancelling reservations');
+                    }
+                    return data;
+                })
+                .catch(error => {
+                    Swal.showValidationMessage(`Request failed: ${error}`);
+                });
+            }
         }).then((result) => {
             if (result.isConfirmed) {
-                $.ajax({
-                    url: 'cancel_reservation.php',
-                    type: 'POST',
-                    data: { reservation_id: reservationId },
-                    success: function(response) {
-                        var res = JSON.parse(response);
-                        Swal.fire('Cancelled!', res.message, 'success').then(() => {
-                            if (res.success) {
-                                location.reload();
-                            }
-                        });
-                    },
-                    error: function() {
-                        Swal.fire('Failed!', 'Failed to cancel reservation.', 'error');
-                    }
+                Swal.fire({
+                    title: 'Success!',
+                    text: 'The selected reservations have been cancelled.',
+                    icon: 'success',
+                    confirmButtonColor: '#3085d6'
+                }).then(() => {
+                    window.location.reload();
                 });
             }
         });

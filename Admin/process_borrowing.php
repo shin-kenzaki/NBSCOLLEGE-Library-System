@@ -61,6 +61,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]);
             exit();
         }
+        
+        // Check if the student has any overdue books
+        $overdue_query = "SELECT COUNT(*) as overdue_count FROM borrowings 
+                          WHERE user_id = ? AND status = 'Overdue'";
+        $stmt = $conn->prepare($overdue_query);
+        $stmt->bind_param('i', $user_id);
+        $stmt->execute();
+        $overdue_result = $stmt->get_result();
+        $overdue = $overdue_result->fetch_assoc();
+        
+        if ($overdue['overdue_count'] > 0) {
+            echo json_encode([
+                'status' => 'error', 
+                'message' => 'This student has ' . $overdue['overdue_count'] . ' overdue book(s). ' .
+                             'All overdue books must be returned before borrowing additional books.'
+            ]);
+            exit();
+        }
     }
     
     // Begin transaction

@@ -12,7 +12,7 @@ $user_id = $_SESSION['user_id'];
 
 $query = "SELECT b.title, br.issue_date, br.due_date, br.return_date, 
                  br.report_date, br.replacement_date, br.status,
-                 a1.firstname AS issued_by_name, 
+                 CONCAT(a1.firstname, ' ', a1.lastname) AS issued_by_name, 
                  a2.firstname AS received_by_name
           FROM borrowings br 
           JOIN books b ON br.book_id = b.id 
@@ -38,6 +38,39 @@ include 'inc/header.php';
         .dataTables_wrapper .dataTables_paginate {
             margin-bottom: 1rem; 
         }
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            width: 100%;
+        }
+        table.dataTable {
+            width: 100% !important;
+        }
+        @media screen and (max-width: 767px) {
+            .table-responsive {
+                border: none;
+                margin-bottom: 15px;
+            }
+        }
+        .table-responsive table td {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        table.dataTable td:nth-child(4) span {
+            display: inline-block;
+        }
+        /* Change the way Return/Report Date is displayed to be single line */
+        table.dataTable td br {
+            display: none;
+        }
+        table.dataTable td:nth-child(4) {
+            white-space: nowrap;
+        }
+        .table-responsive table td,
+        .table-responsive table th {
+            vertical-align: middle !important;
+        }
     </style>
 </head>
 
@@ -53,36 +86,34 @@ include 'inc/header.php';
                     <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
-                                <th>Title</th>
-                                <th>Issue Date</th>
-                                <th>Due Date</th>
-                                <th>Return/Report Date</th>
-                                <th>Status</th>
-                                <th>Issued By</th>
-                                <th>Received By</th>
+                                <th class="text-center">Title</th>
+                                <th class="text-center">Issue Date</th>
+                                <th class="text-center">Due Date</th>
+                                <th class="text-center">Return/Report Date</th>
+                                <th class="text-center">Status</th>
+                                <th class="text-center">Issued By</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php while ($row = $result->fetch_assoc()): ?>
                                 <tr>
                                     <td><?php echo htmlspecialchars($row['title']); ?></td>
-                                    <td><?php echo date('Y-m-d', strtotime($row['issue_date'])); ?></td>
-                                    <td><?php echo date('Y-m-d', strtotime($row['due_date'])); ?></td>
-                                    <td>
+                                    <td class="text-center"><?php echo date('M d, Y', strtotime($row['issue_date'])); ?></td>
+                                    <td class="text-center"><?php echo date('M d, Y', strtotime($row['due_date'])); ?></td>
+                                    <td class="text-center">
                                         <?php 
                                         if ($row['status'] == 'Lost' || $row['status'] == 'Damaged') {
-                                            echo 'Reported: ' . date('Y-m-d', strtotime($row['report_date']));
+                                            echo 'Reported: ' . date('M d, Y', strtotime($row['report_date']));
                                             if ($row['replacement_date']) {
-                                                echo '<br>Replaced: ' . date('Y-m-d', strtotime($row['replacement_date']));
+                                                echo ' | Replaced: ' . date('M d, Y', strtotime($row['replacement_date']));
                                             }
                                         } else {
-                                            echo 'Returned: ' . date('Y-m-d', strtotime($row['return_date']));
+                                            echo 'Returned: ' . date('M d, Y', strtotime($row['return_date']));
                                         }
                                         ?>
                                     </td>
-                                    <td><?php echo htmlspecialchars($row['status']); ?></td>
-                                    <td><?php echo htmlspecialchars($row['issued_by_name']); ?></td>
-                                    <td><?php echo htmlspecialchars($row['received_by_name']); ?></td>
+                                    <td class="text-center"><?php echo htmlspecialchars($row['status']); ?></td>
+                                    <td class="text-center"><?php echo htmlspecialchars($row['issued_by_name']); ?></td>
                                 </tr>
                             <?php endwhile; ?>
                         </tbody>
@@ -107,7 +138,9 @@ $(document).ready(function() {
         },
         "pageLength": 10,
         "order": [[1, 'desc']],
-        "responsive": true,
+        "responsive": false, // Disable responsive mode to remove dropdown arrows
+        "scrollX": true, // Keep horizontal scrolling
+        "autoWidth": false, // Fixed width columns for better control
         "initComplete": function() {
             $('#dataTable_filter input').addClass('form-control form-control-sm');
         }

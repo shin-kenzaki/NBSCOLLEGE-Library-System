@@ -38,6 +38,19 @@ include 'inc/header.php';
         .dataTables_wrapper .dataTables_paginate {
             margin-bottom: 1rem; 
         }
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            width: 100%;
+        }
+        table.dataTable {
+            width: 100% !important;
+        }
+        .table-responsive table td {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
     </style>
 </head>
 
@@ -123,7 +136,9 @@ $(document).ready(function() {
         },
         "pageLength": 10,
         "order": [[1, 'desc']], 
-        "responsive": true,
+        "responsive": false, // Disable responsive mode
+        "scrollX": true, // Enable horizontal scrolling
+        "autoWidth": false, // Fixed width columns
         "initComplete": function() {
             $('#dataTable_filter input').addClass('form-control form-control-sm');
         }
