@@ -767,85 +767,105 @@ foreach ($marcFields as $field) {
     <!-- Scripts section -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
     <script>
-       // Add click event listener for 'Add to Cart' button
-       document.querySelector('.add-to-cart').addEventListener('click', function() {
-            const title = this.getAttribute('data-title');
-            addToCart(title);
-        });
+    // Add click event listener for 'Add to Cart' button
+    document.querySelector('.add-to-cart').addEventListener('click', function() {
+        const title = this.getAttribute('data-title');
+        addToCart(title);
+    });
 
-        // Add click event listener for 'Borrow Book' button
-        document.querySelector('.borrow-book').addEventListener('click', function() {
-            const title = this.getAttribute('data-title');
-            borrowBook(title);
-        });
+    // Add click event listener for 'Borrow Book' button
+    document.querySelector('.borrow-book').addEventListener('click', function() {
+        const title = this.getAttribute('data-title');
+        borrowBook(title);
+    });
 
-        function addToCart(title) {
+    function addToCart(title) {
+        if (!isLoggedIn) {
             Swal.fire({
-                title: 'Are you sure?',
-                text: 'Do you want to add "' + title + '" to the cart?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Yes, add it!',
-                cancelButtonText: 'No, cancel'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    $.ajax({
-                        url: 'add_to_cart.php',
-                        type: 'POST',
-                        data: { title: title },
-                        success: function(response) {
-                            var res = JSON.parse(response);
-                            Swal.fire({
-                                title: res.success ? 'Added!' : 'Failed!',
-                                text: res.message,
-                                icon: res.success ? 'success' : 'error'
-                            }).then(() => {
-                                if (res.success) {
-                                    location.reload();
-                                }
-                            });
-                        },
-                        error: function() {
-                            Swal.fire('Failed!', 'Failed to add "' + title + '" to cart.', 'error');
-                        }
-                    });
-                }
+                title: 'Please Login',
+                text: 'You need to be logged in to add books to the cart.',
+                icon: 'warning',
+                confirmButtonText: 'OK'
             });
+            return;
         }
 
-        function borrowBook(title) {
+        Swal.fire({
+            title: 'Are you sure?',
+            text: 'Do you want to add "' + title + '" to the cart?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, add it!',
+            cancelButtonText: 'No, cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: 'add_to_cart.php',
+                    type: 'POST',
+                    data: { title: title },
+                    success: function(response) {
+                        var res = JSON.parse(response);
+                        Swal.fire({
+                            title: res.success ? 'Added!' : 'Failed!',
+                            text: res.message,
+                            icon: res.success ? 'success' : 'error'
+                        }).then(() => {
+                            if (res.success) {
+                                location.reload();
+                            }
+                        });
+                    },
+                    error: function() {
+                        Swal.fire('Failed!', 'Failed to add "' + title + '" to cart.', 'error');
+                    }
+                });
+            }
+        });
+    }
+
+    function borrowBook(title) {
+        if (!isLoggedIn) {
             Swal.fire({
-                title: 'Are you sure?',
-                text: 'Do you want to borrow "' + title + '"?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Yes, borrow it!',
-                cancelButtonText: 'No, cancel'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    $.ajax({
-                        url: 'reserve_book.php',
-                        type: 'POST',
-                        data: { title: title },
-                        success: function(response) {
-                            var res = JSON.parse(response);
-                            Swal.fire({
-                                title: res.success ? 'Reserved!' : 'Failed!',
-                                text: res.message,
-                                icon: res.success ? 'success' : 'error'
-                            }).then(() => {
-                                if (res.success) {
-                                    location.reload();
-                                }
-                            });
-                        },
-                        error: function() {
-                            Swal.fire('Failed!', 'Failed to reserve "' + title + '".', 'error');
-                        }
-                    });
-                }
+                title: 'Please Login',
+                text: 'You need to be logged in to borrow books.',
+                icon: 'warning',
+                confirmButtonText: 'OK'
             });
+            return;
         }
-    </script>
+
+        Swal.fire({
+            title: 'Are you sure?',
+            text: 'Do you want to borrow "' + title + '"?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, borrow it!',
+            cancelButtonText: 'No, cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: 'reserve_book.php',
+                    type: 'POST',
+                    data: { title: title },
+                    success: function(response) {
+                        var res = JSON.parse(response);
+                        Swal.fire({
+                            title: res.success ? 'Reserved!' : 'Failed!',
+                            text: res.message,
+                            icon: res.success ? 'success' : 'error'
+                        }).then(() => {
+                            if (res.success) {
+                                location.reload();
+                            }
+                        });
+                    },
+                    error: function() {
+                        Swal.fire('Failed!', 'Failed to reserve "' + title + '".', 'error');
+                    }
+                });
+            }
+        });
+    }
+</script>
 </body>
 </html>
