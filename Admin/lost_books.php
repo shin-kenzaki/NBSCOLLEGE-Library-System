@@ -213,6 +213,7 @@ $totalRecords = $countResult->fetch_assoc()['total'];
 <div class="context-menu" style="display: none; position: absolute; z-index: 1000;">
     <ul class="list-group">
         <li class="list-group-item" data-action="replace">Mark as Replaced</li>
+        <li class="list-group-item" data-action="unreplace">Mark as Not Replaced</li>
     </ul>
 </div>
 
@@ -356,15 +357,16 @@ $(document).ready(function() {
             e.preventDefault();
             $selectedRow = $(this);
             
-            // Only show context menu if book hasn't been replaced
+            // Show appropriate context menu options based on replacement status
             const replacementDate = $selectedRow.find('td:eq(6)').text().trim();
-            if (replacementDate === '-') {
-                contextMenu.css({
-                    top: e.pageY + "px",
-                    left: e.pageX + "px",
-                    display: "block"
-                });
-            }
+            contextMenu.find('li[data-action="replace"]').toggle(replacementDate === '-');
+            contextMenu.find('li[data-action="unreplace"]').toggle(replacementDate !== '-');
+            
+            contextMenu.css({
+                top: e.pageY + "px",
+                left: e.pageX + "px",
+                display: "block"
+            });
         });
     }
 
@@ -387,70 +389,112 @@ $(document).ready(function() {
 
         const borrowId = $selectedRow.data('borrow-id');
         const bookTitle = $selectedRow.data('book-title');
+        const action = $(this).data('action');
         
-        // First dialog to input ISBN
-        Swal.fire({
-            title: 'Enter Replacement Book ISBN',
-            html: `Please verify the replacement book by entering its ISBN:<br><br>
-                  <b>Book:</b> ${bookTitle}`,
-            input: 'text',
-            inputPlaceholder: 'Enter ISBN',
-            icon: 'info',
-            showCancelButton: true,
-            confirmButtonText: 'Verify',
-            cancelButtonText: 'Cancel',
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#6c757d',
-            allowOutsideClick: false,
-            allowEscapeKey: false,
-            inputValidator: (value) => {
-                if (!value) {
-                    return 'Please enter the ISBN'
+        // First dialog to input ISBN for replacement
+        if (action === 'replace') {
+            Swal.fire({
+                title: 'Enter Replacement Book ISBN',
+                html: `Please verify the replacement book by entering its ISBN:<br><br>
+                      <b>Book:</b> ${bookTitle}`,
+                input: 'text',
+                inputPlaceholder: 'Enter ISBN',
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonText: 'Verify',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#6c757d',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                inputValidator: (value) => {
+                    if (!value) {
+                        return 'Please enter the ISBN'
+                    }
                 }
-            }
-        }).then((result) => {
-            if (result.isConfirmed) {
-                // Second confirmation dialog
-                Swal.fire({
-                    title: 'Mark as Replaced?',
-                    html: `Are you sure this lost book has been replaced?<br><br>
-                          <b>Book:</b> ${bookTitle}<br>
-                          <b>ISBN:</b> ${result.value}`,
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonText: 'Yes, Mark as Replaced',
-                    cancelButtonText: 'Cancel',
-                    confirmButtonColor: '#28a745',
-                    cancelButtonColor: '#6c757d',
-                    allowOutsideClick: false,
-                    allowEscapeKey: false,
-                    showLoaderOnConfirm: true,
-                    preConfirm: () => {
-                        return fetch(`book_replaced.php?id=${borrowId}&type=lost&isbn=${result.value}`)
-                            .then(response => {
-                                if (!response.ok) {
-                                    throw new Error(response.statusText);
-                                }
-                                return response;
-                            })
-                            .catch(error => {
-                                Swal.showValidationMessage(`Request failed: ${error}`);
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Second confirmation dialog
+                    Swal.fire({
+                        title: 'Mark as Replaced?',
+                        html: `Are you sure this lost book has been replaced?<br><br>
+                              <b>Book:</b> ${bookTitle}<br>
+                              <b>ISBN:</b> ${result.value}`,
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'Yes, Mark as Replaced',
+                        cancelButtonText: 'Cancel',
+                        confirmButtonColor: '#28a745',
+                        cancelButtonColor: '#6c757d',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        showLoaderOnConfirm: true,
+                        preConfirm: () => {
+                            return fetch(`book_replaced.php?id=${borrowId}&type=lost&isbn=${result.value}`)
+                                .then(response => {
+                                    if (!response.ok) {
+                                        throw new Error(response.statusText);
+                                    }
+                                    return response;
+                                })
+                                .catch(error => {
+                                    Swal.showValidationMessage(`Request failed: ${error}`);
+                                });
+                        }
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            Swal.fire({
+                                title: 'Success!',
+                                text: 'The book has been marked as replaced.',
+                                icon: 'success',
+                                confirmButtonColor: '#3085d6'
+                            }).then(() => {
+                                window.location.reload();
                             });
-                    }
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        Swal.fire({
-                            title: 'Success!',
-                            text: 'The book has been marked as replaced.',
-                            icon: 'success',
-                            confirmButtonColor: '#3085d6'
-                        }).then(() => {
-                            window.location.reload();
+                        }
+                    });
+                }
+            });
+        } else if (action === 'unreplace') {
+            // Confirmation dialog for unreplacing
+            Swal.fire({
+                title: 'Mark as Not Replaced?',
+                html: `Are you sure you want to revert the replacement status of this book?<br><br>
+                      <b>Book:</b> ${bookTitle}`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, Revert Status',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showLoaderOnConfirm: true,
+                preConfirm: () => {
+                    return fetch(`book_unreplaced.php?id=${borrowId}&type=lost`)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(response.statusText);
+                            }
+                            return response;
+                        })
+                        .catch(error => {
+                            Swal.showValidationMessage(`Request failed: ${error}`);
                         });
-                    }
-                });
-            }
-        });
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Success!',
+                        text: 'The book is now marked as not replaced.',
+                        icon: 'success',
+                        confirmButtonColor: '#3085d6'
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                }
+            });
+        }
         
         contextMenu.hide();
     });
