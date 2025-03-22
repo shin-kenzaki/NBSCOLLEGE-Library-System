@@ -10,14 +10,14 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['usertype'], ['Student',
 
 $user_id = $_SESSION['user_id'];
 
-$query = "SELECT b.title, c.date, 
-                 (SELECT CONCAT(w.firstname, ' ', w.lastname) 
-                  FROM contributors con 
-                  JOIN writers w ON con.writer_id = w.id 
-                  WHERE con.book_id = b.id AND con.role = 'Author' 
-                  ORDER BY con.id LIMIT 1) as author 
-          FROM cart c 
-          JOIN books b ON c.book_id = b.id 
+$query = "SELECT b.title, c.date,
+                 (SELECT CONCAT(w.firstname, ' ', w.lastname)
+                  FROM contributors con
+                  JOIN writers w ON con.writer_id = w.id
+                  WHERE con.book_id = b.id AND con.role = 'Author'
+                  ORDER BY con.id LIMIT 1) as author
+          FROM cart c
+          JOIN books b ON c.book_id = b.id
           WHERE c.user_id = ? AND c.status = 1";
 $stmt = $conn->prepare($query);
 $stmt->bind_param('i', $user_id);
@@ -34,7 +34,7 @@ $result = $stmt->get_result();
         .selected-row {
             background-color: #f0f8ff; /* Light blue background for selected rows */
         }
-        
+
         #select-all,
         .select-item {
             margin: 0;
@@ -89,7 +89,7 @@ $result = $stmt->get_result();
                                 while ($row = $result->fetch_assoc()) {
                                     // Format the date to Month Abbrev, date, year and 12hr format time
                                     $formattedDate = date('M j, Y h:i A', strtotime($row['date']));
-                                    
+
                                     echo "<tr>
                                         <td class=\"text-center\" style=\"width: 10%\"><input type='checkbox' class='select-item' data-title='" . htmlspecialchars($row['title']) . "'></td>
                                         <td style=\"width: 40%\">" . htmlspecialchars($row['title']) . "</td>
@@ -131,7 +131,7 @@ $result = $stmt->get_result();
                 }
             `)
             .appendTo('head');
-            
+
         $('#dataTable').DataTable({
             "dom": "<'row mb-3'<'col-sm-6'l><'col-sm-6 d-flex justify-content-end'f>>" +
                    "<'row'<'col-sm-12'tr>>" +
@@ -162,7 +162,7 @@ $result = $stmt->get_result();
         function updateSelectedItemCount() {
             var selectedCount = $('.select-item:checked').length;
             $('#selectedCount').text(selectedCount);
-            
+
             // Enable or disable the bulk remove button based on selections
             $('#bulk-remove').prop('disabled', selectedCount === 0);
         }
@@ -189,7 +189,7 @@ $result = $stmt->get_result();
 
             if (titles.length > 0) {
                 var bookList = '<ul>' + titles.map(title => '<li>' + title + '</li>').join('') + '</ul>';
-                
+
                 Swal.fire({
                     title: 'Remove from Cart',
                     html: 'Are you sure you want to remove these items from your cart?<br>' + bookList,
@@ -248,7 +248,7 @@ $result = $stmt->get_result();
                             data: { titles: titles },
                             success: function(response) {
                                 var res = JSON.parse(response);
-                                
+
                                 // Check if the message is about overdue books
                                 if (!res.success && res.message && res.message.includes('overdue book(s)')) {
                                     // Use error icon for overdue books warning

@@ -3,6 +3,15 @@ session_start();
 include '../db.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    // Check if the user is logged in
+    if (!isset($_SESSION['user_id'])) {
+        echo json_encode([
+            'success' => false,
+            'message' => 'User not logged in.'
+        ]);
+        exit;
+    }
+
     $title = $_POST['title'];
     $user_id = $_SESSION['user_id'];
 

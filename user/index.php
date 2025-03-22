@@ -172,6 +172,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                             <?php echo $error; ?>
                                         </div>
                                     <?php endif; ?>
+
                                     <form class="user" method="POST" action="">
                                         <div class="form-group">
                                             <input type="text" class="form-control form-control-user"
@@ -183,15 +184,23 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                                 id="exampleInputPassword" placeholder="Password" name="password" required>
                                         </div>
                                         <div class="form-group">
-                                            <div class="custom-control custom-checkbox small">
+                                            <!-- <div class="custom-control custom-checkbox small">
                                                 <input type="checkbox" class="custom-control-input" id="customCheck">
                                                 <label class="custom-control-label" for="customCheck">Remember Me</label>
+
+                                            </div> -->
+
+                                            <div class="text-center">
+                                                <a class="small" href="searchbook.php">Continue as Guest to Search Books?</a>
                                             </div>
+
+
                                         </div>
                                         <button type="submit" class="btn btn-primary btn-user btn-block">
                                             Login
                                         </button>
                                     </form>
+
                                     <hr>
                                     <div class="text-center">
                                         <a class="small" href="forgot-password.php">Forgot Password?</a>

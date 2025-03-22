@@ -25,8 +25,8 @@ if (!empty($bookTitle)) {
     $inShelf = $copies['in_shelf'];
 
     // Fetch contributors
-    $contributorsQuery = "SELECT w.*, c.role FROM contributors c 
-                         JOIN writers w ON c.writer_id = w.id 
+    $contributorsQuery = "SELECT w.*, c.role FROM contributors c
+                         JOIN writers w ON c.writer_id = w.id
                          WHERE c.book_id = ?";
     $stmt = $conn->prepare($contributorsQuery);
     $stmt->bind_param("i", $book['id']);
@@ -38,9 +38,9 @@ if (!empty($bookTitle)) {
     }
 
     // Fetch publication details
-    $publicationsQuery = "SELECT p.*, pub.publisher, pub.place 
-                         FROM publications p 
-                         JOIN publishers pub ON p.publisher_id = pub.id 
+    $publicationsQuery = "SELECT p.*, pub.publisher, pub.place
+                         FROM publications p
+                         JOIN publishers pub ON p.publisher_id = pub.id
                          WHERE p.book_id = ?";
     $stmt = $conn->prepare($publicationsQuery);
     $stmt->bind_param("i", $book['id']);
@@ -268,7 +268,7 @@ if (!empty($bookTitle)) {
                             $authorsList = [];
                             $coAuthorsList = [];
                             $editorsList = [];
-                            
+
                             foreach ($contributors as $contributor) {
                                 $fullName = $contributor['lastname'] . ', ' . $contributor['firstname'] . ' ' . $contributor['middle_init'];
                                 if ($contributor['role'] == 'Author') {
@@ -279,12 +279,12 @@ if (!empty($bookTitle)) {
                                     $editorsList[] = $fullName . ' (Editor)';
                                 }
                             }
-                            
+
                             $allContributors = array_merge($authorsList, $coAuthorsList, $editorsList);
                             $contributorLine = implode(', ', $allContributors);
                             ?>
                             <h4>
-                                <?php 
+                                <?php
                                 echo htmlspecialchars($book['title']) . ' / ';
                                 $contributorNames = [];
                                 foreach ($contributors as $contributor) {
@@ -301,8 +301,8 @@ if (!empty($bookTitle)) {
 
                             <!-- Authors Line -->
                             <?php if (!empty($authorsList) || !empty($coAuthorsList) || !empty($editorsList)): ?>
-                                <p><strong>By:</strong> 
-                                    <?php 
+                                <p><strong>By:</strong>
+                                    <?php
                                     echo implode(count($allContributors) > 1 ? ', ' : '', array_map('htmlspecialchars', $allContributors));
                                     ?>
                                 </p>
@@ -313,7 +313,7 @@ if (!empty($bookTitle)) {
 
                             <!-- Publication Details -->
                             <?php if (!empty($publications)): ?>
-                                <p><strong>Publication Details:</strong> 
+                                <p><strong>Publication Details:</strong>
                                     <?php
                                     $pub = $publications[0];
                                     echo htmlspecialchars($pub['place'] . '. ' . $pub['publisher'] . ', ' . $pub['publish_date']);
@@ -322,8 +322,8 @@ if (!empty($bookTitle)) {
                             <?php endif; ?>
 
                             <!-- Physical Description -->
-                            <p><strong>Description:</strong> 
-                                <?php echo htmlspecialchars($book['total_pages'] . ' pages : illustrations ; ' . 
+                            <p><strong>Description:</strong>
+                                <?php echo htmlspecialchars($book['total_pages'] . ' pages : illustrations ; ' .
                                     $book['dimension'] . ' cm'); ?>
                             </p>
 
@@ -414,7 +414,7 @@ if (!empty($bookTitle)) {
                         $marcFields[] = ['LDR', '', '', '00000nam a22000007a 4500'];
                         $marcFields[] = ['001', '', '', $book['accession']];
                         $marcFields[] = ['005', '', '', formatMarc21Date($book['date_added'])];
-                        
+
                         // Variable Fields
                         $marcFields[] = ['020', '##', 'a', $book['ISBN']];
                         $marcFields[] = ['040', '##', 'a', 'PH-MnNBS', 'c', 'PH-MnNBS'];
@@ -429,8 +429,8 @@ if (!empty($bookTitle)) {
                         $responsibilityStatement = [];
                         if (!empty($author)) $responsibilityStatement[] = $author;
                         if (!empty($coauthors)) $responsibilityStatement = array_merge($responsibilityStatement, $coauthors);
-                        
-                        $marcFields[] = ['245', '10', 
+
+                        $marcFields[] = ['245', '10',
                             'a', $book['title'],
                             'c', implode(', ', $responsibilityStatement)
                         ];
@@ -471,7 +471,7 @@ if (!empty($bookTitle)) {
                                 $marcFields[] = ['700', '1#', 'a', $coauthor, 'e', 'co-author'];
                             }
                         }
-                        
+
                         if (!empty($editors)) {
                             foreach ($editors as $editor) {
                                 $marcFields[] = ['700', '1#', 'a', $editor, 'e', 'editor'];
@@ -479,7 +479,7 @@ if (!empty($bookTitle)) {
                         }
 
                         // Holdings Information
-                        $marcFields[] = ['852', '##', 
+                        $marcFields[] = ['852', '##',
                             'a', $book['shelf_location'],
                             'p', $book['accession']
                         ];
@@ -497,7 +497,7 @@ if (!empty($bookTitle)) {
 
                     <!-- Labeled Display -->
                     <div id="marc-labeled-view" class="marc-record">
-                        <?php 
+                        <?php
                         // MARC field descriptions
                         $fieldDescriptions = [
                             'LDR' => 'LEADER',
@@ -546,10 +546,10 @@ if (!empty($bookTitle)) {
                                         if (!empty($field[$i + 1])) {
                                             echo '<div class="subfield">';
                                             echo '<span class="subfield-delimiter">‡</span>';
-                                            echo '<span class="subfield-code" title="' . 
-                                                ($subfieldDescriptions[$field[$i]] ?? 'Subfield ' . $field[$i]) . 
+                                            echo '<span class="subfield-code" title="' .
+                                                ($subfieldDescriptions[$field[$i]] ?? 'Subfield ' . $field[$i]) .
                                                 '">' . $field[$i] . '</span>';
-                                            echo '<span class="subfield-value">' . 
+                                            echo '<span class="subfield-value">' .
                                                 htmlspecialchars(formatMarcValue($field[$i + 1])) . '</span>';
                                             echo '</div>';
                                         }
@@ -692,7 +692,7 @@ foreach ($marcFields as $field) {
                             echo '<div class="isbd-area">';
                             // Title part
                             echo htmlspecialchars($book['title']) . ' / ';
-                            
+
                             // Contributors part
                             $allContributors = array();
                             if (!empty($authorsList)) $allContributors[] = implode(', ', $authorsList);
@@ -767,77 +767,105 @@ foreach ($marcFields as $field) {
     <!-- Scripts section -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
     <script>
-        // Add click event listener for 'Add to Cart' button
-        document.querySelector('.add-to-cart').addEventListener('click', function() {
-            const title = this.getAttribute('data-title');
-            addToCart(title);
-        });
+    // Add click event listener for 'Add to Cart' button
+    document.querySelector('.add-to-cart').addEventListener('click', function() {
+        const title = this.getAttribute('data-title');
+        addToCart(title);
+    });
 
-        // Add click event listener for 'Borrow Book' button
-        document.querySelector('.borrow-book').addEventListener('click', function() {
-            const title = this.getAttribute('data-title');
-            borrowBook(title);
-        });
+    // Add click event listener for 'Borrow Book' button
+    document.querySelector('.borrow-book').addEventListener('click', function() {
+        const title = this.getAttribute('data-title');
+        borrowBook(title);
+    });
 
-        function addToCart(title) {
+    function addToCart(title) {
+        if (!isLoggedIn) {
             Swal.fire({
-                title: 'Are you sure?',
-                text: 'Do you want to add "' + title + '" to the cart?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Yes, add it!',
-                cancelButtonText: 'No, cancel'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    $.ajax({
-                        url: 'add_to_cart.php',
-                        type: 'POST',
-                        data: { title: title },
-                        success: function(response) {
-                            var res = JSON.parse(response);
-                            Swal.fire('Added!', res.message, 'success').then(() => {
-                                if (res.success) {
-                                    location.reload();
-                                }
-                            });
-                        },
-                        error: function() {
-                            Swal.fire('Failed!', 'Failed to add "' + title + '" to cart.', 'error');
-                        }
-                    });
-                }
+                title: 'Please Login',
+                text: 'You need to be logged in to add books to the cart.',
+                icon: 'warning',
+                confirmButtonText: 'OK'
             });
+            return;
         }
 
-        function borrowBook(title) {
+        Swal.fire({
+            title: 'Are you sure?',
+            text: 'Do you want to add "' + title + '" to the cart?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, add it!',
+            cancelButtonText: 'No, cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: 'add_to_cart.php',
+                    type: 'POST',
+                    data: { title: title },
+                    success: function(response) {
+                        var res = JSON.parse(response);
+                        Swal.fire({
+                            title: res.success ? 'Added!' : 'Failed!',
+                            text: res.message,
+                            icon: res.success ? 'success' : 'error'
+                        }).then(() => {
+                            if (res.success) {
+                                location.reload();
+                            }
+                        });
+                    },
+                    error: function() {
+                        Swal.fire('Failed!', 'Failed to add "' + title + '" to cart.', 'error');
+                    }
+                });
+            }
+        });
+    }
+
+    function borrowBook(title) {
+        if (!isLoggedIn) {
             Swal.fire({
-                title: 'Are you sure?',
-                text: 'Do you want to borrow "' + title + '"?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Yes, borrow it!',
-                cancelButtonText: 'No, cancel'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    $.ajax({
-                        url: 'reserve_book.php',
-                        type: 'POST',
-                        data: { title: title },
-                        success: function(response) {
-                            var res = JSON.parse(response);
-                            Swal.fire('Reserved!', res.message, 'success').then(() => {
-                                if (res.success) {
-                                    location.reload();
-                                }
-                            });
-                        },
-                        error: function() {
-                            Swal.fire('Failed!', 'Failed to reserve "' + title + '".', 'error');
-                        }
-                    });
-                }
+                title: 'Please Login',
+                text: 'You need to be logged in to borrow books.',
+                icon: 'warning',
+                confirmButtonText: 'OK'
             });
+            return;
         }
-    </script>
+
+        Swal.fire({
+            title: 'Are you sure?',
+            text: 'Do you want to borrow "' + title + '"?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, borrow it!',
+            cancelButtonText: 'No, cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: 'reserve_book.php',
+                    type: 'POST',
+                    data: { title: title },
+                    success: function(response) {
+                        var res = JSON.parse(response);
+                        Swal.fire({
+                            title: res.success ? 'Reserved!' : 'Failed!',
+                            text: res.message,
+                            icon: res.success ? 'success' : 'error'
+                        }).then(() => {
+                            if (res.success) {
+                                location.reload();
+                            }
+                        });
+                    },
+                    error: function() {
+                        Swal.fire('Failed!', 'Failed to reserve "' + title + '".', 'error');
+                    }
+                });
+            }
+        });
+    }
+</script>
 </body>
 </html>

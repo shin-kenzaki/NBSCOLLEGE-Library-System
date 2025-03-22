@@ -27,11 +27,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute();
         $user_result = $stmt->get_result();
         $user = $user_result->fetch_assoc();
-        
+
         // If user is a student, check for overdue books
         if ($user && $user['usertype'] == 'Student') {
             // Check if the student has any overdue books
-            $overdue_query = "SELECT COUNT(*) as overdue_count FROM borrowings 
+            $overdue_query = "SELECT COUNT(*) as overdue_count FROM borrowings
                               WHERE user_id = ? AND status = 'Overdue'";
             $stmt = $conn->prepare($overdue_query);
             if (!$stmt) {
@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute();
             $overdue_result = $stmt->get_result();
             $overdue = $overdue_result->fetch_assoc();
-            
+
             if ($overdue['overdue_count'] > 0) {
                 throw new Exception("You have " . $overdue['overdue_count'] . " overdue book(s). " .
                                    "All overdue books must be returned before checking out additional books.");
@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // Check if the user has reached the maximum limit of 3 books
-        $query = "SELECT 
+        $query = "SELECT
                   (SELECT COUNT(*) FROM borrowings WHERE user_id = ? AND status = 'Active') +
                   (SELECT COUNT(*) FROM reservations WHERE user_id = ? AND status IN ('Pending', 'Ready')) as total_active_books";
         $stmt = $conn->prepare($query);
@@ -62,22 +62,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $result = $stmt->get_result();
         $total = $result->fetch_assoc();
-        
+
         // Check if adding these new books would exceed the limit
         $new_total = $total['total_active_books'] + count($titles);
         if ($new_total > 3) {
-            throw new Exception("You can only have 3 books borrowed or reserved at once. You currently have " . 
+            throw new Exception("You can only have 3 books borrowed or reserved at once. You currently have " .
                                $total['total_active_books'] . " active books. Please return some books before checking out more.");
         }
 
         foreach ($titles as $title) {
             // Check if the user already has this book reserved
-            $query = "SELECT COUNT(*) as count 
+            $query = "SELECT COUNT(*) as count
                      FROM reservations r
-                     JOIN books b ON r.book_id = b.id 
-                     WHERE r.user_id = ? 
-                     AND b.title = ? 
-                     AND r.cancel_date IS NULL 
+                     JOIN books b ON r.book_id = b.id
+                     WHERE r.user_id = ?
+                     AND b.title = ?
+                     AND r.cancel_date IS NULL
                      AND r.recieved_date IS NULL";
             $stmt = $conn->prepare($query);
             if (!$stmt) {
@@ -159,9 +159,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Get reservation history
-$historyQuery = "SELECT r.id, b.title, r.reserve_date, r.cancel_date, r.recieved_date 
-                FROM reservations r 
-                JOIN books b ON r.book_id = b.id 
+$historyQuery = "SELECT r.id, b.title, r.reserve_date, r.cancel_date, r.recieved_date
+                FROM reservations r
+                JOIN books b ON r.book_id = b.id
                 WHERE r.user_id = ? AND (r.cancel_date IS NOT NULL OR r.recieved_date IS NOT NULL)";
 $historyStmt = $conn->prepare($historyQuery);
 $historyStmt->bind_param('i', $user_id);
@@ -169,14 +169,14 @@ $historyStmt->execute();
 $historyResult = $historyStmt->get_result();
 
 // Get current cart items
-$cartQuery = "SELECT b.title, c.date, 
-             (SELECT CONCAT(w.firstname, ' ', w.lastname) 
-              FROM contributors con 
-              JOIN writers w ON con.writer_id = w.id 
-              WHERE con.book_id = b.id AND con.role = 'Author' 
-              ORDER BY con.id LIMIT 1) as author 
-             FROM cart c 
-             JOIN books b ON c.book_id = b.id 
+$cartQuery = "SELECT b.title, c.date,
+             (SELECT CONCAT(w.firstname, ' ', w.lastname)
+              FROM contributors con
+              JOIN writers w ON con.writer_id = w.id
+              WHERE con.book_id = b.id AND con.role = 'Author'
+              ORDER BY con.id LIMIT 1) as author
+             FROM cart c
+             JOIN books b ON c.book_id = b.id
              WHERE c.user_id = ? AND c.status = 1";
 $cartStmt = $conn->prepare($cartQuery);
 $cartStmt->bind_param('i', $user_id);
