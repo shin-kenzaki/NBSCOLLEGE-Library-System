@@ -75,7 +75,7 @@ while ($row = $result->fetch_assoc()) {
                                 <td style='text-align: center;'><input type="checkbox" class="row-checkbox" value="<?php echo htmlspecialchars($row['id_ranges']); ?>"></td>
                                 <td style='text-align: center;'><?php echo htmlspecialchars($row['id_ranges']); ?></td>
                                 <td><?php echo htmlspecialchars($row['publisher']); ?></td>
-                                <td><?php echo htmlspecialchars($row['place']); ?></td>
+                                <td style='text-align: center;'><?php echo htmlspecialchars($row['place']); ?></td>
                                 <td style='text-align: center;'><?php echo htmlspecialchars($row['publish_year']); ?></td>
                                 <td><?php echo htmlspecialchars($row['book_titles']); ?></td>
                                 <td style='text-align: center;'><?php echo htmlspecialchars($row['total_books']); ?></td>
@@ -157,6 +157,11 @@ $(document).ready(function() {
                 "orderable": false, 
                 "searchable": false,
                 "targets": 0 
+            },
+            {
+                "targets": 1, // ID Range column (second column)
+                "visible": false,
+                "searchable": false
             }
         ],
         "initComplete": function() {

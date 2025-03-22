@@ -82,7 +82,7 @@ if (isset($_POST['submit'])) {
         $title = mysqli_real_escape_string($conn, is_array($_POST['title']) ? $_POST['title'][0] : ($_POST['title'] ?? ''));
         $preferred_title = mysqli_real_escape_string($conn, is_array($_POST['preferred_title']) ? $_POST['preferred_title'][0] : ($_POST['preferred_title'] ?? ''));
         $parallel_title = mysqli_real_escape_string($conn, is_array($_POST['parallel_title']) ? $_POST['parallel_title'][0] : ($_POST['parallel_title'] ?? ''));
-        $call_number = mysqli_real_escape_string($conn, is_array($_POST['call_number']) ? $_POST['call_number'][0] : ($_POST['call_number'] ?? ''));
+        $call_number = mysqli_real_escape_string($conn, isset($_POST['call_numbers']) && is_array($_POST['call_numbers']) && !empty($_POST['call_numbers']) ? $_POST['call_numbers'][0] : '');
         $language = mysqli_real_escape_string($conn, is_array($_POST['language']) ? $_POST['language'][0] : ($_POST['language'] ?? ''));
 
         // Properly handle status with default value
@@ -677,18 +677,27 @@ $subject_options = array(
                                                placeholder="e.g. Z936.98 L39"
                                                value="<?php 
                                                    $call_number = $first_book['call_number'] ?? '';
+                                                   
                                                    // Extract only classification and cutter number
                                                    $parts = explode(' ', $call_number);
-                                                   // Keep only the middle parts (classification and cutter)
-                                                   if (count($parts) > 3) {
-                                                       array_shift($parts); // Remove location code
-                                                       array_pop($parts);   // Remove copy number
-                                                       array_pop($parts);   // Remove year
+                                                   
+                                                   // Check if we have enough parts to process
+                                                   if (count($parts) >= 4) {
+                                                       // Remove first part (location code)
+                                                       array_shift($parts);
+                                                       
+                                                       // Remove last two parts (year and copy number)
+                                                       array_pop($parts); // Remove last part (copy number)
+                                                       array_pop($parts); // Remove second last part (year)
+                                                       
+                                                       // Join the remaining parts which should be classification and cutter
+                                                       echo htmlspecialchars(implode(' ', $parts));
+                                                   } else {
+                                                       // If there are not enough parts, don't display anything
+                                                       echo '';
                                                    }
-                                                   echo htmlspecialchars(implode(' ', $parts));
-                                               ?>" required>
-                                        <small class="text-muted">Enter only the classification number and author cutter (e.g., Z936.98 L39)</small>
-                                        <input type="hidden" name="call_number" value="<?php echo htmlspecialchars($first_book['call_number'] ?? ''); ?>">
+                                               ?>">
+                                        <small class="text-muted">Enter only the classification number and author cutter (e.g., Z936.98 L39) or leave empty if not applicable</small>
                                     </div>
                                 </div>
                             </div>
@@ -768,20 +777,19 @@ $subject_options = array(
                             <div class="col-md-12">
                                 <!-- Display Copy Numbers and Accessions -->
                                 <h5>Book Copies</h5>
-                                <div id="bookCopiesContainer" class="table-responsive">
+                                <div id="bookCopiesContainer" class="table-responsive" style="overflow-x: auto;">
                                     <table class="table table-bordered text-center" style="min-width: 1100px;">
                                         <thead>
                                             <tr>
-                                                <th style="width: 8%;">Copy Number</th>
-                                                <th style="width: 10%;">Accession Number</th>
-                                                <th style="width: 12%;">Shelf Location</th>
-                                                <th style="width: 14%;">Call Number</th>
-                                                <th style="width: 10%;">Series</th>
-                                                <th style="width: 8%;">Volume</th>
-                                                <th style="width: 8%;">Edition</th>
-                                                <th style="width: 12%;">ISBN</th>
-                                                <th style="width: 12%;">Status</th>
-                                                <th style="width: 6%;">Actions</th>
+                                                <th>Copy Number</th>
+                                                <th>Accession Number</th>
+                                                <th>Shelf Location</th>
+                                                <th>Call Number</th>
+                                                <th>Series</th>
+                                                <th>Volume</th>
+                                                <th>Edition</th>
+                                                <th>Status</th>
+                                                <th>Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -816,9 +824,6 @@ $subject_options = array(
                                                     </td>
                                                     <td>
                                                         <input type="text" class="form-control text-center" name="edition[]" value="<?php echo htmlspecialchars($book['edition']); ?>">
-                                                    </td>
-                                                    <td>
-                                                        <input type="text" class="form-control text-center" name="ISBN[]" value="<?php echo htmlspecialchars($book['ISBN']); ?>">
                                                     </td>
                                                     <td>
                                                         <input type="text" class="form-control text-center" 
@@ -918,6 +923,7 @@ $subject_options = array(
                                 </div>
                             </div>
                         </div>
+
                     </div>
 
                 </div>

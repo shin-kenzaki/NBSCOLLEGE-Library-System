@@ -62,22 +62,22 @@ while ($row = $result->fetch_assoc()) {
                         <thead>
                             <tr>
                                 <th style="cursor: pointer; text-align: center;" id="checkboxHeader"><input type="checkbox" id="selectAll"></th>
-                                <th>ID Range</th>
-                                <th>Book Title</th>
-                                <th>Contributor</th>
-                                <th>Role</th>
-                                <th>Total Books</th>
+                                <th style='text-align: center;'>ID Range</th>
+                                <th style='text-align: center;'>Book Title</th>
+                                <th style='text-align: center;'>Contributor</th>
+                                <th style='text-align: center;'>Role</th>
+                                <th style='text-align: center;'>Total Books</th>
                             </tr>
                         </thead>
                         <tbody id="contributorsTableBody">
                             <?php foreach ($contributors_data as $row): ?>
                             <tr>
                                 <td style='text-align: center;'><input type="checkbox" class="row-checkbox" value="<?php echo htmlspecialchars($row['id_ranges']); ?>"></td>
-                                <td><?php echo htmlspecialchars($row['id_ranges']); ?></td>
+                                <td style='text-align: center;'><?php echo htmlspecialchars($row['id_ranges']); ?></td>
                                 <td><?php echo htmlspecialchars($row['book_title']); ?></td>
                                 <td><?php echo htmlspecialchars($row['writer_name']); ?></td>
-                                <td><?php echo htmlspecialchars($row['role']); ?></td>
-                                <td><?php 
+                                <td style='text-align: center;'><?php echo htmlspecialchars($row['role']); ?></td>
+                                <td style='text-align: center;'><?php 
                                     $total = 0;
                                     $ranges = explode(',', $row['id_ranges']);
                                     foreach ($ranges as $range) {
@@ -168,6 +168,11 @@ $(document).ready(function() {
                 "orderable": false, 
                 "searchable": false,
                 "targets": 0 
+            },
+            {
+                "targets": 1, // ID Range column (second column)
+                "visible": false,
+                "searchable": false
             }
         ],
         "initComplete": function() {

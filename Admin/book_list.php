@@ -397,7 +397,7 @@ $result = $stmt->get_result();
             $formatted_editions = implode(', ', array_filter($editions));
 
             // Format all data for display
-            echo "<tr>
+            echo "<tr data-book-id='" . $ids[0] . "'>
                 <td style='text-align: center'><input type='checkbox' class='selectRow' value='" . implode(',', $ids) . "'></td>
                 <td style='text-align: center'>{$id_range}</td>
                 <td>{$row['title']}</td>
@@ -625,7 +625,16 @@ $result = $stmt->get_result();
                 if ($(e.target).is('input[type="checkbox"]')) {
                     return;
                 }
-                var bookId = $(this).find('td:nth-child(2)').text();
+                
+                // Get the book ID from the data attribute or find it from the ID range column
+                var bookId = $(this).data('book-id');
+                if (!bookId) {
+                    // If data attribute isn't available, get ID from the hidden ID range column
+                    var idRange = $(this).find('td:eq(1)').text();
+                    // Extract the first ID from the range (in case it's a range like "1-5")
+                    bookId = idRange.split('-')[0].split(',')[0].trim();
+                }
+                
                 window.location.href = `opac.php?book_id=${bookId}`;
             });
 
@@ -718,6 +727,11 @@ $result = $stmt->get_result();
                         "orderable": false, 
                         "searchable": false,
                         "targets": 0 
+                    },
+                    {
+                        "targets": 1, // ID Range column (second column)
+                        "visible": false,
+                        "searchable": false
                     }
                 ],
                 "order": [[2, "asc"]], // Sort by title by default
@@ -733,6 +747,12 @@ $result = $stmt->get_result();
             });
         });
         </script>
+        <style>
+            /* Add CSS to hide ID range columns but keep them accessible for JavaScript */
+            .hidden-column {
+                display: none;
+            }
+        </style>
     </div>
 </body>
 </html>
