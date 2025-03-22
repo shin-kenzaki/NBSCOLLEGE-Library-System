@@ -61,7 +61,7 @@ while ($row = $result->fetch_assoc()) {
                     <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
-                                <th><input type="checkbox" id="selectAll"></th>
+                                <th style="cursor: pointer; text-align: center;" id="checkboxHeader"><input type="checkbox" id="selectAll"></th>
                                 <th>ID Range</th>
                                 <th>Book Title</th>
                                 <th>Contributor</th>
@@ -72,7 +72,7 @@ while ($row = $result->fetch_assoc()) {
                         <tbody id="contributorsTableBody">
                             <?php foreach ($contributors_data as $row): ?>
                             <tr>
-                                <td><input type="checkbox" class="row-checkbox" value="<?php echo htmlspecialchars($row['id_ranges']); ?>"></td>
+                                <td style='text-align: center;'><input type="checkbox" class="row-checkbox" value="<?php echo htmlspecialchars($row['id_ranges']); ?>"></td>
                                 <td><?php echo htmlspecialchars($row['id_ranges']); ?></td>
                                 <td><?php echo htmlspecialchars($row['book_title']); ?></td>
                                 <td><?php echo htmlspecialchars($row['writer_name']); ?></td>
@@ -162,6 +162,14 @@ $(document).ready(function() {
             "search": "_INPUT_",
             "searchPlaceholder": "Search..."
         },
+        "order": [[2, "asc"]], // Sort by book title by default
+        "columnDefs": [
+            { 
+                "orderable": false, 
+                "searchable": false,
+                "targets": 0 
+            }
+        ],
         "initComplete": function() {
             $('#dataTable_filter input').addClass('form-control form-control-sm');
             $('#dataTable_filter').addClass('d-flex align-items-center');
@@ -255,6 +263,16 @@ $(document).ready(function() {
         if (e.target.type === 'checkbox') return;
         
         // Find the checkbox within this cell and toggle it
+        var checkbox = $(this).find('.row-checkbox');
+        checkbox.prop('checked', !checkbox.prop('checked')).trigger('change');
+    });
+
+    // Add row click handler to check the row checkbox
+    $('#dataTable tbody').on('click', 'tr', function(e) {
+        // If the click was directly on the checkbox, don't execute this handler
+        if (e.target.type === 'checkbox') return;
+        
+        // Find the checkbox within this row and toggle it
         var checkbox = $(this).find('.row-checkbox');
         checkbox.prop('checked', !checkbox.prop('checked')).trigger('change');
     });

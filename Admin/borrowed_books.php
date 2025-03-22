@@ -378,7 +378,7 @@ while ($row = $emailResult->fetch_assoc()) {
                 <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                     <thead>
                         <tr>
-                            <th style="width: 30px;">
+                            <th style="width: 30px; cursor: pointer;" id="checkboxHeader">
                                 <input type="checkbox" id="selectAll" title="Select/Unselect All">
                             </th>
                             <th class="text-center">Accession No.</th>
@@ -1153,6 +1153,40 @@ while ($row = $emailResult->fetch_assoc()) {
         $(window).on('resize', function() {
             table.columns.adjust().draw();
         });
+
+        // Add row click handler to check the row checkbox
+        $('#dataTable tbody').on('click', 'tr', function(e) {
+            // If the click was directly on the checkbox, don't execute this handler
+            if (e.target.type === 'checkbox') return;
+            
+            // Find the checkbox within this row and toggle it
+            var checkbox = $(this).find('.borrow-checkbox');
+            checkbox.prop('checked', !checkbox.prop('checked')).trigger('change');
+        });
+
+        // Handle header checkbox cell click
+        $(document).on('click', '#checkboxHeader', function(e) {
+            // If the click was directly on the checkbox, don't execute this handler
+            if (e.target.type === 'checkbox') return;
+            
+            // Find and toggle the checkbox
+            var checkbox = $('#selectAll');
+            checkbox.prop('checked', !checkbox.prop('checked'));
+            
+            // Update all checkboxes based on the state
+            const isChecked = checkbox.prop('checked');
+            $('.borrow-checkbox').each(function() {
+                const $row = $(this).closest('tr');
+                const status = $row.find('td:eq(8) span').text().trim();
+                // Only select checkboxes for Active or Overdue items
+                if (status === 'Active' || status === 'Overdue') {
+                    $(this).prop('checked', isChecked);
+                }
+            });
+            
+            updateSelectedCount();
+        });
+
     });
 </script>
 </body>

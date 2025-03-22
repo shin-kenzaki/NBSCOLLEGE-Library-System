@@ -60,7 +60,7 @@ while ($row = $result->fetch_assoc()) {
                     <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
-                                <th style="cursor: pointer;" id="checkboxHeader"><input type="checkbox" id="selectAll"></th>
+                                <th style="cursor: pointer; text-align: center;" id="checkboxHeader"><input type="checkbox" id="selectAll"></th>
                                 <th style='text-align: center;'>ID</th>
                                 <th style='text-align: center;'>Publisher</th>
                                 <th style='text-align: center;'>Place</th>
@@ -72,7 +72,7 @@ while ($row = $result->fetch_assoc()) {
                         <tbody id="publicationsTableBody">
                             <?php foreach ($publications_data as $row): ?>
                             <tr>
-                                <td><input type="checkbox" class="row-checkbox" value="<?php echo htmlspecialchars($row['id_ranges']); ?>"></td>
+                                <td style='text-align: center;'><input type="checkbox" class="row-checkbox" value="<?php echo htmlspecialchars($row['id_ranges']); ?>"></td>
                                 <td style='text-align: center;'><?php echo htmlspecialchars($row['id_ranges']); ?></td>
                                 <td><?php echo htmlspecialchars($row['publisher']); ?></td>
                                 <td><?php echo htmlspecialchars($row['place']); ?></td>
@@ -152,6 +152,13 @@ $(document).ready(function() {
             "searchPlaceholder": "Search..."
         },
         "order": [[2, "asc"], [4, "asc"]], // Sort by publisher then year
+        "columnDefs": [
+            { 
+                "orderable": false, 
+                "searchable": false,
+                "targets": 0 
+            }
+        ],
         "initComplete": function() {
             $('#dataTable_filter input').addClass('form-control form-control-sm');
             $('#dataTable_filter').addClass('d-flex align-items-center');
@@ -233,41 +240,22 @@ $(document).ready(function() {
         $('#contextMenu').hide();
     });
 
-    // Modified checkbox handling
-    // Header cell click handler
-    $(document).on('click', 'thead th:first-child', function(e) {
-        // If the click was directly on the checkbox, don't execute this handler
-        if (e.target.type === 'checkbox') return;
-        
-        // Find and click the checkbox
-        var checkbox = $('#selectAll');
-        checkbox.prop('checked', !checkbox.prop('checked'));
-        $('.row-checkbox').prop('checked', checkbox.prop('checked'));
-    });
-
-    // Keep the original checkbox change handlers
-    $('#selectAll').change(function() {
-        $('.row-checkbox').prop('checked', $(this).prop('checked'));
-    });
-
-    $('#dataTable tbody').on('change', '.row-checkbox', function() {
-        if (!$(this).prop('checked')) {
-            $('#selectAll').prop('checked', false);
-        } else {
-            var allChecked = true;
-            $('.row-checkbox').each(function() {
-                if (!$(this).prop('checked')) allChecked = false;
-            });
-            $('#selectAll').prop('checked', allChecked);
-        }
-    });
-
     // Add cell click handler for the checkbox column
     $('#dataTable tbody').on('click', 'td:first-child', function(e) {
         // If the click was directly on the checkbox, don't execute this handler
         if (e.target.type === 'checkbox') return;
         
         // Find the checkbox within this cell and toggle it
+        var checkbox = $(this).find('.row-checkbox');
+        checkbox.prop('checked', !checkbox.prop('checked')).trigger('change');
+    });
+
+    // Add row click handler to check the row checkbox
+    $('#dataTable tbody').on('click', 'tr', function(e) {
+        // If the click was directly on the checkbox, don't execute this handler
+        if (e.target.type === 'checkbox') return;
+        
+        // Find the checkbox within this row and toggle it
         var checkbox = $(this).find('.row-checkbox');
         checkbox.prop('checked', !checkbox.prop('checked')).trigger('change');
     });
