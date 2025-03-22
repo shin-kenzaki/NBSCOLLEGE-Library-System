@@ -1,14 +1,50 @@
 <?php
+ob_start(); // Start output buffering
 session_start();
 
-// Check if the user is logged in and has the appropriate admin role
+// Check login and handle bulk delete first
 if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Librarian', 'Assistant', 'Encoder'])) {
     header("Location: index.php");
     exit();
 }
 
+// Handle bulk delete action
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete') {
+    if (isset($_POST['ids']) && !empty($_POST['ids'])) {
+        require_once '../db.php';
+        $conn->begin_transaction();
+        try {
+            $deleteCount = 0;
+            $stmt = $conn->prepare("DELETE FROM contributors WHERE id = ?");
+            
+            foreach ($_POST['ids'] as $id) {
+                $id = (int)$id;
+                $stmt->bind_param("i", $id);
+                if ($stmt->execute()) {
+                    $deleteCount++;
+                }
+            }
+            
+            $conn->commit();
+            
+            echo json_encode(['success' => true, 'message' => "$deleteCount contributor(s) deleted successfully."]);
+            exit();
+        } catch (Exception $e) {
+            $conn->rollback();
+            echo json_encode(['success' => false, 'message' => "Error deleting contributors: " . $e->getMessage()]);
+            exit();
+        }
+    }
+}
+
+// Include other files after header operations
 include '../admin/inc/header.php';
 include '../db.php';
+
+// Initialize selected contributors array in session if not exists
+if (!isset($_SESSION['selectedContributorIds'])) {
+    $_SESSION['selectedContributorIds'] = [];
+}
 
 // Get search parameters
 $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
@@ -53,8 +89,15 @@ while ($row = $result->fetch_assoc()) {
 <div id="content" class="d-flex flex-column min-vh-100">
     <div class="container-fluid">
         <div class="card shadow mb-4">
-            <div class="card-header py-3">
+            <div class="card-header py-3 d-flex flex-wrap align-items-center justify-content-between">
                 <h6 class="m-0 font-weight-bold text-primary">Contributors List</h6>
+                <div class="d-flex align-items-center">
+                    <button id="returnSelectedBtn" class="btn btn-danger btn-sm mr-2 bulk-delete-btn" disabled>
+                        <i class="fas fa-trash"></i>
+                        <span>Delete Selected</span>
+                        <span class="badge badge-light ml-1">0</span>
+                    </button>
+                </div>
             </div>
             <div class="card-body px-0">
                 <div class="table-responsive px-3">
@@ -100,6 +143,12 @@ while ($row = $result->fetch_assoc()) {
     </div>
 </div>
 
+<!-- Hidden form for bulk delete -->
+<form id="bulkActionForm" method="POST" action="contributors_list.php">
+    <input type="hidden" name="action" value="delete">
+    <div id="selected_ids_container"></div>
+</form>
+
 <!-- Context Menu -->
 <div id="contextMenu" class="context-menu" style="display: none; position: fixed; z-index: 1000;">
     <ul class="context-menu-list list-unstyled m-0">
@@ -144,9 +193,23 @@ while ($row = $result->fetch_assoc()) {
 .table td, .table th {
     white-space: nowrap;
 }
+
+.bulk-delete-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.bulk-delete-btn .badge {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
 </style>
 
 <?php include '../Admin/inc/footer.php'; ?>
+
+<!-- SweetAlert2 CDN -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
 $(document).ready(function() {
@@ -170,9 +233,9 @@ $(document).ready(function() {
                 "targets": 0 
             },
             {
-                "targets": 1, // ID Range column (second column)
-                "visible": false,
-                "searchable": false
+                "targets": 1, // ID Range column
+                "visible": true,  // Changed from false to true
+                "searchable": true // Allow searching ID ranges
             }
         ],
         "initComplete": function() {
@@ -216,18 +279,62 @@ $(document).ready(function() {
         if (!selectedRow) return;
         
         if (action === 'edit') {
-            window.location.href = 'update_contributors.php?ids=' + selectedRow.id_ranges;
+            window.location.href = 'update_contributors.php?ids=' + selectedRow[1];
         } else if (action === 'delete') {
-            if (confirm('Are you sure you want to delete all contributors with these IDs: ' + selectedRow.id_ranges + '?')) {
-                $.post('delete_contributors.php', {
-                    ids: selectedRow.id_ranges  // Pass the full ID ranges string
-                }, function(response) {
-                    if (response.success) {
-                        table.ajax.reload();
-                    }
-                    alert(response.message);
-                }, 'json');
-            }
+            let idRanges = selectedRow[1]; // Get ID ranges from the second column
+            let bookTitle = selectedRow[2];
+            let contributor = selectedRow[3];
+            let role = selectedRow[4];
+
+            let totalItems = 0;
+            idRanges.split(',').forEach(item => {
+                if (item.includes('-')) {
+                    const [start, end] = item.split('-').map(Number);
+                    totalItems += end - start + 1;
+                } else {
+                    totalItems++;
+                }
+            });
+
+            Swal.fire({
+                title: 'Are you sure?',
+                html: `You are about to delete ${totalItems} contribution(s) from:<br><br>` +
+                      `${contributor} (${role})<br>Book: ${bookTitle}`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, delete it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.post('contributors_list.php', {
+                        action: 'delete',
+                        ids: idRanges.split(',').map(range => {
+                            if (range.includes('-')) {
+                                const [start, end] = range.split('-').map(Number);
+                                return Array.from({length: end - start + 1}, (_, i) => start + i);
+                            }
+                            return parseInt(range.trim());
+                        }).flat()
+                    }, function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                title: 'Deleted!',
+                                text: response.message,
+                                icon: 'success'
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Error!',
+                                text: response.message,
+                                icon: 'error'
+                            });
+                        }
+                    }, 'json');
+                }
+            });
         }
         
         $('#contextMenu').hide();
@@ -280,6 +387,113 @@ $(document).ready(function() {
         // Find the checkbox within this row and toggle it
         var checkbox = $(this).find('.row-checkbox');
         checkbox.prop('checked', !checkbox.prop('checked')).trigger('change');
+    });
+
+    function updateDeleteButton() {
+        const count = $('.row-checkbox:checked').length;
+        const deleteBtn = $('.bulk-delete-btn');
+        deleteBtn.find('.badge').text(count);
+        deleteBtn.prop('disabled', count === 0);
+    }
+
+    // Handle checkbox changes
+    $('#dataTable').on('change', '.row-checkbox', function() {
+        updateDeleteButton();
+    });
+
+    // Handle bulk delete
+    $('.bulk-delete-btn').on('click', function(e) {
+        e.preventDefault();
+        
+        const selectedRanges = [];
+        let selectedBooks = [];
+        
+        $('.row-checkbox:checked').each(function() {
+            const row = $(this).closest('tr');
+            const idRange = row.find('td:eq(1)').text(); // Get ID range from hidden column
+            const bookTitle = row.find('td:eq(2)').text();
+            selectedRanges.push(idRange);
+            selectedBooks.push(bookTitle);
+        });
+
+        if (selectedRanges.length === 0) {
+            Swal.fire({
+                title: 'No Selection',
+                text: 'Please select at least one contributor group to delete.',
+                icon: 'warning'
+            });
+            return;
+        }
+
+        // Calculate total items to be deleted
+        let totalItems = 0;
+        selectedRanges.forEach(range => {
+            range.split(',').forEach(item => {
+                if (item.includes('-')) {
+                    const [start, end] = item.split('-').map(Number);
+                    totalItems += end - start + 1;
+                } else {
+                    totalItems++;
+                }
+            });
+        });
+
+        Swal.fire({
+            title: 'Are you sure?',
+            html: `You are about to delete ${totalItems} contributor(s) from:<br><br>` +
+                  selectedBooks.map(book => `- ${book}`).join('<br>'),
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, delete them!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $('#selected_ids_container').empty();
+                selectedRanges.forEach(range => {
+                    range.split(',').forEach(item => {
+                        if (item.includes('-')) {
+                            const [start, end] = item.split('-').map(Number);
+                            for (let id = start; id <= end; id++) {
+                                $('#selected_ids_container').append(
+                                    `<input type="hidden" name="ids[]" value="${id}">`
+                                );
+                            }
+                        } else {
+                            $('#selected_ids_container').append(
+                                `<input type="hidden" name="ids[]" value="${item.trim()}">`
+                            );
+                        }
+                    });
+                });
+
+                // Submit form with AJAX
+                $.ajax({
+                    url: 'contributors_list.php',
+                    method: 'POST',
+                    data: $('#bulkActionForm').serialize(),
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                title: 'Deleted!',
+                                text: response.message,
+                                icon: 'success'
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Error!',
+                                text: response.message,
+                                icon: 'error'
+                            });
+                        }
+                    }
+                });
+            }
+        });
     });
 });
 </script>

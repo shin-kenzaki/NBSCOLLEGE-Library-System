@@ -251,6 +251,78 @@ if (isset($_POST['submit'])) {
             $stmt->close();
         }
 
+        // Update publications for each book
+        foreach ($bookIds as $bookId) {
+            // Get publisher ID from name
+            $publisher_name = mysqli_real_escape_string($conn, $_POST['publisher'] ?? '');
+            $publisher_id = null;
+            
+            if (!empty($publisher_name)) {
+                // Check if publisher exists
+                $check_publisher = "SELECT id FROM publishers WHERE publisher = ?";
+                $stmt = $conn->prepare($check_publisher);
+                $stmt->bind_param("s", $publisher_name);
+                $stmt->execute();
+                $publisher_result = $stmt->get_result();
+                
+                if ($publisher_result->num_rows > 0) {
+                    // Publisher exists, get ID
+                    $publisher_id = $publisher_result->fetch_assoc()['id'];
+                } else {
+                    // Publisher doesn't exist, create new (with default place for now)
+                    $new_publisher = "INSERT INTO publishers (publisher, place) VALUES (?, 'Unknown')";
+                    $stmt = $conn->prepare($new_publisher);
+                    $stmt->bind_param("s", $publisher_name);
+                    $stmt->execute();
+                    $publisher_id = $conn->insert_id;
+                }
+            }
+            
+            // Get publish date
+            $publish_date = !empty($_POST['publish_date']) ? $_POST['publish_date'] : null;
+            
+            if ($publisher_id !== null || $publish_date !== null) {
+                // Check if publication entry exists for this book
+                $check_pub = "SELECT id FROM publications WHERE book_id = ?";
+                $stmt = $conn->prepare($check_pub);
+                $stmt->bind_param("i", $bookId);
+                $stmt->execute();
+                $pub_result = $stmt->get_result();
+                
+                if ($pub_result->num_rows > 0) {
+                    // Publication exists, update it
+                    $pub_id = $pub_result->fetch_assoc()['id'];
+                    
+                    // Build the update query based on which fields we have
+                    if ($publisher_id !== null && $publish_date !== null) {
+                        $update_pub = "UPDATE publications SET publisher_id = ?, publish_date = ? WHERE id = ?";
+                        $stmt = $conn->prepare($update_pub);
+                        $stmt->bind_param("isi", $publisher_id, $publish_date, $pub_id);
+                    } elseif ($publisher_id !== null) {
+                        $update_pub = "UPDATE publications SET publisher_id = ? WHERE id = ?";
+                        $stmt = $conn->prepare($update_pub);
+                        $stmt->bind_param("ii", $publisher_id, $pub_id);
+                    } elseif ($publish_date !== null) {
+                        $update_pub = "UPDATE publications SET publish_date = ? WHERE id = ?";
+                        $stmt = $conn->prepare($update_pub);
+                        $stmt->bind_param("si", $publish_date, $pub_id);
+                    }
+                    
+                    if (isset($update_pub)) {
+                        $stmt->execute();
+                    }
+                } else {
+                    // No publication entry exists, create one if we have both publisher and year
+                    if ($publisher_id !== null) {
+                        $insert_pub = "INSERT INTO publications (book_id, publisher_id, publish_date) VALUES (?, ?, ?)";
+                        $stmt = $conn->prepare($insert_pub);
+                        $stmt->bind_param("iis", $bookId, $publisher_id, $publish_date);
+                        $stmt->execute();
+                    }
+                }
+            }
+        }
+
         // Update contributors - MODIFIED SECTION
         if (!empty($_POST['author']) || !empty($_POST['author'][0])) {
             foreach ($bookIds as $bookId) {

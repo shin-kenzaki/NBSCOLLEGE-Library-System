@@ -1,28 +1,63 @@
 <?php
+ob_start(); // Start output buffering
 session_start();
 
-// Check if the user is logged in and has the appropriate admin role
+// Check login and handle bulk delete first
 if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Librarian', 'Assistant', 'Encoder'])) {
     header("Location: index.php");
     exit();
 }
 
+// Handle bulk delete action
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete') {
+    if (isset($_POST['ids']) && !empty($_POST['ids'])) {
+        require_once '../db.php';
+        $conn->begin_transaction();
+        try {
+            $deleteCount = 0;
+            $stmt = $conn->prepare("DELETE FROM publications WHERE id = ?");
+            
+            foreach ($_POST['ids'] as $id) {
+                $id = (int)$id;
+                $stmt->bind_param("i", $id);
+                if ($stmt->execute()) {
+                    $deleteCount++;
+                }
+            }
+            
+            $conn->commit();
+            echo json_encode(['success' => true, 'message' => "$deleteCount publication(s) deleted successfully."]);
+            exit();
+        } catch (Exception $e) {
+            $conn->rollback();
+            echo json_encode(['success' => false, 'message' => "Error deleting publications: " . $e->getMessage()]);
+            exit();
+        }
+    }
+}
+
+// Include other files after header operations
 include '../admin/inc/header.php';
 include '../db.php';
+
+// Initialize selected publications array in session if not exists
+if (!isset($_SESSION['selectedPublicationIds'])) {
+    $_SESSION['selectedPublicationIds'] = [];
+}
 
 // Query to fetch publications data
 $query = "SELECT 
             GROUP_CONCAT(p.id ORDER BY p.id) AS id_ranges,
             pb.publisher,
             pb.place,
-            YEAR(p.publish_date) AS publish_year,  -- Extract the year
-            GROUP_CONCAT(DISTINCT b.title ORDER BY b.title SEPARATOR '; ') AS book_titles,
+            b.title AS book_title,
+            GROUP_CONCAT(DISTINCT YEAR(p.publish_date) ORDER BY YEAR(p.publish_date)) AS publish_years,
             COUNT(p.id) AS total_books
           FROM publications p 
           JOIN books b ON p.book_id = b.id 
           JOIN publishers pb ON p.publisher_id = pb.id
-          GROUP BY pb.publisher, pb.place, YEAR(p.publish_date)  -- Group by publisher, place, and year
-          ORDER BY pb.publisher, YEAR(p.publish_date)";
+          GROUP BY pb.publisher, pb.place, b.title  -- Group by publisher, place, and title
+          ORDER BY pb.publisher, b.title";
 
 $result = $conn->query($query);
 $publications_data = array();
@@ -52,8 +87,15 @@ while ($row = $result->fetch_assoc()) {
 <div id="content" class="d-flex flex-column min-vh-100">
     <div class="container-fluid">
         <div class="card shadow mb-4">
-            <div class="card-header py-3">
+            <div class="card-header py-3 d-flex flex-wrap align-items-center justify-content-between">
                 <h6 class="m-0 font-weight-bold text-primary">Publications List</h6>
+                <div class="d-flex align-items-center">
+                    <button id="returnSelectedBtn" class="btn btn-danger btn-sm mr-2 bulk-delete-btn" disabled>
+                        <i class="fas fa-trash"></i>
+                        <span>Delete Selected</span>
+                        <span class="badge badge-light ml-1">0</span>
+                    </button>
+                </div>
             </div>
             <div class="card-body px-0">
                 <div class="table-responsive px-3">
@@ -64,8 +106,8 @@ while ($row = $result->fetch_assoc()) {
                                 <th style='text-align: center;'>ID</th>
                                 <th style='text-align: center;'>Publisher</th>
                                 <th style='text-align: center;'>Place</th>
-                                <th style='text-align: center;'>Year</th>
-                                <th style='text-align: center;'>Book Titles</th>
+                                <th style='text-align: center;'>Book Title</th>
+                                <th style='text-align: center;'>Years</th>
                                 <th style='text-align: center;'>Total Books</th>
                             </tr>
                         </thead>
@@ -76,8 +118,8 @@ while ($row = $result->fetch_assoc()) {
                                 <td style='text-align: center;'><?php echo htmlspecialchars($row['id_ranges']); ?></td>
                                 <td><?php echo htmlspecialchars($row['publisher']); ?></td>
                                 <td style='text-align: center;'><?php echo htmlspecialchars($row['place']); ?></td>
-                                <td style='text-align: center;'><?php echo htmlspecialchars($row['publish_year']); ?></td>
-                                <td><?php echo htmlspecialchars($row['book_titles']); ?></td>
+                                <td><?php echo htmlspecialchars($row['book_title']); ?></td>
+                                <td style='text-align: center;'><?php echo htmlspecialchars($row['publish_years']); ?></td>
                                 <td style='text-align: center;'><?php echo htmlspecialchars($row['total_books']); ?></td>
                             </tr>
                             <?php endforeach; ?>
@@ -88,6 +130,12 @@ while ($row = $result->fetch_assoc()) {
         </div>
     </div>
 </div>
+
+<!-- Hidden form for bulk delete -->
+<form id="bulkActionForm" method="POST" action="publications_list.php">
+    <input type="hidden" name="action" value="delete">
+    <div id="selected_ids_container"></div>
+</form>
 
 <!-- Context Menu -->
 <div id="contextMenu" class="context-menu" style="display: none; position: fixed; z-index: 1000;">
@@ -133,9 +181,23 @@ while ($row = $result->fetch_assoc()) {
 .table td, .table th {
     white-space: nowrap;
 }
+
+.bulk-delete-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.bulk-delete-btn .badge {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
 </style>
 
 <?php include '../Admin/inc/footer.php'; ?>
+
+<!-- SweetAlert2 CDN -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
 $(document).ready(function() {
@@ -151,7 +213,7 @@ $(document).ready(function() {
             "search": "_INPUT_",
             "searchPlaceholder": "Search..."
         },
-        "order": [[2, "asc"], [4, "asc"]], // Sort by publisher then year
+        "order": [[2, "asc"], [4, "asc"]], // Sort by publisher then book title
         "columnDefs": [
             { 
                 "orderable": false, 
@@ -159,9 +221,9 @@ $(document).ready(function() {
                 "targets": 0 
             },
             {
-                "targets": 1, // ID Range column (second column)
-                "visible": false,
-                "searchable": false
+                "targets": 1, // ID Range column
+                "visible": true,  // Changed from false to true
+                "searchable": true // Allow searching ID ranges
             }
         ],
         "initComplete": function() {
@@ -230,16 +292,59 @@ $(document).ready(function() {
         if (action === 'edit') {
             window.location.href = 'update_publications.php?ids=' + selectedRow.id;
         } else if (action === 'delete') {
-            if (confirm('Are you sure you want to delete all publications with these IDs: ' + selectedRow.id + '?')) {
-                $.post('delete_publications.php', {
-                    ids: selectedRow.id  // This now contains the ID ranges
-                }, function(response) {
-                    if (response.success) {
-                        table.ajax.reload();
-                    }
-                    alert(response.message);
-                }, 'json');
-            }
+            let idRanges = selectedRow[1]; // Get ID ranges from the second column
+            let publisher = selectedRow[2];
+            let year = selectedRow[4];
+
+            let totalItems = 0;
+            idRanges.split(',').forEach(item => {
+                if (item.includes('-')) {
+                    const [start, end] = item.split('-').map(Number);
+                    totalItems += end - start + 1;
+                } else {
+                    totalItems++;
+                }
+            });
+
+            Swal.fire({
+                title: 'Are you sure?',
+                html: `You are about to delete ${totalItems} publication(s) from:<br><br>` +
+                      `${publisher} (${year})`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, delete it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.post('publications_list.php', {
+                        action: 'delete',
+                        ids: idRanges.split(',').map(range => {
+                            if (range.includes('-')) {
+                                const [start, end] = range.split('-').map(Number);
+                                return Array.from({length: end - start + 1}, (_, i) => start + i);
+                            }
+                            return parseInt(range.trim());
+                        }).flat()
+                    }, function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                title: 'Deleted!',
+                                text: response.message,
+                                icon: 'success'
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Error!',
+                                text: response.message,
+                                icon: 'error'
+                            });
+                        }
+                    }, 'json');
+                }
+            });
         }
         
         $('#contextMenu').hide();
@@ -268,6 +373,113 @@ $(document).ready(function() {
     // Add window resize handler
     $(window).on('resize', function () {
         table.columns.adjust();
+    });
+
+    function updateDeleteButton() {
+        const count = $('.row-checkbox:checked').length;
+        const deleteBtn = $('.bulk-delete-btn');
+        deleteBtn.find('.badge').text(count);
+        deleteBtn.prop('disabled', count === 0);
+    }
+
+    // Handle checkbox changes
+    $('#dataTable').on('change', '.row-checkbox', function() {
+        updateDeleteButton();
+    });
+
+    // Handle bulk delete
+    $('.bulk-delete-btn').on('click', function(e) {
+        e.preventDefault();
+        
+        const selectedRanges = [];
+        let selectedPublications = [];
+        
+        $('.row-checkbox:checked').each(function() {
+            const row = $(this).closest('tr');
+            const idRange = row.find('td:eq(1)').text(); // Get ID range from hidden column
+            const publisher = row.find('td:eq(2)').text();
+            const year = row.find('td:eq(4)').text();
+            selectedRanges.push(idRange);
+            selectedPublications.push(`${publisher} (${year})`);
+        });
+
+        if (selectedRanges.length === 0) {
+            Swal.fire({
+                title: 'No Selection',
+                text: 'Please select at least one publication group to delete.',
+                icon: 'warning'
+            });
+            return;
+        }
+
+        let totalItems = 0;
+        selectedRanges.forEach(range => {
+            range.split(',').forEach(item => {
+                if (item.includes('-')) {
+                    const [start, end] = item.split('-').map(Number);
+                    totalItems += end - start + 1;
+                } else {
+                    totalItems++;
+                }
+            });
+        });
+
+        Swal.fire({
+            title: 'Are you sure?',
+            html: `You are about to delete ${totalItems} publication(s) from:<br><br>` +
+                  selectedPublications.map(pub => `- ${pub}`).join('<br>'),
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, delete them!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $('#selected_ids_container').empty();
+                selectedRanges.forEach(range => {
+                    range.split(',').forEach(item => {
+                        if (item.includes('-')) {
+                            const [start, end] = item.split('-').map(Number);
+                            for (let id = start; id <= end; id++) {
+                                $('#selected_ids_container').append(
+                                    `<input type="hidden" name="ids[]" value="${id}">`
+                                );
+                            }
+                        } else {
+                            $('#selected_ids_container').append(
+                                `<input type="hidden" name="ids[]" value="${item.trim()}">`
+                            );
+                        }
+                    });
+                });
+
+                // Submit form with AJAX
+                $.ajax({
+                    url: 'publications_list.php',
+                    method: 'POST',
+                    data: $('#bulkActionForm').serialize(),
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                title: 'Deleted!',
+                                text: response.message,
+                                icon: 'success'
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Error!',
+                                text: response.message,
+                                icon: 'error'
+                            });
+                        }
+                    }
+                });
+            }
+        });
     });
 });
 </script>

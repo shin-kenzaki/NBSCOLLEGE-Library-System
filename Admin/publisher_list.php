@@ -7,6 +7,10 @@ if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Lib
     exit();
 }
 
+// Include the database connection first
+include '../db.php';
+include '../admin/inc/header.php';
+
 // Initialize selected publishers array in session if not exists
 if (!isset($_SESSION['selectedPublisherIds'])) {
     $_SESSION['selectedPublisherIds'] = [];
@@ -74,9 +78,6 @@ if (isset($_POST['bulk_action']) && isset($_POST['selected_ids'])) {
     header("Location: publisher_list.php");
     exit;
 }
-
-include '../admin/inc/header.php';
-include '../db.php';
 
 // Count total publishers
 $totalPublishersQuery = "SELECT COUNT(*) as total FROM publishers";
@@ -185,6 +186,18 @@ $result = $conn->query($sql);
         font-weight: 600;
         margin-left: 10px;
     }
+    
+    /* Add button badge styles */
+    .bulk-delete-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .bulk-delete-btn .badge {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
 </style>
 
 <!-- Main Content -->
@@ -197,16 +210,12 @@ $result = $conn->query($sql);
                     <span class="mr-3 total-publishers-display">
                         Total Publishers: <?php echo number_format($totalPublishers); ?>
                     </span>
-                    <div class="dropdown mr-2">
-                        <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" id="bulkActionDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            Bulk Actions
-                        </button>
-                        <div class="dropdown-menu" aria-labelledby="bulkActionDropdown">
-                            <a class="dropdown-item bulk-action" href="#" data-action="delete">Delete Selected</a>
-                            <!-- Add more bulk actions as needed -->
-                        </div>
-                    </div>
-                    <button class="btn btn-primary" data-toggle="modal" data-target="#addPublisherModal">Add Publisher</button>
+                    <button id="returnSelectedBtn" class="btn btn-danger btn-sm mr-2 bulk-delete-btn" disabled>
+                        <i class="fas fa-trash"></i>
+                        <span>Delete Selected</span>
+                        <span class="badge badge-light ml-1">0</span>
+                    </button>
+                    <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#addPublisherModal">Add Publisher</button>
                 </div>
             </div>
             <div class="card-body px-0">
@@ -448,19 +457,37 @@ $(document).ready(function () {
         if ($(this).is('input')) {
             e.stopPropagation();
         }
+        
+        // Update the selectedIds array
+        if ($('#selectAll').prop('checked')) {
+            $('.row-checkbox').each(function() {
+                var id = $(this).val();
+                if (!selectedIds.includes(id)) {
+                    selectedIds.push(id);
+                }
+            });
+        } else {
+            selectedIds = [];
+        }
+        
+        saveSelectedIds();
     });
 
     // Handle individual checkbox changes
     $('#dataTable tbody').on('change', '.row-checkbox', function() {
-        if (!$(this).prop('checked')) {
-            $('#selectAll').prop('checked', false);
+        var id = $(this).val();
+        
+        if ($(this).prop('checked')) {
+            if (!selectedIds.includes(id)) {
+                selectedIds.push(id);
+            }
         } else {
-            var allChecked = true;
-            $('.row-checkbox').each(function() {
-                if (!$(this).prop('checked')) allChecked = false;
-            });
-            $('#selectAll').prop('checked', allChecked);
+            selectedIds = selectedIds.filter(item => item !== id);
         }
+        
+        // Update select all checkbox
+        updateSelectAllCheckbox();
+        saveSelectedIds();
     });
 
     // Add cell click handler for the checkbox column
@@ -473,6 +500,21 @@ $(document).ready(function () {
         checkbox.prop('checked', !checkbox.prop('checked')).trigger('change');
     });
 
+    // Add row click handler to check the row checkbox
+    $('#dataTable tbody').on('click', 'tr', function(e) {
+        // Ignore clicks on checkbox itself and on action buttons
+        if (e.target.type === 'checkbox' || $(e.target).hasClass('btn') || $(e.target).parent().hasClass('btn')) {
+            return;
+        }
+        
+        // Find the checkbox within this row and toggle it
+        var checkbox = $(this).find('.row-checkbox');
+        checkbox.prop('checked', !checkbox.prop('checked')).trigger('change');
+    });
+
+    // Remove the old handlers that might interfere
+    $('#dataTable tbody').off('click', 'tr');
+    
     // Track selected rows
     var selectedIds = <?php echo json_encode($_SESSION['selectedPublisherIds'] ?? []); ?>;
     
@@ -497,6 +539,7 @@ $(document).ready(function () {
     
     // Save selected IDs to session via AJAX
     function saveSelectedIds() {
+        updateDeleteButton(); // Add this line
         $.ajax({
             url: 'publisher_list.php',
             type: 'POST',
@@ -596,6 +639,64 @@ $(document).ready(function () {
             
             // Set the action and submit
             $('#bulk_action').val(action);
+            $('#bulkActionForm').submit();
+        }
+    });
+
+    // Modified checkbox handling - Header cell click handler
+    $(document).on('click', 'thead th:first-child', function(e) {
+        // If the click was directly on the checkbox, don't execute this handler
+        if (e.target.type === 'checkbox') return;
+        
+        // Find and click the checkbox
+        var checkbox = $('#selectAll');
+        checkbox.prop('checked', !checkbox.prop('checked'));
+        $('.row-checkbox').prop('checked', checkbox.prop('checked'));
+        
+        // Update selectedIds array
+        if (checkbox.prop('checked')) {
+            $('.row-checkbox').each(function() {
+                var id = $(this).val();
+                if (!selectedIds.includes(id)) {
+                    selectedIds.push(id);
+                }
+            });
+        } else {
+            selectedIds = [];
+        }
+        saveSelectedIds();
+    });
+
+    // Remove old header click handlers
+    $('#checkboxHeader').off('click');
+    $('#selectAll, #checkboxHeader').off('click');
+
+    // Keep existing checkbox change handlers
+
+    function updateDeleteButton() {
+        const count = selectedIds.length;
+        const deleteBtn = $('.bulk-delete-btn');
+        deleteBtn.find('.badge').text(count);
+        deleteBtn.prop('disabled', count === 0);
+    }
+
+    // Replace the bulk-action click handler with this:
+    $('.bulk-delete-btn').on('click', function(e) {
+        e.preventDefault();
+        
+        if (selectedIds.length === 0) {
+            alert('Please select at least one publisher to delete.');
+            return;
+        }
+        
+        var confirmMessage = 'Are you sure you want to delete ' + selectedIds.length + ' selected publisher(s)?\n\nThis will also delete all publication records for these publishers.';
+        
+        if (confirm(confirmMessage)) {
+            $('#selected_ids_container').empty();
+            selectedIds.forEach(function(id) {
+                $('#selected_ids_container').append('<input type="hidden" name="selected_ids[]" value="' + id + '">');
+            });
+            $('#bulk_action').val('delete');
             $('#bulkActionForm').submit();
         }
     });

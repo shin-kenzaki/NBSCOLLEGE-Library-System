@@ -7,6 +7,10 @@ if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Lib
     exit();
 }
 
+// Include the database connection first
+include '../db.php';
+include '../admin/inc/header.php';
+
 // Initialize selected writers array in session if not exists
 if (!isset($_SESSION['selectedWriterIds'])) {
     $_SESSION['selectedWriterIds'] = [];
@@ -74,9 +78,6 @@ if (isset($_POST['bulk_action']) && isset($_POST['selected_ids'])) {
     header("Location: writers_list.php");
     exit;
 }
-
-include '../admin/inc/header.php';
-include '../db.php';
 
 // Count total writers
 $totalWritersQuery = "SELECT COUNT(*) as total FROM writers";
@@ -158,16 +159,12 @@ $result = $conn->query($sql);
                     <span class="mr-3 total-writers-display">
                         Total Writers: <?php echo number_format($totalWriters); ?>
                     </span>
-                    <div class="dropdown mr-2">
-                        <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" id="bulkActionDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            Bulk Actions
-                        </button>
-                        <div class="dropdown-menu" aria-labelledby="bulkActionDropdown">
-                            <a class="dropdown-item bulk-action" href="#" data-action="delete">Delete Selected</a>
-                            <!-- Add more bulk actions as needed -->
-                        </div>
-                    </div>
-                    <button class="btn btn-primary" data-toggle="modal" data-target="#addWriterModal">Add Writer</button>
+                    <button id="returnSelectedBtn" class="btn btn-danger btn-sm mr-2 bulk-delete-btn" disabled>
+                        <i class="fas fa-trash"></i>
+                        <span>Delete Selected</span>
+                        <span class="badge badge-light ml-1">0</span>
+                    </button>
+                    <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#addWriterModal">Add Writer</button>
                 </div>
             </div>
             <div class="card-body px-0"> <!-- Remove padding for full-width scroll -->
@@ -337,6 +334,18 @@ $result = $conn->query($sql);
         font-weight: 600;
         margin-left: 10px;
     }
+
+    /* Add button badge styles */
+    .bulk-delete-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .bulk-delete-btn .badge {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
 </style>
 
 <script>
@@ -400,7 +409,7 @@ $(document).ready(function () {
         e.preventDefault();
         $('#dataTable tbody tr').removeClass('context-menu-active');
         $(this).addClass('context-menu-active');
-        selectedWriterId = $(this).find('td:nth-child(1)').text();
+        selectedWriterId = $(this).find('td:nth-child(2)').text(); // Changed from td:nth-child(1) to td:nth-child(2)
         $('#contextMenu').css({
             display: 'block',
             left: e.pageX,
@@ -504,19 +513,37 @@ $(document).ready(function () {
         if ($(this).is('input')) {
             e.stopPropagation();
         }
+        
+        // Update the selectedIds array and save to session
+        if ($('#selectAll').prop('checked')) {
+            $('.row-checkbox').each(function() {
+                var id = $(this).val();
+                if (!selectedIds.includes(id)) {
+                    selectedIds.push(id);
+                }
+            });
+        } else {
+            selectedIds = [];
+        }
+        
+        saveSelectedIds();
     });
 
     // Handle individual checkbox changes
     $('#dataTable tbody').on('change', '.row-checkbox', function() {
-        if (!$(this).prop('checked')) {
-            $('#selectAll').prop('checked', false);
+        var id = $(this).val();
+        
+        if ($(this).prop('checked')) {
+            if (!selectedIds.includes(id)) {
+                selectedIds.push(id);
+            }
         } else {
-            var allChecked = true;
-            $('.row-checkbox').each(function() {
-                if (!$(this).prop('checked')) allChecked = false;
-            });
-            $('#selectAll').prop('checked', allChecked);
+            selectedIds = selectedIds.filter(item => item !== id);
         }
+        
+        // Update select all checkbox
+        updateSelectAllCheckbox();
+        saveSelectedIds();
     });
 
     // Add cell click handler for the checkbox column
@@ -529,11 +556,21 @@ $(document).ready(function () {
         checkbox.prop('checked', !checkbox.prop('checked')).trigger('change');
     });
 
-    // Add window resize handler
-    $(window).on('resize', function () {
-        table.columns.adjust();
+    // Add row click handler to check the row checkbox
+    $('#dataTable tbody').on('click', 'tr', function(e) {
+        // Ignore clicks on checkbox itself and on action buttons
+        if (e.target.type === 'checkbox' || $(e.target).hasClass('btn') || $(e.target).parent().hasClass('btn')) {
+            return;
+        }
+        
+        // Find the checkbox within this row and toggle it
+        var checkbox = $(this).find('.row-checkbox');
+        checkbox.prop('checked', !checkbox.prop('checked')).trigger('change');
     });
 
+    // Remove the old handlers that might interfere
+    $('#dataTable tbody').off('click', 'tr');
+    
     // Track selected rows
     var selectedIds = <?php echo json_encode($_SESSION['selectedWriterIds'] ?? []); ?>;
     
@@ -558,6 +595,7 @@ $(document).ready(function () {
     
     // Save selected IDs to session via AJAX
     function saveSelectedIds() {
+        updateDeleteButton(); // Add this line
         $.ajax({
             url: 'writers_list.php',
             type: 'POST',
@@ -631,34 +669,61 @@ $(document).ready(function () {
     });
     
     // Handle bulk actions
-    $('.bulk-action').on('click', function(e) {
+    $('.bulk-delete-btn').on('click', function(e) {
         e.preventDefault();
         
-        var action = $(this).data('action');
-        
         if (selectedIds.length === 0) {
-            alert('Please select at least one writer to perform this action.');
+            alert('Please select at least one writer to delete.');
             return;
         }
         
-        var confirmMessage = 'Are you sure you want to ' + action + ' ' + selectedIds.length + ' selected writer(s)?';
-        if (action === 'delete') {
-            confirmMessage += '\n\nThis will also delete all contributor records for these writers.';
-        }
+        var confirmMessage = 'Are you sure you want to delete ' + selectedIds.length + ' selected writer(s)?\n\nThis will also delete all contributor records for these writers.';
         
         if (confirm(confirmMessage)) {
-            // Clear previous inputs
             $('#selected_ids_container').empty();
-            
-            // Add hidden inputs for each selected ID
             selectedIds.forEach(function(id) {
                 $('#selected_ids_container').append('<input type="hidden" name="selected_ids[]" value="' + id + '">');
             });
-            
-            // Set the action and submit
-            $('#bulk_action').val(action);
+            $('#bulk_action').val('delete');
             $('#bulkActionForm').submit();
         }
     });
+
+    // Modified checkbox handling - Header cell click handler
+    $(document).on('click', 'thead th:first-child', function(e) {
+        // If the click was directly on the checkbox, don't execute this handler
+        if (e.target.type === 'checkbox') return;
+        
+        // Find and click the checkbox
+        var checkbox = $('#selectAll');
+        checkbox.prop('checked', !checkbox.prop('checked'));
+        $('.row-checkbox').prop('checked', checkbox.prop('checked'));
+        
+        // Update selectedIds array
+        if (checkbox.prop('checked')) {
+            $('.row-checkbox').each(function() {
+                var id = $(this).val();
+                if (!selectedIds.includes(id)) {
+                    selectedIds.push(id);
+                }
+            });
+        } else {
+            selectedIds = [];
+        }
+        saveSelectedIds();
+    });
+
+    // Remove old header click handlers
+    $('#checkboxHeader').off('click');
+    $('#selectAll, #checkboxHeader').off('click');
+
+    // Keep existing checkbox change handlers
+
+    function updateDeleteButton() {
+        const count = selectedIds.length;
+        const deleteBtn = $('.bulk-delete-btn');
+        deleteBtn.find('.badge').text(count);
+        deleteBtn.prop('disabled', count === 0);
+    }
 });
 </script>
