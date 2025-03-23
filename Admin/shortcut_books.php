@@ -26,6 +26,10 @@ if (!$_SESSION['book_shortcut']['steps_completed']['writer'] || !$_SESSION['book
 if (isset($_POST['copy_title'])) {
     $_SESSION['book_shortcut']['book_title'] = $_POST['book_title'];
     $_SESSION['book_shortcut']['steps_completed']['title'] = true;
+    
+    // Redirect to add book shortcut form immediately
+    header("Location: add_book_shortcut_form.php");
+    exit();
 }
 
 // Handle proceed to add book
@@ -139,12 +143,10 @@ $booksResult = $conn->query($booksQuery);
                                                 <td>{$book['author_name']}</td>
                                                 <td>{$book['publisher_name']}</td>
                                                 <td style=\"text-align: center\">
-                                                    <form method='POST' action='shortcut_books.php'>
-                                                        <input type='hidden' name='book_title' value='" . htmlspecialchars($book['title'], ENT_QUOTES) . "'>
-                                                        <button type='submit' name='copy_title' class='btn btn-info btn-sm'>
-                                                            <i class='fas fa-copy'></i> Copy Title
-                                                        </button>
-                                                    </form>
+                                                    <button type='button' class='btn btn-info btn-sm copy-title' 
+                                                            data-title='" . htmlspecialchars($book['title'], ENT_QUOTES) . "'>
+                                                        <i class='fas fa-copy'></i> Copy Title
+                                                    </button>
                                                 </td>
                                             </tr>";
                                         }
@@ -241,6 +243,42 @@ $(document).ready(function() {
         showConfirmButton: false
     });
     <?php endif; ?>
+});
+
+// Handle title copy clicks
+$(document).on('click', '.copy-title', function() {
+    const title = $(this).data('title');
+    
+    // Send AJAX request
+    $.ajax({
+        url: 'shortcut_books.php',
+        method: 'POST',
+        data: {
+            copy_title: true,
+            book_title: title
+        },
+        success: function() {
+            // Show brief success message
+            Swal.fire({
+                icon: 'success',
+                title: 'Title Copied',
+                text: 'Redirecting...',
+                timer: 1500,
+                showConfirmButton: false
+            }).then(() => {
+                // Redirect to the form page
+                window.location.href = 'add_book_shortcut_form.php';
+            });
+        },
+        error: function() {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to copy title. Please try again.',
+                confirmButtonColor: '#3085d6'
+            });
+        }
+    });
 });
 </script>
 

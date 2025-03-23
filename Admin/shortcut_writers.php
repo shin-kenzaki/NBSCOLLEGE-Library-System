@@ -1,7 +1,6 @@
 <?php
 session_start();
 include '../db.php';
-include 'inc/header.php';
 
 // Check if user is logged in with correct privileges
 if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Librarian', 'Assistant', 'Encoder'])) {
@@ -15,14 +14,84 @@ if (!isset($_SESSION['book_shortcut'])) {
     exit();
 }
 
+// Handle AJAX requests first, before any output
+if (isset($_POST['ajax_select_writers'])) {
+    header('Content-Type: application/json');
+    
+    try {
+        if (!isset($_POST['selected_writers'])) {
+            throw new Exception('No writers selected');
+        }
+
+        $selected_writers = isset($_POST['selected_writers']) ? $_POST['selected_writers'] : [];
+        $writer_roles = isset($_POST['writer_roles']) ? $_POST['writer_roles'] : [];
+        
+        if (empty($selected_writers)) {
+            $response['message'] = 'Please select at least one writer.';
+        } else {
+            // Store main author (first selected writer) in the session
+            $main_author_id = reset($selected_writers);
+            $_SESSION['book_shortcut']['writer_id'] = $main_author_id;
+            
+            // Store all selected writers and their roles
+            $_SESSION['book_shortcut']['selected_writers'] = [];
+            foreach ($selected_writers as $writer_id) {
+                $role = isset($writer_roles[$writer_id]) ? $writer_roles[$writer_id] : 'Author';
+                $_SESSION['book_shortcut']['selected_writers'][] = [
+                    'id' => $writer_id,
+                    'role' => $role
+                ];
+            }
+            
+            $_SESSION['book_shortcut']['steps_completed']['writer'] = true;
+            
+            // Move to the next step automatically
+            $_SESSION['book_shortcut']['current_step'] = 2;
+            
+            $response['success'] = true;
+            $response['message'] = 'Writers selected successfully';
+        }
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Writers selected successfully',
+            'redirect' => 'add_book_shortcut.php'
+        ]);
+        
+    } catch (Exception $e) {
+        error_log("Writer selection error: " . $e->getMessage());
+        echo json_encode([
+            'success' => false,
+            'message' => $e->getMessage()
+        ]);
+    }
+    exit;
+}
+
+// Add CSS styles for checkbox cells using PHP
+echo '<style>
+    .checkbox-cell {
+        cursor: pointer;
+        text-align: center;
+        vertical-align: middle;
+        width: 50px !important; /* Fixed width for uniformity */
+    }
+    .checkbox-cell:hover {
+        background-color: rgba(0, 123, 255, 0.1);
+    }
+    .checkbox-cell input[type="checkbox"] {
+        margin: 0 auto;
+        display: block;
+    }
+</style>';
+
 // Handle form submission to save writers
 if (isset($_POST['save_writers'])) {
     $firstnames = $_POST['firstname'];
     $middle_inits = $_POST['middle_init'];
     $lastnames = $_POST['lastname'];
-
-    $success = true;
     $valid_entries = 0;
+    $success = true;
     $selected_writer_id = null;
 
     for ($i = 0; $i < count($firstnames); $i++) {
@@ -60,32 +129,48 @@ if (isset($_POST['save_writers'])) {
         }
     }
 
+    // Set a session flag for the alert type and message
     if ($success && $valid_entries > 0) {
         // Use the first added/selected writer for the book
         $_SESSION['book_shortcut']['writer_id'] = $selected_writer_id;
         $_SESSION['book_shortcut']['steps_completed']['writer'] = true;
         
-        echo "<script>alert('$valid_entries writer(s) saved successfully');</script>";
+        $_SESSION['writer_alert'] = [
+            'type' => 'success',
+            'message' => "$valid_entries writer(s) saved successfully"
+        ];
     } elseif ($valid_entries === 0 && $selected_writer_id) {
         // Use the existing writer
         $_SESSION['book_shortcut']['writer_id'] = $selected_writer_id;
         $_SESSION['book_shortcut']['steps_completed']['writer'] = true;
         
-        echo "<script>alert('Writer already exists and has been selected');</script>";
+        $_SESSION['writer_alert'] = [
+            'type' => 'info',
+            'message' => "Writer already exists and has been selected"
+        ];
     } elseif ($valid_entries === 0) {
-        echo "<script>alert('No valid writers to save. Please provide both firstname and lastname.');</script>";
+        $_SESSION['writer_alert'] = [
+            'type' => 'warning',
+            'message' => "No valid writers to save. Please provide both firstname and lastname."
+        ];
     } else {
-        echo "<script>alert('Failed to save writers');</script>";
+        $_SESSION['writer_alert'] = [
+            'type' => 'error',
+            'message' => "Failed to save writers"
+        ];
     }
 }
 
-// Handle form submission to save selected writers
+// Handle traditional form submission for non-AJAX fallback
 if (isset($_POST['select_writers'])) {
     $selected_writers = isset($_POST['selected_writers']) ? $_POST['selected_writers'] : [];
     $writer_roles = isset($_POST['writer_roles']) ? $_POST['writer_roles'] : [];
     
     if (empty($selected_writers)) {
-        echo "<script>alert('Please select at least one writer.');</script>";
+        $_SESSION['writer_alert'] = [
+            'type' => 'warning',
+            'message' => 'Please select at least one writer.'
+        ];
     } else {
         // Store main author (first selected writer) in the session
         $main_author_id = reset($selected_writers);
@@ -106,17 +191,25 @@ if (isset($_POST['select_writers'])) {
         // Move to the next step automatically
         $_SESSION['book_shortcut']['current_step'] = 2;
         
-        echo "<script>
-            alert('Writers selected successfully'); 
-            window.location.href='add_book_shortcut.php';
-        </script>";
+        $_SESSION['writer_alert'] = [
+            'type' => 'success',
+            'message' => 'Writers selected successfully'
+        ];
+        
+        // Redirect to the next page
+        header("Location: add_book_shortcut.php");
         exit;
     }
 }
 
 // Get the search query if it exists - we'll keep this for URL parameters
 $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
+
+// Include the header AFTER all potential redirects
+include 'inc/header.php';
 ?>
+<!-- Add SweetAlert2 CDN -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <!-- Main Content -->
 <div id="content">
@@ -135,6 +228,9 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
                     </button>
                     <button type="button" id="saveSelections" class="btn btn-primary btn-sm ml-2">
                         <i class="fas fa-save"></i> Save Selected Writers
+                    </button>
+                    <button type="button" id="deleteSelected" class="btn btn-danger btn-sm ml-2">
+                        <i class="fas fa-trash"></i> Delete Selected Writers
                     </button>
                 </div>
 
@@ -158,8 +254,7 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
                         <table class="table table-bordered" id="writersTable" width="100%" cellspacing="0">
                             <thead>
                                 <tr>
-                                    <th width="5%"><input type="checkbox" id="selectAll"></th>
-                                    <th>ID</th>
+                                    <th class="text-center checkbox-cell" width="50px"><input type="checkbox" id="selectAll"></th>
                                     <th>First Name</th>
                                     <th>Middle Initial</th>
                                     <th>Last Name</th>
@@ -175,8 +270,7 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
                                 if ($writersResult->num_rows > 0) {
                                     while ($writer = $writersResult->fetch_assoc()) {
                                         echo "<tr>
-                                            <td><input type='checkbox' name='selected_writers[]' value='{$writer['id']}' class='writer-checkbox'></td>
-                                            <td>{$writer['id']}</td>
+                                            <td class='text-center align-middle checkbox-cell'><input type='checkbox' name='selected_writers[]' value='{$writer['id']}' class='writer-checkbox'></td>
                                             <td>{$writer['firstname']}</td>
                                             <td>{$writer['middle_init']}</td>
                                             <td>{$writer['lastname']}</td>
@@ -189,7 +283,7 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
                                             </td>
                                         </tr>";
                                     }
-                                                                }
+                                }
                                 ?>
                             </tbody>
                         </table>
@@ -203,6 +297,7 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
 
 <!-- Add Writer Modal -->
 <div class="modal fade" id="addWriterModal" tabindex="-1" role="dialog" aria-labelledby="addWriterModalLabel" aria-hidden="true">
+    <!-- Modal content remains unchanged -->
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
@@ -239,6 +334,20 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
 
 <script>
 $(document).ready(function() {
+    // Display SweetAlert based on session data
+    <?php if(isset($_SESSION['writer_alert'])): ?>
+        Swal.fire({
+            icon: '<?php echo $_SESSION['writer_alert']['type']; ?>',
+            title: '<?php echo $_SESSION['writer_alert']['message']; ?>',
+            showConfirmButton: true,
+            timer: 3000
+        });
+        <?php 
+        // Clear the alert from session after displaying
+        unset($_SESSION['writer_alert']); 
+        ?>
+    <?php endif; ?>
+
     // Initialize DataTable with search enabled
     var writersTable = $('#writersTable').DataTable({
         "paging": true,
@@ -247,11 +356,22 @@ $(document).ready(function() {
         "searching": true, // Enable searching
         "pageLength": 10,
         "columnDefs": [
-            { "orderable": false, "targets": [0, 5] } // Disable sorting on checkbox and role columns
+            { 
+                "orderable": false, 
+                "targets": [0, 4], // Updated target indices
+                "searchable": false, // Disable search for checkbox and role columns
+                "className": "text-center", // Center align all these columns
+                "createdCell": function (td, cellData, rowData, row, col) {
+                    if (col === 0) { // Only apply to checkbox column
+                        $(td).addClass('checkbox-cell');
+                    }
+                }
+            }
         ],
         // Hide the default search box
         "dom": "<'row'<'col-sm-12'tr>>" +
-               "<'row'<'col-sm-5'i><'col-sm-7'p>>"
+               "<'row'<'col-sm-5'i><'col-sm-7'p>>",
+        "order": [[1, 'asc']] // Updated sort column index
     });
     
     // Link our custom search box to DataTables search
@@ -284,12 +404,141 @@ $(document).ready(function() {
     $('#saveSelections').click(function() {
         // Validate at least one writer is selected
         if ($('.writer-checkbox:checked').length === 0) {
-            alert('Please select at least one writer.');
+            Swal.fire({
+                icon: 'warning',
+                title: 'Selection Required',
+                text: 'Please select at least one writer.',
+                confirmButtonColor: '#3085d6'
+            });
             return;
         }
         
-        // Submit the form
-        $('#writersSelectionForm').submit();
+        // Use SweetAlert2 for confirmation
+        Swal.fire({
+            title: 'Save Selected Writers',
+            text: 'Are you sure you want to save these writers and continue?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, save them!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Collect form data
+                var formData = new FormData();
+                formData.append('ajax_select_writers', '1');
+                
+                // Add selected writers
+                $('.writer-checkbox:checked').each(function() {
+                    formData.append('selected_writers[]', $(this).val());
+                });
+                
+                // Add writer roles
+                $('.writer-checkbox:checked').each(function() {
+                    var writerID = $(this).val();
+                    var role = $('select[name="writer_roles[' + writerID + ']"]').val();
+                    formData.append('writer_roles[' + writerID + ']', role);
+                });
+                
+                // Submit via AJAX
+                $.ajax({
+                    url: 'shortcut_writers.php',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    dataType: 'json',
+                    success: function(response) {
+                        try {
+                            // Ensure response is properly parsed
+                            if (typeof response === 'string') {
+                                response = JSON.parse(response);
+                            }
+                            
+                            if (response.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: response.message,
+                                    showConfirmButton: false,
+                                    timer: 1500
+                                }).then(() => {
+                                    if (response.redirect) {
+                                        window.location.href = response.redirect;
+                                    }
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: response.message || 'An error occurred while saving',
+                                    confirmButtonColor: '#3085d6'
+                                });
+                            }
+                        } catch (e) {
+                            console.error('JSON Parse Error:', e);
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Response Error',
+                                text: 'Invalid response from server',
+                                confirmButtonColor: '#3085d6'
+                            });
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('AJAX Error:', status, error);
+                        console.log('Response:', xhr.responseText);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Connection Error',
+                            text: 'Failed to save writers. Please check the console for details.',
+                            confirmButtonColor: '#3085d6'
+                        });
+                    }
+                });
+            }
+        });
+    });
+    
+    // Delete selected writers button handler
+    $('#deleteSelected').click(function() {
+        var selectedCount = $('.writer-checkbox:checked').length;
+        
+        if (selectedCount === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Selection Required',
+                text: 'Please select at least one writer to delete.',
+                confirmButtonColor: '#3085d6'
+            });
+            return;
+        }
+        
+        Swal.fire({
+            title: 'Confirm Deletion',
+            text: 'Are you sure you want to delete ' + selectedCount + ' selected writer(s)?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete them!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Create a form to submit the selected writers for deletion
+                var form = $('<form></form>').attr('method', 'post').attr('action', 'delete_writers.php');
+                
+                // Add each selected writer ID to the form
+                $('.writer-checkbox:checked').each(function() {
+                    form.append($('<input>').attr('type', 'hidden').attr('name', 'delete_writers[]').val($(this).val()));
+                });
+                
+                // Add CSRF token or any other required fields here if needed
+                
+                // Append form to body, submit it, and remove it
+                $('body').append(form);
+                form.submit();
+                form.remove();
+            }
+        });
     });
     
     // Add more writers functionality
@@ -313,7 +562,12 @@ $(document).ready(function() {
         if ($('.writer-entry').length > 1) {
             $(this).closest('.writer-entry').remove();
         } else {
-            alert('At least one writer entry must remain.');
+            Swal.fire({
+                icon: 'warning',
+                title: 'Cannot Remove',
+                text: 'At least one writer entry must remain.',
+                confirmButtonColor: '#3085d6'
+            });
         }
     });
     
@@ -331,7 +585,12 @@ $(document).ready(function() {
         });
 
         if (!hasValidWriter) {
-            alert('Please provide at least one writer with both firstname and lastname.');
+            Swal.fire({
+                icon: 'warning',
+                title: 'Validation Error',
+                text: 'Please provide at least one writer with both firstname and lastname.',
+                confirmButtonColor: '#3085d6'
+            });
             return;
         }
 
@@ -349,6 +608,16 @@ $(document).ready(function() {
         var allChecked = $('.writer-checkbox:checked').length === $('.writer-checkbox').length;
         $('#selectAll').prop('checked', allChecked);
     <?php endif; ?>
+});
+
+// Make the entire checkbox cell clickable
+$(document).on('click', '.checkbox-cell', function(e) {
+    // Prevent triggering if clicking directly on the checkbox
+    if (e.target.type !== 'checkbox') {
+        const checkbox = $(this).find('input[type="checkbox"]');
+        checkbox.prop('checked', !checkbox.prop('checked'));
+        checkbox.trigger('change'); // Trigger change event to update the select all checkbox
+    }
 });
 </script>
 
