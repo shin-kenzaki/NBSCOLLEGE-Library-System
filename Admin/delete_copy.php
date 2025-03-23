@@ -69,9 +69,13 @@ if ($bookId > 0) {
         $stmt->bind_param("i", $bookId);
         $stmt->execute();
         
+        // Modify the success response to include book title
         if ($stmt->affected_rows > 0) {
             $conn->commit();
-            $response['success'] = true;
+            $response = [
+                'success' => true,
+                'message' => 'Book copy deleted successfully.'
+            ];
         } else {
             throw new Exception("Book not found or already deleted.");
         }

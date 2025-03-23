@@ -10,6 +10,9 @@ if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Lib
 include '../db.php';
 include '../admin/inc/header.php';
 
+// Add SweetAlert2 CDN in the header section
+echo '<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>';
+
 // Fetch admin names and roles for the dropdown
 $admins_query = "SELECT id, CONCAT(firstname, ' ', lastname) AS name, role FROM admins";
 $admins_result = mysqli_query($conn, $admins_query);
@@ -1208,31 +1211,65 @@ document.addEventListener('DOMContentLoaded', function() {
     // ...rest of your existing script...
 });
 
-// Add deletion functionality for Book Copies
+// Replace both existing delete event listener blocks with this single implementation
 document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.delete-copy').forEach(function(button) {
-        button.addEventListener('click', function() {
+        button.addEventListener('click', async function() {
             const bookCopyRow = this.closest('.book-copy');
             const bookId = bookCopyRow.getAttribute('data-book-id');
-            if (confirm('Are you sure you want to delete this copy?')) {
-                // Send AJAX POST request to delete the copy from the database
-                fetch('delete_copy.php', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ bookId: bookId })
-                })
-                .then(response => response.json())
-                .then(data => {
+            const bookTitle = document.querySelector('input[name="title"]').value;
+            
+            // Use SweetAlert2 for the confirmation dialog
+            const result = await Swal.fire({
+                title: 'Delete Confirmation',
+                text: 'Are you sure you want to delete this copy?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, delete it!'
+            });
+
+            if (result.isConfirmed) {
+                try {
+                    const response = await fetch('delete_copy.php', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ bookId: bookId })
+                    });
+                    
+                    const data = await response.json();
+                    
                     if (data.success) {
-                        bookCopyRow.remove(); // Remove row from UI upon successful deletion
+                        bookCopyRow.remove();
+                        
+                        // Check if this was the last copy
+                        const remainingCopies = document.querySelectorAll('.book-copy').length;
+                        if (remainingCopies === 0) {
+                            await Swal.fire({
+                                title: 'Book Deleted',
+                                text: `All copies of "${bookTitle}" have been deleted.`,
+                                icon: 'success',
+                                confirmButtonText: 'OK'
+                            });
+                            // Redirect to book list page
+                            window.location.href = 'book_list.php';
+                        }
                     } else {
-                        alert('Error deleting the copy: ' + data.error);
+                        await Swal.fire({
+                            title: 'Error',
+                            text: data.error || 'Failed to delete the copy.',
+                            icon: 'error'
+                        });
                     }
-                })
-                .catch(error => {
+                } catch (error) {
                     console.error('Deletion error:', error);
-                    alert('An error occurred while deleting the copy.');
-                });
+                    await Swal.fire({
+                        title: 'Error',
+                        text: 'An error occurred while deleting the copy.',
+                        icon: 'error'
+                    });
+                }
             }
         });
     });
