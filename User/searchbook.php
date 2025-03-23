@@ -1,7 +1,11 @@
 <?php
 session_start();
 include '../db.php';
+
+
 ?>
+
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -17,13 +21,13 @@ include '../db.php';
             text-decoration: underline;
         }
         .dataTables_filter input {
-            width: 400px; 
+            width: 400px;
         }
         .dataTables_wrapper .dataTables_length,
         .dataTables_wrapper .dataTables_filter,
         .dataTables_wrapper .dataTables_info,
         .dataTables_wrapper .dataTables_paginate {
-            margin-bottom: 1rem; 
+            margin-bottom: 1rem;
         }
         .clickable-row {
             cursor: pointer;
@@ -94,7 +98,7 @@ include '../db.php';
                             </thead>
                             <tbody>
                                 <?php
-                                $query = "SELECT 
+                                $query = "SELECT
                                     b1.title,
                                     b1.content_type,
                                     b1.media_type,
@@ -102,23 +106,23 @@ include '../db.php';
                                     b1.front_image,
                                     p.publisher,
                                     pub.publish_date as publication_year,
-                                    (SELECT COUNT(*) 
-                                     FROM books b2 
+                                    (SELECT COUNT(*)
+                                     FROM books b2
                                      WHERE b2.title = b1.title) as total_copies,
-                                    (SELECT COUNT(*) 
-                                     FROM books b3 
-                                     WHERE b3.title = b1.title 
+                                    (SELECT COUNT(*)
+                                     FROM books b3
+                                     WHERE b3.title = b1.title
                                      AND b3.status = 'Available') as available_copies,
-                                    GROUP_CONCAT(DISTINCT 
+                                    GROUP_CONCAT(DISTINCT
                                         CONCAT(
-                                            c.role, ':', 
-                                            w.lastname, ', ', 
+                                            c.role, ':',
+                                            w.lastname, ', ',
                                             w.firstname
-                                        ) 
-                                        ORDER BY 
+                                        )
+                                        ORDER BY
                                             FIELD(c.role, 'Author', 'Co-Author', 'Editor'),
-                                            w.lastname, 
-                                            w.firstname 
+                                            w.lastname,
+                                            w.firstname
                                         SEPARATOR '|'
                                     ) as contributors
                                 FROM (
@@ -185,14 +189,14 @@ include '../db.php';
                                             <div class='book-entry'>
                                                 <p class='title-line'>" . $firstLine . "</p>
                                                 <p class='contributors-line'>" . $byLine . "</p>
-                                                <p class='type-line'>Content type: " . htmlspecialchars($row['content_type']) . 
-                                                " | Media type: " . htmlspecialchars($row['media_type']) . 
+                                                <p class='type-line'>Content type: " . htmlspecialchars($row['content_type']) .
+                                                " | Media type: " . htmlspecialchars($row['media_type']) .
                                                 " | Shelf Location: " . htmlspecialchars($row['shelf_location']) . "</p>
-                                                <p class='publication-line'>Publication Details: " . 
-                                                htmlspecialchars($row['publisher']) . ", " . 
+                                                <p class='publication-line'>Publication Details: " .
+                                                htmlspecialchars($row['publisher']) . ", " .
                                                 htmlspecialchars($row['publication_year']) . "</p>
-                                                <p class='availability-line'>Availability: " . 
-                                                htmlspecialchars($row['available_copies']) . " out of " . 
+                                                <p class='availability-line'>Availability: " .
+                                                htmlspecialchars($row['available_copies']) . " out of " .
                                                 htmlspecialchars($row['total_copies']) . " copies available</p>
                                             </div>
                                             <div class='action-buttons'>
@@ -205,8 +209,8 @@ include '../db.php';
                                             </div>
                                         </td>
                                         <td style='width: 20%; vertical-align: middle; text-align: center;'>
-                                            <img src='" . (empty($row['front_image']) ? '../Admin/inc/upload/default-book.jpg' : $row['front_image']) . "' 
-                                                 alt='Book Cover' 
+                                            <img src='" . (empty($row['front_image']) ? '../Admin/inc/upload/default-book.jpg' : $row['front_image']) . "'
+                                                 alt='Book Cover'
                                                  style='max-width: 120px; max-height: 180px; object-fit: contain;'>
                                         </td>
                                     </tr>";
@@ -231,299 +235,355 @@ include '../db.php';
     <!-- Include SweetAlert JS -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
     <script>
-    $(document).ready(function() {
-        $('#dataTable').DataTable({
-            "dom": "<'row mb-3'<'col-sm-6'l><'col-sm-6 d-flex justify-content-end'f>>" +
-                   "<'row'<'col-sm-12'tr>>" +
-                   "<'row mt-3'<'col-sm-5'i><'col-sm-7 d-flex justify-content-end'p>>",
-            "language": {
-                "search": "_INPUT_",
-                "searchPlaceholder": "Search within results..."
-            },
-            "pageLength": 10,
-            "order": [[1, 'asc']], // Sort by book details column by default
-            "responsive": false,
-            "scrollX": true,
-            "autoWidth": false,
-            "columns": [
-                { "orderable": false, "width": "5%" },  // Select checkbox column
-                { "orderable": true, "width": "75%" },  // Book details column
-                { "orderable": false, "width": "20%" }  // Image column
-            ],
-            "initComplete": function() {
-                $('#dataTable_filter input').addClass('form-control form-control-sm');
+$(document).ready(function() {
+    $('#dataTable').DataTable({
+        "dom": "<'row mb-3'<'col-sm-6'l><'col-sm-6 d-flex justify-content-end'f>>" +
+               "<'row'<'col-sm-12'tr>>" +
+               "<'row mt-3'<'col-sm-5'i><'col-sm-7 d-flex justify-content-end'p>>",
+        "language": {
+            "search": "_INPUT_",
+            "searchPlaceholder": "Search within results..."
+        },
+        "pageLength": 10,
+        "order": [[1, 'asc']], // Sort by book details column by default
+        "responsive": false,
+        "scrollX": true,
+        "autoWidth": false,
+        "columns": [
+            { "orderable": false, "width": "5%" },  // Select checkbox column
+            { "orderable": true, "width": "75%" },  // Book details column
+            { "orderable": false, "width": "20%" }  // Image column
+        ],
+        "initComplete": function() {
+            $('#dataTable_filter input').addClass('form-control form-control-sm');
+        }
+    });
+
+    // Add click event listener to table rows
+    $('#dataTable tbody').on('click', 'tr.clickable-row', function() {
+        window.location.href = $(this).data('href');
+    });
+
+    // Function to add book to cart
+    function addToCart(title) {
+        if (!isLoggedIn) {
+            Swal.fire({
+                title: 'Please Login',
+                text: 'You need to be logged in to add books to the cart.',
+                icon: 'warning',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+
+        Swal.fire({
+            title: 'Are you sure?',
+            text: 'Do you want to add "' + title + '" to the cart?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, add it!',
+            cancelButtonText: 'No, cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: 'add_to_cart.php',
+                    type: 'POST',
+                    data: { title: title },
+                    success: function(response) {
+                        var res = JSON.parse(response);
+
+                        if (res.success) {
+                            Swal.fire('Added!', `"${title}" added to cart.`, 'success').then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            // Show error with specific message
+                            Swal.fire({
+                                title: 'Failed!',
+                                html: `<p>${res.message}</p>`,
+                                icon: 'error',
+                                confirmButtonText: 'OK'
+                            });
+                        }
+                    },
+                    error: function() {
+                        Swal.fire('Failed!', 'Failed to add "' + title + '" to cart.', 'error');
+                    }
+                });
             }
         });
+    }
 
-        // Add click event listener to table rows
-        $('#dataTable tbody').on('click', 'tr.clickable-row', function() {
-            window.location.href = $(this).data('href');
+    // Function to borrow book
+    function borrowBook(title) {
+        if (!isLoggedIn) {
+            Swal.fire({
+                title: 'Please Login',
+                text: 'You need to be logged in to reserve books.',
+                icon: 'warning',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+
+        Swal.fire({
+            title: 'Are you sure?',
+            text: 'Do you want to reserve "' + title + '"?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, reserve it!',
+            cancelButtonText: 'No, cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: 'reserve_book.php',
+                    type: 'POST',
+                    data: { title: title },
+                    success: function(response) {
+                        var res = JSON.parse(response);
+
+                        if (res.success) {
+                            Swal.fire('Reserved!', `"${title}" reserved successfully.`, 'success').then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            // Show error with specific message
+                            Swal.fire({
+                                title: 'Failed!',
+                                html: `<p>${res.message}</p>`,
+                                icon: 'error',
+                                confirmButtonText: 'OK'
+                            });
+                        }
+                    },
+                    error: function() {
+                        Swal.fire('Failed!', 'Failed to reserve "' + title + '".', 'error');
+                    }
+                });
+            }
+        });
+    }
+
+    // Add click event listener to 'Add to Cart' buttons
+    $('.add-to-cart').on('click', function(event) {
+        event.stopPropagation();
+        var title = $(this).data('title');
+        addToCart(title);
+    });
+
+    // Add click event listener to 'Borrow' buttons
+    $('.borrow-book').on('click', function(event) {
+        event.stopPropagation();
+        var title = $(this).data('title');
+        borrowBook(title);
+    });
+
+    // Handle checkbox clicks without triggering row click
+    $('.book-select').on('click', function(e) {
+        e.stopPropagation();
+        updateSelectedCount();
+    });
+
+    // Update the selected count and toggle bulk actions visibility
+    function updateSelectedCount() {
+        const selectedCount = $('.book-select:checked').length;
+        $('#selectedCount, #selectedCount2').text(selectedCount);
+        $('.bulk-actions').toggleClass('visible', selectedCount > 0);
+    }
+
+    // Bulk add to cart - enhanced version
+    $('#bulk-cart').on('click', function() {
+        const titles = [];
+        $('.book-select:checked').each(function() {
+            titles.push($(this).data('title'));
         });
 
-        // Function to add book to cart
-        function addToCart(title) {
+        if (titles.length === 0) return;
+
+        if (!isLoggedIn) {
             Swal.fire({
-                title: 'Are you sure?',
-                text: 'Do you want to add "' + title + '" to the cart?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Yes, add it!',
-                cancelButtonText: 'No, cancel'
-            }).then((result) => {
-                if (result.isConfirmed) {
+                title: 'Please Login',
+                text: 'You need to be logged in to add books to the cart.',
+                icon: 'warning',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+
+        Swal.fire({
+            title: 'Add to Cart',
+            html: 'Add these ' + titles.length + ' book(s) to cart?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, add them!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                let successes = [];
+                let failures = [];
+                let processed = 0;
+
+                titles.forEach(title => {
                     $.ajax({
                         url: 'add_to_cart.php',
                         type: 'POST',
                         data: { title: title },
                         success: function(response) {
+                            processed++;
                             var res = JSON.parse(response);
-                            
+
                             if (res.success) {
-                                Swal.fire('Added!', `"${title}" added to cart.`, 'success').then(() => {
-                                    location.reload();
-                                });
+                                successes.push(title);
                             } else {
-                                // Show error with specific message
-                                Swal.fire({
-                                    title: 'Cannot Add to Cart',
-                                    html: `<p>${res.message}</p>`,
-                                    icon: 'error',
-                                    confirmButtonText: 'OK'
-                                });
+                                failures.push({title: title, reason: res.message});
+                            }
+
+                            // When all requests are processed, show summary
+                            if (processed === titles.length) {
+                                showResultSummary(successes, failures, 'cart');
                             }
                         },
                         error: function() {
-                            Swal.fire('Failed!', 'Failed to add "' + title + '" to cart.', 'error');
+                            processed++;
+                            failures.push({title: title, reason: "Network error occurred"});
+
+                            if (processed === titles.length) {
+                                showResultSummary(successes, failures, 'cart');
+                            }
                         }
                     });
-                }
+                });
+            }
+        });
+    });
+
+    // Bulk reserve - updated version
+    $('#bulk-reserve').on('click', function() {
+        const titles = [];
+        $('.book-select:checked').each(function() {
+            titles.push($(this).data('title'));
+        });
+
+        if (titles.length === 0) return;
+
+        if (!isLoggedIn) {
+            Swal.fire({
+                title: 'Please Login',
+                text: 'You need to be logged in to reserve books.',
+                icon: 'warning',
+                confirmButtonText: 'OK'
             });
+            return;
         }
 
-        // Function to borrow book
-        function borrowBook(title) {
-            Swal.fire({
-                title: 'Are you sure?',
-                text: 'Do you want to reserve "' + title + '"?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Yes, reserve it!',
-                cancelButtonText: 'No, cancel'
-            }).then((result) => {
-                if (result.isConfirmed) {
+        Swal.fire({
+            title: 'Reserve Books',
+            html: 'Reserve these ' + titles.length + ' book(s)?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, reserve them!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                let successes = [];
+                let failures = [];
+                let processed = 0;
+
+                titles.forEach(title => {
                     $.ajax({
                         url: 'reserve_book.php',
                         type: 'POST',
                         data: { title: title },
                         success: function(response) {
+                            processed++;
                             var res = JSON.parse(response);
-                            
+
                             if (res.success) {
-                                Swal.fire('Reserved!', `"${title}" reserved successfully.`, 'success').then(() => {
-                                    location.reload();
-                                });
+                                successes.push(title);
                             } else {
-                                // Show error with specific message
-                                Swal.fire({
-                                    title: 'Cannot Reserve',
-                                    html: `<p>${res.message}</p>`,
-                                    icon: 'error',
-                                    confirmButtonText: 'OK'
-                                });
+                                failures.push({title: title, reason: res.message});
+                            }
+
+                            // When all requests are processed, show summary
+                            if (processed === titles.length) {
+                                showResultSummary(successes, failures, 'reserve');
                             }
                         },
                         error: function() {
-                            Swal.fire('Failed!', 'Failed to reserve "' + title + '".', 'error');
+                            processed++;
+                            failures.push({title: title, reason: "Network error occurred"});
+
+                            if (processed === titles.length) {
+                                showResultSummary(successes, failures, 'reserve');
+                            }
                         }
                     });
-                }
-            });
-        }
-
-        // Add click event listener to 'Add to Cart' buttons
-        $('.add-to-cart').on('click', function(event) {
-            event.stopPropagation();
-            var title = $(this).data('title');
-            addToCart(title);
-        });
-
-        // Add click event listener to 'Borrow' buttons
-        $('.borrow-book').on('click', function(event) {
-            event.stopPropagation();
-            var title = $(this).data('title');
-            borrowBook(title);
-        });
-
-        // Handle checkbox clicks without triggering row click
-        $('.book-select').on('click', function(e) {
-            e.stopPropagation();
-            updateSelectedCount();
-        });
-
-        // Update the selected count and toggle bulk actions visibility
-        function updateSelectedCount() {
-            const selectedCount = $('.book-select:checked').length;
-            $('#selectedCount, #selectedCount2').text(selectedCount);
-        }
-
-        // Bulk add to cart - enhanced version
-        $('#bulk-cart').on('click', function() {
-            const titles = [];        // Bulk add to cart - enhanced version
-            $('.book-select:checked').each(function() {
-                titles.push($(this).data('title'));
-            });
-
-            if (titles.length === 0) return;
-
-            Swal.fire({
-                title: 'Add to Cart',
-                html: 'Add these ' + titles.length + ' book(s) to cart?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Yes, add them!',
-                cancelButtonText: 'Cancel'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    let successes = [];
-                    let failures = [];
-                    let processed = 0;
-
-                    titles.forEach(title => {
-                        $.ajax({
-                            url: 'add_to_cart.php',
-                            type: 'POST',
-                            data: { title: title },
-                            success: function(response) {
-                                processed++;
-                                var res = JSON.parse(response);
-                                
-                                if (res.success) {
-                                    successes.push(title);
-                                } else {
-                                    failures.push({title: title, reason: res.message});
-                                }
-                                
-                                // When all requests are processed, show summary
-                                if (processed === titles.length) {
-                                    showResultSummary(successes, failures, 'cart');
-                                }
-                            },
-                            error: function() {
-                                processed++;
-                                failures.push({title: title, reason: "Network error occurred"});
-                                
-                                if (processed === titles.length) {
-                                    showResultSummary(successes, failures, 'cart');
-                                }
-                            }
-                        });
-                    });
-                }
-            });
-        });
-
-        // Bulk reserve - updated version
-        $('#bulk-reserve').on('click', function() {
-            const titles = [];
-            $('.book-select:checked').each(function() {
-                titles.push($(this).data('title'));
-            });
-
-            if (titles.length === 0) return;
-
-            // First check total books
-            $.ajax({
-                url: 'checkout.php',
-                type: 'POST',
-                data: { titles: titles },
-                success: function(response) {
-                    var res = JSON.parse(response);
-                    
-                    if (res.success) {
-                        Swal.fire({
-                            title: 'Success',
-                            text: res.message,
-                            icon: 'success'
-                        }).then(() => {
-                            location.reload();
-                        });
-                    } else {
-                        // Show error with specific message
-                        Swal.fire({
-                            title: 'Cannot Reserve Books',
-                            html: `<p>${res.message}</p>`,
-                            icon: 'error',
-                            confirmButtonText: 'OK'
-                        });
-                    }
-                },
-                error: function() {
-                    Swal.fire('Failed!', 'Failed to reserve books. Please try again.', 'error');
-                }
-            });
-        });
-
-        // Update showResultSummary function to handle new error messages
-        function showResultSummary(successes, failures, action) {
-            let actionText = action === 'cart' ? 'added to cart' : 'reserved';
-            let successText = '';
-            let failureText = '';
-            
-            // Group failures by reason
-            const reasonGroups = {};
-            failures.forEach(failure => {
-                // Clean the reason message once before grouping
-                let cleanReason = failure.reason
-                    .replace(/^You already have ".*" in your cart\./, 'Already in cart')
-                    .replace(/^You already have a reservation for this book: .*/, 'Already reserved')
-                    .replace(/^You already have an active reservation for: .*/, 'Already reserved')
-                    .replace(/^You already have this book borrowed or reserved: .*/, 'Already borrowed/reserved')
-                    .replace(/^You have reached the maximum limit of 3 books.*/, 'Maximum limit reached (3 books)');
-                
-                if (!reasonGroups[cleanReason]) {
-                    reasonGroups[cleanReason] = [];
-                }
-                reasonGroups[cleanReason].push(failure.title);
-            });
-            
-            // Generate success message
-            if (successes.length > 0) {
-                successText = `<p><strong>${successes.length} book(s) successfully ${actionText}:</strong></p>
-                              <ul>${successes.map(title => `<li>${title}</li>`).join('')}</ul>`;
-            }
-            
-            // Generate failure messages by reason
-            if (failures.length > 0) {
-                failureText = `<p><strong>${failures.length} book(s) could not be ${actionText}:</strong></p>`;
-                
-                for (const reason in reasonGroups) {
-                    failureText += `<p class="text-danger">${reason}</p>
-                                  <ul>${reasonGroups[reason].map(title => `<li>${title}</li>`).join('')}</ul>`;
-                }
-            }
-            
-            // Show the summary
-            if (successes.length > 0) {
-                Swal.fire({
-                    title: successes.length > 0 ? 'Operation Completed' : 'Operation Failed',
-                    html: successText + failureText,
-                    icon: failures.length === 0 ? 'success' : 'info',
-                    confirmButtonText: 'OK'
-                }).then(() => {
-                    if (successes.length > 0) {
-                        location.reload();
-                    }
-                });
-            } else {
-                Swal.fire({
-                    title: 'Operation Failed',
-                    html: failureText,
-                    icon: 'error',
-                    confirmButtonText: 'OK'
                 });
             }
-        }
+        });
     });
-    </script>
+
+    // Update showResultSummary function to handle new error messages
+    function showResultSummary(successes, failures, action) {
+        let actionText = action === 'cart' ? 'added to cart' : 'reserved';
+        let successText = '';
+        let failureText = '';
+
+        // Group failures by reason
+        const reasonGroups = {};
+        failures.forEach(failure => {
+            // Clean the reason message once before grouping
+            let cleanReason = failure.reason
+                .replace(/^You already have ".*" in your cart\./, 'Already in cart')
+                .replace(/^You already have a reservation for this book: .*/, 'Already reserved')
+                .replace(/^You already have an active reservation for: .*/, 'Already reserved')
+                .replace(/^You already have this book borrowed or reserved: .*/, 'Already borrowed/reserved')
+                .replace(/^You have reached the maximum limit of 3 books.*/, 'Maximum limit reached (3 books)');
+
+            if (!reasonGroups[cleanReason]) {
+                reasonGroups[cleanReason] = [];
+            }
+            reasonGroups[cleanReason].push(failure.title);
+        });
+
+        // Generate success message
+        if (successes.length > 0) {
+            successText = `<p><strong>${successes.length} book(s) successfully ${actionText}:</strong></p>
+                          <ul>${successes.map(title => `<li>${title}</li>`).join('')}</ul>`;
+        }
+
+        // Generate failure messages by reason
+        if (failures.length > 0) {
+            failureText = `<p><strong>${failures.length} book(s) could not be ${actionText}:</strong></p>`;
+
+            for (const reason in reasonGroups) {
+                failureText += `<p class="text-danger">${reason}</p>
+                              <ul>${reasonGroups[reason].map(title => `<li>${title}</li>`).join('')}</ul>`;
+            }
+        }
+
+        // Show the summary
+        if (successes.length > 0) {
+            Swal.fire({
+                title: successes.length > 0 ? 'Operation Completed' : 'Operation Failed',
+                html: successText + failureText,
+                icon: failures.length === 0 ? 'success' : 'info',
+                confirmButtonText: 'OK'
+            }).then(() => {
+                if (successes.length > 0) {
+                    location.reload();
+                }
+            });
+        } else {
+            Swal.fire({
+                title: 'Operation Failed',
+                html: failureText,
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+        }
+    }
+});
+</script>
 </body>
 </html>

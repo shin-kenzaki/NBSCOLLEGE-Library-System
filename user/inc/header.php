@@ -1,3 +1,7 @@
+<?php
+
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -19,6 +23,16 @@
     <link href="inc/css/sb-admin-2.min.css" rel="stylesheet">
     <link href="inc/assets/DataTables/datatables.min.css" rel="stylesheet">
 
+    <!-- SweetAlert2 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
+    <style>
+        .login-link:hover {
+            text-decoration: underline;
+            text-decoration-color: red;
+        }
+    </style>
+
 </head>
 
 <body id="page-top">
@@ -39,11 +53,13 @@
             <hr class="sidebar-divider my-0">
 
             <!-- Nav Item - Dashboard -->
+            <?php if (isset($_SESSION['user_id'])): ?>
             <li class="nav-item active">
                 <a class="nav-link" href="dashboard.php">
                     <i class="fas fa-fw fa-tachometer-alt"></i>
                     <span>Dashboard</span></a>
             </li>
+            <?php endif; ?>
 
             <!-- Divider -->
             <hr class="sidebar-divider">
@@ -61,6 +77,7 @@
                 </a>
             </li>
 
+            <?php if (isset($_SESSION['user_id'])): ?>
             <!-- Nav Item - Cart -->
             <li class="nav-item">
                 <a class="nav-link" href="cart.php">
@@ -101,6 +118,7 @@
                     </div>
                 </div>
             </li>
+            <?php endif; ?>
 
             <!-- Divider -->
             <hr class="sidebar-divider d-none d-md-block">
@@ -168,13 +186,14 @@
                             </div>
                         </li>
 
+                        <?php if (isset($_SESSION['user_id'])): ?>
                         <!-- Nav Item - Alerts -->
                         <li class="nav-item dropdown no-arrow mx-1">
                             <?php
                             // Get ready reservations
-                            $ready_query = "SELECT r.id, b.title, r.reserve_date 
-                                          FROM reservations r 
-                                          JOIN books b ON r.book_id = b.id 
+                            $ready_query = "SELECT r.id, b.title, r.reserve_date
+                                          FROM reservations r
+                                          JOIN books b ON r.book_id = b.id
                                           WHERE r.user_id = ? AND r.status = 'Ready'
                                           ORDER BY r.reserve_date DESC";
                             $ready_stmt = $conn->prepare($ready_query);
@@ -238,15 +257,17 @@
                                 <a class="dropdown-item text-center small text-gray-500" href="messages.php">Read More Messages</a>
                             </div>
                         </li>
+                        <?php endif; ?>
 
                         <div class="topbar-divider d-none d-sm-block"></div>
 
                         <!-- Nav Item - User Information -->
+                        <?php if (isset($_SESSION['user_id'])): ?>
                         <li class="nav-item dropdown no-arrow">
-                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
+                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
                                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 <span class="mr-2 d-none d-lg-inline text-gray-600 small">
-                                    <?php 
+                                    <?php
                                         if(isset($_SESSION['firstname']) && isset($_SESSION ['lastname'])) {
                                             echo $_SESSION['firstname'] . ' ' . $_SESSION['lastname'];
                                         } else {
@@ -257,38 +278,40 @@
                                 <img class="img-profile rounded-circle"
                                     src="<?php echo isset($_SESSION['user_image']) && !empty($_SESSION['user_image']) ? $_SESSION['user_image'] : 'img/undraw_profile_1.svg'; ?>"
                                     alt="">
+                            </a>
+                            <!-- Dropdown - User Information -->
+                            <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in"
+                                aria-labelledby="userDropdown">
+                                <a class="dropdown-item" href="profile.php">
+                                    <i class="fas fa-user fa-sm fa-fw mr-2 text-gray-400"></i>
+                                    Profile
                                 </a>
-                                <!-- Dropdown - User Information -->
-                                <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in"
-                                    aria-labelledby="userDropdown">
-                                    <a class="dropdown-item" href="profile.php">
-                                        <i class="fas fa-user fa-sm fa-fw mr-2 text-gray-400"></i>
-                                        Profile
-                                    </a>
-                                    <div class="dropdown-divider"></div>
-                                    <a class="dropdown-item" href="#" data-toggle="modal" data-target="#logoutModal">
-                                        <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-400"></i>
-                                        Logout
-                                    </a>
-                                </div>
-                            </li>
+                                <div class="dropdown-divider"></div>
+                                <a class="dropdown-item" href="#" data-toggle="modal" data-target="#logoutModal">
+                                    <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-400"></i>
+                                    Logout
+                                </a>
+                            </div>
+                        </li>
+                        <?php else: ?>
+                        <li class="nav-item">
+                            <a class="nav-link login-link" href="index.php">
+                                <span class="mr-2 d-none d-lg-inline 800 Medium" style="color:red;">Login to your Account</span>
+                            </a>
+                        </li>
+                        <?php endif; ?>
 
                     </ul>
 
                 </nav>
                 <!-- End of Topbar -->
 
-
             </div>
             <!-- End of Main Content -->
 
             <!-- Footer -->
 
-
-
             <!-- End of Footer -->
-
-
 
     <!-- Scroll to Top Button-->
     <a class="scroll-to-top rounded" href="#page-top">
@@ -328,15 +351,14 @@
     <!-- Page level plugins -->
     <script src="vendor/chart.js/Chart.min.js"></script>
 
-
-
-
-
     <script src="js/demo/chart-area-demo.js"></script>
     <script src="js/demo/chart-pie-demo.js"></script>
     <script src="js/demo/chart-bar-demo.js"></script>
 
     <script src="inc/assets/DataTables/datatables.min.js"></script>
+
+    <!-- SweetAlert2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
     function updateMessages() {
@@ -370,10 +392,10 @@
                 data.messages.forEach(msg => {
                     const time = new Date(msg.timestamp);
                     const timeAgo = Math.floor((new Date() - time) / 60000); // minutes
-                    const timeStr = timeAgo < 60 
-                        ? timeAgo + 'm ago' 
+                    const timeStr = timeAgo < 60
+                        ? timeAgo + 'm ago'
                         : Math.floor(timeAgo/60) + 'h ago';
-                    
+
                     messagesList.innerHTML += `
                         <a class="dropdown-item d-flex align-items-center" href="messages.php?user=${msg.sender_id}&role=${msg.sender_role}">
                             <div class="dropdown-list-image mr-3">
@@ -404,6 +426,24 @@
     setInterval(updateMessages, 30000);
     // Initial load
     updateMessages();
+
+    // Check if user is logged in
+    const isLoggedIn = <?php echo isset($_SESSION['user_id']) ? 'true' : 'false'; ?>;
+
+    // Add event listeners to navigation links
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', function(event) {
+            if (!isLoggedIn && this.getAttribute('href') !== 'searchbook.php' && this.getAttribute('href') !== 'index.php') {
+                event.preventDefault();
+                Swal.fire({
+                    title: 'Please Login',
+                    text: 'Please login to access this page.',
+                    icon: 'warning',
+                    confirmButtonText: 'OK'
+                });
+            }
+        });
+    });
     </script>
 </body>
 </html>

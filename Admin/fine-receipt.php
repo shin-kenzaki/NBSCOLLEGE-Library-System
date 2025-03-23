@@ -8,6 +8,104 @@ class PDF extends FPDF {
             $this->AddPage();
         }
     }
+
+    function SetDash($black = false, $white = false) {
+        if ($black && $white) {
+            $s = sprintf('[%.3F %.3F] 0 d', $black, $white);
+        } else {
+            $s = '[] 0 d';
+        }
+        $this->_out($s);
+    }
+
+    function generateReceipt($borrower, $usertype, $school_id, $result, $copyType) {
+        $pageWidth = $this->GetPageWidth() - 40; // Adjust for left and right margins
+        $imageWidth = 40;
+        $xPos = ($pageWidth - $imageWidth) / 2 + 20; // Adjust for left margin
+        $this->Image('C:\\xampp\\htdocs\\Library-System\\Admin\\inc\\img\\horizontal-nbs-logo.png', $xPos, $this->GetY(), $imageWidth);
+
+        // Copy Type Header
+        $this->SetFont('Arial', 'B', 12);
+        $this->SetXY(20, $this->GetY()); // Position at the left margin, aligned with the image
+        $this->Cell(0, 5, strtoupper($copyType), 0, 1, 'L');
+        $this->Ln(15);
+
+        $this->SetFont('Arial', 'B', 12);
+        $this->Cell(0, 5, 'NBS COLLEGE LIBRARY', 0, 1, 'C');
+        $this->Ln(5);
+
+        $receiptDate = date("m/d/Y");
+        $this->SetFont('Arial', 'B', 12);
+        $this->Cell(0, 5, 'LIBRARY FINE RECEIPT', 0, 1, 'C');
+        $this->SetFont('Arial', 'B', 10);
+        $this->Cell(0, 5, $receiptDate, 0, 1, 'C');
+        $this->Ln(0);
+
+        // Borrower Details
+        $this->SetFont('Arial', 'B', 15);
+        $this->Cell(71, 5, 'Details', 0, 1);
+        $this->SetFont('Arial', 'B', 10);
+        $this->Cell(130, 5, 'ID Number: ' . $school_id, 0, 0);
+        $this->Cell(19, 5, 'User Type: ', 0, 0);
+        $this->Cell(50, 5, $usertype, 0, 1);
+
+        $this->Cell(110, 5, "Borrower's Name: " . $borrower, 0, 0);
+        $this->Cell(10, 5, '', 0, 0);
+        $this->Cell(50, 5, '', 0, 1);
+        $this->Ln(1);
+
+        // Table Header
+        $this->SetFont('Arial', 'B', 9);
+        $this->Cell(170, 0, '', 'T', 1, 'C'); // Top border for the table
+        $this->Cell(80, 10, 'Title', 0, 0, 'L');
+        $this->Cell(40, 10, 'Fine Type', 0, 0, 'L');
+        $this->Cell(30, 10, 'Status', 0, 0, 'L');
+        $this->Cell(30, 10, 'Amount', 0, 1, 'L');
+
+        $this->SetFont('Arial', '', 8);
+
+        $totalAmount = 0; // Initialize total amount
+
+        while ($row = mysqli_fetch_assoc($result)) {
+            $yPos = $this->GetY();
+
+            $titleWidth = 80;
+            $lineHeight = 3;
+            $numLines = ceil($this->GetStringWidth($row['book_title']) / $titleWidth);
+            $rowHeight = max($numLines * $lineHeight, 6);
+
+            $this->CheckPageBreak($rowHeight);
+
+            $bookTitle = strlen($row['book_title']) > 40 ? substr($row['book_title'], 0, 40) . '...' : $row['book_title'];
+
+            $xPos = $this->GetX();
+            $this->MultiCell($titleWidth, $lineHeight, $bookTitle, 0, 'L');
+
+            $this->SetXY($xPos + $titleWidth, $yPos);
+
+            $this->Cell(40, 3.5, $row['type'], 0, 0, 'L');
+            $this->Cell(30, 3.5, $row['status'], 0, 0, 'L'); // Status goes here
+            $this->Cell(30, 3.5, number_format($row['amount'], 2), 0, 1, 'L'); // Amount goes here
+
+            // Add the amount to the total
+            $totalAmount += $row['amount'];
+        }
+        $this->Ln(3);
+        $this->Cell(170, 0, '', 'T', 1, 'C'); // Bottom border for the table
+
+
+        // Display Total Amount
+        $this->SetFont('Arial', 'B', 10);
+        $this->Cell(130, 6, '', 0, 0);
+        $this->Cell(20, 6, 'Total:', 0, 0, 'R');
+        $this->Cell(30, 6, number_format($totalAmount, 2), 0, 1, 'L');
+
+        // Signature Section
+        $this->Ln(1);
+        $this->SetFont('Arial', 'B', 12);
+        $this->Cell(0, 10, '_______________________', 0, 1, 'R');
+        $this->Cell(0, 0, 'Librarian Signature', 0, 1, 'R');
+    }
 }
 
 if (isset($_POST['school_id'])) {
@@ -28,7 +126,6 @@ if (isset($_POST['school_id'])) {
     $borrower = $user_info['borrower'];
     $usertype = $user_info['usertype'];
 
-    // Step 2: Get the user IDs linked to this School ID
     $user_ids_query = "SELECT id FROM users WHERE school_id = '$school_id'";
     $user_ids_result = mysqli_query($conn, $user_ids_query);
 
@@ -37,7 +134,6 @@ if (isset($_POST['school_id'])) {
         $user_ids[] = $user_row['id'];
     }
 
-    // Step 3: Fetch fines for these users
     $user_ids_str = implode(',', $user_ids);
 
     $sql = "SELECT f.type, f.amount, f.status, f.date AS fine_date, f.payment_date,
@@ -48,99 +144,36 @@ if (isset($_POST['school_id'])) {
             WHERE b.user_id IN ($user_ids_str) AND f.status = 'Unpaid'
             ORDER BY f.date DESC";
 
-
     $result = mysqli_query($conn, $sql);
 
     if (mysqli_num_rows($result) > 0) {
-
-        $pdf = new FPDF('P', 'mm', 'A4');
+        $pdf = new PDF('P', 'mm', 'A4');
+        $pdf->SetLeftMargin(20); // Set left margin
+        $pdf->SetRightMargin(20); // Set right margin
         $pdf->AddPage();
 
-        $pageWidth = $pdf->GetPageWidth();
-        $imageWidth = 60;
-        $xPos = ($pageWidth - $imageWidth) / 2;
-        $pdf->Image('C:\\xampp\\htdocs\\Library-System\\Admin\\inc\\img\\horizontal-nbs-logo.png', $xPos, 10, $imageWidth);
-        $pdf->Ln(35);
+        // Generate Borrower Copy
+        $copyType = ucfirst($usertype) . ' Copy';
+        $pdf->generateReceipt($borrower, $usertype, $school_id, $result, $copyType);
 
-        // Header Title
-        $pdf->SetFont('Arial', 'B', 16);
-        $pdf->Cell(0, 10, 'Library Fine Receipt', 0, 1, 'C');
-        $pdf->Ln(5);
+        // Add a dashed line to separate the copies with scissors icon
+        $middleY = $pdf->GetPageHeight() / 2;
+        $pdf->SetY($middleY - 5);
+        $pdf->SetLineWidth(0);
+        $pdf->SetDash(1, 1); // Set dashed line
+        $pdf->Line(20, $pdf->GetY(), $pdf->GetPageWidth() - 20, $pdf->GetY());
+        $pdf->SetDash(); // Reset to solid line
+        $pdf->SetY($middleY - 10);
+        $pdf->SetY($middleY + 5);
 
-        // Borrower Details
-        $pdf->SetFont('Arial', 'B', 15);
-        $pdf->Cell(71, 5, 'Details', 0, 1);
-        $pdf->SetFont('Arial', '', 10);
-        $pdf->Cell(150, 5, 'ID Number: ' . $school_id, 0, 0);
-        $pdf->Cell(18, 5, 'User Type: ', 0, 0);
-        $pdf->Cell(34, 5, $usertype, 0, 1);
-
-        $receiptDate = date("m/d/Y");
-        $pdf->Cell(150, 5, "Borrower's Name: " . $borrower, 0, 0);
-        $pdf->Cell(10, 5, 'Date: ', 0, 0);
-        $pdf->Cell(34, 5, $receiptDate, 0, 1);
-        $pdf->Ln(5);
-
-
-
-        $pdf->SetFont('Arial', 'B', 10);
-        $pdf->Cell(10, 6, 'ID', 1, 0, 'C');
-        $pdf->Cell(80, 6, 'Book Title', 1, 0, 'C');
-        $pdf->Cell(40, 6, 'Fine Type', 1, 0, 'C');
-        $pdf->Cell(30, 6, 'Status', 1, 0, 'C');
-        $pdf->Cell(30, 6, 'Amount', 1, 1, 'C');
-
-        $pdf->SetFont('Arial', '', 10);
-        $counter = 1;
-        $totalAmount = 0; // Initialize total amount
-
-        while ($row = mysqli_fetch_assoc($result)) {
-            $yPos = $pdf->GetY();
-
-            $titleWidth = 80;
-            $lineHeight = 6;
-            $numLines = ceil($pdf->GetStringWidth($row['book_title']) / $titleWidth);
-            $rowHeight = max($numLines * $lineHeight, 6);
-
-
-            $pdf->Cell(10, $rowHeight, $counter, 1, 0, 'C');
-
-            $xPos = $pdf->GetX();
-            $pdf->MultiCell($titleWidth, $lineHeight, $row['book_title'], 1, 'L');
-
-            $pdf->SetXY($xPos + $titleWidth, $yPos);
-
-            $pdf->Cell(40, $rowHeight, $row['type'], 1,0, 'L');
-            $pdf->Cell(30, $rowHeight, $row['status'], 1,0, 'L'); // Status goes here
-            $pdf->Cell(30, $rowHeight, number_format($row['amount'], 2), 1, 1, 'L'); // Amount goes here
-
-
-
-            // Add the amount to the total
-            $totalAmount += $row['amount'];
-            $counter++;
-        }
-
-        // Display Total Amount
-        $pdf->SetFont('Arial', 'B', 12);
-        $pdf->Cell(130, 6, '', 0, 0);
-        $pdf->Cell(30, 6, 'TOTAL:', 0, 0, 'R');
-        $pdf->Cell(30, 6, number_format($totalAmount, 2), 1, 1, 'L');
-
-
-
-        // Signature Section
-        $pdf->Ln(10);
-        $pdf->SetFont('Arial', 'B', 12);
-        $pdf->Cell(0, 10, '_______________________', 0, 1, 'R');
-        $pdf->Cell(0, 0, 'Librarian Signature', 0, 1, 'R');
+        // Generate Librarian Copy
+        mysqli_data_seek($result, 0);
+        $pdf->generateReceipt($borrower, $usertype, $school_id, $result, 'Librarian Copy');
 
         // Extract Last Name from Full Name
         $borrowerNameParts = explode(' ', $borrower);
         $borrowerLastName = end($borrowerNameParts); // Get the last part as the Last Name
         $currentDate = date('Y-m-d'); // Format: YYYY-MM-DD
-
-
 
         // Generate PDF Filename
         $pdfFilename = $borrowerLastName . ' - Fine Receipt (' . $currentDate . ').pdf';
