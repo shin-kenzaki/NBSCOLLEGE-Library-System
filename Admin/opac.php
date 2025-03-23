@@ -1,6 +1,43 @@
 <?php
 session_start();
 
+// Handle book deletion
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $input = json_decode(file_get_contents('php://input'), true);
+    if (isset($input['delete_book_id'])) {
+        $bookId = intval($input['delete_book_id']);
+        
+        // Start transaction
+        $conn->begin_transaction();
+        try {
+            // Delete related contributors first
+            $contribQuery = "DELETE FROM contributors WHERE book_id = ?";
+            $contribStmt = $conn->prepare($contribQuery);
+            $contribStmt->bind_param('i', $bookId);
+            $contribStmt->execute();
+
+            // Delete related publications
+            $pubQuery = "DELETE FROM publications WHERE book_id = ?";
+            $pubStmt = $conn->prepare($pubQuery);
+            $pubStmt->bind_param('i', $bookId);
+            $pubStmt->execute();
+
+            // Delete the book
+            $bookQuery = "DELETE FROM books WHERE id = ?";
+            $bookStmt = $conn->prepare($bookQuery);
+            $bookStmt->bind_param('i', $bookId);
+            $bookStmt->execute();
+
+            $conn->commit();
+            http_response_code(200);
+        } catch (Exception $e) {
+            $conn->rollback();
+            http_response_code(500);
+        }
+        exit;
+    }
+}
+
 // Check if the user is logged in and has the appropriate admin role
 if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Librarian', 'Assistant', 'Encoder'])) {
     header("Location: index.php");
@@ -311,6 +348,9 @@ if ($bookId > 0) {
     <!-- Add Bootstrap CSS and JS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Add SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
     <?php include '../admin/inc/header.php'; ?>
@@ -334,11 +374,6 @@ if ($bookId > 0) {
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" id="isbd-tab" data-bs-toggle="tab" data-bs-target="#isbd" type="button" role="tab" aria-controls="isbd" aria-selected="false">
                             ISBD View
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="holdings-tab" data-bs-toggle="tab" data-bs-target="#holdings" type="button" role="tab" aria-controls="holdings" aria-selected="false">
-                            Holdings
                         </button>
                     </li>
                 </ul>
@@ -501,6 +536,11 @@ if ($bookId > 0) {
                                                 Total Copies: <?php echo htmlspecialchars($totalCopies); ?> | 
                                                 Available: <?php echo htmlspecialchars($inShelf); ?>
                                             </div>
+                                            <button type="button" 
+                                                    class="btn btn-danger btn-sm ms-2" 
+                                                    onclick="confirmDeleteAllCopies('<?php echo htmlspecialchars($book['title']); ?>')">
+                                                <i class="fas fa-trash"></i> Delete All Copies
+                                            </button>
                                             <a href="export_barcodes.php?title=<?php echo urlencode($book['title']); ?>" 
                                                class="btn btn-sm btn-primary ms-2" 
                                                target="_blank">
@@ -896,69 +936,6 @@ if ($bookId > 0) {
     </div>
 </div>
 
-                <!-- Holdings Tab -->
-                <div class="tab-pane fade" id="holdings" role="tabpanel">
-                    <div class="holdings-details p-4">
-                        <?php if (!empty($allCopies)): ?>
-                            <div class="card shadow mb-4">
-                                <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                                    <h6 class="m-0 font-weight-bold text-primary">Available Copies</h6>
-                                    <div class="d-flex align-items-center">
-                                        <div class="small text-muted me-3">
-                                            Total Copies: <?php echo htmlspecialchars($totalCopies); ?> | 
-                                            Available: <?php echo htmlspecialchars($inShelf); ?>
-                                        </div>
-                                        <a href="export_barcodes.php?title=<?php echo urlencode($book['title']); ?>" 
-                                           class="btn btn-sm btn-primary ms-2" 
-                                           target="_blank">
-                                            <i class="fas fa-download"></i> Export Barcodes
-                                        </a>
-                                    </div>
-                                </div>
-                                <div class="card-body">
-                                    <div class="table-responsive">
-                                        <table class="table table-bordered" width="100%" cellspacing="0">
-                                            <thead>
-                                                <tr>
-                                                    <th>Accession</th>
-                                                    <th>Call Number</th>
-                                                    <th>Copy Number</th>
-                                                    <th>Status</th>
-                                                    <th>Location</th>
-                                                    <th>Last Update</th>
-                                                    <th>Series</th> <!-- New column -->
-                                                    <th>Volume</th> <!-- New column -->
-                                                    <th>Edition</th> <!-- New column -->
-                                                    <th>ISBN</th> <!-- New column -->
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <?php foreach ($allCopies as $copy): ?>
-                                                    <tr>
-                                                        <td><?php echo htmlspecialchars($copy['accession']); ?></td>
-                                                        <td><?php echo htmlspecialchars($copy['call_number']); ?></td>
-                                                        <td><?php echo htmlspecialchars($copy['copy_number']); ?></td>
-                                                        <td>
-                                                            <?php echo htmlspecialchars($copy['status']); ?>
-                                                        </td>
-                                                        <td><?php echo htmlspecialchars($copy['shelf_location']); ?></td>
-                                                        <td><?php echo htmlspecialchars(date('Y-m-d', strtotime($copy['last_update']))); ?></td>
-                                                        <td><?php echo htmlspecialchars($copy['series']); ?></td> <!-- New column -->
-                                                        <td><?php echo htmlspecialchars($copy['volume']); ?></td> <!-- New column -->
-                                                        <td><?php echo htmlspecialchars($copy['edition']); ?></td> <!-- New column -->
-                                                        <td><?php echo htmlspecialchars($copy['ISBN']); ?></td> <!-- New column -->
-                                                    </tr>
-                                                <?php endforeach; ?>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        <?php else: ?>
-                            <div class="alert alert-info">No copies found.</div>
-                        <?php endif; ?>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
@@ -1013,5 +990,74 @@ if ($bookId > 0) {
             });
         });
     </script>
+
+    <script>
+function confirmDeleteAllCopies(title) {
+    Swal.fire({
+        title: 'Delete All Copies?',
+        html: `
+            Are you sure you want to delete all copies of "<strong>${title}</strong>"?<br><br>
+            <span class="text-danger">This action cannot be undone!</span><br>
+            Total copies to be deleted: <strong><?php echo htmlspecialchars($totalCopies); ?></strong>
+        `,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete all!',
+        cancelButtonText: 'Cancel',
+        reverseButtons: true
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            // Show loading state
+            Swal.fire({
+                title: 'Deleting...',
+                html: 'Please wait while deleting all copies.',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            try {
+                const response = await fetch('delete_all_copies.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        title: title
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    Swal.fire({
+                        title: 'Success!',
+                        text: data.message || `Successfully deleted all copies of "${title}".`,
+                        icon: 'success'
+                    }).then(() => {
+                        window.location.href = 'book_list.php';
+                    });
+                } else {
+                    Swal.fire({
+                        title: 'Error!',
+                        text: data.error || 'Failed to delete copies',
+                        icon: 'error'
+                    });
+                }
+            } catch (error) {
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'An unexpected error occurred while deleting copies',
+                    icon: 'error'
+                });
+            }
+        }
+    });
+}
+</script>
 </body>
 </html>
