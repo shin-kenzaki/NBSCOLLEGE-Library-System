@@ -79,43 +79,60 @@ $accession_error = '';
                 <div class="row">
                     <div class="col-xl-12 col-lg-7">
                         <!-- Tab Navigation -->
-                        <ul class="nav nav-tabs" id="formTabs" role="tablist">
-                            <li class="nav-item">
-                                <a class="nav-link active" id="title-tab" data-toggle="tab" href="#title-proper" role="tab">
-                                    <i class="fas fa-book"></i> Title Information
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" id="subject-tab" data-toggle="tab" href="#subject-entry" role="tab">
-                                    <i class="fas fa-tag"></i> Subject Entry
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" id="abstracts-tab" data-toggle="tab" href="#abstracts" role="tab">
-                                    <i class="fas fa-file-alt"></i> Abstract & Notes
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" id="description-tab" data-toggle="tab" href="#description" role="tab">
-                                    <i class="fas fa-info-circle"></i> Description
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" id="local-info-tab" data-toggle="tab" href="#local-info" role="tab">
-                                    <i class="fas fa-map-marker-alt"></i> Local Information
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" id="publication-tab" data-toggle="tab" href="#publication" role="tab">
-                                    <i class="fas fa-print"></i> Publication
-                                </a>
-                            </li>
-                        </ul>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <ul class="nav nav-tabs flex-grow-1" id="formTabs" role="tablist">
+                                <li class="nav-item">
+                                    <a class="nav-link active" id="title-tab" data-toggle="tab" href="#title-proper" role="tab">
+                                        <i class="fas fa-book"></i> Title Information
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" id="subject-tab" data-toggle="tab" href="#subject-entry" role="tab">
+                                        <i class="fas fa-tag"></i> Subject Entry
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" id="abstracts-tab" data-toggle="tab" href="#abstracts" role="tab">
+                                        <i class="fas fa-file-alt"></i> Abstract & Notes
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" id="description-tab" data-toggle="tab" href="#description" role="tab">
+                                        <i class="fas fa-info-circle"></i> Description
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" id="local-info-tab" data-toggle="tab" href="#local-info" role="tab">
+                                        <i class="fas fa-map-marker-alt"></i> Local Information
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" id="publication-tab" data-toggle="tab" href="#publication" role="tab">
+                                        <i class="fas fa-print"></i> Publication
+                                    </a>
+                                </li>
+                            </ul>
+                            
+                            <!-- Navigation Buttons -->
+                            <div class="tab-navigation-buttons ml-3">
+                                <button type="button" class="btn btn-secondary btn-sm mr-2" id="prevTabBtn" disabled>
+                                    <i class="fas fa-chevron-left"></i> Previous
+                                </button>
+                                <button type="button" class="btn btn-primary btn-sm" id="nextTabBtn">
+                                    Next <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
+                        </div>
 
                         <div class="tab-content card border-0 shadow-sm p-4 mt-3" id="formTabsContent">
                             <!-- Title Proper Tab -->
                             <div class="tab-pane fade show active" id="title-proper" role="tabpanel">
-                                <h4 class="mb-3">Title Information</h4>
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h4 class="mb-0">Title Information</h4>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm clear-tab-btn" data-tab-id="title-proper">
+                                        <i class="fas fa-eraser"></i> Clear Tab
+                                    </button>
+                                </div>
                                 <div class="form-group">
                                     <label for="title">Title Proper</label>
                                     <input type="text" class="form-control" id="title" name="title" required>
@@ -131,15 +148,16 @@ $accession_error = '';
                                     <input type="text" class="form-control" id="parallel_title" name="parallel_title">
                                     <small class="form-text text-muted">Title in another language.</small>
                                 </div>
-                                <div class="mt-4 d-flex justify-content-between">
-                                    <button type="button" class="btn btn-secondary disabled">Previous</button>
-                                    <button type="button" class="btn btn-primary next-tab" data-next="subject-tab">Next</button>
-                                </div>
                             </div>
 
                             <!-- Subject Entry Tab -->
                             <div class="tab-pane fade" id="subject-entry" role="tabpanel">
-                                <h4 class="mb-3">Subject Entry</h4>
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h4 class="mb-0">Subject Entry</h4>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm clear-tab-btn" data-tab-id="subject-entry">
+                                        <i class="fas fa-eraser"></i> Clear Tab
+                                    </button>
+                                </div>
                                 <div id="subject-entries">
                                     <div class="subject-entry card p-3 mb-3">
                                         <button type="button" class="btn btn-danger btn-sm remove-subject">
@@ -163,15 +181,16 @@ $accession_error = '';
                                 <button type="button" class="btn btn-secondary mb-3" id="add-subject">
                                     <i class="fas fa-plus"></i> Add Another Subject
                                 </button>
-                                <div class="mt-4 d-flex justify-content-between">
-                                    <button type="button" class="btn btn-secondary prev-tab" data-prev="title-tab">Previous</button>
-                                    <button type="button" class="btn btn-primary next-tab" data-next="abstracts-tab">Next</button>
-                                </div>
                             </div>
 
                             <!-- Abstracts Tab -->
                             <div class="tab-pane fade" id="abstracts" role="tabpanel">
-                                <h4 class="mb-3">Abstract & Notes</h4>
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h4 class="mb-0">Abstract & Notes</h4>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm clear-tab-btn" data-tab-id="abstracts">
+                                        <i class="fas fa-eraser"></i> Clear Tab
+                                    </button>
+                                </div>
                                 <div class="form-group">
                                     <label for="abstract">Abstract/Summary</label>
                                     <textarea class="form-control" id="abstract" name="abstract" rows="4"></textarea>
@@ -182,15 +201,16 @@ $accession_error = '';
                                     <textarea class="form-control" id="notes" name="notes" rows="4"></textarea>
                                     <small class="form-text text-muted">Additional notes about the book.</small>
                                 </div>
-                                <div class="mt-4 d-flex justify-content-between">
-                                    <button type="button" class="btn btn-secondary prev-tab" data-prev="subject-tab">Previous</button>
-                                    <button type="button" class="btn btn-primary next-tab" data-next="description-tab">Next</button>
-                                </div>
                             </div>
 
                             <!-- Description Tab -->
                             <div class="tab-pane fade" id="description" role="tabpanel">
-                                <h4 class="mb-3">Description</h4>
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h4 class="mb-0">Description</h4>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm clear-tab-btn" data-tab-id="description">
+                                        <i class="fas fa-eraser"></i> Clear Tab
+                                    </button>
+                                </div>
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="form-group">
@@ -252,15 +272,16 @@ $accession_error = '';
                                         </div>
                                     </div>
                                 </div>
-                                <div class="mt-4 d-flex justify-content-between">
-                                    <button type="button" class="btn btn-secondary prev-tab" data-prev="abstracts-tab">Previous</button>
-                                    <button type="button" class="btn btn-primary next-tab" data-next="local-info-tab">Next</button>
-                                </div>
                             </div>
 
                             <!-- Local Information Tab -->
                             <div class="tab-pane fade" id="local-info" role="tabpanel">
-                                <h4 class="mb-3">Local Information</h4>
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h4 class="mb-0">Local Information</h4>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm clear-tab-btn" data-tab-id="local-info">
+                                        <i class="fas fa-eraser"></i> Clear Tab
+                                    </button>
+                                </div>
                                 <!-- Accession Number Section -->
                                 <div class="card mb-4">
                                     <div class="card-header">
@@ -368,15 +389,16 @@ $accession_error = '';
                                     <label for="url">URL (if applicable)</label>
                                     <input type="url" class="form-control" id="url" name="url" placeholder="https://example.com">
                                 </div>
-                                <div class="mt-4 d-flex justify-content-between">
-                                    <button type="button" class="btn btn-secondary prev-tab" data-prev="description-tab">Previous</button>
-                                    <button type="button" class="btn btn-primary next-tab" data-next="publication-tab">Next</button>
-                                </div>
                             </div>
 
                             <!-- Publication Tab -->
                             <div class="tab-pane fade" id="publication" role="tabpanel">
-                                <h4 class="mb-3">Publication Details</h4>
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h4 class="mb-0">Publication Details</h4>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm clear-tab-btn" data-tab-id="publication">
+                                        <i class="fas fa-eraser"></i> Clear Tab
+                                    </button>
+                                </div>
                                 <div class="row">
                                     <div class="col-md-8">
                                         <div class="form-group">
@@ -658,6 +680,26 @@ $accession_error = '';
     top: 10px;
     right: 10px;
 }
+
+/* Tab navigation styling */
+.tab-navigation-buttons {
+    display: flex;
+    align-items: center;
+}
+
+/* Completed tab styling */
+#formTabs .nav-link.completed {
+    position: relative;
+}
+
+#formTabs .nav-link.completed::after {
+    content: '✓';
+    position: absolute;
+    top: 2px;
+    right: 5px;
+    font-size: 12px;
+    color: #28a745;
+}
 </style>
 
 <!-- Bootstrap and JS -->
@@ -671,3 +713,4 @@ $accession_error = '';
 <script src="js/accession-management.js"></script>
 <script src="js/author-management.js"></script>
 <script src="js/form-autosave.js"></script>
+<script src="js/form-clear.js"></script> 
