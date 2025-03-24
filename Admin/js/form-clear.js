@@ -57,4 +57,96 @@ $(document).ready(function() {
             toastr.success('Tab fields have been cleared');
         }
     });
+
+    // Clear Form Button Click Handler
+    $('.btn-warning[data-clear-form]').on('click', function() {
+        if (confirm('Are you sure you want to clear all form data?')) {
+            // Clear localStorage
+            localStorage.removeItem('bookFormData');
+
+            const form = document.getElementById('bookForm');
+
+            // Clear all basic form elements
+            form.querySelectorAll('input:not([readonly]), textarea, select').forEach(field => {
+                if (field.type === 'checkbox' || field.type === 'radio') {
+                    field.checked = false;
+                } else if (field.type === 'file') {
+                    field.value = '';
+                    // Reset file input labels
+                    const label = field.nextElementSibling;
+                    if (label && label.classList.contains('custom-file-label')) {
+                        const originalLabel = field.id === 'front_image' ? 'Front Cover' : 'Back Cover';
+                        label.textContent = originalLabel;
+                    }
+                } else if (field.tagName === 'SELECT' && field.multiple) {
+                    $(field).val(null).trigger('change');
+                    // Clear preview if exists
+                    const previewId = field.id + 'Preview';
+                    const preview = document.getElementById(previewId);
+                    if (preview) preview.innerHTML = '';
+                } else {
+                    field.value = '';
+                }
+            });
+
+            // Reset subject entries to single empty entry
+            const subjectEntries = document.getElementById('subject-entries');
+            if (subjectEntries) {
+                while (subjectEntries.children.length > 1) {
+                    subjectEntries.removeChild(subjectEntries.lastChild);
+                }
+                const firstEntry = subjectEntries.querySelector('.subject-entry');
+                if (firstEntry) {
+                    firstEntry.querySelectorAll('select, textarea').forEach(field => field.value = '');
+                }
+            }
+
+            // Reset accession entries to single empty entry
+            const accessionContainer = document.getElementById('accessionContainer');
+            if (accessionContainer) {
+                while (accessionContainer.children.length > 1) {
+                    accessionContainer.removeChild(accessionContainer.lastChild);
+                }
+                const firstGroup = accessionContainer.querySelector('.accession-group');
+                if (firstGroup) {
+                    firstGroup.querySelectorAll('input:not([readonly])').forEach(field => {
+                        field.value = field.name.includes('number_of_copies') ? '1' : '';
+                    });
+                }
+            }
+
+            // Reset progress bar
+            const progressBar = document.getElementById('formProgressBar');
+            if (progressBar) {
+                progressBar.style.width = '0%';
+                progressBar.setAttribute('aria-valuenow', '0');
+            }
+
+            // Reset all tabs status
+            document.querySelectorAll('#formTabs .nav-link').forEach(tab => {
+                tab.classList.remove('completed', 'active');
+            });
+
+            // Switch to first tab
+            const firstTab = document.querySelector('#formTabs .nav-link:first-child');
+            const firstTabPane = document.querySelector('#title-proper');
+            if (firstTab && firstTabPane) {
+                // Remove active class from all tab panes
+                document.querySelectorAll('.tab-pane').forEach(pane => {
+                    pane.classList.remove('active', 'show');
+                });
+                
+                // Activate first tab
+                firstTab.classList.add('active');
+                firstTabPane.classList.add('active', 'show');
+            }
+
+            // Show success message
+            if (typeof toastr !== 'undefined') {
+                toastr.success('Form has been cleared successfully');
+            } else {
+                alert('Form has been cleared successfully');
+            }
+        }
+    });
 });

@@ -67,6 +67,9 @@ $accession_error = '';
                   onkeydown="return event.key != 'Enter';">
                 <div class="container-fluid d-flex justify-content-between align-items-center mb-4">
                     <h1 class="h3 mb-2 text-gray-800">Add Book</h1>
+                    <button type="button" class="btn btn-warning mr-2" data-clear-form>
+                        <i class="fas fa-trash"></i> Clear Form
+                    </button>
                 </div>
 
                 <!-- Progress Bar -->
@@ -713,4 +716,4 @@ $accession_error = '';
 <script src="js/accession-management.js"></script>
 <script src="js/author-management.js"></script>
 <script src="js/form-autosave.js"></script>
-<script src="js/form-clear.js"></script> 
+<script src="js/form-clear.js"></script>
