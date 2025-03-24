@@ -97,20 +97,25 @@ document.addEventListener("DOMContentLoaded", function() {
     // Disable direct tab clicking (completely prevent it)
     tabs.forEach((tab) => {
         tab.addEventListener('click', function(e) {
-            // Always prevent the default tab switching behavior
+            // Always prevent the default tab switching behavior first
             e.preventDefault();
             e.stopPropagation();
             
-            // Only allow clicking on completed tabs
+            const clickedTabIndex = Array.from(tabs).indexOf(this);
+            
+            // Only allow clicking on completed tabs or the current tab
             if (tab.classList.contains('completed')) {
                 // If it's a completed tab, allow navigation to it
-                currentTabIndex = Array.from(tabs).indexOf(this);
+                currentTabIndex = clickedTabIndex;
                 updateProgressBar();
                 
                 // Use Bootstrap's tab method to show the tab
                 $(this).tab('show');
-            } else if (this !== tabs[currentTabIndex]) {
-                // If trying to access an uncompleted tab that's not the current one
+            } else if (this === tabs[currentTabIndex]) {
+                // Clicking on current tab - do nothing but allow it
+                return false;
+            } else {
+                // Prevent navigation to any uncompleted tab
                 alert('Please complete the current section before skipping ahead.');
             }
             return false;
