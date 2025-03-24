@@ -1,6 +1,7 @@
 <?php
 session_start();
 include('../db.php');
+require 'mailer.php'; // Include the mailer library
 
 // Check if user is logged in and has appropriate role
 if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Librarian', 'Assistant', 'Encoder'])) {
@@ -35,7 +36,7 @@ try {
     
     // First, get the reservations and related book information
     $query = "SELECT r.id, r.book_id, r.user_id, b.title, b.status as book_status,
-              CONCAT(u.firstname, ' ', u.lastname) as borrower_name
+              CONCAT(u.firstname, ' ', u.lastname) as borrower_name, u.email as borrower_email
               FROM reservations r
               JOIN books b ON r.book_id = b.id
               JOIN users u ON r.user_id = u.id
@@ -47,6 +48,7 @@ try {
     $result = $conn->query($query);
     $updates = [];
     $errors = [];
+    $userReservations = [];
 
     while ($reservation = $result->fetch_assoc()) {
         $book_id_to_update = $reservation['book_id'];
@@ -67,7 +69,10 @@ try {
                 $updates[] = [
                     'reservation_id' => $reservation['id'],
                     'book_id' => $book_id_to_update,
-                    'needs_book_update' => true
+                    'needs_book_update' => true,
+                    'borrower_name' => $reservation['borrower_name'],
+                    'borrower_email' => $reservation['borrower_email'],
+                    'book_title' => $reservation['title']
                 ];
             } else {
                 $errors[] = sprintf(
@@ -81,9 +86,17 @@ try {
             $updates[] = [
                 'reservation_id' => $reservation['id'],
                 'book_id' => $book_id_to_update,
-                'needs_book_update' => false
+                'needs_book_update' => false,
+                'borrower_name' => $reservation['borrower_name'],
+                'borrower_email' => $reservation['borrower_email'],
+                'book_title' => $reservation['title']
             ];
         }
+
+        // Group reservations by user
+        $userReservations[$reservation['user_id']]['borrower_name'] = $reservation['borrower_name'];
+        $userReservations[$reservation['user_id']]['borrower_email'] = $reservation['borrower_email'];
+        $userReservations[$reservation['user_id']]['books'][] = $reservation['title'];
     }
 
     // If there are any errors, don't proceed with updates
@@ -113,6 +126,55 @@ try {
         $sql = "UPDATE books SET status = 'Reserved' WHERE id = " . $update['book_id'];
         if (!$conn->query($sql)) {
             throw new Exception("Error updating book status");
+        }
+    }
+
+    // Send email notifications
+    foreach ($userReservations as $userId => $userData) {
+        $borrowerName = $userData['borrower_name'];
+        $borrowerEmail = $userData['borrower_email'];
+        $books = $userData['books'];
+
+        $mail = require 'mailer.php';
+
+        try {
+            $mail->setFrom('noreply@nbs-library-system.com', 'Library System (No-Reply)');
+            $mail->addReplyTo('noreply@nbs-library-system.com', 'No-Reply');
+            $mail->addAddress($borrowerEmail, $borrowerName);
+
+            if (count($books) == 1) {
+                $bookTitle = $books[0];
+                $mail->Subject = "Your Reserved Book is Ready for Pickup";
+                $mail->Body = "
+                    Hi $borrowerName,<br><br>
+                    Your reserved book titled <b>$bookTitle</b> is now ready for pickup.<br>
+                    Please visit the library to collect your book.<br><br>
+                    <i><b>Note:</b> This is an automated email — please do not reply.</i><br><br>
+                    Thank you!
+                ";
+            } else {
+                $bookList = "<ul>";
+                foreach ($books as $bookTitle) {
+                    $bookList .= "<li>" . htmlspecialchars($bookTitle) . "</li>";
+                }
+                $bookList .= "</ul>";
+
+                $mail->Subject = "Your Reserved Books are Ready for Pickup";
+                $mail->Body = "
+                    Hi $borrowerName,<br><br>
+                    Your reserved books are now ready for pickup:<br>
+                    $bookList
+                    Please visit the library to collect your books.<br><br>
+                    <i><b>Note:</b> This is an automated email — please do not reply.</i><br><br>
+                    Thank you!
+                ";
+            }
+
+            if (!$mail->send()) {
+                throw new Exception("Failed to send email to {$borrowerEmail}");
+            }
+        } catch (Exception $e) {
+            throw new Exception("Email sending failed for {$borrowerEmail}. Error: {$mail->ErrorInfo}");
         }
     }
 
