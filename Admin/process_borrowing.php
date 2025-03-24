@@ -111,8 +111,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             // Insert borrowing record
             $borrow_query = "INSERT INTO borrowings 
-                            (user_id, book_id, status, issue_date, issued_by, due_date)
-                            VALUES (?, ?, 'Active', NOW(), ?, DATE_ADD(NOW(), INTERVAL ? DAY))";
+                            (user_id, book_id, status, issue_date, issued_by, due_date, reminder_sent)
+                            VALUES (?, ?, 'Active', NOW(), ?, DATE_ADD(NOW(), INTERVAL ? DAY), 0)";
             $stmt = $conn->prepare($borrow_query);
             $stmt->bind_param('iiii', $user_id, $book_id, $admin_id, $allowed_days);
             $stmt->execute();
