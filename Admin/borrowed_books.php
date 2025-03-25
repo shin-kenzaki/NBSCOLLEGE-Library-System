@@ -143,7 +143,7 @@ $emailQuery = "
 ";
 $emailResult = $conn->query($emailQuery);
 
-// Send Email Logic
+// Send Email Logic for reminders
 while ($row = $emailResult->fetch_assoc()) {
     $userId = $row['user_id'];
     $email = $row['email'];
@@ -173,13 +173,13 @@ while ($row = $emailResult->fetch_assoc()) {
         $mail->addCustomHeader("In-Reply-To", "");
 
         $mail->addAddress($email, $borrowerName);
-        $mail->Subject = "Library Due Date Reminder - " . date('M d, Y H:i:s');
 
+        $mail->Subject = "Library Due Date Reminder - " . date('M d, Y H:i:s');
         $mail->Body = "
             Hi $borrowerName,<br><br>
             This is a reminder that the following books you borrowed are due tomorrow, <b>$dueDate</b>:<br>
             $bookList
-            Please return them tomorrow before 4:00PM(library closing time) to avoid penalties.<br><br>
+            Please return them tomorrow before 4:00PM (library closing time) to avoid penalties.<br><br>
             <i><b>Note:</b> This is an automated email — please do not reply.</i><br><br>
             Thank you!
         ";
@@ -195,7 +195,76 @@ while ($row = $emailResult->fetch_assoc()) {
     } catch (Exception $e) {
         echo "Email sending failed for {$email}. Error: {$mail->ErrorInfo}";
     }
+}
 
+// 🟢 Email Overdue Notification Query
+$overdueEmailQuery = "
+    SELECT u.id AS user_id, u.email, u.firstname, u.lastname,
+           GROUP_CONCAT(bk.title SEPARATOR '|') AS book_titles,
+           b.due_date
+    FROM borrowings b
+    JOIN users u ON b.user_id = u.id
+    JOIN books bk ON b.book_id = bk.id
+    WHERE DATE(b.due_date) < CURDATE()
+    AND b.status = 'Overdue'
+    AND bk.shelf_location != 'RES'
+    AND b.reminder_sent = 0  -- 🔹 Only get entries that haven’t been marked yet
+    GROUP BY u.id, b.due_date
+";
+$overdueEmailResult = $conn->query($overdueEmailQuery);
+
+// Send Email Logic for overdue notifications
+while ($row = $overdueEmailResult->fetch_assoc()) {
+    $userId = $row['user_id'];
+    $email = $row['email'];
+    $bookTitles = explode('|', $row['book_titles']);
+    $dueDate = date('M d, Y', strtotime($row['due_date']));
+    $borrowerName = $row['firstname'] . ' ' . $row['lastname'];
+
+    $mail = require 'mailer.php';
+
+    $bookList = "<ul>";
+    foreach ($bookTitles as $title) {
+        $bookList .= "<li>" . htmlspecialchars($title) . "</li>";
+    }
+    $bookList .= "</ul>";
+
+    try {
+        // ✅ Proper "No-Reply" Setup
+        $mail->setFrom('noreply@nbs-library-system.com', 'Library System (No-Reply)');
+
+        // ✅ Ensures replies go nowhere
+        $mail->addReplyTo('noreply@nbs-library-system.com', 'No-Reply');
+
+        // ✅ Ensures new email threads
+        $uniqueId = uniqid() . "@nbs-library-system.com";
+        $mail->MessageID = "<$uniqueId>";
+        $mail->addCustomHeader("References", "");
+        $mail->addCustomHeader("In-Reply-To", "");
+
+        $mail->addAddress($email, $borrowerName);
+
+        $mail->Subject = "Overdue Book Notification - " . date('M d, Y H:i:s');
+        $mail->Body = "
+            Hi $borrowerName,<br><br>
+            The following books you borrowed are overdue:<br>
+            $bookList
+            Please return them as soon as possible to avoid further penalties. If you think you don't have penalties, please contact the librarian.<br><br>
+            <i><b>Note:</b> This is an automated email — please do not reply.</i><br><br>
+            Thank you!
+        ";
+
+        if ($mail->send()) {
+            $updateReminderQuery = "UPDATE borrowings
+                                    SET reminder_sent = 1
+                                    WHERE user_id = '$userId'
+                                    AND DATE(due_date) < CURDATE()";
+            $conn->query($updateReminderQuery);
+        }
+
+    } catch (Exception $e) {
+        echo "Email sending failed for {$email}. Error: {$mail->ErrorInfo}";
+    }
 }
 
 
