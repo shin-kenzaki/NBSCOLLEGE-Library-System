@@ -718,7 +718,7 @@ include '../admin/inc/header.php';
     var myPieChart = new Chart(ctx, {
       type: 'doughnut',
       data: {
-        labels: ["Borrowed", "Overdue", "Available", "Damaged"],
+        labels: ["Borrowed", "Lost", "Available", "Damaged"],
         datasets: [{
           data: [bookStats.borrowed, bookStats.lost, bookStats.available, bookStats.damaged],
           backgroundColor: ['#4e73df', '#e74a3b', '#1cc88a', '#FFA500'],
@@ -729,16 +729,22 @@ include '../admin/inc/header.php';
       options: {
         maintainAspectRatio: false,
         tooltips: {
-          backgroundColor: "rgb(255,255,255)",
-          bodyFontColor: "#858796",
-          borderColor: '#dddfeb',
-          borderWidth: 1,
-          xPadding: 15,
-          yPadding: 15,
-          displayColors: false,
+                backgroundColor: "rgb(255,255,255)",
+                bodyFontColor: "#858796",
+                                borderColor: '#dddfeb',
+                borderWidth: 1,
+                xPadding: 15,
+                yPadding: 15,
+                displayColors: false,
           caretPadding: 10
         },
-        legend: { display: false },
+        legend: { 
+          display: false,
+          labels: {
+            fontFamily: 'Nunito, -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+            fontColor: '#858796'
+          }
+        },
         cutoutPercentage: 80
       }
     });
@@ -799,8 +805,7 @@ include '../admin/inc/header.php';
                     pointHoverBorderColor: "rgba(246, 194, 62, 1)",
                     pointHitRadius: 10,
                     pointBorderWidth: 2,
-                    fill: false,
-                    borderDash: [5, 5]
+                    fill: false
                 },
                 {
                     label: 'Returns This Month',
@@ -915,13 +920,13 @@ include '../admin/inc/header.php';
       options: {
         maintainAspectRatio: false,
         tooltips: {
-          backgroundColor: "rgb(255,255,255)",
-          bodyFontColor: "#858796",
-          borderColor: '#dddfeb',
-          borderWidth: 1,
-          xPadding: 15,
-          yPadding: 15,
-          displayColors: false,
+                backgroundColor: "rgb(255,255,255)",
+                bodyFontColor: "#858796",
+                                borderColor: '#dddfeb',
+                borderWidth: 1,
+                xPadding: 15,
+                yPadding: 15,
+                displayColors: false,
           caretPadding: 10
         },
         legend: { display: false },

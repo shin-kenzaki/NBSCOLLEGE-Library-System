@@ -11,39 +11,13 @@ document.addEventListener("DOMContentLoaded", function() {
     const tabContents = document.querySelectorAll('.tab-pane');
     const progressBar = document.getElementById('formProgressBar');
     
-    // Get navigation buttons
-    const prevButton = document.getElementById('prevTabBtn');
-    const nextButton = document.getElementById('nextTabBtn');
-    
-    // Function to update button states
-    function updateNavigationButtons() {
-        // Disable/enable previous button
-        if (currentTabIndex === 0) {
-            prevButton.disabled = true;
-        } else {
-            prevButton.disabled = false;
-        }
-        
-        // Change next button text on last tab
-        if (currentTabIndex === totalTabs - 1) {
-            nextButton.innerHTML = 'Submit <i class="fas fa-check"></i>';
-            nextButton.classList.add('btn-success');
-            nextButton.classList.remove('btn-primary');
-        } else {
-            nextButton.innerHTML = 'Next <i class="fas fa-chevron-right"></i>';
-            nextButton.classList.add('btn-primary');
-            nextButton.classList.remove('btn-success');
-        }
-    }
-    
     // Function to update progress bar
     function updateProgressBar() {
         const progressPercentage = (currentTabIndex / (totalTabs - 1)) * 100;
-        progressBar.style.width = progressPercentage + '%';
-        progressBar.setAttribute('aria-valuenow', progressPercentage);
-        
-        // Update button states
-        updateNavigationButtons();
+        if (progressBar) {
+            progressBar.style.width = progressPercentage + '%';
+            progressBar.setAttribute('aria-valuenow', progressPercentage);
+        }
     }
     
     // Function to validate current tab
@@ -103,13 +77,6 @@ document.addEventListener("DOMContentLoaded", function() {
             updateProgressBar();
         }
     }
-    
-    // Add event listeners for the navigation buttons
-    nextButton.addEventListener('click', goToNextTab);
-    prevButton.addEventListener('click', goToPrevTab);
-    
-    // Initialize button states
-    updateNavigationButtons();
     
     // Next button click handler
     document.querySelectorAll('.next-tab').forEach(button => {
@@ -224,16 +191,16 @@ document.addEventListener("DOMContentLoaded", function() {
     });
     
     // Add clear tab functionality
-    document.querySelectorAll('.clear-tab-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const tabId = this.getAttribute('data-tab-id');
-            const tabPane = document.getElementById(tabId);
+    // document.querySelectorAll('.clear-tab-btn').forEach(button => {
+    //     button.addEventListener('click', function() {
+    //         const tabId = this.getAttribute('data-tab-id');
+    //         const tabPane = document.getElementById(tabId);
             
-            if (confirm('Are you sure you want to clear all fields in this tab?')) {
-                clearTabFields(tabPane);
-            }
-        });
-    });
+    //         if (confirm('Are you sure you want to clear all fields in this tab?')) {
+    //             clearTabFields(tabPane);
+    //         }
+    //     });
+    // });
     
     // Function to clear all fields within a tab
     function clearTabFields(tabPane) {
@@ -325,7 +292,27 @@ document.addEventListener("DOMContentLoaded", function() {
                         field.value = '';
                     }
                 });
+                
+                // Also clear details fields
+                const detailsSection = firstGroup.querySelector('.accession-details');
+                if (detailsSection) {
+                    detailsSection.querySelectorAll('input').forEach(input => {
+                        input.value = '';
+                    });
+                }
             }
+            
+            // Update call numbers and copy numbers
+            updateISBNFields();
         }
     }
+
+    // Add a new event listener for form clearing
+    document.querySelector('[data-clear-form]').addEventListener('click', function() {
+        if (confirm('Are you sure you want to clear the entire form? This action cannot be undone.')) {
+            clearAllTabs();
+            // Clear local storage if autosave is implemented
+            localStorage.removeItem('bookFormData');
+        }
+    });
 });

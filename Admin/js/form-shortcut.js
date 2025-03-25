@@ -113,11 +113,40 @@ document.addEventListener("DOMContentLoaded", function() {
         if (e.target && e.target.classList.contains('accession-input')) {
             e.target.value = e.target.value.replace(/\D/g, '');
         }
+        
+        // Add tracking for ISBN, series, volume, and edition changes
+        if (e.target && (
+            e.target.name === 'isbn[]' || 
+            e.target.name === 'series[]' || 
+            e.target.name === 'volume[]' || 
+            e.target.name === 'edition[]'
+        )) {
+            updateISBNFields();
+        }
     });
 
     // Form submission handler
     document.getElementById('bookForm').addEventListener('submit', function(e) {
         if (!validateForm(e)) {
+            e.preventDefault();
+            return false;
+        }
+        
+        // Verify accession details are captured
+        const accessionGroups = document.querySelectorAll('.accession-group');
+        let isValid = true;
+        
+        accessionGroups.forEach(group => {
+            const isbnInput = group.querySelector('input[name="isbn[]"]');
+            if (isbnInput && !isbnInput.value.trim()) {
+                // If ISBN validation is required, uncomment this
+                // isValid = false;
+                // isbnInput.classList.add('is-invalid');
+            }
+        });
+        
+        if (!isValid) {
+            alert('Please complete all required accession details');
             e.preventDefault();
             return false;
         }

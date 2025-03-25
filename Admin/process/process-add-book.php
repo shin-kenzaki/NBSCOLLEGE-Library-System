@@ -65,7 +65,8 @@ if (isset($_POST['submit'])) {
                 // Get shelf locations and call numbers
                 $call_numbers = $_POST['call_number'] ?? [];
                 $shelf_locations = $_POST['shelf_locations'] ?? [];
-                
+                $copy_numbers = $_POST['copy_number'] ?? [];
+
                 // Process copies
                 $current_index = 0;
                 
@@ -96,7 +97,9 @@ if (isset($_POST['submit'])) {
                     $contents = mysqli_real_escape_string($conn, $_POST['notes'] ?? '');
                     $dimension = mysqli_real_escape_string($conn, $_POST['dimension'] ?? '');
                     
-                    $copy_number = $copy + 1;
+                    // Get copy number from input field if exists, else use incremental counter
+                    // We're now using the explicitly provided copy numbers
+                    $copy_number = isset($copy_numbers[$current_index]) ? intval($copy_numbers[$current_index]) : ($copy + 1);
                     $total_pages = mysqli_real_escape_string($conn, $_POST['main_pages'] ?? '');
                     $supplementary_contents = isset($_POST['supplementary_content']) ? 
                         mysqli_real_escape_string($conn, implode(', ', $_POST['supplementary_content'])) : '';
@@ -256,8 +259,12 @@ if (isset($_POST['submit'])) {
         }
         
         $_SESSION['success_message'] = "Book(s) added successfully!";
+        
+        // Set a session flag to trigger form reset on the next page load
+        $_SESSION['reset_book_form'] = true;
+        
         // Change redirect to book_list.php
-        header("Location: ../Admin/book_list.php");
+        header("Location: ../admin/book_list.php");
         exit();
         
     } catch (Exception $e) {

@@ -7,6 +7,13 @@ if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Lib
     exit();
 }
 
+// Add form reset check - must come before including process-add-book.php
+$resetForm = false;
+if (isset($_SESSION['reset_book_form']) && $_SESSION['reset_book_form'] === true) {
+    $resetForm = true;
+    unset($_SESSION['reset_book_form']); // Clear the flag
+}
+
 // Include the database connection
 include '../db.php';
 
@@ -115,26 +122,25 @@ $accession_error = '';
                                     </a>
                                 </li>
                             </ul>
-                            
-                            <!-- Navigation Buttons -->
-                            <div class="tab-navigation-buttons ml-3">
-                                <button type="button" class="btn btn-secondary btn-sm mr-2" id="prevTabBtn" disabled>
-                                    <i class="fas fa-chevron-left"></i> Previous
-                                </button>
-                                <button type="button" class="btn btn-primary btn-sm" id="nextTabBtn">
-                                    Next <i class="fas fa-chevron-right"></i>
-                                </button>
-                            </div>
                         </div>
-
                         <div class="tab-content card border-0 shadow-sm p-4 mt-3" id="formTabsContent">
                             <!-- Title Proper Tab -->
                             <div class="tab-pane fade show active" id="title-proper" role="tabpanel">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <h4 class="mb-0">Title Information</h4>
-                                    <button type="button" class="btn btn-outline-secondary btn-sm clear-tab-btn" data-tab-id="title-proper">
-                                        <i class="fas fa-eraser"></i> Clear Tab
-                                    </button>
+                                    <div class="btn-group">
+                                        <!-- Previous button if not first tab -->
+                                        <button type="button" class="btn btn-outline-secondary btn-sm prev-tab me-2" data-prev="title-tab">
+                                            <i class="fas fa-chevron-left"></i> Previous
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm clear-tab-btn" data-tab-id="title-proper">
+                                            <i class="fas fa-eraser"></i> Clear Tab
+                                        </button>
+                                        <!-- Next button if not last tab -->
+                                        <button type="button" class="btn btn-outline-primary btn-sm next-tab ms-2" data-next="subject-tab">
+                                            Next <i class="fas fa-chevron-right"></i>
+                                        </button>
+                                    </div>
                                 </div>
                                 <div class="form-group">
                                     <label for="title">Title Proper</label>
@@ -151,15 +157,27 @@ $accession_error = '';
                                     <input type="text" class="form-control" id="parallel_title" name="parallel_title">
                                     <small class="form-text text-muted">Title in another language.</small>
                                 </div>
+                                <div class="mt-4 d-flex justify-content-end">
+                                    <button type="button" class="btn btn-primary next-tab" data-next="subject-tab">
+                                        Next <i class="fas fa-chevron-right"></i>
+                                    </button>
+                                </div>
                             </div>
-
                             <!-- Subject Entry Tab -->
                             <div class="tab-pane fade" id="subject-entry" role="tabpanel">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <h4 class="mb-0">Subject Entry</h4>
-                                    <button type="button" class="btn btn-outline-secondary btn-sm clear-tab-btn" data-tab-id="subject-entry">
-                                        <i class="fas fa-eraser"></i> Clear Tab
-                                    </button>
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm prev-tab" data-prev="title-tab">
+                                            <i class="fas fa-chevron-left"></i> Previous
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm clear-tab-btn" data-tab-id="subject-entry">
+                                            <i class="fas fa-eraser"></i> Clear Tab
+                                        </button>
+                                        <button type="button" class="btn btn-outline-primary btn-sm next-tab" data-next="abstracts-tab">
+                                            Next <i class="fas fa-chevron-right"></i>
+                                        </button>
+                                    </div>
                                 </div>
                                 <div id="subject-entries">
                                     <div class="subject-entry card p-3 mb-3">
@@ -185,14 +203,23 @@ $accession_error = '';
                                     <i class="fas fa-plus"></i> Add Another Subject
                                 </button>
                             </div>
-
                             <!-- Abstracts Tab -->
                             <div class="tab-pane fade" id="abstracts" role="tabpanel">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <h4 class="mb-0">Abstract & Notes</h4>
-                                    <button type="button" class="btn btn-outline-secondary btn-sm clear-tab-btn" data-tab-id="abstracts">
-                                        <i class="fas fa-eraser"></i> Clear Tab
-                                    </button>
+                                    <div class="btn-group">
+                                        <!-- Previous button if not first tab -->
+                                        <button type="button" class="btn btn-outline-secondary btn-sm prev-tab me-2" data-prev="subject-tab">
+                                            <i class="fas fa-chevron-left"></i> Previous
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm clear-tab-btn" data-tab-id="abstracts">
+                                            <i class="fas fa-eraser"></i> Clear Tab
+                                        </button>
+                                        <!-- Next button if not last tab -->
+                                        <button type="button" class="btn btn-outline-primary btn-sm next-tab ms-2" data-next="description-tab">
+                                            Next <i class="fas fa-chevron-right"></i>
+                                        </button>
+                                    </div>
                                 </div>
                                 <div class="form-group">
                                     <label for="abstract">Abstract/Summary</label>
@@ -205,14 +232,23 @@ $accession_error = '';
                                     <small class="form-text text-muted">Additional notes about the book.</small>
                                 </div>
                             </div>
-
                             <!-- Description Tab -->
                             <div class="tab-pane fade" id="description" role="tabpanel">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <h4 class="mb-0">Description</h4>
-                                    <button type="button" class="btn btn-outline-secondary btn-sm clear-tab-btn" data-tab-id="description">
-                                        <i class="fas fa-eraser"></i> Clear Tab
-                                    </button>
+                                    <div class="btn-group">
+                                        <!-- Previous button if not first tab -->
+                                        <button type="button" class="btn btn-outline-secondary btn-sm prev-tab me-2" data-prev="abstracts-tab">
+                                            <i class="fas fa-chevron-left"></i> Previous
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm clear-tab-btn" data-tab-id="description">
+                                            <i class="fas fa-eraser"></i> Clear Tab
+                                        </button>
+                                        <!-- Next button if not last tab -->
+                                        <button type="button" class="btn btn-outline-primary btn-sm next-tab ms-2" data-next="local-info-tab">
+                                            Next <i class="fas fa-chevron-right"></i>
+                                        </button>
+                                    </div>
                                 </div>
                                 <div class="row">
                                     <div class="col-md-6">
@@ -276,14 +312,23 @@ $accession_error = '';
                                     </div>
                                 </div>
                             </div>
-
                             <!-- Local Information Tab -->
                             <div class="tab-pane fade" id="local-info" role="tabpanel">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <h4 class="mb-0">Local Information</h4>
-                                    <button type="button" class="btn btn-outline-secondary btn-sm clear-tab-btn" data-tab-id="local-info">
-                                        <i class="fas fa-eraser"></i> Clear Tab
-                                    </button>
+                                    <div class="btn-group">
+                                        <!-- Previous button if not first tab -->
+                                        <button type="button" class="btn btn-outline-secondary btn-sm prev-tab me-2" data-prev="description-tab">
+                                            <i class="fas fa-chevron-left"></i> Previous
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm clear-tab-btn" data-tab-id="local-info">
+                                            <i class="fas fa-eraser"></i> Clear Tab
+                                        </button>
+                                        <!-- Next button if not last tab -->
+                                        <button type="button" class="btn btn-outline-primary btn-sm next-tab ms-2" data-next="publication-tab">
+                                            Next <i class="fas fa-chevron-right"></i>
+                                        </button>
+                                    </div>
                                 </div>
                                 <!-- Accession Number Section -->
                                 <div class="card mb-4">
@@ -320,10 +365,9 @@ $accession_error = '';
                                         </button>
                                     </div>
                                 </div>
-
                                 <!-- Call Numbers -->
                                 <div class="card mb-4">
-                                    <div class="card-header">
+              Hey, Cortana. Hey, Cortana. Hey, Cortana. Whoa, whoa, whoa.                       <div class="card-header">
                                         <h5 class="mb-0">Call Numbers</h5>
                                     </div>
                                     <div class="card-body">
@@ -332,18 +376,15 @@ $accession_error = '';
                                         </div>
                                     </div>
                                 </div>
-
                                 <!-- Other Information -->
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="form-group">
                                             <label for="content_type">Content Type</label>
                                             <select class="form-control" id="content_type" name="content_type">
-                                                <option value="text">Text</option>
-                                                <option value="still image">Still Image</option>
-                                                <option value="performed music">Performed Music</option>
-                                                <option value="spoken word">Spoken Word</option>
-                                                <option value="computer program">Computer Program</option>
+                                                <option value="Text">Text</option>
+                                                <option value="Image">Image</option>
+                                                <option value="Video">Video</option>
                                             </select>
                                         </div>
                                     </div>
@@ -351,11 +392,9 @@ $accession_error = '';
                                         <div class="form-group">
                                             <label for="media_type">Media Type</label>
                                             <select class="form-control" id="media_type" name="media_type">
-                                                <option value="unmediated">Unmediated</option>
-                                                <option value="audio">Audio</option>
-                                                <option value="computer">Computer</option>
-                                                <option value="microform">Microform</option>
-                                                <option value="video">Video</option>
+                                                <option value="Print">Print</option>
+                                                <option value="Digital">Digital</option>
+                                                <option value="Audio">Audio</option>
                                             </select>
                                         </div>
                                     </div>
@@ -365,11 +404,9 @@ $accession_error = '';
                                         <div class="form-group">
                                             <label for="carrier_type">Carrier Type</label>
                                             <select class="form-control" id="carrier_type" name="carrier_type">
-                                                <option value="volume">Volume</option>
-                                                <option value="audio disc">Audio Disc</option>
-                                                <option value="online resource">Online Resource</option>
-                                                <option value="computer disc">Computer Disc</option>
-                                                <option value="videocassette">Videocassette</option>
+                                                <option value="Book">Book</option>
+                                                <option value="CD">CD</option>
+                                                <option value="USB">USB</option>
                                             </select>
                                         </div>
                                     </div>
@@ -377,13 +414,8 @@ $accession_error = '';
                                         <div class="form-group">
                                             <label for="language">Language</label>
                                             <select class="form-control" id="language" name="language">
-                                                <option value="eng">English</option>
-                                                <option value="fil">Filipino</option>
-                                                <option value="spa">Spanish</option>
-                                                <option value="fra">French</option>
-                                                <option value="jpn">Japanese</option>
-                                                <option value="kor">Korean</option>
-                                                <option value="chi">Chinese</option>
+                                                <option value="English">English</option>
+                                                <option value="Spanish">Spanish</option>
                                             </select>
                                         </div>
                                     </div>
@@ -393,14 +425,22 @@ $accession_error = '';
                                     <input type="url" class="form-control" id="url" name="url" placeholder="https://example.com">
                                 </div>
                             </div>
-
                             <!-- Publication Tab -->
                             <div class="tab-pane fade" id="publication" role="tabpanel">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <h4 class="mb-0">Publication Details</h4>
-                                    <button type="button" class="btn btn-outline-secondary btn-sm clear-tab-btn" data-tab-id="publication">
-                                        <i class="fas fa-eraser"></i> Clear Tab
-                                    </button>
+                                    <div class="btn-group">
+                                        <!-- Previous button if not first tab -->
+                                        <button type="button" class="btn btn-outline-secondary btn-sm prev-tab me-2" data-prev="local-info-tab">
+                                            <i class="fas fa-chevron-left"></i> Previous
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm clear-tab-btn" data-tab-id="publication">
+                                            <i class="fas fa-eraser"></i> Clear Tab
+                                        </button>
+                                        <button type="submit" name="submit" class="btn btn-success btn-sm">
+                                            <i class="fas fa-save"></i> Save Book
+                                        </button>
+                                    </div>
                                 </div>
                                 <div class="row">
                                     <div class="col-md-8">
@@ -430,66 +470,70 @@ $accession_error = '';
                                         </div>
                                     </div>
                                 </div>
-
                                 <div id="isbnContainer">
                                     <!-- ISBN/Series/Volume/Edition fields will be generated here by JavaScript -->
                                 </div>
-
                                 <div class="card mb-4">
                                     <div class="card-header">
                                         <h5 class="mb-0">Contributors</h5>
                                     </div>
                                     <div class="card-body">
-                                        <!-- Authors Section -->
-                                        <div class="form-group">
-                                            <label for="authorSelect">Author(s)</label>
-                                            <div class="input-group mb-2">
-                                                <input type="text" id="authorSearch" class="form-control" placeholder="Search authors...">
-                                                <div class="input-group-append">
-                                                    <button class="btn btn-outline-secondary" type="button" data-toggle="modal" data-target="#addAuthorModal">
-                                                        <i class="fas fa-plus"></i> New
-                                                    </button>
+                                        <!-- Contributors Row Layout -->
+                                        <div class="row">
+                                            <!-- Authors Section -->
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label for="authorSelect">Author(s)</label>
+                                                    <div class="input-group mb-2">
+                                                        <input type="text" id="authorSearch" class="form-control" placeholder="Search authors...">
+                                                        <div class="input-group-append">
+                                                            <button class="btn btn-outline-secondary" type="button" data-toggle="modal" data-target="#addAuthorModal">
+                                                                <i class="fas fa-plus"></i> New
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    <select id="authorSelect" name="author[]" class="form-control" required>
+                                                        <option value="">Select Author</option>
+                                                        <?php foreach ($writers as $writer): ?>
+                                                            <option value="<?php echo $writer['id']; ?>"><?php echo $writer['name']; ?></option>
+                                                        <?php endforeach; ?>
+                                                    </select>
+                                                    <div id="authorPreview" class="selected-preview mt-2"></div>
                                                 </div>
                                             </div>
-                                            <select id="authorSelect" name="author[]" class="form-control" required>
-                                                <option value="">Select Author</option>
-                                                <?php foreach ($writers as $writer): ?>
-                                                    <option value="<?php echo $writer['id']; ?>"><?php echo $writer['name']; ?></option>
-                                                <?php endforeach; ?>
-                                            </select>
-                                            <div id="authorPreview" class="selected-preview mt-2"></div>
-                                        </div>
-
-                                        <!-- Co-Authors Section -->
-                                        <div class="form-group">
-                                            <label for="coAuthorsSelect">Co-Author(s)</label>
-                                            <div class="input-group mb-2">
-                                                <input type="text" id="coAuthorsSearch" class="form-control" placeholder="Search co-authors...">
+                                            <!-- Co-Authors Section -->
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label for="coAuthorsSelect">Co-Author(s)</label>
+                                                    <div class="input-group mb-2">
+                                                        <input type="text" id="coAuthorsSearch" class="form-control" placeholder="Search co-authors...">
+                                                    </div>
+                                                    <select id="coAuthorsSelect" name="co_authors[]" class="form-control" multiple>
+                                                        <?php foreach ($writers as $writer): ?>
+                                                            <option value="<?php echo $writer['id']; ?>"><?php echo $writer['name']; ?></option>
+                                                        <?php endforeach; ?>
+                                                    </select>
+                                                    <div id="coAuthorsPreview" class="selected-preview mt-2"></div>
+                                                </div>
                                             </div>
-                                            <select id="coAuthorsSelect" name="co_authors[]" class="form-control" multiple>
-                                                <?php foreach ($writers as $writer): ?>
-                                                    <option value="<?php echo $writer['id']; ?>"><?php echo $writer['name']; ?></option>
-                                                <?php endforeach; ?>
-                                            </select>
-                                            <div id="coAuthorsPreview" class="selected-preview mt-2"></div>
-                                        </div>
-
-                                        <!-- Editors Section -->
-                                        <div class="form-group">
-                                            <label for="editorsSelect">Editor(s)</label>
-                                            <div class="input-group mb-2">
-                                                <input type="text" id="editorsSearch" class="form-control" placeholder="Search editors...">
+                                            <!-- Editors Section -->
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label for="editorsSelect">Editor(s)</label>
+                                                    <div class="input-group mb-2">
+                                                        <input type="text" id="editorsSearch" class="form-control" placeholder="Search editors...">
+                                                    </div>
+                                                    <select id="editorsSelect" name="editors[]" class="form-control" multiple>
+                                                        <?php foreach ($writers as $writer): ?>
+                                                            <option value="<?php echo $writer['id']; ?>"><?php echo $writer['name']; ?></option>
+                                                        <?php endforeach; ?>
+                                                    </select>
+                                                    <div id="editorsPreview" class="selected-preview mt-2"></div>
+                                                </div>
                                             </div>
-                                            <select id="editorsSelect" name="editors[]" class="form-control" multiple>
-                                                <?php foreach ($writers as $writer): ?>
-                                                    <option value="<?php echo $writer['id']; ?>"><?php echo $writer['name']; ?></option>
-                                                <?php endforeach; ?>
-                                            </select>
-                                            <div id="editorsPreview" class="selected-preview mt-2"></div>
                                         </div>
                                     </div>
                                 </div>
-
                                 <!-- System Info -->
                                 <div class="card">
                                     <div class="card-header">
@@ -532,13 +576,6 @@ $accession_error = '';
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-
-                                <div class="mt-4 d-flex justify-content-between">
-                                    <button type="button" class="btn btn-secondary prev-tab" data-prev="local-info-tab">Previous</button>
-                                    <button type="submit" name="submit" class="btn btn-success">
-                                        <i class="fas fa-save"></i> Save Book
-                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -683,18 +720,17 @@ $accession_error = '';
     top: 10px;
     right: 10px;
 }
-
 /* Tab navigation styling */
 .tab-navigation-buttons {
     display: flex;
     align-items: center;
 }
-
 /* Completed tab styling */
 #formTabs .nav-link.completed {
     position: relative;
+    display: flex;
+    align-items: center;
 }
-
 #formTabs .nav-link.completed::after {
     content: '✓';
     position: absolute;
@@ -702,6 +738,87 @@ $accession_error = '';
     right: 5px;
     font-size: 12px;
     color: #28a745;
+}
+/* Add to existing styles */
+.btn-group .btn {
+    margin: 0 2px;
+}
+.btn-group .prev-tab,
+.btn-group .next-tab {
+    min-width: 85px;
+}
+/* Hide previous button on first tab */
+#title-proper .prev-tab {
+    display: none;
+}
+/* Hide next button on last tab */
+#publication .next-tab {
+    display: none;
+}
+/* Special styling for submit button on last tab */
+#publication .btn-success {
+    margin-left: 2px;
+}
+.accession-details {
+    padding: 15px;
+    background-color: #f8f9fc;
+    border-radius: 0.35rem;
+    margin-top: 15px;
+}
+.accession-group {
+    padding: 20px;
+    border: 1px solid #e3e6f0;
+    border-radius: 0.35rem;
+    margin-bottom: 20px;
+}
+
+/* Add styling for call number grouping */
+#callNumberContainer .text-muted.small.font-weight-bold {
+    border-bottom: 1px solid #e3e6f0;
+    padding-bottom: 5px;
+    margin-top: 15px;
+}
+
+/* Style for copy number input */
+.copy-number-input {
+    border: 1px solid #d1d3e2;
+    border-radius: 0.35rem;
+    font-weight: bold;
+    text-align: center;
+}
+
+/* Improve input group spacing */
+.input-group > .input-group-text {
+    background-color: #f8f9fc;
+}
+
+/* Improved styling for call number inputs */
+.input-group .copy-number-input {
+    width: 70px !important;
+    flex: 0 0 70px;
+    text-align: center;
+    font-weight: bold;
+    border-radius: 0;
+}
+
+/* Make call number input take more space */
+.input-group .call-number-input {
+    min-width: 150px;
+    flex: 1;
+}
+
+/* Better spacing for input group elements */
+.input-group > .input-group-text {
+    background-color: #f8f9fc;
+    padding: 0.375rem 0.5rem;
+    white-space: nowrap;
+}
+
+/* Add styling for call number grouping */
+#callNumberContainer .text-muted.small.font-weight-bold {
+    border-bottom: 1px solid #e3e6f0;
+    padding-bottom: 5px;
+    margin-top: 15px;
 }
 </style>
 
@@ -717,3 +834,176 @@ $accession_error = '';
 <script src="js/author-management.js"></script>
 <script src="js/form-autosave.js"></script>
 <script src="js/form-clear.js"></script>
+<script src="js/call-number-fallback.js"></script>
+<script src="js/direct-call-number-generator.js"></script>
+
+<!-- Form Reset Handler -->
+<script>
+// Check if we need to reset the form (after successful submission)
+<?php if ($resetForm): ?>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Resetting form data after successful submission');
+    
+    // Clear all localStorage data related to the form
+    localStorage.removeItem('bookFormData');
+    localStorage.removeItem('formProgress');
+    localStorage.removeItem('completedTabs');
+    
+    // Reset the form element
+    document.getElementById('bookForm').reset();
+    
+    // Reset accession container to initial state
+    const accessionContainer = document.getElementById('accessionContainer');
+    if (accessionContainer) {
+        const firstGroup = accessionContainer.querySelector('.accession-group');
+        if (firstGroup) {
+            // Clear the input values
+            const accessionInput = firstGroup.querySelector('.accession-input');
+            const copiesInput = firstGroup.querySelector('.copies-input');
+            if (accessionInput) accessionInput.value = '';
+            if (copiesInput) copiesInput.value = '1';
+            
+            // Remove any additional accession groups
+            Array.from(accessionContainer.children).forEach((child, index) => {
+                if (index > 0) child.remove();
+            });
+        }
+    }
+    
+    // Clear call number container
+    const callNumberContainer = document.getElementById('callNumberContainer');
+    if (callNumberContainer) {
+        callNumberContainer.innerHTML = '';
+    }
+    
+    // Clear ISBN details container
+    const isbnContainer = document.getElementById('isbnContainer');
+    if (isbnContainer) {
+        isbnContainer.innerHTML = '';
+    }
+    
+    // Reset the progress bar
+    const progressBar = document.getElementById('formProgressBar');
+    if (progressBar) {
+        progressBar.style.width = '0%';
+        progressBar.setAttribute('aria-valuenow', 0);
+    }
+    
+    // Remove 'completed' class from all tabs
+    document.querySelectorAll('#formTabs .nav-link.completed').forEach(tab => {
+        tab.classList.remove('completed');
+    });
+    
+    // Activate the first tab
+    const firstTab = document.querySelector('#formTabs .nav-link');
+    if (firstTab) {
+        $(firstTab).tab('show');
+    }
+    
+    // Show a temporary success message at the top of the form
+    const formElement = document.getElementById('bookForm');
+    if (formElement) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-success alert-dismissible fade show mb-4';
+        alertDiv.innerHTML = `
+            <strong>Success!</strong> Book(s) added successfully.
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        `;
+        formElement.prepend(alertDiv);
+        
+        // Auto-dismiss after 5 seconds
+        setTimeout(() => {
+            $(alertDiv).alert('close');
+        }, 5000);
+    }
+});
+<?php endif; ?>
+</script>
+
+<!-- Call Number Validation Script -->
+<script>
+// Add immediate call number validation and debugging
+document.addEventListener('DOMContentLoaded', function() {
+    // Debug call number container
+    const callNumberContainer = document.getElementById('callNumberContainer');
+    console.log('Call number container:', callNumberContainer);
+    
+    // Force call number generation after a delay if not already present
+    setTimeout(function() {
+        if (callNumberContainer && callNumberContainer.children.length === 0) {
+            console.log('No call numbers found, manually triggering generation');
+            
+            // Check if accession inputs exist and have values
+            const accessionInputs = document.querySelectorAll('.accession-input');
+            if (accessionInputs.length > 0) {
+                console.log(`Found ${accessionInputs.length} accession inputs`);
+                
+                // If updateISBNFields function exists, call it
+                if (typeof updateISBNFields === 'function') {
+                    updateISBNFields();
+                    console.log('Called updateISBNFields function');
+                } else {
+                    console.error('updateISBNFields function not found');
+                }
+            } else {
+                console.log('No accession inputs found yet');
+            }
+        } else if (callNumberContainer) {
+            console.log(`Call number container has ${callNumberContainer.children.length} children`);
+        }
+    }, 1000);
+});
+</script>
+
+<!-- Add this at the end, just before the closing </body> tag -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add direct button handler for generating call numbers
+    document.getElementById('generateCallNumbersBtn').addEventListener('click', function() {
+        console.log('Manual call number generation requested');
+        if (typeof forceGenerateCallNumbers === 'function') {
+            forceGenerateCallNumbers();
+        } else if (typeof updateISBNFields === 'function') {
+            updateISBNFields();
+        } else {
+            alert('Call number generation functions not found. Please refresh the page.');
+        }
+    });
+    
+    // Also trigger when clicking on the Local Information tab
+    document.getElementById('local-info-tab').addEventListener('shown.bs.tab', function() {
+        console.log('Local Info tab activated, checking call numbers');
+        setTimeout(function() {
+            const callNumberContainer = document.getElementById('callNumberContainer');
+            if (callNumberContainer && (!callNumberContainer.children.length || 
+                (callNumberContainer.children.length === 1 && callNumberContainer.querySelector('.alert')))) {
+                console.log('Call numbers not found or only alert message present');
+                // Try both methods
+                if (typeof forceGenerateCallNumbers === 'function') {
+                    forceGenerateCallNumbers();
+                } else if (typeof updateISBNFields === 'function') {
+                    updateISBNFields();
+                }
+            }
+        }, 200);
+    });
+    
+    // Initial check - if accession inputs have values but no call numbers, generate them
+    setTimeout(function() {
+        const accessionInputs = document.querySelectorAll('.accession-input');
+        const callNumberContainer = document.getElementById('callNumberContainer');
+        
+        if (accessionInputs.length > 0 && accessionInputs[0].value && 
+            callNumberContainer && (!callNumberContainer.children.length || 
+            (callNumberContainer.children.length === 1 && callNumberContainer.querySelector('.alert')))) {
+            console.log('Detected accession input with value but no call numbers');
+            // Try direct function call
+            if (typeof forceGenerateCallNumbers === 'function') {
+                forceGenerateCallNumbers();
+            }
+        }
+    }, 1000);
+});
+</script>
