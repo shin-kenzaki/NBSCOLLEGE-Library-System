@@ -1,5 +1,8 @@
 <?php
 session_start();
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Cache-Control: post-check=0, pre-check=0", false);
+header("Pragma: no-cache");
 require __DIR__ . "/vendor/autoload.php";
 
 use PHPMailer\PHPMailer\PHPMailer;
@@ -7,7 +10,6 @@ use PHPMailer\PHPMailer\Exception;
 
 // Check if the user is allowed to access this page
 if (!isset($_SESSION['email']) || !isset($_SESSION['otp_allowed']) || $_SESSION['otp_allowed'] !== true) {
-    // Redirect to the registration page if the user is not allowed
     header("Location: register.php");
     exit();
 }
@@ -18,33 +20,6 @@ unset($_SESSION['otp_allowed']);
 // Generate OTP
 $otp = rand(100000, 999999);
 $_SESSION['otp'] = $otp;
-
-// Send OTP via email
-$mail = new PHPMailer(true);
-try {
-    $mail->isSMTP();
-    $mail->Host = 'smtp.gmail.com'; // Set the SMTP server to send through
-    $mail->SMTPAuth = true;
-    $mail->Username = 'cevangelista2021@student.nbscollege.edu.ph'; // SMTP username
-    $mail->Password = 'bzid uvxz qmys xqjq'; // SMTP password
-    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-    $mail->Port = 587;
-
-    $mail->setFrom('cevangelista2021@student.nbscollege.edu.ph', 'Library System');
-    $mail->addAddress($_SESSION['email']);
-    $mail->addReplyTo('nbsclibrary-noreply@nbcollege.edu.ph', 'No Reply'); // Set the Reply-To address to a "noreply" email
-
-    $mail->isHTML(true);
-    $mail->Subject = 'Email Verification OTP';
-    $mail->Body = "Your OTP for email verification is: <b>$otp</b>";
-
-    $mail->send();
-    $success = "OTP has been sent to your email. Please verify.";
-    $redirect = "verify_otp.php";
-} catch (Exception $e) {
-    $error = "OTP could not be sent. Mailer Error: {$mail->ErrorInfo}";
-    $redirect = "register.php";
-}
 ?>
 
 <!DOCTYPE html>
@@ -60,23 +35,21 @@ try {
 </head>
 <body>
     <script>
-        <?php if (isset($success)): ?>
-            Swal.fire({
-                title: 'Success!',
-                text: '<?php echo $success; ?>',
-                icon: 'success'
-            }).then(function() {
-                window.location.href = '<?php echo $redirect; ?>';
-            });
-        <?php elseif (isset($error)): ?>
-            Swal.fire({
-                title: 'Error!',
-                text: '<?php echo $error; ?>',
-                icon: 'error'
-            }).then(function() {
-                window.location.href = '<?php echo $redirect; ?>';
-            });
-        <?php endif; ?>
+        // Show SweetAlert while sending OTP
+        Swal.fire({
+            title: 'Sending OTP...',
+            text: 'Please wait while we send the OTP to your email.',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Use JavaScript to trigger the PHP OTP sending process
+        setTimeout(() => {
+            window.location.href = 'process_send_otp.php';
+        }, 1000); // Redirect to the PHP processing script after 1 second
     </script>
 </body>
 </html>
