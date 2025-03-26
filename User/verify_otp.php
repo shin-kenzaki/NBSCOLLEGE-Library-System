@@ -5,84 +5,83 @@ require __DIR__ . "/mailer.php";
 
 $success = $error = '';
 
+// Redirect the user if OTP is not set (to prevent returning to the OTP page)
+if (!isset($_SESSION['otp'])) {
+    header("Location: index.php"); // Redirect to the login or home page
+    exit();
+}
+
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-  if (isset($_POST['verify'])) {
-    $entered_otp = implode('', $_POST['otp']);
+    if (isset($_POST['verify'])) {
+        $entered_otp = implode('', $_POST['otp']);
 
-    if ($entered_otp == $_SESSION['otp']) {
-      // Retrieve data from session
-      $school_id = $_SESSION['school_id'];
-      $firstname = ucfirst(strtolower($_SESSION['firstname']));
-      $middle_init = ucfirst(strtolower($_SESSION['middle_init']));
-      $lastname = ucfirst(strtolower($_SESSION['lastname']));
-      $email = $_SESSION['email'];
-      $hashed_password = $_SESSION['hashed_password'];
-      $usertype = $_SESSION['usertype'];
-      $image = $_SESSION['image'];
+        if ($entered_otp == $_SESSION['otp']) {
+            // Retrieve data from session
+            $school_id = $_SESSION['school_id'];
+            $firstname = ucfirst(strtolower($_SESSION['firstname']));
+            $middle_init = ucfirst(strtolower($_SESSION['middle_init']));
+            $lastname = ucfirst(strtolower($_SESSION['lastname']));
+            $email = $_SESSION['email'];
+            $hashed_password = $_SESSION['hashed_password'];
+            $usertype = $_SESSION['usertype'];
+            $image = $_SESSION['image'];
 
-      // If all checks pass, proceed with insert
-      $sql = "INSERT INTO users (school_id, firstname, middle_init, lastname, email, password,
-              user_image, usertype, date_added)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+            // If all checks pass, proceed with insert
+            $sql = "INSERT INTO users (school_id, firstname, middle_init, lastname, email, password,
+                    user_image, usertype, date_added)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())";
 
-      if ($stmt = $conn->prepare($sql)) {
-        $stmt->bind_param("ssssssss",
-            $school_id, $firstname, $middle_init, $lastname, $email, $hashed_password, $image, $usertype);
+            if ($stmt = $conn->prepare($sql)) {
+                $stmt->bind_param(
+                    "ssssssss",
+                    $school_id,
+                    $firstname,
+                    $middle_init,
+                    $lastname,
+                    $email,
+                    $hashed_password,
+                    $image,
+                    $usertype
+                );
 
-        if ($stmt->execute()) {
-          // Use school_id instead of auto-incremented ID
-          $user_id = $school_id;
+                if ($stmt->execute()) {
+                    // Use school_id instead of auto-incremented ID
+                    $user_id = $school_id;
 
-          // Construct full name (including middle initial if exists)
-          $full_name = $firstname;
-          if (!empty($middle_init)) {
-            $full_name .= " " . $middle_init . ".";
-          }
-          $full_name .= " " . $lastname;
+                    // Construct full name (including middle initial if exists)
+                    $full_name = $firstname;
+                    if (!empty($middle_init)) {
+                        $full_name .= " " . $middle_init . ".";
+                    }
+                    $full_name .= " " . $lastname;
 
-          // Insert into updates table
-          $update_title = "User Registered";
-          $update_message = $full_name . " Registered as " . $usertype;
+                    // Insert into updates table
+                    $update_title = "User Registered";
+                    $update_message = $full_name . " Registered as " . $usertype;
 
-          $update_sql = "INSERT INTO updates (user_id, role, title, message, `update`)
-                         VALUES (?, ?, ?, ?, NOW())";
+                    $update_sql = "INSERT INTO updates (user_id, role, title, message, `update`)
+                                   VALUES (?, ?, ?, ?, NOW())";
 
-          if ($update_stmt = $conn->prepare($update_sql)) {
-            $update_stmt->bind_param("isss", $user_id, $usertype, $update_title, $update_message);
-            $update_stmt->execute();
-            $update_stmt->close();
-          }
+                    if ($update_stmt = $conn->prepare($update_sql)) {
+                        $update_stmt->bind_param("isss", $user_id, $usertype, $update_title, $update_message);
+                        $update_stmt->execute();
+                        $update_stmt->close();
+                    }
 
-          $_SESSION['success'] = "Registration successful! You can now login with your School ID and password.";
-          $success = "Registration successful! You will be redirected to the login page.";
+                    $_SESSION['success'] = "Registration successful! You can now login with your School ID and password.";
+                    $success = "Registration successful! You will be redirected to the login page.";
+
+                    // Invalidate the OTP after successful verification
+                    unset($_SESSION['otp']);
+                } else {
+                    $error = "Something went wrong! Please try again.";
+                }
+            }
+            $stmt->close();
         } else {
-          $error = "Something went wrong! Please try again.";
+            $error = "Invalid OTP!";
         }
-      }
-      $stmt->close();
-    } else {
-      $error = "Invalid OTP!";
     }
-  } elseif (isset($_POST['resend'])) {
-    // Generate new OTP
-    $otp = rand(100000, 999999);
-    $_SESSION['otp'] = $otp;
-
-    try {
-      $mail->isSMTP();
-      $mail->setFrom('cevangelista2021@student.nbscollege.edu.ph', 'Library System');
-      $mail->addAddress($_SESSION['email']);
-
-      $mail->Subject = 'Email Verification OTP';
-      $mail->Body = "Your OTP for email verification is: <b>$otp</b>";
-
-      $mail->send();
-      $success = "A new OTP has been sent to your email.";
-      $_SESSION['resend_time'] = time(); // Store the resend time in session
-    } catch (Exception $e) {
-      $error = "OTP could not be sent. Mailer Error: {$mail->ErrorInfo}";
-    }
-  }
 }
 ?>
 <!DOCTYPE html>
@@ -118,72 +117,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
       max-width: 960px; /* Optional: set a maximum width for the container */
       margin: 0 auto; /* Center the container horizontally */
     }
-
-    /* Style for the select dropdown with larger size */
-    .select-dropdown {
-      display: block;
-      width: 100%;
-      height: 3.5em; /* Increased height for bigger dropdown */
-      padding: 0.5rem 1rem; /* Adjusted padding for better spacing */
-      font-size: 0.9rem; /* Larger font size */
-      font-weight: 400;
-      line-height: 1.5;
-      color: #6e707e;
-      background-color: #fff;
-      background-clip: padding-box;
-      border: 1px solid #d1d3e2;
-      border-radius: 10rem; /* Rounded corners */
-      transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-    }
-
-    /* Optional: Apply hover effect */
-    .select-dropdown:hover {
-      border-color: #5e72e4; /* Highlight border color on hover */
-    }
-
-    /* Optional: Focus state */
-    .select-dropdown:focus {
-      border-color: #5e72e4; /* Border color when focused */
-      box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-      outline: none;
-    }
-
-    /* Mobile view adjustments */
-    @media (max-width: 768px) {
-      .card-body {
-        padding: 0;
-      }
-
-      .p-5 {
-        padding: 1.5rem !important;
-      }
-
-      .form-group {
-        margin-bottom: 0.75rem;
-      }
-
-      .form-control-user {
-        font-size: 0.8rem;
-        padding: 0.75rem 1rem;
-      }
-
-      .btn-user {
-        padding: 0.5rem 1rem;
-      }
-
-      .h4 {
-        font-size: 1.25rem;
-      }
-
-      /* Stack form elements vertically on small screens */
-      @media (max-width: 576px) {
-        .form-group.row > div {
-          margin-bottom: 0.75rem;
-        }
-      }
-    }
-
-
   </style>
 </head>
 <body class="bg-gradient-primary">
@@ -243,18 +176,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                   Verify OTP
                 </button>
                 <hr />
-              </form>
-
-              <form class="user" method="POST" action="">
                 <button
-                  type="submit"
-                  name="resend"
-                  class="btn btn-secondary btn-user btn-block"
+                  type="button"
                   id="resendBtn"
+                  class="btn btn-secondary btn-user btn-block"
                 >
                   Resend OTP
                 </button>
-                <hr />
+
               </form>
 
               <hr />
@@ -272,6 +201,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
   <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
   <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
   <script src="../inc/js/sb-admin-2.min.js"></script>
+
 
   <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -307,7 +237,90 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
           }
         });
       });
+
+       // Handle paste event for OTP inputs
+    otpInputs[0].addEventListener('paste', function(event) {
+      event.preventDefault();
+      var pasteData = (event.clipboardData || window.clipboardData).getData('text');
+      if (pasteData.length === otpInputs.length) {
+        otpInputs.forEach(function(input, index) {
+          input.value = pasteData[index] || '';
+        });
+        otpInputs[otpInputs.length - 1].focus(); // Focus the last input
+      }
     });
+
+       // Handle Resend OTP button click
+    resendBtn.addEventListener('click', function(event) {
+      event.preventDefault(); // Prevent default form submission
+
+      Swal.fire({
+        title: 'Are you sure?',
+        text: 'Do you want to resend the OTP to your email?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, resend it!',
+        cancelButtonText: 'No, cancel',
+      }).then((result) => {
+        if (result.isConfirmed) {
+          Swal.fire({
+            title: 'Sending OTP...',
+            text: 'Please wait while we resend the OTP to your email.',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => {
+              Swal.showLoading();
+            }
+          });
+
+          // Send AJAX request to resend_otp.php
+          fetch('resend_otp.php', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              if (data.success) {
+                Swal.fire({
+                  title: 'Success!',
+                  text: data.message,
+                  icon: 'success',
+                });
+                // Start cooldown timer
+                resendBtn.disabled = true;
+                var cooldown = 60;
+                var interval = setInterval(function() {
+                  resendBtn.innerText = 'Resend OTP (' + cooldown + 's)';
+                  cooldown--;
+                  if (cooldown < 0) {
+                    clearInterval(interval);
+                    resendBtn.disabled = false;
+                    resendBtn.innerText = 'Resend OTP';
+                  }
+                }, 1000);
+              } else {
+                Swal.fire({
+                  title: 'Error!',
+                  text: data.message,
+                  icon: 'error',
+                });
+              }
+            })
+            .catch((error) => {
+              Swal.fire({
+                title: 'Error!',
+                text: 'An error occurred while resending the OTP.',
+                icon: 'error',
+              });
+            });
+        }
+      });
+    });
+    });
+
+
   </script>
 </body>
 </html>

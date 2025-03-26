@@ -78,7 +78,7 @@ require '../db.php';
                                     </div>
 
                                     <!-- Step 1: Verification Form -->
-                                    <form class="user" method="POST" action="forgot-password-send.php">
+                                    <form class="user" method="POST" action="forgot-password-send.php" id="forgotPasswordForm">
                                         <div class="form-group">
                                             <input type="email" class="form-control form-control-user"
                                                    id="email" name="email"
@@ -126,6 +126,44 @@ require '../db.php';
             unset($_SESSION['alert_message']);
             ?>
         <?php endif; ?>
+
+        // Show loading alert when form is submitted
+        document.getElementById('forgotPasswordForm').addEventListener('submit', function(event) {
+            event.preventDefault(); // Prevent the form from submitting immediately
+
+            const email = document.getElementById('email').value;
+
+            // Validate email via AJAX
+            $.ajax({
+                url: 'validate-email.php',
+                method: 'POST',
+                data: { email: email },
+                success: function(response) {
+                    const result = JSON.parse(response);
+                    if (result.success) {
+                        Swal.fire({
+                            title: 'Sending Email...',
+                            text: 'Please wait while we send the reset password email.',
+                            allowOutsideClick: false,
+                            allowEscapeKey: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+                            }
+                        });
+
+                        // Submit the form after validation
+                        document.getElementById('forgotPasswordForm').submit();
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: result.message,
+                            showConfirmButton: true
+                        });
+                    }
+                }
+            });
+        });
     });
     </script>
 </body>

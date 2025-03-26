@@ -1,76 +1,42 @@
 <?php
 session_start();
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Cache-Control: post-check=0, pre-check=0", false);
+header("Pragma: no-cache");
 require '../db.php';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-  // Sanitize and get form data
-  $school_id = mysqli_real_escape_string($conn, $_POST['school_id']);
-  $firstname = mysqli_real_escape_string($conn, $_POST['firstname']);
-  $middle_init = mysqli_real_escape_string($conn, $_POST['middle_init']);
-  $lastname = mysqli_real_escape_string($conn, $_POST['lastname']);
-  $email = mysqli_real_escape_string($conn, $_POST['email']);
-  $password = $_POST['password'];
-  $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-  $usertype = mysqli_real_escape_string($conn, $_POST['usertype']);
-  $image = '../Images/Profile/default-avatar.jpg';
+    // Sanitize and get form data
+    $school_id = mysqli_real_escape_string($conn, $_POST['school_id']);
+    $firstname = mysqli_real_escape_string($conn, $_POST['firstname']);
+    $middle_init = mysqli_real_escape_string($conn, $_POST['middle_init']);
+    $lastname = mysqli_real_escape_string($conn, $_POST['lastname']);
+    $email = mysqli_real_escape_string($conn, $_POST['email']);
+    $password = $_POST['password'];
+    $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+    $usertype = mysqli_real_escape_string($conn, $_POST['usertype']);
+    $image = '../Images/Profile/default-avatar.jpg';
 
-  // Append period to middle initial if not empty
-  if (!empty($middle_init)) {
-    $middle_init .= '.';
-  }
-
-  // Validate email domain based on user type
-  if (!preg_match('/@(student\.)?nbscollege\.edu\.ph$/', $email)) {
-    $error = "Please input a valid school email address.";
-  } elseif ($usertype == 'Student' && !preg_match('/@student\.nbscollege\.edu\.ph$/', $email)) {
-    $error = "Invalid email domain for the selected user type.";
-  } elseif (($usertype == 'Faculty' || $usertype == 'Staff') && !preg_match('/@nbscollege\.edu\.ph$/', $email)) {
-    $error = "Invalid email domain for the selected user type.";
-  } elseif (strlen($password) < 8) {
-    $error = "Password must be at least 8 characters long.";
-  } else {
-    // Check if school_id already exists
-    $check_id_query = "SELECT school_id FROM users WHERE school_id = ?";
-    $stmt = $conn->prepare($check_id_query);
-    $stmt->bind_param("s", $school_id);
-    $stmt->execute();
-    if ($stmt->get_result()->num_rows > 0) {
-      $error = "School ID is already registered!";
-    } else {
-      // Check if full name already exists
-      $check_name_query = "SELECT id FROM users WHERE firstname = ? AND lastname = ?";
-      $stmt = $conn->prepare($check_name_query);
-      $stmt->bind_param("ss", $firstname, $lastname);
-      $stmt->execute();
-      if ($stmt->get_result()->num_rows > 0) {
-        $error = "A user with this name already exists!";
-      } else {
-        // Check if email already exists
-        $check_email_query = "SELECT id FROM users WHERE email = ?";
-        $stmt = $conn->prepare($check_email_query);
-        $stmt->bind_param("s", $email);
-        $stmt->execute();
-        if ($stmt->get_result()->num_rows > 0) {
-          $error = "Email address is already registered!";
-        } else {
-          // Store user data in session
-          $_SESSION['school_id'] = $school_id;
-          $_SESSION['firstname'] = $firstname;
-          $_SESSION['middle_init'] = $middle_init;
-          $_SESSION['lastname'] = $lastname;
-          $_SESSION['email'] = $email;
-          $_SESSION['hashed_password'] = $hashed_password;
-          $_SESSION['usertype'] = $usertype;
-          $_SESSION['image'] = $image;
-
-          // Redirect to OTP sending page
-          header("Location: send_otp.php");
-          exit();
-        }
-      }
+    // Append period to middle initial if not empty
+    if (!empty($middle_init)) {
+        $middle_init .= '.';
     }
-    $stmt->close();
-  }
+
+    // Store user data in session
+    $_SESSION['school_id'] = $school_id;
+    $_SESSION['firstname'] = $firstname;
+    $_SESSION['middle_init'] = $middle_init;
+    $_SESSION['lastname'] = $lastname;
+    $_SESSION['email'] = $email;
+    $_SESSION['hashed_password'] = $hashed_password;
+    $_SESSION['usertype'] = $usertype;
+    $_SESSION['image'] = $image;
+
+    $_SESSION['otp_allowed'] = true;
+
+    // Redirect to OTP sending page
+    header("Location: send_otp.php");
+    exit();
 }
 
 // Update user_image paths to be consistent
@@ -180,86 +146,146 @@ $conn->query($update_image_query);
     }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
   <script>
-    function validateEmailDomain() {
-      const emailInput = document.querySelector('input[name="email"]');
-      const userTypeSelect = document.querySelector('select[name="usertype"]');
-      const email = emailInput.value;
-      const userType = userTypeSelect.value;
-      let validDomain = false;
-      let validUserType = false;
-
-      if (email.endsWith('@student.nbscollege.edu.ph') || email.endsWith('@nbscollege.edu.ph')) {
-        validDomain = true;
-      }
-
-      if (userType === 'Student' && email.endsWith('@student.nbscollege.edu.ph')) {
-        validUserType = true;
-      } else if ((userType === 'Faculty' || userType === 'Staff') && email.endsWith('@nbscollege.edu.ph')) {
-        validUserType = true;
-      }
-
-      if (!validDomain) {
-        Swal.fire({
-          title: 'Error!',
-          text: 'Please input a valid school email address.',
-          icon: 'error'
-        });
-        return false;
-      } else if (!validUserType) {
-        Swal.fire({
-          title: 'Error!',
-          text: 'Invalid email domain for the selected user type.',
-          icon: 'error'
-        });
-        return false;
-      }
-      return true;
-    }
-
-    function validatePasswordLength() {
-      const passwordInput = document.querySelector('input[name="password"]');
-      const password = passwordInput.value;
-
-      if (password.length < 8) {
-        Swal.fire({
-          title: 'Error!',
-          text: 'Password must be at least 8 characters long.',
-          icon: 'error'
-        });
-        return false;
-      }
-      return true;
-    }
-
-    function capitalizeFirstLetter(input) {
-      input.value = input.value.charAt(0).toUpperCase() + input.value.slice(1);
-    }
-
     document.addEventListener('DOMContentLoaded', function () {
-      const form = document.querySelector('form.user');
-      form.addEventListener('submit', function (event) {
-        if (!validateEmailDomain() || !validatePasswordLength()) {
-          event.preventDefault();
-        }
-      });
+  const form = document.querySelector('form.user');
 
-      const firstNameInput = document.querySelector('input[name="firstname"]');
-      const middleInitInput = document.querySelector('input[name="middle_init"]');
-      const lastNameInput = document.querySelector('input[name="lastname"]');
+  form.addEventListener('submit', async function (event) {
+            event.preventDefault(); // Prevent form submission by default
 
-      firstNameInput.addEventListener('input', function () {
-        capitalizeFirstLetter(firstNameInput);
-      });
+            // Perform all validations
+            const isEmailValid = validateEmailDomain();
+            const isPasswordValid = validatePasswordLength();
+            const isUserUnique = await validateUserUniqueness();
 
-      middleInitInput.addEventListener('input', function () {
-        capitalizeFirstLetter(middleInitInput);
-      });
+            // If any validation fails, stop further execution
+            if (!isEmailValid || !isPasswordValid || !isUserUnique) {
+                return;
+            }
 
-      lastNameInput.addEventListener('input', function () {
-        capitalizeFirstLetter(lastNameInput);
-      });
+            // If all validations pass, submit the form
+            form.submit();
+        });
+
+  // Capitalize the first letter of inputs for names
+  const firstNameInput = document.querySelector('input[name="firstname"]');
+  const middleInitInput = document.querySelector('input[name="middle_init"]');
+  const lastNameInput = document.querySelector('input[name="lastname"]');
+
+  firstNameInput.addEventListener('input', function () {
+    capitalizeFirstLetter(firstNameInput);
+  });
+
+  middleInitInput.addEventListener('input', function () {
+    capitalizeFirstLetter(middleInitInput);
+  });
+
+  lastNameInput.addEventListener('input', function () {
+    capitalizeFirstLetter(lastNameInput);
+  });
+});
+
+// Function to validate email domain
+function validateEmailDomain() {
+  const emailInput = document.querySelector('input[name="email"]');
+  const userTypeSelect = document.querySelector('select[name="usertype"]');
+  const email = emailInput.value;
+  const userType = userTypeSelect.value;
+  let validDomain = false;
+  let validUserType = false;
+
+  if (email.endsWith('@student.nbscollege.edu.ph') || email.endsWith('@nbscollege.edu.ph')) {
+    validDomain = true;
+  }
+
+  if (userType === 'Student' && email.endsWith('@student.nbscollege.edu.ph')) {
+    validUserType = true;
+  } else if ((userType === 'Faculty' || userType === 'Staff') && email.endsWith('@nbscollege.edu.ph')) {
+    validUserType = true;
+  }
+
+  if (!validDomain) {
+    Swal.fire({
+      title: 'Error!',
+      text: 'Please input a valid school email address.',
+      icon: 'error'
     });
+    return false;
+  } else if (!validUserType) {
+    Swal.fire({
+      title: 'Error!',
+      text: 'Invalid email domain for the selected user type.',
+      icon: 'error'
+    });
+    return false;
+  }
+  return true;
+}
+
+// Function to validate password length
+function validatePasswordLength() {
+  const passwordInput = document.querySelector('input[name="password"]');
+  const password = passwordInput.value;
+
+  if (password.length < 8) {
+    Swal.fire({
+      title: 'Error!',
+      text: 'Password must be at least 8 characters long.',
+      icon: 'error'
+    });
+    return false;
+  }
+  return true;
+}
+
+// Function to validate user uniqueness (school ID, email, and name)
+async function validateUserUniqueness() {
+  const schoolIdInput = document.querySelector('input[name="school_id"]');
+  const firstNameInput = document.querySelector('input[name="firstname"]');
+  const lastNameInput = document.querySelector('input[name="lastname"]');
+  const emailInput = document.querySelector('input[name="email"]');
+
+  const schoolId = schoolIdInput.value;
+  const firstName = firstNameInput.value;
+  const lastName = lastNameInput.value;
+  const email = emailInput.value;
+
+  try {
+    const response = await fetch('validate_user.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ school_id: schoolId, firstname: firstName, lastname: lastName, email: email })
+    });
+
+    const result = await response.json();
+
+    if (!result.success) {
+      Swal.fire({
+        title: 'Error!',
+        text: result.message,
+        icon: 'error'
+      });
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    Swal.fire({
+      title: 'Error!',
+      text: 'An error occurred while validating user data. Please try again.',
+      icon: 'error'
+    });
+    return false;
+  }
+}
+
+// Function to capitalize the first letter of input fields
+function capitalizeFirstLetter(input) {
+  input.value = input.value.charAt(0).toUpperCase() + input.value.slice(1);
+}
   </script>
 </head>
 
@@ -306,6 +332,8 @@ $conn->query($update_image_query);
                   });
                 </script>
               <?php endif; ?>
+
+              
 
               <form class="user" method="POST" action="">
                 <div class="form-group row">
