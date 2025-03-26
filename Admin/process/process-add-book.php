@@ -40,7 +40,8 @@ if (isset($_POST['submit'])) {
     
     if (!empty($errors)) {
         $_SESSION['error_message'] = 'Please fix the following errors: ' . implode(', ', $errors);
-        return; // Stop processing if there are validation errors
+        header("Location: ../add-book.php");
+        exit();
     }
     
     // Process the form if validation passes
@@ -53,9 +54,9 @@ if (isset($_POST['submit'])) {
         // Process each accession group
         if (isset($_POST['accession']) && is_array($_POST['accession'])) {
             $author_id = intval($_POST['author'][0]);
+            $current_index = 0; // Track overall index across all groups
             
-            for ($i = 0; $i < count($_POST['accession']); $i++) {
-                $base_accession = $_POST['accession'][$i];
+            foreach ($_POST['accession'] as $i => $base_accession) {
                 $copies = intval($_POST['number_of_copies'][$i] ?? 1);
                 $isbn = mysqli_real_escape_string($conn, $_POST['isbn'][$i] ?? '');
                 $series = mysqli_real_escape_string($conn, $_POST['series'][$i] ?? '');
@@ -67,21 +68,13 @@ if (isset($_POST['submit'])) {
                 $shelf_locations = $_POST['shelf_locations'] ?? [];
                 $copy_numbers = $_POST['copy_number'] ?? [];
 
-                // Process copies
-                $current_index = 0;
-                
+                // Process copies for this accession group
                 for ($copy = 0; $copy < $copies; $copy++) {
-                    // 1. Insert basic book information
-                    // Fixed: Handle accession number appropriately
+                    // Handle accession number appropriately
                     $accession_str = calculateAccession($base_accession, $copy);
                     // Extract only numbers from the accession string if it contains non-numeric characters
-                    if (is_numeric($accession_str)) {
-                        $accession = intval($accession_str);
-                    } else {
-                        // Extract only the numeric part if the accession contains non-numeric characters
-                        preg_match('/(\d+)/', $accession_str, $matches);
-                        $accession = isset($matches[0]) ? intval($matches[0]) : 0;
-                    }
+                    preg_match('/(\d+)/', $accession_str, $matches);
+                    $accession = isset($matches[0]) ? intval($matches[0]) : 0;
                     
                     // Make sure we have a valid accession number
                     if ($accession <= 0) {
@@ -97,9 +90,14 @@ if (isset($_POST['submit'])) {
                     $contents = mysqli_real_escape_string($conn, $_POST['notes'] ?? '');
                     $dimension = mysqli_real_escape_string($conn, $_POST['dimension'] ?? '');
                     
-                    // Get copy number from input field if exists, else use incremental counter
-                    // We're now using the explicitly provided copy numbers
-                    $copy_number = isset($copy_numbers[$current_index]) ? intval($copy_numbers[$current_index]) : ($copy + 1);
+                    // Get copy number from input field if it exists and is valid, else use default
+                    $copy_number = isset($copy_numbers[$current_index]) && !empty($copy_numbers[$current_index]) 
+                        ? intval($copy_numbers[$current_index]) 
+                        : ($current_index + 1); // Fallback to sequential numbering
+                    
+                    // Ensure copy number is at least 1
+                    $copy_number = max(1, $copy_number);
+                    
                     $total_pages = mysqli_real_escape_string($conn, $_POST['main_pages'] ?? '');
                     $supplementary_contents = isset($_POST['supplementary_content']) ? 
                         mysqli_real_escape_string($conn, implode(', ', $_POST['supplementary_content'])) : '';
@@ -248,6 +246,7 @@ if (isset($_POST['submit'])) {
                         }
                     }
                     
+                    // Increment the overall index
                     $current_index++;
                 }
             }

@@ -109,9 +109,31 @@ document.addEventListener("DOMContentLoaded", function() {
             updateISBNFields();
         }
         
-        // Input validation for numbers only
+        // Modified input validation for accession input
         if (e.target && e.target.classList.contains('accession-input')) {
-            e.target.value = e.target.value.replace(/\D/g, '');
+            // Allow numbers, dashes, and letters for more flexible accession numbers
+            if (!/^[A-Za-z0-9\-]*$/.test(e.target.value)) {
+                e.target.value = e.target.value.replace(/[^A-Za-z0-9\-]/g, '');
+            }
+        }
+        
+        // Add logic to update the call number format when call numbers are edited
+        if (e.target && e.target.classList.contains('call-number-input')) {
+            // If formatCallNumberDisplay exists, use it
+            if (typeof formatCallNumberDisplay === 'function') {
+                formatCallNumberDisplay(e.target);
+                
+                // Also cascade to other call number inputs
+                const callNumberInputs = document.querySelectorAll('.call-number-input');
+                const index = Array.from(callNumberInputs).indexOf(e.target);
+                const baseCallNumber = e.target.value.trim();
+                
+                // Update all subsequent call numbers with the same base
+                for (let i = index + 1; i < callNumberInputs.length; i++) {
+                    callNumberInputs[i].value = baseCallNumber;
+                    formatCallNumberDisplay(callNumberInputs[i]);
+                }
+            }
         }
         
         // Add tracking for ISBN, series, volume, and edition changes
@@ -122,15 +144,70 @@ document.addEventListener("DOMContentLoaded", function() {
             e.target.name === 'edition[]'
         )) {
             updateISBNFields();
+            
+            // Also update call number format if volume changes
+            if (e.target.name === 'volume[]' && typeof formatCallNumberDisplay === 'function') {
+                document.querySelectorAll('.call-number-input').forEach(input => {
+                    formatCallNumberDisplay(input);
+                });
+            }
         }
     });
 
-    // Form submission handler
+    // Form submission handler - modified to capture formatted call numbers
     document.getElementById('bookForm').addEventListener('submit', function(e) {
         if (!validateForm(e)) {
             e.preventDefault();
             return false;
         }
+        
+        // Format call numbers before submission
+        const callNumberInputs = document.querySelectorAll('.call-number-input');
+        callNumberInputs.forEach(input => {
+            // If the input has a formatted call number data attribute, use it
+            if (input.dataset.formattedCallNumber) {
+                input.value = input.dataset.formattedCallNumber;
+            } else {
+                // Otherwise try to format it on the fly
+                const container = input.closest('.input-group');
+                if (container) {
+                    const baseCallNumber = input.value.trim();
+                    if (baseCallNumber) {
+                        const shelfSelect = container.querySelector('.shelf-location-select');
+                        const copyInput = container.querySelector('.copy-number-input');
+                        const publishYear = document.getElementById('publish_date')?.value || '';
+                        
+                        // Find the volume for this group
+                        let volume = '';
+                        const accessionGroup = container.closest('[data-accession-group]');
+                        if (accessionGroup) {
+                            const groupIndex = accessionGroup.dataset.accessionGroup;
+                            const volumeInputs = document.querySelectorAll('input[name="volume[]"]');
+                            if (volumeInputs.length > groupIndex && volumeInputs[groupIndex].value) {
+                                volume = 'vol' + volumeInputs[groupIndex].value;
+                            }
+                        }
+                        
+                        if (shelfSelect && copyInput) {
+                            // Create the formatted call number
+                            const shelf = shelfSelect.value;
+                            const copy = 'c' + copyInput.value;
+                            
+                            // Build the final call number
+                            const parts = [shelf, baseCallNumber, publishYear];
+                            if (volume) parts.push(volume);
+                            parts.push(copy);
+                            
+                            input.value = parts.join(' ');
+                            console.log('Set call number to:', input.value);
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Log all call numbers being submitted for debugging
+        console.log('Submitting call numbers:', Array.from(callNumberInputs).map(i => i.value));
         
         // Verify accession details are captured
         const accessionGroups = document.querySelectorAll('.accession-group');
@@ -151,11 +228,7 @@ document.addEventListener("DOMContentLoaded", function() {
             return false;
         }
         
-        if (!confirm('Are you sure you want to add this book?')) {
-            e.preventDefault();
-            return false;
-        }
-        
+        // Remove the old confirmation dialog - SweetAlert handles this now
         return true;
     });
 
