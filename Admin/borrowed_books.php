@@ -109,7 +109,7 @@ $query = "SELECT b.id as borrow_id, b.book_id, b.user_id, b.issue_date, b.due_da
 $result = $conn->query($query);
 
 // Count total number of records for the filter summary
-$countQuery = "SELECT COUNT(*) as total FROM borrowings b 
+$countQuery = "SELECT COUNT(*) as total FROM borrowings b
               JOIN books bk ON b.book_id = bk.id
               JOIN users u ON b.user_id = u.id
               LEFT JOIN admins a ON b.issued_by = a.id
@@ -126,8 +126,7 @@ while($row = $shelfResult->fetch_assoc()) {
 }
 
 // NOTIFICATION LOGIC
-
-// 🟢 Email Reminder Query (Exclude Shelf Location 'RES' & Check `reminder_sent`)
+// 🟢 Email Reminder Query (Due Date Reminders)
 $emailQuery = "
     SELECT u.id AS user_id, u.email, u.firstname, u.lastname,
            GROUP_CONCAT(bk.title SEPARATOR '|') AS book_titles,
@@ -138,12 +137,12 @@ $emailQuery = "
     WHERE DATE(b.due_date) = CURDATE() + INTERVAL 1 DAY
     AND b.status = 'Active'
     AND bk.shelf_location != 'RES'
-    AND b.reminder_sent = 0  -- 🔹 Only get entries that haven’t been marked yet
+    AND b.reminder_sent = 0
     GROUP BY u.id, b.due_date
 ";
 $emailResult = $conn->query($emailQuery);
 
-// Send Email Logic for reminders
+$emailsSent = false; // Track if any emails were sent
 while ($row = $emailResult->fetch_assoc()) {
     $userId = $row['user_id'];
     $email = $row['email'];
@@ -153,36 +152,38 @@ while ($row = $emailResult->fetch_assoc()) {
 
     $mail = require 'mailer.php';
 
-    $bookList = "<ul>";
-    foreach ($bookTitles as $title) {
-        $bookList .= "<li>" . htmlspecialchars($title) . "</li>";
-    }
-    $bookList .= "</ul>";
-
     try {
-        // ✅ Proper "No-Reply" Setup
         $mail->setFrom('noreply@nbs-library-system.com', 'Library System (No-Reply)');
-
-        // ✅ Ensures replies go nowhere
         $mail->addReplyTo('noreply@nbs-library-system.com', 'No-Reply');
-
-        // ✅ Ensures new email threads
-        $uniqueId = uniqid() . "@nbs-library-system.com";
-        $mail->MessageID = "<$uniqueId>";
-        $mail->addCustomHeader("References", "");
-        $mail->addCustomHeader("In-Reply-To", "");
-
         $mail->addAddress($email, $borrowerName);
 
-        $mail->Subject = "Library Due Date Reminder - " . date('M d, Y H:i:s');
-        $mail->Body = "
-            Hi $borrowerName,<br><br>
-            This is a reminder that the following books you borrowed are due tomorrow, <b>$dueDate</b>:<br>
-            $bookList
-            Please return them tomorrow before 4:00PM (library closing time) to avoid penalties.<br><br>
-            <i><b>Note:</b> This is an automated email — please do not reply.</i><br><br>
-            Thank you!
-        ";
+        if (count($bookTitles) == 1) {
+            $bookTitle = htmlspecialchars($bookTitles[0]);
+            $mail->Subject = "Library Due Date Reminder - $dueDate";
+            $mail->Body = "
+                Dear $borrowerName,<br><br>
+                This is a reminder that the book you borrowed, <b>$bookTitle</b>, is due tomorrow, <b>$dueDate</b>.<br>
+                Please return it tomorrow before 4:00PM to avoid penalties.<br><br>
+                <i><b>Note:</b> This is an automated email — please do not reply.</i><br><br>
+                Thank you!
+            ";
+        } else {
+            $bookList = "<ul>";
+            foreach ($bookTitles as $title) {
+                $bookList .= "<li>" . htmlspecialchars($title) . "</li>";
+            }
+            $bookList .= "</ul>";
+
+            $mail->Subject = "Library Due Date Reminder - $dueDate";
+            $mail->Body = "
+                Dear $borrowerName,<br><br>
+                This is a reminder that the books you borrowed are due tomorrow, <b>$dueDate</b>:<br>
+                $bookList
+                Please return them tomorrow before 4:00PM to avoid penalties.<br><br>
+                <i><b>Note:</b> This is an automated email — please do not reply.</i><br><br>
+                Thank you!
+            ";
+        }
 
         if ($mail->send()) {
             $updateReminderQuery = "UPDATE borrowings
@@ -190,8 +191,8 @@ while ($row = $emailResult->fetch_assoc()) {
                                     WHERE user_id = '$userId'
                                     AND DATE(due_date) = CURDATE() + INTERVAL 1 DAY";
             $conn->query($updateReminderQuery);
+            $emailsSent = true;
         }
-
     } catch (Exception $e) {
         echo "Email sending failed for {$email}. Error: {$mail->ErrorInfo}";
     }
@@ -208,12 +209,11 @@ $overdueEmailQuery = "
     WHERE DATE(b.due_date) < CURDATE()
     AND b.status = 'Overdue'
     AND bk.shelf_location != 'RES'
-    AND b.reminder_sent = 0  -- 🔹 Only get entries that haven’t been marked yet
+    AND b.reminder_sent = 0
     GROUP BY u.id, b.due_date
 ";
 $overdueEmailResult = $conn->query($overdueEmailQuery);
 
-// Send Email Logic for overdue notifications
 while ($row = $overdueEmailResult->fetch_assoc()) {
     $userId = $row['user_id'];
     $email = $row['email'];
@@ -223,36 +223,38 @@ while ($row = $overdueEmailResult->fetch_assoc()) {
 
     $mail = require 'mailer.php';
 
-    $bookList = "<ul>";
-    foreach ($bookTitles as $title) {
-        $bookList .= "<li>" . htmlspecialchars($title) . "</li>";
-    }
-    $bookList .= "</ul>";
-
     try {
-        // ✅ Proper "No-Reply" Setup
         $mail->setFrom('noreply@nbs-library-system.com', 'Library System (No-Reply)');
-
-        // ✅ Ensures replies go nowhere
         $mail->addReplyTo('noreply@nbs-library-system.com', 'No-Reply');
-
-        // ✅ Ensures new email threads
-        $uniqueId = uniqid() . "@nbs-library-system.com";
-        $mail->MessageID = "<$uniqueId>";
-        $mail->addCustomHeader("References", "");
-        $mail->addCustomHeader("In-Reply-To", "");
-
         $mail->addAddress($email, $borrowerName);
 
-        $mail->Subject = "Overdue Book Notification - " . date('M d, Y H:i:s');
-        $mail->Body = "
-            Hi $borrowerName,<br><br>
-            The following books you borrowed are overdue:<br>
-            $bookList
-            Please return them as soon as possible to avoid further penalties. If you think you don't have penalties, please contact the librarian.<br><br>
-            <i><b>Note:</b> This is an automated email — please do not reply.</i><br><br>
-            Thank you!
-        ";
+        if (count($bookTitles) == 1) {
+            $bookTitle = htmlspecialchars($bookTitles[0]);
+            $mail->Subject = "Overdue Book Notification - $dueDate";
+            $mail->Body = "
+                Dear $borrowerName,<br><br>
+                The book you borrowed, <b>$bookTitle</b>, is overdue as of <b>$dueDate</b>.<br>
+                Please return it as soon as possible to avoid further penalties.<br><br>
+                <i><b>Note:</b> This is an automated email — please do not reply.</i><br><br>
+                Thank you!
+            ";
+        } else {
+            $bookList = "<ul>";
+            foreach ($bookTitles as $title) {
+                $bookList .= "<li>" . htmlspecialchars($title) . "</li>";
+            }
+            $bookList .= "</ul>";
+
+            $mail->Subject = "Overdue Book Notification - $dueDate";
+            $mail->Body = "
+                Dear $borrowerName,<br><br>
+                The following books you borrowed are overdue as of <b>$dueDate</b>:<br>
+                $bookList
+                Please return them as soon as possible to avoid further penalties.<br><br>
+                <i><b>Note:</b> This is an automated email — please do not reply.</i><br><br>
+                Thank you!
+            ";
+        }
 
         if ($mail->send()) {
             $updateReminderQuery = "UPDATE borrowings
@@ -260,15 +262,30 @@ while ($row = $overdueEmailResult->fetch_assoc()) {
                                     WHERE user_id = '$userId'
                                     AND DATE(due_date) < CURDATE()";
             $conn->query($updateReminderQuery);
+            $emailsSent = true;
         }
-
     } catch (Exception $e) {
         echo "Email sending failed for {$email}. Error: {$mail->ErrorInfo}";
     }
 }
 
+// Set session variable if any emails were sent
+if ($emailsSent) {
+    $_SESSION['emails_sent'] = true;
+}
 
-
+// Display a single SweetAlert notification if emails were sent
+if (isset($_SESSION['emails_sent']) && $_SESSION['emails_sent']) {
+    echo "<script>
+        Swal.fire({
+            title: 'Success!',
+            text: 'All reminders have been successfully sent.',
+            icon: 'success',
+            confirmButtonText: 'OK'
+        });
+    </script>";
+    unset($_SESSION['emails_sent']); // Clear the session variable
+}
 ?>
 
 <style>
@@ -364,28 +381,28 @@ while ($row = $overdueEmailResult->fetch_assoc()) {
                     <div class="col-md-2">
                         <div class="form-group">
                             <label for="date_start">From Date</label>
-                            <input type="date" class="form-control form-control-sm" id="date_start" 
+                            <input type="date" class="form-control form-control-sm" id="date_start"
                                    name="date_start" value="<?= $dateStart ?>">
                         </div>
                     </div>
                     <div class="col-md-2">
                         <div class="form-group">
                             <label for="date_end">To Date</label>
-                            <input type="date" class="form-control form-control-sm" id="date_end" 
+                            <input type="date" class="form-control form-control-sm" id="date_end"
                                    name="date_end" value="<?= $dateEnd ?>">
                         </div>
                     </div>
                     <div class="col-md-2">
                         <div class="form-group">
                             <label for="user">Borrower</label>
-                            <input type="text" class="form-control form-control-sm" id="user" 
+                            <input type="text" class="form-control form-control-sm" id="user"
                                    name="user" placeholder="Name or ID" value="<?= htmlspecialchars($userFilter) ?>">
                         </div>
                     </div>
                     <div class="col-md-2">
                         <div class="form-group">
                             <label for="book">Book</label>
-                            <input type="text" class="form-control form-control-sm" id="book" 
+                            <input type="text" class="form-control form-control-sm" id="book"
                                    name="book" placeholder="Title or Accession" value="<?= htmlspecialchars($bookFilter) ?>">
                         </div>
                     </div>
@@ -423,7 +440,7 @@ while ($row = $overdueEmailResult->fetch_assoc()) {
             <div>
                 <!-- Results summary -->
                 <span id="filterSummary" class="mr-3 <?= empty($filterParams) ? 'd-none' : '' ?>">
-                    <span class="text-primary font-weight-bold">Filter applied:</span> 
+                    <span class="text-primary font-weight-bold">Filter applied:</span>
                     Showing <span id="totalResults"><?= $totalRecords ?></span> result<span id="pluralSuffix"><?= $totalRecords != 1 ? 's' : '' ?></span>
                 </span>
                 <button id="returnSelectedBtn" class="btn btn-success btn-sm mr-2" disabled>
@@ -631,10 +648,10 @@ while ($row = $overdueEmailResult->fetch_assoc()) {
         $('#resetFilters').on('click', function(e) {
             // Prevent default form submission
             e.preventDefault();
-            
+
             // Store the current visibility state of the filter form
             const isFilterVisible = !$('#filterForm').hasClass('d-none');
-            
+
             // Clear all filter values
             $('#status').val('');
             $('#date_start').val('');
@@ -642,10 +659,10 @@ while ($row = $overdueEmailResult->fetch_assoc()) {
             $('#user').val('');
             $('#book').val('');
             $('#shelf').val('');
-            
+
             // Update the filter summary to indicate no filters
             $('#filterSummary').addClass('d-none');
-            
+
             // Use AJAX to reload content instead of full page reload
             $.ajax({
                 url: 'borrowed_books.php',
@@ -653,23 +670,23 @@ while ($row = $overdueEmailResult->fetch_assoc()) {
                 success: function(data) {
                     // Parse the response HTML
                     const $data = $(data);
-                    
+
                     // Extract the table content
                     let tableHtml = $data.find('#dataTable').parent().html();
                     // Update just the table content
                     $('.table-responsive').html(tableHtml);
-                    
+
                     // Update statistics cards
                     let statsHtml = $data.find('.row.mb-4').html();
                     $('.row.mb-4').html(statsHtml);
-                    
+
                     // Reinitialize DataTable
                     if ($.fn.DataTable.isDataTable('#dataTable')) {
                         $('#dataTable').DataTable().destroy();
                     }
-                    
+
                     initializeDataTable();
-                    
+
                     // Restore the filter form visibility state
                     if (isFilterVisible) {
                         $('#filterForm').removeClass('d-none');
@@ -681,10 +698,10 @@ while ($row = $overdueEmailResult->fetch_assoc()) {
         // Handle form submission (Apply filters)
         $('#borrowingsFilterForm').on('submit', function(e) {
             e.preventDefault();
-            
+
             // Store the current visibility state of the filter form
             const isFilterVisible = !$('#filterForm').hasClass('d-none');
-            
+
             // Submit the form using AJAX
             $.ajax({
                 url: 'borrowed_books.php',
@@ -693,35 +710,35 @@ while ($row = $overdueEmailResult->fetch_assoc()) {
                 success: function(data) {
                     // Parse the response HTML
                     const $data = $(data);
-                    
+
                     // Extract the table content
                     let tableHtml = $data.find('#dataTable').parent().html();
                     // Update just the table content
                     $('.table-responsive').html(tableHtml);
-                    
+
                     // Update filter summary
                     let filterSummaryHtml = $data.find('#filterSummary').html();
                     $('#filterSummary').html(filterSummaryHtml);
-                    
+
                     // Update statistics cards
                     let statsHtml = $data.find('.row.mb-4').html();
                     $('.row.mb-4').html(statsHtml);
-                    
+
                     // Show or hide the filter summary based on whether filters are applied
-                    if ($('#status').val() || $('#date_start').val() || $('#date_end').val() || 
+                    if ($('#status').val() || $('#date_start').val() || $('#date_end').val() ||
                         $('#user').val() || $('#book').val() || $('#shelf').val()) {
                         $('#filterSummary').removeClass('d-none');
                     } else {
                         $('#filterSummary').addClass('d-none');
                     }
-                    
+
                     // Reinitialize DataTable
                     if ($.fn.DataTable.isDataTable('#dataTable')) {
                         $('#dataTable').DataTable().destroy();
                     }
-                    
+
                     initializeDataTable();
-                    
+
                     // Restore the filter form visibility state
                     if (isFilterVisible) {
                         $('#filterForm').removeClass('d-none');
@@ -790,7 +807,7 @@ while ($row = $overdueEmailResult->fetch_assoc()) {
                 $('#dataTable_filter').addClass('d-flex align-items-center');
                 $('#dataTable_filter label').append('<i class="fas fa-search ml-2"></i>');
                 $('#dataTable_paginate .paginate_button').addClass('btn btn-sm btn-outline-primary mx-1');
-                
+
                 // Force re-apply the CSS for checkbox column icons
                 setTimeout(function() {
                     $('#dataTable thead th:first-child').removeClass('sorting').addClass('sorting_disabled');
@@ -1143,7 +1160,7 @@ while ($row = $overdueEmailResult->fetch_assoc()) {
             if ($.fn.DataTable.isDataTable('#dataTable')) {
                 $('#dataTable').DataTable().destroy();
             }
-            
+
             const table = $('#dataTable').DataTable({
                 "dom": "<'row mb-3'<'col-sm-6'l><'col-sm-6 d-flex justify-content-end'f>>" +
                        "<'row'<'col-sm-12'tr>>" +
@@ -1176,14 +1193,14 @@ while ($row = $overdueEmailResult->fetch_assoc()) {
                     $('#dataTable_filter').addClass('d-flex align-items-center');
                     $('#dataTable_filter label').append('<i class="fas fa-search ml-2"></i>');
                     $('#dataTable_paginate .paginate_button').addClass('btn btn-sm btn-outline-primary mx-1');
-                    
+
                     // Force re-apply the CSS for checkbox column icons
                     setTimeout(function() {
                         $('#dataTable thead th:first-child').removeClass('sorting').addClass('sorting_disabled');
                     }, 0);
                 }
             });
-            
+
             // Re-bind checkbox events
             $('#selectAll').change(function() {
                 const isChecked = $(this).prop('checked');
@@ -1197,20 +1214,20 @@ while ($row = $overdueEmailResult->fetch_assoc()) {
                 });
                 updateSelectedCount();
             });
-            
+
             $(document).on('change', '.borrow-checkbox', function() {
                 const totalEligible = $('.borrow-checkbox').filter(function() {
                     const status = $(this).closest('tr').find('td:eq(8) span').text().trim();
                     return status === 'Active' || status === 'Overdue';
                 }).length;
-                
+
                 const totalChecked = $('.borrow-checkbox:checked').length;
-                
+
                 $('#selectAll').prop({
                     'checked': totalChecked > 0 && totalChecked === totalEligible,
                     'indeterminate': totalChecked > 0 && totalChecked < totalEligible
                 });
-                
+
                 updateSelectedCount();
             });
         }
@@ -1227,7 +1244,7 @@ while ($row = $overdueEmailResult->fetch_assoc()) {
         $('#dataTable tbody').on('click', 'tr', function(e) {
             // If the click was directly on the checkbox, don't execute this handler
             if (e.target.type === 'checkbox') return;
-            
+
             // Find the checkbox within this row and toggle it
             var checkbox = $(this).find('.borrow-checkbox');
             checkbox.prop('checked', !checkbox.prop('checked')).trigger('change');
@@ -1237,11 +1254,11 @@ while ($row = $overdueEmailResult->fetch_assoc()) {
         $(document).on('click', '#checkboxHeader', function(e) {
             // If the click was directly on the checkbox, don't execute this handler
             if (e.target.type === 'checkbox') return;
-            
+
             // Find and toggle the checkbox
             var checkbox = $('#selectAll');
             checkbox.prop('checked', !checkbox.prop('checked'));
-            
+
             // Update all checkboxes based on the state
             const isChecked = checkbox.prop('checked');
             $('.borrow-checkbox').each(function() {
@@ -1252,11 +1269,14 @@ while ($row = $overdueEmailResult->fetch_assoc()) {
                     $(this).prop('checked', isChecked);
                 }
             });
-            
+
             updateSelectedCount();
         });
 
     });
+
+
 </script>
+
 </body>
 </html>
