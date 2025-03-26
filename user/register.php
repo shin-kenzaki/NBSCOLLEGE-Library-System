@@ -1,80 +1,42 @@
 <?php
 session_start();
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Cache-Control: post-check=0, pre-check=0", false);
+header("Pragma: no-cache");
 require '../db.php';
 
-
-
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-  // Sanitize and get form data
-  $school_id = mysqli_real_escape_string($conn, $_POST['school_id']);
-  $firstname = mysqli_real_escape_string($conn, $_POST['firstname']);
-  $middle_init = mysqli_real_escape_string($conn, $_POST['middle_init']);
-  $lastname = mysqli_real_escape_string($conn, $_POST['lastname']);
-  $email = mysqli_real_escape_string($conn, $_POST['email']);
-  $password = $_POST['password'];
-  $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-  $usertype = mysqli_real_escape_string($conn, $_POST['usertype']);
-  $image = '../Images/Profile/default-avatar.jpg';
+    // Sanitize and get form data
+    $school_id = mysqli_real_escape_string($conn, $_POST['school_id']);
+    $firstname = mysqli_real_escape_string($conn, $_POST['firstname']);
+    $middle_init = mysqli_real_escape_string($conn, $_POST['middle_init']);
+    $lastname = mysqli_real_escape_string($conn, $_POST['lastname']);
+    $email = mysqli_real_escape_string($conn, $_POST['email']);
+    $password = $_POST['password'];
+    $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+    $usertype = mysqli_real_escape_string($conn, $_POST['usertype']);
+    $image = '../Images/Profile/default-avatar.jpg';
 
-  // Append period to middle initial if not empty
-  if (!empty($middle_init)) {
-    $middle_init .= '.';
-  }
-
-  // Validate email domain based on user type
-  if (!preg_match('/@(student\.)?nbscollege\.edu\.ph$/', $email)) {
-    $error = "Please input a valid school email address.";
-  } elseif ($usertype == 'Student' && !preg_match('/@student\.nbscollege\.edu\.ph$/', $email)) {
-    $error = "Invalid email domain for the selected user type.";
-  } elseif (($usertype == 'Faculty' || $usertype == 'Staff') && !preg_match('/@nbscollege\.edu\.ph$/', $email)) {
-    $error = "Invalid email domain for the selected user type.";
-  } elseif (strlen($password) < 8) {
-    $error = "Password must be at least 8 characters long.";
-  } else {
-    // Check if school_id already exists
-    $check_id_query = "SELECT school_id FROM users WHERE school_id = ?";
-    $stmt = $conn->prepare($check_id_query);
-    $stmt->bind_param("s", $school_id);
-    $stmt->execute();
-    if ($stmt->get_result()->num_rows > 0) {
-      $error = "School ID is already registered!";
-    } else {
-      // Check if full name already exists
-      $check_name_query = "SELECT id FROM users WHERE firstname = ? AND lastname = ?";
-      $stmt = $conn->prepare($check_name_query);
-      $stmt->bind_param("ss", $firstname, $lastname);
-      $stmt->execute();
-      if ($stmt->get_result()->num_rows > 0) {
-        $error = "A user with this name already exists!";
-      } else {
-        // Check if email already exists
-        $check_email_query = "SELECT id FROM users WHERE email = ?";
-        $stmt = $conn->prepare($check_email_query);
-        $stmt->bind_param("s", $email);
-        $stmt->execute();
-        if ($stmt->get_result()->num_rows > 0) {
-          $error = "Email address is already registered!";
-        } else {
-          // Store user data in session
-          $_SESSION['school_id'] = $school_id;
-          $_SESSION['firstname'] = $firstname;
-          $_SESSION['middle_init'] = $middle_init;
-          $_SESSION['lastname'] = $lastname;
-          $_SESSION['email'] = $email;
-          $_SESSION['hashed_password'] = $hashed_password;
-          $_SESSION['usertype'] = $usertype;
-          $_SESSION['image'] = $image;
-
-          $_SESSION['otp_allowed'] = true;
-
-          // Redirect to OTP sending page
-          header("Location: send_otp.php");
-          exit();
-        }
-      }
+    // Append period to middle initial if not empty
+    if (!empty($middle_init)) {
+        $middle_init .= '.';
     }
-    $stmt->close();
-  }
+
+    // Store user data in session
+    $_SESSION['school_id'] = $school_id;
+    $_SESSION['firstname'] = $firstname;
+    $_SESSION['middle_init'] = $middle_init;
+    $_SESSION['lastname'] = $lastname;
+    $_SESSION['email'] = $email;
+    $_SESSION['hashed_password'] = $hashed_password;
+    $_SESSION['usertype'] = $usertype;
+    $_SESSION['image'] = $image;
+
+    $_SESSION['otp_allowed'] = true;
+
+    // Redirect to OTP sending page
+    header("Location: send_otp.php");
+    exit();
 }
 
 // Update user_image paths to be consistent
@@ -190,32 +152,21 @@ $conn->query($update_image_query);
   const form = document.querySelector('form.user');
 
   form.addEventListener('submit', async function (event) {
-    event.preventDefault(); // Prevent form submission by default
+            event.preventDefault(); // Prevent form submission by default
 
-    // Perform all validations
-    const isEmailValid = validateEmailDomain();
-    const isPasswordValid = validatePasswordLength();
-    const isUserUnique = await validateUserUniqueness();
+            // Perform all validations
+            const isEmailValid = validateEmailDomain();
+            const isPasswordValid = validatePasswordLength();
+            const isUserUnique = await validateUserUniqueness();
 
-    // If any validation fails, stop further execution
-    if (!isEmailValid || !isPasswordValid || !isUserUnique) {
-      return;
-    }
+            // If any validation fails, stop further execution
+            if (!isEmailValid || !isPasswordValid || !isUserUnique) {
+                return;
+            }
 
-    // If all validations pass, show the "Sending OTP" SweetAlert
-    Swal.fire({
-      title: 'Sending OTP...',
-      text: 'Please wait while we send the OTP to your email.',
-      allowOutsideClick: false,
-      allowEscapeKey: false,
-      didOpen: () => {
-        Swal.showLoading();
-      }
-    });
-
-    // Submit the form after validations
-    form.submit();
-  });
+            // If all validations pass, submit the form
+            form.submit();
+        });
 
   // Capitalize the first letter of inputs for names
   const firstNameInput = document.querySelector('input[name="firstname"]');
@@ -381,6 +332,8 @@ function capitalizeFirstLetter(input) {
                   });
                 </script>
               <?php endif; ?>
+
+              
 
               <form class="user" method="POST" action="">
                 <div class="form-group row">
