@@ -33,7 +33,7 @@ $conn->begin_transaction();
 
 try {
     $ids_string = implode(',', $ids);
-    
+
     // First, get the reservations and related book information
     $query = "SELECT r.id, r.book_id, r.user_id, b.title, b.status as book_status,
               CONCAT(u.firstname, ' ', u.lastname) as borrower_name, u.email as borrower_email
@@ -42,9 +42,9 @@ try {
               JOIN users u ON r.user_id = u.id
               WHERE r.id IN ($ids_string)
               AND r.status = 'Pending'
-              AND r.recieved_date IS NULL 
+              AND r.recieved_date IS NULL
               AND r.cancel_date IS NULL";
-    
+
     $result = $conn->query($query);
     $updates = [];
     $errors = [];
@@ -52,7 +52,7 @@ try {
 
     while ($reservation = $result->fetch_assoc()) {
         $book_id_to_update = $reservation['book_id'];
-        
+
         // If current book is not available, look for another copy
         if ($reservation['book_status'] !== 'Available') {
             $sql = "SELECT id FROM books WHERE title = ? AND status = 'Available' AND id != ? LIMIT 1";
@@ -64,7 +64,7 @@ try {
             if ($alt_result->num_rows > 0) {
                 $new_book = $alt_result->fetch_assoc();
                 $book_id_to_update = $new_book['id'];
-                
+
                 // Update reservation with new book_id
                 $updates[] = [
                     'reservation_id' => $reservation['id'],
@@ -107,7 +107,7 @@ try {
     // Perform the updates
     foreach ($updates as $update) {
         // Update reservation status and add ready_date and ready_by
-        $sql = "UPDATE reservations SET 
+        $sql = "UPDATE reservations SET
                 status = 'Ready',
                 ready_date = NOW(),
                 ready_by = ?";
@@ -115,7 +115,7 @@ try {
             $sql .= ", book_id = " . $update['book_id'];
         }
         $sql .= " WHERE id = " . $update['reservation_id'];
-        
+
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("i", $admin_id);
         if (!$stmt->execute()) {
@@ -129,55 +129,62 @@ try {
         }
     }
 
-    // Send email notifications
-    foreach ($userReservations as $userId => $userData) {
-        $borrowerName = $userData['borrower_name'];
-        $borrowerEmail = $userData['borrower_email'];
-        $books = $userData['books'];
 
-        $mail = require 'mailer.php';
+// Send email notifications
+foreach ($userReservations as $userId => $userData) {
+    $borrowerName = $userData['borrower_name'];
+    $borrowerEmail = $userData['borrower_email'];
+    $books = $userData['books'];
 
-        try {
-            $mail->setFrom('noreply@nbs-library-system.com', 'Library System (No-Reply)');
-            $mail->addReplyTo('noreply@nbs-library-system.com', 'No-Reply');
-            $mail->addAddress($borrowerEmail, $borrowerName);
+    $mail = require 'mailer.php';
 
-            if (count($books) == 1) {
-                $bookTitle = $books[0];
-                $mail->Subject = "Your Reserved Book is Ready for Pickup";
-                $mail->Body = "
-                    Hi $borrowerName,<br><br>
-                    Your reserved book titled <b>$bookTitle</b> is now ready for pickup.<br>
-                    Please visit the library to collect your book.<br><br>
-                    <i><b>Note:</b> This is an automated email — please do not reply.</i><br><br>
-                    Thank you!
-                ";
-            } else {
-                $bookList = "<ul>";
-                foreach ($books as $bookTitle) {
-                    $bookList .= "<li>" . htmlspecialchars($bookTitle) . "</li>";
-                }
-                $bookList .= "</ul>";
+    try {
+        $mail->setFrom('noreply@nbs-library-system.com', 'Library System (No-Reply)');
+        $mail->addReplyTo('noreply@nbs-library-system.com', 'No-Reply');
+        $mail->addAddress($borrowerEmail, $borrowerName);
 
-                $mail->Subject = "Your Reserved Books are Ready for Pickup";
-                $mail->Body = "
-                    Hi $borrowerName,<br><br>
-                    Your reserved books are now ready for pickup:<br>
-                    $bookList
-                    Please visit the library to collect your books.<br><br>
-                    <i><b>Note:</b> This is an automated email — please do not reply.</i><br><br>
-                    Thank you!
-                ";
+        if (count($books) == 1) {
+            // Single book template
+            $bookTitle = htmlspecialchars($books[0]);
+            $mail->Subject = "Your Reserved Book is Ready for Pickup";
+            $mail->Body = "
+                Dear $borrowerName,<br><br>
+                We are pleased to inform you that the book you requested, <b>$bookTitle</b>, is now available for pick-up at the library. You may collect it during our library operating hours:<br><br>
+                <b>Library Hours:</b> Monday-Saturday, 7:00AM-4:00PM<br><br>
+                Please bring your NBSC ID for verification upon pick-up. If you are unable to collect the book within the library hours, kindly let us know so we can make the necessary arrangements.<br><br>
+                Should you have any questions or require further assistance, feel free to contact us at <a href='mailto:library@nbscollege.edu.ph'>library@nbscollege.edu.ph</a>.<br><br>
+                <i><b>Note:</b> This is an automated email — please do not reply.</i><br><br>
+                Thank you!
+            ";
+        } else {
+            // Multiple books template
+            $bookList = "<ul>";
+            foreach ($books as $bookTitle) {
+                $bookList .= "<li>" . htmlspecialchars($bookTitle) . "</li>";
             }
+            $bookList .= "</ul>";
 
-            if (!$mail->send()) {
-                throw new Exception("Failed to send email to {$borrowerEmail}");
-            }
-        } catch (Exception $e) {
-            throw new Exception("Email sending failed for {$borrowerEmail}. Error: {$mail->ErrorInfo}");
+            $mail->Subject = "Your Reserved Books are Ready for Pickup";
+            $mail->Body = "
+                Dear $borrowerName,<br><br>
+                We are pleased to inform you that the books you requested are now available for pick-up at the library. You may collect them during our library operating hours:<br><br>
+                <b>Library Hours:</b> Monday-Saturday, 7:00AM-4:00PM<br><br>
+                <b>Your Reserved Books:</b><br>
+                $bookList
+                Please bring your NBSC ID for verification upon pick-up. If you are unable to collect the books within the library hours, kindly let us know so we can make the necessary arrangements.<br><br>
+                Should you have any questions or require further assistance, feel free to contact us at <a href='mailto:library@nbscollege.edu.ph'>library@nbscollege.edu.ph</a>.<br><br>
+                <i><b>Note:</b> This is an automated email — please do not reply.</i><br><br>
+                Thank you!
+            ";
         }
-    }
 
+        if (!$mail->send()) {
+            throw new Exception("Failed to send email to {$borrowerEmail}");
+        }
+    } catch (Exception $e) {
+        throw new Exception("Email sending failed for {$borrowerEmail}. Error: {$mail->ErrorInfo}");
+    }
+}
     $conn->commit();
     echo json_encode(['success' => true]);
 } catch (Exception $e) {
