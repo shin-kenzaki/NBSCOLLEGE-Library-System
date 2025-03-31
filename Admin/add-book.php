@@ -98,6 +98,35 @@ $accession_error = '';
                 <?php unset($_SESSION['success_message']); ?>
                 <?php endif; ?>
 
+                <!-- Instructions Card -->
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-info-circle mr-2"></i>Instructions</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="font-weight-bold">General Guidelines:</h6>
+                                <ul class="mb-0">
+                                    <li>Ensure all required fields are filled before proceeding to the next tab.</li>
+                                    <li>Accession numbers must be unique and numeric.</li>
+                                    <li>Authors, publishers, and other contributors must be selected or added as needed.</li>
+                                    <li>Call numbers should follow the library's classification system.</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="font-weight-bold">How to use:</h6>
+                                <ol class="mb-0">
+                                    <li>Fill in the details for each tab sequentially.</li>
+                                    <li>Use the "Add" buttons to include additional authors, publishers, or accession groups.</li>
+                                    <li>Review the generated call numbers and ensure they are accurate.</li>
+                                    <li>Click "Submit" on the last tab to save the book details.</li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Progress Bar -->
                 <div class="progress mb-4">
                     <div class="progress-bar" role="progressbar" style="width: 0%" id="formProgressBar"
@@ -1257,7 +1286,14 @@ document.addEventListener("DOMContentLoaded", function() {
                 // Activate the tab with Bootstrap
                 $(nextTab).tab('show');
             } else {
-                alert('Please fill in all required fields before proceeding.');
+                // Move cursor to the first invalid field
+                const currentTab = tabs[currentTabIndex];
+                const currentTabId = currentTab.getAttribute('href').substring(1);
+                const currentTabPane = document.getElementById(currentTabId);
+                const firstInvalidField = currentTabPane.querySelector('.is-invalid');
+                if (firstInvalidField) {
+                    firstInvalidField.focus();
+                }
             }
         });
     });
@@ -2059,19 +2095,21 @@ document.addEventListener("DOMContentLoaded", function() {
         const removeButton = e.target.closest('.remove-accession');
         if (removeButton) {
             const accessionContainer = document.getElementById('accessionContainer');
+            const currentGroup = removeButton.closest('.accession-group');
+            const previousGroup = currentGroup.previousElementSibling;
+
             if (accessionContainer.children.length > 1) {
-                // Store values from existing detail sections before removal
-                const valuesMap = saveDetailValues();
-                
-                // Remove the accession group
-                removeButton.closest('.accession-group').remove();
-                
+                // Remove the current accession group
+                currentGroup.remove();
+
+                // Scroll to the previous group if it exists
+                if (previousGroup) {
+                    previousGroup.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+
                 // Update labels and call numbers
                 updateAccessionLabels();
                 updateCallNumbers();
-                
-                // Restore the saved values
-                restoreDetailValues(valuesMap);
             } else {
                 alert('At least one accession group is required.');
             }
@@ -2514,6 +2552,9 @@ function addAccessionGroup() {
     
     // Restore saved values 
     restoreDetailValues(valuesMap);
+    
+    // Scroll to the newly added group
+    newGroup.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // Initialize the first accession group with its own details section
