@@ -329,6 +329,34 @@ if (isset($_SESSION['emails_sent']) && $_SESSION['emails_sent']) {
     .danger-card {
         border-left-color: #e74a3b;
     }
+
+    /* Add hover effect styles to match other list pages */
+    #dataTable tbody tr {
+        transition: background-color 0.2s;
+    }
+
+    #dataTable tbody tr:hover {
+        background-color: rgba(0, 123, 255, 0.1) !important;
+        cursor: pointer;
+    }
+
+    /* Make sure checkbox cell hover matches row hover */
+    .checkbox-cell:hover {
+        background-color: rgba(0, 123, 255, 0.1) !important;
+    }
+
+    /* Add checkbox cell styles if not already present */
+    .checkbox-cell {
+        cursor: pointer;
+        text-align: center;
+        vertical-align: middle;
+        width: 50px !important;
+    }
+
+    .checkbox-cell input[type="checkbox"] {
+        margin: 0 auto;
+        display: block;
+    }
 </style>
 
 <!-- Main Content -->

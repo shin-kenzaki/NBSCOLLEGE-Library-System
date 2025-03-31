@@ -17,79 +17,152 @@ if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Lib
             <h1 class="h3 mb-0 text-gray-800">Book Borrowing</h1>
         </div>
         
-        <!-- Card starts here -->
+        <!-- Instructions Card -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-info-circle mr-2"></i>Instructions</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="font-weight-bold">Borrowing Rules:</h6>
+                        <ul class="mb-0">
+                            <li>Students can borrow up to 3 books</li>
+                            <li>Reference (REF) books are for same-day use only</li>
+                            <li>Reserved (RES) books must be returned next day</li>
+                            <li>Regular books can be borrowed for 7 days</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="font-weight-bold">How to use:</h6>
+                        <ol class="mb-0">
+                            <li>Search for borrower using ID or name</li>
+                            <li>Scan book barcode or search by title</li>
+                            <li>Verify selected items are correct</li>
+                            <li>Click "Process Borrowing" to complete</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Card -->
         <div class="card shadow">
             <div class="card-header py-3 d-flex justify-content-between align-items-center">
                 <h6 class="m-0 font-weight-bold text-primary">Book Borrowing Form</h6>
-                <button type="submit" form="borrowingForm" class="btn btn-primary">Process Borrowing</button>
+                <button type="submit" form="borrowingForm" class="btn btn-primary">
+                    <i class="fas fa-check-circle mr-2"></i>Process Borrowing
+                </button>
             </div>
             <div class="card-body">
                 <form id="borrowingForm" method="POST" action="process_borrowing.php">
-                    <!-- Borrower Section -->
-                    <div class="mb-4">
-                        <h5 class="mb-3">Borrower Information</h5>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="userSearch" class="form-label">Search Borrower</label>
-                                    <input type="text" class="form-control" id="userSearch" placeholder="Enter ID number or name">
+                    <div class="row">
+                        <!-- Borrower Section -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card h-100">
+                                <div class="card-header bg-light">
+                                    <h5 class="mb-0"><i class="fas fa-user mr-2"></i>Borrower Information</h5>
                                 </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="user_id" class="form-label">Select Borrower</label>
-                                    <select class="form-control" id="user_id" name="user_id" required>
-                                        <option value="" disabled selected>Choose a borrower...</option>
-                                        <?php
-                                        $users_query = "SELECT id, school_id, firstname, middle_init, lastname FROM users WHERE status IS NULL OR status IN ('1', '0')";
-                                        $users_result = $conn->query($users_query);
-                                        while($user = $users_result->fetch_assoc()): ?>
-                                            <option value="<?php echo $user['id']; ?>" 
-                                                    data-school-id="<?php echo $user['school_id']; ?>">
-                                                <?php echo htmlspecialchars($user['school_id'] . ' - ' . 
-                                                                        $user['firstname'] . ' ' . 
-                                                                        ($user['middle_init'] ? $user['middle_init'] . '. ' : '') . 
-                                                                        $user['lastname']); ?>
-                                            </option>
-                                        <?php endwhile; ?>
-                                    </select>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label for="userSearch" class="form-label">
+                                            <i class="fas fa-search mr-2"></i>Search Borrower
+                                            <i class="fas fa-question-circle text-muted" data-toggle="tooltip" 
+                                               title="Enter ID number or name. You can also scan the borrower's ID card."></i>
+                                        </label>
+                                        <div class="input-group">
+                                            <input type="text" class="form-control" id="userSearch" 
+                                                   placeholder="Scan ID or enter ID number/name">
+                                            <div class="input-group-append">
+                                                <span class="input-group-text"><i class="fas fa-barcode"></i></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="user_id" class="form-label">
+                                            <i class="fas fa-user-check mr-2"></i>Select Borrower
+                                        </label>
+                                        <select class="form-control" id="user_id" name="user_id" required>
+                                            <option value="" disabled selected>Choose a borrower...</option>
+                                            <?php
+                                            $users_query = "SELECT id, school_id, firstname, middle_init, lastname FROM users WHERE status IS NULL OR status IN ('1', '0')";
+                                            $users_result = $conn->query($users_query);
+                                            while($user = $users_result->fetch_assoc()): ?>
+                                                <option value="<?php echo $user['id']; ?>" 
+                                                        data-school-id="<?php echo $user['school_id']; ?>">
+                                                    <?php echo htmlspecialchars($user['school_id'] . ' - ' . 
+                                                                            $user['firstname'] . ' ' . 
+                                                                            ($user['middle_init'] ? $user['middle_init'] . '. ' : '') . 
+                                                                            $user['lastname']); ?>
+                                                </option>
+                                            <?php endwhile; ?>
+                                        </select>
+                                    </div>
+                                    <!-- Borrower Preview Card -->
+                                    <div id="borrowerPreview" class="mt-3 d-none">
+                                        <div class="card bg-light">
+                                            <div class="card-body">
+                                                <h6 class="card-subtitle mb-2 text-muted">Selected Borrower</h6>
+                                                <div id="borrowerDetails"></div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Book Section -->
-                    <div class="mb-4">
-                        <h5 class="mb-3">Book Information</h5>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="bookSearch" class="form-label">Search Book</label>
-                                    <input type="text" class="form-control" id="bookSearch" placeholder="Enter book ID, accession, or title">
+                        <!-- Book Section -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card h-100">
+                                <div class="card-header bg-light">
+                                    <h5 class="mb-0"><i class="fas fa-book mr-2"></i>Book Information</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label for="bookSearch" class="form-label">
+                                            <i class="fas fa-search mr-2"></i>Search Book
+                                            <i class="fas fa-question-circle text-muted" data-toggle="tooltip" 
+                                               title="Scan book barcode or enter book title/accession number"></i>
+                                        </label>
+                                        <div class="input-group">
+                                            <input type="text" class="form-control" id="bookSearch" 
+                                                   placeholder="Scan barcode or enter book details">
+                                            <div class="input-group-append">
+                                                <span class="input-group-text"><i class="fas fa-barcode"></i></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="book_id" class="form-label">
+                                            <i class="fas fa-books mr-2"></i>Select Books
+                                        </label>
+                                        <select class="form-control" id="book_id" name="book_id[]" multiple required>
+                                            <option value="" disabled selected>Choose a book...</option>
+                                            <?php
+                                            $books_query = "SELECT id, title, accession, shelf_location FROM books WHERE status = 'Available'";
+                                            $books_result = $conn->query($books_query);
+                                            while($book = $books_result->fetch_assoc()): ?>
+                                                <option value="<?php echo $book['id']; ?>">
+                                                    <?php echo htmlspecialchars($book['accession'] . ' (' . $book['shelf_location'] . ') - ' . $book['title']); ?>
+                                                </option>
+                                            <?php endwhile; ?>
+                                        </select>
+                                        <small class="text-muted">
+                                            <i class="fas fa-info-circle mr-1"></i>
+                                            Hold Ctrl/Cmd to select multiple books
+                                        </small>
+                                    </div>
+                                    <!-- Selected Books Preview -->
+                                    <div class="mt-3">
+                                        <h6 class="text-muted mb-2">Selected Books</h6>
+                                        <div id="selectedBooksPreview" class="border rounded p-2 min-height-100">
+                                            <div class="text-muted text-center" id="noBooksSelected">
+                                                No books selected
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="book_id" class="form-label">Select Book</label>
-                                    <select class="form-control" id="book_id" name="book_id[]" multiple required>
-                                        <option value="" disabled selected>Choose a book...</option>
-                                        <?php
-                                        $books_query = "SELECT id, title, accession, shelf_location FROM books WHERE status = 'Available'";
-                                        $books_result = $conn->query($books_query);
-                                        while($book = $books_result->fetch_assoc()): ?>
-                                            <option value="<?php echo $book['id']; ?>">
-                                                <?php echo htmlspecialchars($book['accession'] . ' (' . $book['shelf_location'] . ') - ' . $book['title']); ?>
-                                            </option>
-                                        <?php endwhile; ?>
-                                    </select>
-                                    <small class="text-muted">Hold Ctrl/Cmd to select multiple items</small>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- Preview Section -->
-                        <div class="mb-4">
-                            <h5 class="mb-3">Selected Books</h5>
-                            <div id="selectedBooksPreview" class="mt-2"></div>
                         </div>
                     </div>
                 </form>
@@ -103,6 +176,9 @@ if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Lib
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 $(document).ready(function() {
+    // Initialize tooltips
+    $('[data-toggle="tooltip"]').tooltip();
+
     // Focus on book search by default
     $('#bookSearch').focus();
 
@@ -197,6 +273,9 @@ $(document).ready(function() {
     $('#bookSearch').on('input', function() {
         const searchTerm = $(this).val().toLowerCase();
         
+        // Store currently selected values
+        const selectedValues = $('#book_id').val() || [];
+        
         // Reset and hide all options first
         $('#book_id option:not(:first)').hide();
         
@@ -207,16 +286,68 @@ $(document).ready(function() {
             }
         });
 
-        // Auto-select if exact match found
-        const exactMatch = $('#book_id option').filter(function() {
-            return $(this).text().toLowerCase().startsWith(searchTerm);
-        }).first();
+        // Re-select previously selected values
+        $('#book_id').val(selectedValues);
 
-        if (exactMatch.length) {
-            $('#book_id').val(exactMatch.val());
-        } else {
-            $('#book_id').val(''); // Reset selection if no exact match
+        // Auto-select if exact match found (only if no books are currently selected)
+        if (selectedValues.length === 0) {
+            const exactMatch = $('#book_id option').filter(function() {
+                return $(this).text().toLowerCase().startsWith(searchTerm);
+            }).first();
+
+            if (exactMatch.length) {
+                $('#book_id').val([exactMatch.val()]);
+                updateSelectedBooksPreview();
+            }
         }
+    });
+
+    // Function to update the preview section
+    function updateSelectedBooksPreview() {
+        const selectedOptions = $('#book_id option:selected');
+        const previewList = $('#selectedBooksPreview');
+        previewList.empty();
+        
+        selectedOptions.each(function() {
+            const book = $(this).text();
+            previewList.append(`
+                <div class="badge bg-secondary p-2 m-1">
+                    <span class="text-white">${book}</span>
+                    <i class="fas fa-times ml-2 remove-book" style="cursor:pointer" data-value="${book}"></i>
+                </div>
+            `);
+        });
+    }
+
+    // Update preview when dropdown selection changes
+    $('#book_id').on('change', function() {
+        const selectedCount = $(this).val() ? $(this).val().length : 0;
+        const userType = $('#user_id option:selected').data('usertype');
+        
+        // Check book limit for students
+        if (userType === 'Student' && selectedCount > 3) {
+            Swal.fire({
+                title: 'Limit Exceeded',
+                text: 'Students can only borrow up to 3 books at a time',
+                icon: 'warning'
+            });
+            // Reset selection
+            $(this).val($(this).val().slice(0, 3));
+        }
+        
+        // Update preview after validation
+        updateSelectedBooksPreview();
+    });
+
+    // Handle removal of selected books
+    $(document).on('click', '.remove-book', function() {
+        const bookText = $(this).data('value');
+        const bookOption = $('#book_id option').filter(function() {
+            return $(this).text().trim() === bookText;
+        });
+        
+        bookOption.prop('selected', false);
+        updateSelectedBooksPreview();
     });
 
     // Filter user dropdown based on search input
@@ -269,20 +400,6 @@ $(document).ready(function() {
         selectedBooks.forEach(function(book) {
             previewList.append('<span class="badge bg-secondary mr-1 text-white">' + book + ' <i class="fas fa-times remove-book" data-value="' + book + '"></i></span>');
         });
-    });
-
-    // Handle removal of selected books
-    $(document).on('click', '.remove-book', function() {
-        const bookText = $(this).data('value');
-        const bookValue = $('#book_id option').filter(function() {
-            return $(this).text().trim() === bookText;
-        }).val();
-
-        // Remove the book from the selected options
-        $('#book_id option[value="' + bookValue + '"]').prop('selected', false);
-
-        // Update the preview list
-        $(this).parent().remove();
     });
 
     $('#user_id').on('change', function() {

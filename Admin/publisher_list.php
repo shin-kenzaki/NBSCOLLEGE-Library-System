@@ -152,6 +152,21 @@ $result = $conn->query($sql);
 ?>
 
 <style>
+    /* Add checkbox cell styles */
+    .checkbox-cell {
+        cursor: pointer;
+        text-align: center;
+        vertical-align: middle;
+        width: 50px !important; /* Fixed width for uniformity */
+    }
+    .checkbox-cell:hover {
+        background-color: rgba(0, 123, 255, 0.1);
+    }
+    .checkbox-cell input[type="checkbox"] {
+        margin: 0 auto;
+        display: block;
+    }
+    
     /* Add responsive table styles */
     .table-responsive {
         width: 100%;
@@ -327,7 +342,8 @@ $(document).ready(function () {
             { 
                 "orderable": false, 
                 "searchable": false,
-                "targets": 0 
+                "targets": 0,
+                "className": "checkbox-cell" // Add checkbox-cell class
             }
         ],
         "initComplete": function() {
@@ -700,5 +716,19 @@ $(document).ready(function () {
             $('#bulkActionForm').submit();
         }
     });
+
+    // Make the entire checkbox cell clickable
+    $(document).on('click', '.checkbox-cell', function(e) {
+        // Prevent triggering if clicking directly on the checkbox
+        if (e.target.type !== 'checkbox') {
+            const checkbox = $(this).find('input[type="checkbox"]');
+            checkbox.prop('checked', !checkbox.prop('checked'));
+            checkbox.trigger('change'); // Trigger change event
+        }
+    });
+
+    // Remove the old click handlers that might interfere
+    $('#dataTable tbody').off('click', 'td:first-child');
+    $('#dataTable tbody').off('click', 'tr');
 });
 </script>
