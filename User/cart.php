@@ -10,7 +10,7 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['usertype'], ['Student',
 
 $user_id = $_SESSION['user_id'];
 
-$query = "SELECT b.title, c.date,
+$query = "SELECT b.id AS book_id, b.title, c.date,
                  (SELECT CONCAT(w.firstname, ' ', w.lastname)
                   FROM contributors con
                   JOIN writers w ON con.writer_id = w.id
@@ -53,6 +53,15 @@ $result = $stmt->get_result();
         .table-responsive table th {
             vertical-align: middle !important;
         }
+
+        .checkbox-cell {
+            cursor: pointer;
+            text-align: center;
+            vertical-align: middle;
+        }
+        .checkbox-cell:hover {
+            background-color: rgba(0, 123, 255, 0.1); /* Light blue hover effect */
+        }
     </style>
     <!-- Include SweetAlert CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
@@ -91,7 +100,9 @@ $result = $stmt->get_result();
                                     $formattedDate = date('M j, Y h:i A', strtotime($row['date']));
 
                                     echo "<tr>
-                                        <td class=\"text-center\" style=\"width: 10%\"><input type='checkbox' class='select-item' data-title='" . htmlspecialchars($row['title']) . "'></td>
+                                        <td class=\"text-center checkbox-cell\" style=\"width: 10%\">
+                                            <input type='checkbox' class='select-item' data-book-id='" . htmlspecialchars($row['book_id']) . "'>
+                                        </td>
                                         <td style=\"width: 40%\">" . htmlspecialchars($row['title']) . "</td>
                                         <td style=\"width: 30%\">" . htmlspecialchars($row['author'] ?? 'N/A') . "</td>
                                         <td class=\"text-center\" style=\"width: 20%\">" . htmlspecialchars($formattedDate) . "</td>
@@ -180,19 +191,25 @@ $result = $stmt->get_result();
             updateSelectedItemCount();
         });
 
+        // Enable row selection by clicking on the checkbox cell
+        $('.checkbox-cell').on('click', function(e) {
+            if (e.target.tagName !== 'INPUT') { // Prevent double toggling when clicking directly on the checkbox
+                const checkbox = $(this).find('.select-item');
+                checkbox.prop('checked', !checkbox.prop('checked')).trigger('change');
+            }
+        });
+
         // Add bulk remove functionality
         $('#bulk-remove').on('click', function() {
-            var titles = [];
+            var bookIds = [];
             $('.select-item:checked').each(function() {
-                titles.push($(this).data('title'));
+                bookIds.push($(this).data('book-id')); // Use data-book-id to get the book ID
             });
 
-            if (titles.length > 0) {
-                var bookList = '<ul>' + titles.map(title => '<li>' + title + '</li>').join('') + '</ul>';
-
+            if (bookIds.length > 0) {
                 Swal.fire({
                     title: 'Remove from Cart',
-                    html: 'Are you sure you want to remove these items from your cart?<br>' + bookList,
+                    text: 'Are you sure you want to remove the selected items from your cart?',
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonText: 'Yes, remove them!',
@@ -204,7 +221,7 @@ $result = $stmt->get_result();
                         $.ajax({
                             url: 'bulk_remove_from_cart.php',
                             type: 'POST',
-                            data: { titles: titles },
+                            data: { book_ids: bookIds },
                             success: function(response) {
                                 var res = JSON.parse(response);
                                 Swal.fire('Removed!', res.message, 'success').then(() => {

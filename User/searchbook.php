@@ -260,7 +260,11 @@ $(document).ready(function() {
     });
 
     // Add click event listener to table rows
-    $('#dataTable tbody').on('click', 'tr.clickable-row', function() {
+    $('#dataTable tbody').on('click', 'tr.clickable-row', function(event) {
+        // Prevent navigation if the click is on a checkbox or its parent cell
+        if ($(event.target).is('input[type="checkbox"], td:first-child')) {
+            return;
+        }
         window.location.href = $(this).data('href');
     });
 
@@ -583,6 +587,14 @@ $(document).ready(function() {
             });
         }
     }
+
+    // Handle checkbox clicks and ensure the checkbox is toggled when clicking the cell
+    $('#dataTable tbody').on('click', 'td:first-child', function(event) {
+        const checkbox = $(this).find('input[type="checkbox"]');
+        checkbox.prop('checked', !checkbox.prop('checked'));
+        updateSelectedCount();
+        event.stopPropagation(); // Prevent triggering row navigation
+    });
 });
 </script>
 </body>

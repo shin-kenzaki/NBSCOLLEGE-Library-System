@@ -83,6 +83,14 @@ include 'inc/header.php';
         .table-responsive table th {
             vertical-align: middle !important;
         }
+        .checkbox-cell {
+            cursor: pointer;
+            text-align: center;
+            vertical-align: middle;
+        }
+        .checkbox-cell:hover {
+            background-color: rgba(0, 123, 255, 0.1); /* Light blue hover effect */
+        }
     </style>
 </head>
 
@@ -103,7 +111,7 @@ include 'inc/header.php';
                     <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
-                                <th class="text-center" style="width: 10%;">
+                                <th class="text-center checkbox-cell" style="width: 10%;">
                                     <input type="checkbox" id="selectAll" title="Select/Unselect All">
                                 </th>
                                 <th class="text-center" style="width: 10%;">ID</th>
@@ -118,7 +126,7 @@ include 'inc/header.php';
                                 while ($row = $result->fetch_assoc()): 
                             ?>
                                     <tr data-status="<?php echo htmlspecialchars($row['status']); ?>">
-                                        <td class="text-center">
+                                        <td class="text-center checkbox-cell">
                                             <input type="checkbox" class="reservation-checkbox" data-id="<?php echo $row['id']; ?>">
                                         </td>
                                         <td class="text-center"><?php echo htmlspecialchars($row['id']); ?></td>
@@ -269,6 +277,14 @@ $(document).ready(function() {
                 });
             }
         });
+    });
+
+    // Enable row selection by clicking on the checkbox cell
+    $('.checkbox-cell').on('click', function(e) {
+        if (e.target.tagName !== 'INPUT') { // Prevent double toggling when clicking directly on the checkbox
+            const checkbox = $(this).find('.reservation-checkbox');
+            checkbox.prop('checked', !checkbox.prop('checked')).trigger('change');
+        }
     });
 });
 </script>
