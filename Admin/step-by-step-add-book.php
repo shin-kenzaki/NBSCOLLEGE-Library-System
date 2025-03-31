@@ -2,6 +2,9 @@
 session_start();
 include '../db.php';
 
+// Reset the return_to_form flag since we're on the main progress page
+$_SESSION['return_to_form'] = false;
+
 // Handle reset progress action
 if (isset($_POST['reset_progress'])) {
     // Reset the book shortcut session data

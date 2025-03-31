@@ -1,13 +1,20 @@
 <?php
 session_start();
 include '../db.php';
-include 'inc/header.php';
 
 // Check if user is logged in with correct privileges
 if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Librarian', 'Assistant', 'Encoder'])) {
     header("Location: index.php");
     exit();
 }
+
+// Store the referrer information - check if we came from the form
+if (!isset($_SESSION['return_to_form'])) {
+    $_SESSION['return_to_form'] = (isset($_SERVER['HTTP_REFERER']) && 
+                                  strpos($_SERVER['HTTP_REFERER'], 'step-by-step-add-book-form.php') !== false);
+}
+
+include 'inc/header.php';
 
 // Add CSS styles for checkbox and radio cells using PHP
 echo '<style>
@@ -165,6 +172,9 @@ if (isset($_POST['save_selection'])) {
         // Move to the next step automatically
         $_SESSION['book_shortcut']['current_step'] = 3;
         
+        // Determine where to redirect based on session
+        $redirect_page = $_SESSION['return_to_form'] ? 'step-by-step-add-book-form.php' : 'step-by-step-add-book.php';
+        
         echo "<script>
             Swal.fire({
                 title: 'Success!',
@@ -174,7 +184,7 @@ if (isset($_POST['save_selection'])) {
                 confirmButtonText: 'OK'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    window.location.href='step-by-step-add-book.php';
+                    window.location.href='$redirect_page';
                 }
             });
         </script>";

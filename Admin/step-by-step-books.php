@@ -15,6 +15,12 @@ if (!isset($_SESSION['book_shortcut'])) {
     exit();
 }
 
+// Store the referrer information - check if we came from the form
+if (!isset($_SESSION['return_to_form'])) {
+    $_SESSION['return_to_form'] = (isset($_SERVER['HTTP_REFERER']) && 
+                                  strpos($_SERVER['HTTP_REFERER'], 'step-by-step-add-book-form.php') !== false);
+}
+
 // Check if previous steps were completed
 if (!$_SESSION['book_shortcut']['steps_completed']['writer'] || !$_SESSION['book_shortcut']['steps_completed']['publisher']) {
     $_SESSION['error'] = "Please complete the previous steps first.";
@@ -27,7 +33,7 @@ if (isset($_POST['copy_title'])) {
     $_SESSION['book_shortcut']['book_title'] = $_POST['book_title'];
     $_SESSION['book_shortcut']['steps_completed']['title'] = true;
     
-    // Redirect to add book shortcut form immediately
+    // Always redirect to the form page when a title is selected via copy
     header("Location: step-by-step-add-book-form.php");
     exit();
 }
@@ -41,7 +47,7 @@ if (isset($_POST['proceed_to_add'])) {
         $_SESSION['book_shortcut']['steps_completed']['title'] = true;
         $_SESSION['book_shortcut']['book_title'] = $_POST['new_title'];
         
-        // Redirect to add book shortcut for form
+        // Always redirect to the form page when proceeding with a new title
         header("Location: step-by-step-add-book-form.php");
         exit();
     }
@@ -266,8 +272,9 @@ $(document).on('click', '.copy-title', function() {
                 timer: 1500,
                 showConfirmButton: false
             }).then(() => {
-                // Redirect to the form page
-                window.location.href = 'step-by-step-add-book-form.php';
+                // Redirect based on where we came from
+                const returnToForm = <?php echo json_encode($_SESSION['return_to_form']); ?>;
+                window.location.href = returnToForm ? 'step-by-step-add-book-form.php' : 'step-by-step-add-book.php';
             });
         },
         error: function() {

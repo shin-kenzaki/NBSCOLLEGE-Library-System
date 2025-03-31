@@ -8,6 +8,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $_SESSION['selectedPublisherIds'] = $_POST['selectedPublisherIds'];
         }
+        
+        // Store the return URL if provided
+        if (isset($_POST['returnUrl'])) {
+            $_SESSION['return_to_form'] = ($_POST['returnUrl'] === 'form');
+        }
+        
         echo json_encode(['status' => 'success']);
     } else {
         echo json_encode(['status' => 'error', 'message' => 'No publisher IDs provided']);

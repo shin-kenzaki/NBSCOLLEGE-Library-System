@@ -7,6 +7,9 @@ if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Lib
     exit();
 }
 
+// Set the flag indicating we're on the form page
+$_SESSION['return_to_form'] = true;
+
 // Place database connection and form processing before including header
 include '../db.php';
 
@@ -105,8 +108,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     mysqli_real_escape_string($conn, $_POST['shelf_locations'][$call_number_index]) : '';
                 $call_number_index++;
 
-                // Format the call number
-                $formatted_call_number = $current_shelf_location . ' ' . $current_call_number . ' c' . $copy_number;
+                // Format the call number - include volume information if present
+                if (!empty($current_volume)) {
+                    // With volume, format: [shelf_location] [call_number] [publish_year] vol[volume_number] c[copy_number]
+                    $publish_year = $_SESSION['book_shortcut']['publish_year'] ?? date('Y');
+                    $formatted_call_number = $current_shelf_location . ' ' . $current_call_number . ' ' . $publish_year . ' vol' . $current_volume . ' c' . $copy_number;
+                } else {
+                    // Without volume, use standard format: [shelf_location] [call_number] c[copy_number]
+                    $formatted_call_number = $current_shelf_location . ' ' . $current_call_number . ' c' . $copy_number;
+                }
 
                 // Check for duplicate accession
                 $check_query = "SELECT * FROM books WHERE accession = '$current_accession'";
@@ -904,6 +914,19 @@ function updateISBNFields() {
         const rowDiv = document.createElement('div');
         rowDiv.className = 'row';
         
+        // Create ISBN input first (moved to the beginning)
+        const isbnDiv = document.createElement('div');
+        isbnDiv.className = 'col-md-3';
+        
+        const isbnInput = document.createElement('input');
+        isbnInput.type = 'text';
+        isbnInput.className = 'form-control';
+        isbnInput.name = 'isbn[]';
+        isbnInput.placeholder = 'ISBN';
+        
+        isbnDiv.appendChild(isbnInput);
+        rowDiv.appendChild(isbnDiv);
+        
         // Create Series input
         const seriesDiv = document.createElement('div');
         seriesDiv.className = 'col-md-3';
@@ -942,19 +965,6 @@ function updateISBNFields() {
         
         editionDiv.appendChild(editionInput);
         rowDiv.appendChild(editionDiv);
-        
-        // Create ISBN input
-        const isbnDiv = document.createElement('div');
-        isbnDiv.className = 'col-md-3';
-        
-        const isbnInput = document.createElement('input');
-        isbnInput.type = 'text';
-        isbnInput.className = 'form-control';
-        isbnInput.name = 'isbn[]';
-        isbnInput.placeholder = 'ISBN';
-        
-        isbnDiv.appendChild(isbnInput);
-        rowDiv.appendChild(isbnDiv);
         
         groupDiv.appendChild(rowDiv);
         detailsForAccessionGroupContainer.appendChild(groupDiv);

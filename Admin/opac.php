@@ -638,27 +638,22 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                                             </div>
                                         <?php endif; ?>
 
-                                        <?php if (!empty($book['subject_specification'])): ?>
-                                            <div class="col-md-4 mb-3">
-                                                <h6 class="text-dark">Specific Subjects</h6>
-                                                <ul class="list-group list-group-flush">
+                                        <div class="col-md-8 mb-3">
+                                            <h6 class="text-dark">Subject Details</h6>
+                                            <ul class="list-group list-group-flush">
+                                                <?php if (!empty($book['subject_specification'])): ?>
                                                     <?php foreach (explode(';', $book['subject_specification']) as $spec): ?>
-                                                        <li class="list-group-item bg-light"><?php echo htmlspecialchars(trim($spec)); ?></li>
+                                                        <li class="list-group-item bg-light"><strong>Specific:</strong> <?php echo htmlspecialchars(trim($spec)); ?></li>
                                                     <?php endforeach; ?>
-                                                </ul>
-                                            </div>
-                                        <?php endif; ?>
-
-                                        <?php if (!empty($book['subject_detail'])): ?>
-                                            <div class="col-md-4 mb-3">
-                                                <h6 class="text-dark">Subject Details</h6>
-                                                <ul class="list-group list-group-flush">
+                                                <?php endif; ?>
+                                                
+                                                <?php if (!empty($book['subject_detail'])): ?>
                                                     <?php foreach (explode(';', $book['subject_detail']) as $detail): ?>
                                                         <li class="list-group-item bg-light"><?php echo htmlspecialchars(trim($detail)); ?></li>
                                                     <?php endforeach; ?>
-                                                </ul>
-                                            </div>
-                                        <?php endif; ?>
+                                                <?php endif; ?>
+                                            </ul>
+                                        </div>
                                     </div>
                                 <?php else: ?>
                                     <p class="text-muted font-italic">No subject information available.</p>
@@ -1370,6 +1365,12 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Rebind event listeners on the new content
             rebindEventListeners();
+            
+            // Scroll to top of the page after loading content
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
         })
         .catch(error => {
             console.error('Error loading book details:', error);

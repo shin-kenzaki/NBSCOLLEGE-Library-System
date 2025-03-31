@@ -14,6 +14,12 @@ if (!isset($_SESSION['book_shortcut'])) {
     exit();
 }
 
+// Store the referrer information - check if we came from the form
+if (!isset($_SESSION['return_to_form'])) {
+    $_SESSION['return_to_form'] = (isset($_SERVER['HTTP_REFERER']) && 
+                                  strpos($_SERVER['HTTP_REFERER'], 'step-by-step-add-book-form.php') !== false);
+}
+
 // Handle AJAX requests first, before any output
 if (isset($_POST['ajax_select_writers'])) {
     header('Content-Type: application/json');
@@ -52,10 +58,13 @@ if (isset($_POST['ajax_select_writers'])) {
             $response['message'] = 'Writers selected successfully';
         }
 
+        // Determine where to redirect based on session
+        $redirect_page = $_SESSION['return_to_form'] ? 'step-by-step-add-book-form.php' : 'step-by-step-add-book.php';
+
         echo json_encode([
             'success' => true,
             'message' => 'Writers selected successfully',
-            'redirect' => 'step-by-step-add-book.php'
+            'redirect' => $redirect_page
         ]);
         
     } catch (Exception $e) {
@@ -196,8 +205,9 @@ if (isset($_POST['select_writers'])) {
             'message' => 'Writers selected successfully'
         ];
         
-        // Redirect to the next page
-        header("Location: step-by-step-add-book.php");
+        // Redirect based on where we came from (form or progress)
+        $redirect_page = $_SESSION['return_to_form'] ? 'step-by-step-add-book-form.php' : 'step-by-step-add-book.php';
+        header("Location: $redirect_page");
         exit;
     }
 }
