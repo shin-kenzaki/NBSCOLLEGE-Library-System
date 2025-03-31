@@ -412,7 +412,7 @@ include '../admin/inc/header.php';
                                             <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number">Shortcut</div>
                                             <div class="mt-2">
                                                 <a href="add-book.php" class="btn btn-sm btn-success mr-1"><i class="fas fa-book mr-1"></i> Standard</a>
-                                                <a href="add_book_shortcut.php" class="btn btn-sm btn-primary"><i class="fas fa-list mr-1"></i> Step-by-Step</a>
+                                                <a href="step-by-step-add-book.php" class="btn btn-sm btn-primary"><i class="fas fa-list mr-1"></i> Step-by-Step</a>
                                             </div>
                                         </div>
                                         <div class="col-auto">

@@ -215,11 +215,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             mysqli_rollback($conn);
         }
         $_SESSION['error_message'] = "Error: " . $e->getMessage();
-        header("Location: add_book_shortcut_form.php");
+        header("Location: step-by-step-add-book-form.php");
         exit();
     }
     $_SESSION['error_message'] = "Error: " . $e->getMessage();
-    header("Location: add_book_shortcut_form.php");
+    header("Location: step-by-step-add-book-form.php");
     exit();
 }
 
@@ -273,7 +273,7 @@ $accession_error = '';
     <div id="content" class="flex-grow-1">
         <div class="container-fluid">
             <!-- Fix: Remove enctype if not needed -->
-            <form id="bookForm" action="add_book_shortcut_form.php" method="POST" enctype="multipart/form-data" class="h-100" 
+            <form id="bookForm" action="step-by-step-add-book-form.php" method="POST" enctype="multipart/form-data" class="h-100" 
                   onkeydown="return event.key != 'Enter';">
                 <div class="container-fluid d-flex justify-content-between align-items-center">
                     <h1 class="h3 mb-2 text-gray-800">Add Book</h1>
@@ -429,7 +429,7 @@ $accession_error = '';
                                             </h6>
                                         </div>
                                     </div>
-                                    <p class="mt-2 mb-0"><small>To change the title, please <a href="shortcut_books.php">go back to the book title selection page</a>.</small></p>
+                                    <p class="mt-2 mb-0"><small>To change the title, please <a href="step-by-step-books.php">go back to the book title selection page</a>.</small></p>
                                 </div>
                                 <input type="hidden" name="title" value="<?php echo isset($_SESSION['book_shortcut']['book_title']) ? htmlspecialchars($_SESSION['book_shortcut']['book_title']) : ''; ?>">
                                 
@@ -504,7 +504,7 @@ $accession_error = '';
                                         }
                                         ?>
                                     </ul>
-                                    <p class="mt-2 mb-0"><small>To change writers, please <a href="shortcut_writers.php">go back to the writers selection page</a>.</small></p>
+                                    <p class="mt-2 mb-0"><small>To change writers, please <a href="step-by-step-writers.php">go back to the writers selection page</a>.</small></p>
                                 </div>
                             </div>
 
@@ -782,7 +782,7 @@ $accession_error = '';
                                         <p class="text-warning">No publisher selected.</p>
                                     <?php endif; ?>
                                     
-                                    <p class="mt-2 mb-0"><small>To change publisher information, please <a href="shortcut_publishers.php">go back to the publisher selection page</a>.</small></p>
+                                    <p class="mt-2 mb-0"><small>To change publisher information, please <a href="step-by-step-publishers.php">go back to the publisher selection page</a>.</small></p>
                                 </div>
                                 
                                 <!-- Move Details for Accession Group fields just below the "Publisher from Shortcut" -->

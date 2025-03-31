@@ -10,7 +10,7 @@ if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Lib
 
 // Initialize the shortcut session if not exists
 if (!isset($_SESSION['book_shortcut'])) {
-    header("Location: add_book_shortcut.php");
+    header("Location: step-by-step-add-book.php");
     exit();
 }
 
@@ -55,7 +55,7 @@ if (isset($_POST['ajax_select_writers'])) {
         echo json_encode([
             'success' => true,
             'message' => 'Writers selected successfully',
-            'redirect' => 'add_book_shortcut.php'
+            'redirect' => 'step-by-step-add-book.php'
         ]);
         
     } catch (Exception $e) {
@@ -197,7 +197,7 @@ if (isset($_POST['select_writers'])) {
         ];
         
         // Redirect to the next page
-        header("Location: add_book_shortcut.php");
+        header("Location: step-by-step-add-book.php");
         exit;
     }
 }
@@ -220,7 +220,7 @@ include 'inc/header.php';
             </div>
             <div class="card-body">
                 <div class="mb-3">
-                    <a href="add_book_shortcut.php" class="btn btn-secondary btn-sm">
+                    <a href="step-by-step-add-book.php" class="btn btn-secondary btn-sm">
                         <i class="fas fa-arrow-left"></i> Back to Progress Form
                     </a>
                     <button class="btn btn-success btn-sm ml-2" data-toggle="modal" data-target="#addWriterModal">
@@ -307,7 +307,7 @@ include 'inc/header.php';
                 </button>
             </div>
             <div class="modal-body">
-                <form id="addWritersForm" method="POST" action="shortcut_writers.php">
+                <form id="addWritersForm" method="POST" action="step-by-step-writers.php">
                     <div id="writersContainer">
                         <div class="writer-entry mb-3">
                             <div class="d-flex justify-content-between align-items-start">
@@ -442,7 +442,7 @@ $(document).ready(function() {
                 
                 // Submit via AJAX
                 $.ajax({
-                    url: 'shortcut_writers.php',
+                    url: 'step-by-step-writers.php',
                     type: 'POST',
                     data: formData,
                     processData: false,

@@ -18,7 +18,7 @@ if (isset($_POST['reset_progress'])) {
     ];
     
     // Redirect to prevent form resubmission
-    header("Location: add_book_shortcut.php");
+    header("Location: step-by-step-add-book.php");
     exit();
 }
 
@@ -97,19 +97,19 @@ include 'inc/header.php';
                         <div class="text-center mb-4">
                             <h4>Step 1: Check/Add Writer</h4>
                             <p>Check if the writer already exists in the system or add a new writer.</p>
-                            <a href="shortcut_writers.php" class="btn btn-primary">Continue to Writers</a>
+                            <a href="step-by-step-writers.php" class="btn btn-primary">Continue to Writers</a>
                         </div>
                     <?php elseif ($current_step == 2): ?>
                         <div class="text-center mb-4">
                             <h4>Step 2: Check/Add Publisher</h4>
                             <p>Check if the publisher already exists in the system or add a new publisher.</p>
-                            <a href="shortcut_publishers.php" class="btn btn-primary">Continue to Publishers</a>
+                            <a href="step-by-step-publishers.php" class="btn btn-primary">Continue to Publishers</a>
                         </div>
                     <?php elseif ($current_step == 3): ?>
                         <div class="text-center mb-4">
                             <h4>Step 3: Book Title Check & Add Book</h4>
                             <p>Check if the book title already exists or proceed to add a new book.</p>
-                            <a href="shortcut_books.php" class="btn btn-primary">Continue to Books</a>
+                            <a href="step-by-step-books.php" class="btn btn-primary">Continue to Books</a>
                         </div>
                     <?php endif; ?>
                 </div>

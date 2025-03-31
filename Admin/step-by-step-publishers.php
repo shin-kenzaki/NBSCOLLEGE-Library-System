@@ -174,7 +174,7 @@ if (isset($_POST['save_selection'])) {
                 confirmButtonText: 'OK'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    window.location.href='add_book_shortcut.php';
+                    window.location.href='step-by-step-add-book.php';
                 }
             });
         </script>";
@@ -262,7 +262,7 @@ $searchQuery = isset($_GET['search']) ? $conn->real_escape_string($_GET['search'
             </div>
             <div class="card-body">
                 <div class="mb-3">
-                    <a href="add_book_shortcut.php" class="btn btn-secondary btn-sm">
+                    <a href="step-by-step-add-book.php" class="btn btn-secondary btn-sm">
                         <i class="fas fa-arrow-left"></i> Back to Progress Form
                     </a>
                     <button class="btn btn-success btn-sm ml-2" data-toggle="modal" data-target="#addPublisherModal">

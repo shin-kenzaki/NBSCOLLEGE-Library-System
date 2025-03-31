@@ -11,14 +11,14 @@ if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Lib
 
 // Initialize the shortcut session if not exists
 if (!isset($_SESSION['book_shortcut'])) {
-    header("Location: add_book_shortcut.php");
+    header("Location: step-by-step-add-book.php");
     exit();
 }
 
 // Check if previous steps were completed
 if (!$_SESSION['book_shortcut']['steps_completed']['writer'] || !$_SESSION['book_shortcut']['steps_completed']['publisher']) {
     $_SESSION['error'] = "Please complete the previous steps first.";
-    header("Location: add_book_shortcut.php");
+    header("Location: step-by-step-add-book.php");
     exit();
 }
 
@@ -28,7 +28,7 @@ if (isset($_POST['copy_title'])) {
     $_SESSION['book_shortcut']['steps_completed']['title'] = true;
     
     // Redirect to add book shortcut form immediately
-    header("Location: add_book_shortcut_form.php");
+    header("Location: step-by-step-add-book-form.php");
     exit();
 }
 
@@ -42,7 +42,7 @@ if (isset($_POST['proceed_to_add'])) {
         $_SESSION['book_shortcut']['book_title'] = $_POST['new_title'];
         
         // Redirect to add book shortcut for form
-        header("Location: add_book_shortcut_form.php");
+        header("Location: step-by-step-add-book-form.php");
         exit();
     }
 }
@@ -78,7 +78,7 @@ $booksResult = $conn->query($booksQuery);
             </div>
             <div class="card-body">
                 <div class="mb-3">
-                    <a href="add_book_shortcut.php" class="btn btn-secondary btn-sm">
+                    <a href="step-by-step-add-book.php" class="btn btn-secondary btn-sm">
                         <i class="fas fa-arrow-left"></i> Back to Progress Form
                     </a>
                 </div>
@@ -93,7 +93,7 @@ $booksResult = $conn->query($booksQuery);
                         <h6 class="m-0 font-weight-bold">Add New Book</h6>
                     </div>
                     <div class="card-body">
-                        <form method="POST" action="shortcut_books.php">
+                        <form method="POST" action="step-by-step-books.php">
                             <div class="form-group">
                                 <label for="new_title">Book Title:</label>
                                 <input type="text" class="form-control" id="new_title" name="new_title" value="<?php echo htmlspecialchars($_SESSION['book_shortcut']['book_title']); ?>" required>
@@ -251,7 +251,7 @@ $(document).on('click', '.copy-title', function() {
     
     // Send AJAX request
     $.ajax({
-        url: 'shortcut_books.php',
+        url: 'step-by-step-books.php',
         method: 'POST',
         data: {
             copy_title: true,
@@ -267,7 +267,7 @@ $(document).on('click', '.copy-title', function() {
                 showConfirmButton: false
             }).then(() => {
                 // Redirect to the form page
-                window.location.href = 'add_book_shortcut_form.php';
+                window.location.href = 'step-by-step-add-book-form.php';
             });
         },
         error: function() {
