@@ -393,49 +393,125 @@ if (isset($_POST['submit'])) {
     }
 }
 
+// Handle the "Add Copies" functionality in the PHP code
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['num_copies']) && isset($_POST['modal_action']) && $_POST['modal_action'] === 'add_copies') {
+    $numCopiesToAdd = intval($_POST['num_copies']);
+    $firstBookId = $bookIds[0]; // Use the first book ID from the hidden input
+
+    // Fetch the first book's details
+    $stmt = $conn->prepare("SELECT * FROM books WHERE id = ?");
+    $stmt->bind_param("i", $firstBookId);
+    $stmt->execute();
+    $firstBook = $stmt->get_result()->fetch_assoc();
+
+    // Get the current max copy number and accession for this title
+    $stmt = $conn->prepare("SELECT MAX(copy_number) as max_copy, MAX(accession) as max_accession FROM books WHERE title = ?");
+    $stmt->bind_param("s", $firstBook['title']);
+    $stmt->execute();
+    $maxInfo = $stmt->get_result()->fetch_assoc();
+    $currentCopy = $maxInfo['max_copy'];
+    $currentAccession = $maxInfo['max_accession'];
+
+    $successCount = 0;
+    for ($i = 1; $i <= $numCopiesToAdd; $i++) {
+        $newCopyNumber = $currentCopy + $i;
+        $newAccession = $currentAccession + $i;
+
+        $query = "INSERT INTO books (
+            accession, title, preferred_title, parallel_title, subject_category,
+            subject_detail, summary, contents, front_image, back_image,
+            dimension, series, volume, edition, copy_number, total_pages,
+            supplementary_contents, ISBN, content_type, media_type, carrier_type,
+            call_number, URL, language, shelf_location, entered_by, date_added,
+            status, last_update
+        ) SELECT 
+            ?, title, preferred_title, parallel_title, subject_category,
+            subject_detail, summary, contents, front_image, back_image,
+            dimension, series, volume, edition, ?,
+            total_pages, supplementary_contents, ISBN, content_type, media_type, carrier_type,
+            call_number, URL, language, shelf_location, entered_by, date_added,
+            status, last_update
+        FROM books WHERE id = ?";
+        $stmt = $conn->prepare($query);
+        $stmt->bind_param("iii", $newAccession, $newCopyNumber, $firstBookId);
+        if ($stmt->execute()) {
+            $newBookId = $conn->insert_id;
+            $successCount++;
+
+            // Duplicate publication
+            $pubQuery = "INSERT INTO publications (book_id, publisher_id, publish_date)
+                         SELECT ?, publisher_id, publish_date FROM publications WHERE book_id = ?";
+            $pubStmt = $conn->prepare($pubQuery);
+            $pubStmt->bind_param("ii", $newBookId, $firstBookId);
+            $pubStmt->execute();
+
+            // Duplicate contributors
+            $contribQuery = "INSERT INTO contributors (book_id, writer_id, role)
+                             SELECT ?, writer_id, role FROM contributors WHERE book_id = ?";
+            $contribStmt = $conn->prepare($contribQuery);
+            $contribStmt->bind_param("ii", $newBookId, $firstBookId);
+            $contribStmt->execute();
+        }
+    }
+
+    echo "<script>
+            alert('Successfully added {$successCount} new copies!');
+            window.location.href = window.location.href;
+          </script>";
+    exit();
+}
+
 // Get book title from URL parameter and first book ID from the range
 $title = isset($_GET['title']) ? $_GET['title'] : '';
-$id_range = isset($_GET['id_range']) ? explode('-', $_GET['id_range']) : [];
-$first_book_id = !empty($id_range) ? trim($id_range[0]) : null;
+$id_range = isset($_GET['id_range']) ? $_GET['id_range'] : '';
 
-// Fetch first book's information
-if ($first_book_id) {
-    $book_query = "SELECT * FROM books WHERE id = ?";
+// Get accession range from URL parameter
+$accession_range = isset($_GET['accession_range']) ? $_GET['accession_range'] : '';
+
+// Initialize $books as empty array to prevent undefined variable error
+$books = [];
+$first_book = null;
+
+// Parse and validate the accession range
+if (!empty($accession_range)) {
+    // Split the accession range into individual accessions or ranges
+    $accession_parts = explode(',', $accession_range);
+    $accession_array = [];
+
+    foreach ($accession_parts as $part) {
+        if (strpos($part, '-') !== false) {
+            // Handle range (e.g., "1-3")
+            [$start, $end] = explode('-', $part);
+            $accession_array = array_merge($accession_array, range((int)$start, (int)$end));
+        } else {
+            // Handle single accession
+            $accession_array[] = (int)$part;
+        }
+    }
+
+    // Remove duplicates and sort the array
+    $accession_array = array_unique($accession_array);
+    sort($accession_array);
+
+    // Fetch books with the specified accessions
+    $placeholders = implode(',', array_fill(0, count($accession_array), '?'));
+    $book_query = "SELECT * FROM books WHERE accession IN ($placeholders)";
     $stmt = $conn->prepare($book_query);
-    $stmt->bind_param("i", $first_book_id);
+    $stmt->bind_param(str_repeat('i', count($accession_array)), ...$accession_array);
     $stmt->execute();
-    $first_book_result = $stmt->get_result();
-    $first_book = $first_book_result->fetch_assoc();
+    $books_result = $stmt->get_result();
+    $books = $books_result->fetch_all(MYSQLI_ASSOC);
 
-    // Fetch all books with the same title
-    if ($first_book) {
-        $books_query = "SELECT * FROM books WHERE title = ?";
-        $stmt = $conn->prepare($books_query);
-        $stmt->bind_param("s", $first_book['title']);
-        $stmt->execute();
-        $books_result = $stmt->get_result();
-        $books = $books_result->fetch_all(MYSQLI_ASSOC);
-
-        // Fetch contributors for the first book
-        $contributors_query = "SELECT w.*, c.role 
-                             FROM writers w 
-                             JOIN contributors c ON w.id = c.writer_id 
-                             WHERE c.book_id = ?";
-        $stmt = $conn->prepare($contributors_query);
-        $stmt->bind_param("i", $first_book_id);
-        $stmt->execute();
-        $contributors_result = $stmt->get_result();
-        $contributors = $contributors_result->fetch_all(MYSQLI_ASSOC);
-
-        // Fetch publication info for the first book
-        $publication_query = "SELECT p.*, pub.id as pub_id, pub.publisher, pub.place 
-                             FROM publications p 
-                             JOIN publishers pub ON p.publisher_id = pub.id 
-                             WHERE p.book_id = ?";
-        $stmt->prepare($publication_query);
-        $stmt->bind_param("i", $first_book_id);
-        $stmt->execute();
-        $publication = $stmt->get_result()->fetch_assoc();
+    // Fetch the first book for shared data
+    if (!empty($books)) {
+        $first_book = $books[0];
+    } else {
+        // Handle case where no books match the accession range
+        echo "<script>
+                alert('No books found for the specified accession range.');
+                window.location.href = 'book_list.php';
+              </script>";
+        exit();
     }
 }
 
@@ -850,71 +926,80 @@ $subject_options = array(
 
                         <div class="row">
                             <div class="col-md-12">
-                                <!-- Display Copy Numbers and Accessions -->
-                                <h5>Book Copies</h5>
-                                <div id="bookCopiesContainer" class="table-responsive" style="overflow-x: auto;">
-                                    <table class="table table-bordered text-center" style="min-width: 1100px;">
-                                        <thead>
-                                            <tr>
-                                                <th>Copy Number</th>
-                                                <th>Accession Number</th>
-                                                <th>Shelf Location</th>
-                                                <th>Call Number</th>
-                                                <th>Series</th>
-                                                <th>Volume</th>
-                                                <th>Edition</th>
-                                                <th>Status</th>
-                                                <th>Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <?php foreach ($books as $index => $book): ?>
-                                                <tr class="book-copy" data-book-id="<?php echo $book['id']; ?>">
-                                                    <td>
-                                                        <input type="text" class="form-control text-center" name="copy_number[]" value="<?php echo htmlspecialchars($book['copy_number']); ?>" readonly>
-                                                    </td>
-                                                    <td>
-                                                        <input type="text" class="form-control text-center" name="accession[]" value="<?php echo htmlspecialchars($book['accession']); ?>">
-                                                    </td>
-                                                    <td>
-                                                        <select class="form-control text-center shelf-location" name="shelf_location[]">
-                                                            <option value="TR" <?php echo ($book['shelf_location'] == 'TR') ? 'selected' : ''; ?>>Teachers Reference</option>
-                                                            <option value="FIL" <?php echo ($book['shelf_location'] == 'FIL') ? 'selected' : ''; ?>>Filipiniana</option>
-                                                            <option value="CIR" <?php echo ($book['shelf_location'] == 'CIR') ? 'selected' : ''; ?>>Circulation</option>
-                                                            <option value="REF" <?php echo ($book['shelf_location'] == 'REF') ? 'selected' : ''; ?>>Reference</option>
-                                                            <option value="SC" <?php echo ($book['shelf_location'] == 'SC') ? 'selected' : ''; ?>>Special Collection</option>
-                                                            <option value="BIO" <?php echo ($book['shelf_location'] == 'BIO') ? 'selected' : ''; ?>>Biography</option>
-                                                            <option value="RES" <?php echo ($book['shelf_location'] == 'RES') ? 'selected' : ''; ?>>Reserve</option>
-                                                            <option value="FIC" <?php echo ($book['shelf_location'] == 'FIC') ? 'selected' : ''; ?>>Fiction</option>
-                                                        </select>
-                                                    </td>
-                                                    <td>
-                                                        <input type="text" class="form-control text-center" name="call_numbers[]" value="<?php echo htmlspecialchars($book['call_number']); ?>">
-                                                    </td>
-                                                    <td>
-                                                        <input type="text" class="form-control text-center" name="series[]" value="<?php echo htmlspecialchars($book['series']); ?>">
-                                                    </td>
-                                                    <td>
-                                                        <input type="text" class="form-control text-center" name="volume[]" value="<?php echo htmlspecialchars($book['volume']); ?>">
-                                                    </td>
-                                                    <td>
-                                                        <input type="text" class="form-control text-center" name="edition[]" value="<?php echo htmlspecialchars($book['edition']); ?>">
-                                                    </td>
-                                                    <td>
-                                                        <input type="text" class="form-control text-center" 
-                                                               value="<?php echo htmlspecialchars($book['status'] ?? 'Available'); ?>" readonly>
-                                                        <input type="hidden" name="statuses[]" 
-                                                               value="<?php echo htmlspecialchars($book['status'] ?? 'Available'); ?>">
-                                                    </td>
-                                                    <td>
-                                                        <button type="button" class="btn btn-outline-danger btn-sm delete-copy" title="Delete this copy">
-                                                            <i class="fa fa-trash-alt"></i>
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            <?php endforeach; ?>
-                                        </tbody>
-                                    </table>
+                                <!-- Book Copies Section -->
+                                <div class="card shadow mb-4">
+                                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                                        <h6 class="m-0 font-weight-bold text-primary">Book List</h6>
+                                        <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addCopiesModal">
+                                            <i class="fas fa-plus"></i> Add Copies
+                                        </button>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="bookCopiesContainer" class="table-responsive" style="overflow-x: auto;">
+                                            <table class="table table-bordered text-center" style="min-width: 1100px;">
+                                                <thead>
+                                                    <tr>
+                                                        <th style="width: 120px; white-space: nowrap;">Copy Number</th>
+                                                        <th style="width: 150px; white-space: nowrap;">Accession Number</th>
+                                                        <th style="width: 150px; white-space: nowrap;">Shelf Location</th>
+                                                        <th style="width: 300px; white-space: nowrap;">Call Number</th>
+                                                        <th style="width: 120px; white-space: nowrap;">Series</th>
+                                                        <th style="width: 120px; white-space: nowrap;">Volume</th>
+                                                        <th style="width: 120px; white-space: nowrap;">Edition</th>
+                                                        <th style="width: 120px; white-space: nowrap;">Status</th>
+                                                        <th style="width: 100px; white-space: nowrap;">Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <?php foreach ($books as $index => $book): ?>
+                                                        <tr class="book-copy" data-book-id="<?php echo $book['id']; ?>">
+                                                            <td>
+                                                                <input type="text" class="form-control text-center" name="copy_number[]" value="<?php echo htmlspecialchars($book['copy_number']); ?>">
+                                                            </td>
+                                                            <td>
+                                                                <input type="text" class="form-control text-center" name="accession[]" value="<?php echo htmlspecialchars($book['accession']); ?>">
+                                                            </td>
+                                                            <td>
+                                                                <select class="form-control text-center shelf-location" name="shelf_location[]">
+                                                                    <option value="TR" <?php echo ($book['shelf_location'] == 'TR') ? 'selected' : ''; ?>>Teachers Reference</option>
+                                                                    <option value="FIL" <?php echo ($book['shelf_location'] == 'FIL') ? 'selected' : ''; ?>>Filipiniana</option>
+                                                                    <option value="CIR" <?php echo ($book['shelf_location'] == 'CIR') ? 'selected' : ''; ?>>Circulation</option>
+                                                                    <option value="REF" <?php echo ($book['shelf_location'] == 'REF') ? 'selected' : ''; ?>>Reference</option>
+                                                                    <option value="SC" <?php echo ($book['shelf_location'] == 'SC') ? 'selected' : ''; ?>>Special Collection</option>
+                                                                    <option value="BIO" <?php echo ($book['shelf_location'] == 'BIO') ? 'selected' : ''; ?>>Biography</option>
+                                                                    <option value="RES" <?php echo ($book['shelf_location'] == 'RES') ? 'selected' : ''; ?>>Reserve</option>
+                                                                    <option value="FIC" <?php echo ($book['shelf_location'] == 'FIC') ? 'selected' : ''; ?>>Fiction</option>
+                                                                </select>
+                                                            </td>
+                                                            <td>
+                                                                <input type="text" class="form-control text-center" name="call_numbers[]" value="<?php echo htmlspecialchars($book['call_number']); ?>">
+                                                            </td>
+                                                            <td>
+                                                                <input type="text" class="form-control text-center" name="series[]" value="<?php echo htmlspecialchars($book['series']); ?>">
+                                                            </td>
+                                                            <td>
+                                                                <input type="text" class="form-control text-center" name="volume[]" value="<?php echo htmlspecialchars($book['volume']); ?>">
+                                                            </td>
+                                                            <td>
+                                                                <input type="text" class="form-control text-center" name="edition[]" value="<?php echo htmlspecialchars($book['edition']); ?>">
+                                                            </td>
+                                                            <td>
+                                                                <input type="text" class="form-control text-center" 
+                                                                       value="<?php echo htmlspecialchars($book['status'] ?? 'Available'); ?>" readonly>
+                                                                <input type="hidden" name="statuses[]" 
+                                                                       value="<?php echo htmlspecialchars($book['status'] ?? 'Available'); ?>">
+                                                            </td>
+                                                            <td>
+                                                                <button type="button" class="btn btn-outline-danger btn-sm delete-copy" title="Delete this copy">
+                                                                    <i class="fa fa-trash-alt"></i>
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    <?php endforeach; ?>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1008,6 +1093,32 @@ $subject_options = array(
     <?php include '../admin/inc/footer.php'; ?>
 </div>
 
+<!-- Add the modal for "Add Copies" -->
+<div class="modal fade" id="addCopiesModal" tabindex="-1" aria-labelledby="addCopiesModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <form method="POST" action="">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addCopiesModalLabel">Enter Number of Copies</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="modal_action" value="add_copies">
+                    <div class="mb-3">
+                        <label for="num_copies" class="form-label">How many copies to add?</label>
+                        <input type="number" class="form-control" id="num_copies" name="num_copies" min="1" required>
+                    </div>
+                    <p class="small text-muted">New copies will duplicate the first copy’s information, including contributors and publication details.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Copies</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- Basic Tab Functionality Script -->
 <script>
 document.addEventListener("DOMContentLoaded", function() {
@@ -1058,7 +1169,7 @@ document.addEventListener("DOMContentLoaded", function() {
             const copyNum = copyNumberInput.value.replace(/^c/, '');
             const shelfLocation = copy.querySelector('select[name="shelf_location[]"]').value;
             const volumeInput = copy.querySelector('input[name="volume[]"]');
-            const volumeText = volumeInput && volumeInput.value.trim() ? `vol${volumeInput.value.trim()} ` : '';
+            const volumeText = volumeInput && volumeInput.value.trim() ? `vol${volumeInput.value.trim()}` : ''; // Removed trailing space
             
             // Validate raw call number format (only classification and cutter)
             if (!/^[A-Z0-9]+(\.[0-9]+)?\s[A-Z][0-9]+$/.test(rawCallNumber)) {
