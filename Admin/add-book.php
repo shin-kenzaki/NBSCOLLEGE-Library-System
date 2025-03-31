@@ -7,7 +7,7 @@ if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Lib
     exit();
 }
 
-// Add form reset check - must come before including process-add-book.php
+// Add form reset check - must come before including process_add_book.php
 $resetForm = false;
 if (isset($_SESSION['reset_book_form']) && $_SESSION['reset_book_form'] === true) {
     $resetForm = true;
@@ -18,7 +18,7 @@ if (isset($_SESSION['reset_book_form']) && $_SESSION['reset_book_form'] === true
 include '../db.php';
 
 // Include the processing file for form submissions
-include 'process/process-add-book.php';
+include 'process/process_add_book.php';
 
 // Only include header after all potential redirects
 include 'inc/header.php';
@@ -2912,29 +2912,6 @@ function formatCallNumberDisplay(callNumberInput) {
     
     // Update the preview text
     previewElem.textContent = '→ ' + preview;
-    
-    // Add warning about trailing spaces if needed
-    let warningElem = container.querySelector('.call-number-warning');
-    if (!warningElem) {
-        warningElem = document.createElement('small');
-        warningElem.className = 'call-number-warning text-danger d-block mt-1';
-        warningElem.style.fontSize = '11px';
-        callNumberInput.parentNode.appendChild(warningElem);
-    }
-    
-    // Check if the user has added trailing spaces to the base call number
-    if (callNumberInput.value !== callNumberInput.value.trimEnd()) {
-        warningElem.textContent = 'Warning: Trailing spaces will be removed from call number';
-        warningElem.style.display = 'block';
-    } else if (callParts.length === 0) {
-        warningElem.textContent = 'Please enter a complete call number';
-        warningElem.style.display = 'block';
-    } else if (callParts.length === 1 && baseCallNumber.length > 2) {
-        warningElem.textContent = 'Call numbers should have a space between classification and author cutter (e.g., "HD69.B7 W56")';
-        warningElem.style.display = 'block';
-    } else {
-        warningElem.style.display = 'none';
-    }
 }
 
 // Initialize everything at page load
@@ -3137,29 +3114,6 @@ document.addEventListener('DOMContentLoaded', function() {
                             callNumberPreview.textContent = `→ ${formatted}`;
                             // Store the formatted value to be used on submission
                             this.dataset.formattedCallNumber = formatted;
-                            
-                            // Add warning about trailing spaces if needed
-                            let warningElem = row.querySelector('.call-number-warning');
-                            if (!warningElem) {
-                                warningElem = document.createElement('small');
-                                warningElem.className = 'call-number-warning text-danger d-block mt-1';
-                                warningElem.style.fontSize = '11px';
-                                this.parentNode.appendChild(warningElem);
-                            }
-                            
-                            // Check if the user has added trailing spaces
-                            if (this.value !== this.value.trimEnd()) {
-                                warningElem.textContent = 'Warning: Trailing spaces will be removed from call number';
-                                warningElem.style.display = 'block';
-                            } else if (!baseCallNumber) {
-                                warningElem.textContent = 'Please enter a complete call number';
-                                warningElem.style.display = 'block';
-                            } else if (baseCallNumber.indexOf(' ') === -1 && baseCallNumber.length > 2) {
-                                warningElem.textContent = 'Call numbers should have a space between classification and author cutter (e.g., "HD69.B7 W56")';
-                                warningElem.style.display = 'block';
-                            } else {
-                                warningElem.style.display = 'none';
-                            }
                         } else {
                             callNumberPreview.textContent = '';
                             this.dataset.formattedCallNumber = '';

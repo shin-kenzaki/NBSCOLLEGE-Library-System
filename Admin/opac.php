@@ -1291,74 +1291,96 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Function to load book details via AJAX
     function loadBookDetails(bookId) {
-        // Show loading indicator
-        const mainContent = document.querySelector('.book-details');
-        if (mainContent) {
-            mainContent.style.opacity = '0.6';
+        // Update URL without refreshing the page
+        const url = new URL(window.location.href);
+        url.searchParams.set('book_id', bookId);
+        window.history.pushState({}, '', url);
+        
+        // Highlight the selected row
+        document.querySelectorAll('.copy-row').forEach(row => {
+            row.classList.remove('table-primary');
+        });
+        document.querySelector(`.copy-row[data-book-id="${bookId}"]`).classList.add('table-primary');
+        
+        // Load the new page content
+        fetch(`opac.php?book_id=${bookId}&partial=true`, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.text())
+        .then(html => {
+            // Create a temporary div to hold the response
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
             
-            // Create and append loading spinner if it doesn't exist
-            let spinner = document.getElementById('loading-spinner');
-            if (!spinner) {
-                spinner = document.createElement('div');
-                spinner.id = 'loading-spinner';
-                spinner.className = 'position-absolute top-50 start-50 translate-middle';
-                spinner.innerHTML = '<div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>';
-                spinner.style.zIndex = '1000';
-                mainContent.parentNode.style.position = 'relative';
-                mainContent.parentNode.appendChild(spinner);
-            } else {
-                spinner.style.display = 'block';
+            // Get currently active tab
+            const activeTab = document.querySelector('#bookDetailsTabs .nav-link.active');
+            const activeTabId = activeTab ? activeTab.id : 'details-tab';
+            
+            // STANDARD VIEW TAB UPDATES - Only update card contents
+            if (tempDiv.querySelector('#details')) {
+                // Find all cards in the details tab
+                const detailsCards = tempDiv.querySelectorAll('#details .card');
+                
+                // Update each card individually
+                detailsCards.forEach(newCard => {
+                    const cardHeading = newCard.querySelector('.card-header h5, .card-header h6');
+                    if (cardHeading) {
+                        const cardTitle = cardHeading.textContent.trim();
+                        // Find matching card in current page
+                        const currentCards = document.querySelectorAll('#details .card');
+                        
+                        currentCards.forEach(currentCard => {
+                            const currentHeading = currentCard.querySelector('.card-header h5, .card-header h6');
+                            if (currentHeading && currentHeading.textContent.trim() === cardTitle) {
+                                // Update only the card body content
+                                const newCardBody = newCard.querySelector('.card-body');
+                                const currentCardBody = currentCard.querySelector('.card-body');
+                                if (newCardBody && currentCardBody) {
+                                    currentCardBody.innerHTML = newCardBody.innerHTML;
+                                }
+                            }
+                        });
+                    }
+                });
             }
             
-            // Update URL without refreshing the page
-            const url = new URL(window.location.href);
-            url.searchParams.set('book_id', bookId);
-            window.history.pushState({}, '', url);
+            // MARC VIEW TAB UPDATES
+            if (tempDiv.querySelector('#marc')) {
+                const newMarcContent = tempDiv.querySelector('#marc .marc-record-container');
+                const currentMarcContent = document.querySelector('#marc .marc-record-container');
+                if (newMarcContent && currentMarcContent) {
+                    currentMarcContent.innerHTML = newMarcContent.innerHTML;
+                }
+            }
             
-            // Highlight the selected row
-            document.querySelectorAll('.copy-row').forEach(row => {
-                row.classList.remove('table-primary');
-            });
-            document.querySelector(`.copy-row[data-book-id="${bookId}"]`).classList.add('table-primary');
+            // ISBD VIEW TAB UPDATES
+            if (tempDiv.querySelector('#isbd')) {
+                const newIsbdContent = tempDiv.querySelector('#isbd .isbd-record');
+                const currentIsbdContent = document.querySelector('#isbd .isbd-record');
+                if (newIsbdContent && currentIsbdContent) {
+                    currentIsbdContent.innerHTML = newIsbdContent.innerHTML;
+                }
+            }
             
-            // Load the new page content
-            fetch(`opac.php?book_id=${bookId}`, {
-                method: 'GET',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.text())
-            .then(html => {
-                // Create a temporary div to hold the response
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = html;
-                
-                // Extract the main content from the response
-                const newContent = tempDiv.querySelector('#details');
-                if (newContent) {
-                    // Update only the main content area
-                    document.querySelector('#details').innerHTML = newContent.innerHTML;
-                    
-                    // Rebind event listeners on the new content
-                    rebindEventListeners();
-                } else {
-                    // If can't extract specific content, reload the whole page
-                    window.location.href = `opac.php?book_id=${bookId}`;
-                }
-                
-                // Remove loading spinner
-                if (spinner) {
-                    spinner.style.display = 'none';
-                }
-                mainContent.style.opacity = '1';
-            })
-            .catch(error => {
-                console.error('Error loading book details:', error);
-                // Fallback to full page reload on error
-                window.location.href = `opac.php?book_id=${bookId}`;
+            // Ensure the active tab remains active
+            document.querySelector(`#${activeTabId}`).click();
+            
+            // Rebind event listeners on the new content
+            rebindEventListeners();
+        })
+        .catch(error => {
+            console.error('Error loading book details:', error);
+            // Show error message
+            Swal.fire({
+                title: 'Error',
+                text: 'Failed to load book details. Please try again.',
+                icon: 'error',
+                confirmButtonText: 'OK'
             });
-        }
+        });
     }
     
     // Function to rebind event listeners after content update
@@ -1379,16 +1401,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const originalOnclick = deleteBtn.getAttribute('onclick');
             deleteBtn.setAttribute('onclick', originalOnclick);
         }
-        
-        // Rebind tab functionality
-        var triggerTabList = [].slice.call(document.querySelectorAll('#bookDetailsTabs button'));
-        triggerTabList.forEach(function(triggerEl) {
-            var tabTrigger = new bootstrap.Tab(triggerEl);
-            triggerEl.addEventListener('click', function(event) {
-                event.preventDefault();
-                tabTrigger.show();
-            });
-        });
     }
 });
 </script>
