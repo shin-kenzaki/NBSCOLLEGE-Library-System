@@ -79,6 +79,25 @@ $accession_error = '';
                     </button>
                 </div>
 
+                <!-- Add Error Message Display -->
+                <?php if (isset($_SESSION['error_message'])): ?>
+                <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <?php echo $_SESSION['error_message']; ?>
+                </div>
+                <?php unset($_SESSION['error_message']); ?>
+                <?php endif; ?>
+
+                <!-- Add Success Message Display -->
+                <?php if (isset($_SESSION['success_message'])): ?>
+                <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <?php echo $_SESSION['success_message']; ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                <?php unset($_SESSION['success_message']); ?>
+                <?php endif; ?>
+
                 <!-- Progress Bar -->
                 <div class="progress mb-4">
                     <div class="progress-bar" role="progressbar" style="width: 0%" id="formProgressBar"
@@ -157,11 +176,6 @@ $accession_error = '';
                                     <input type="text" class="form-control" id="parallel_title" name="parallel_title">
                                     <small class="form-text text-muted">Title in another language.</small>
                                 </div>
-                                <div class="mt-4 d-flex justify-content-end">
-                                    <button type="button" class="btn btn-primary next-tab" data-next="subject-tab">
-                                        Next <i class="fas fa-chevron-right"></i>
-                                    </button>
-                                </div>
                             </div>
                             <!-- Subject Entry Tab -->
                             <div class="tab-pane fade" id="subject-entry" role="tabpanel">
@@ -179,29 +193,21 @@ $accession_error = '';
                                         </button>
                                     </div>
                                 </div>
-                                <div id="subject-entries">
-                                    <div class="subject-entry card p-3 mb-3">
-                                        <button type="button" class="btn btn-danger btn-sm remove-subject">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                        <div class="form-group">
-                                            <label>Subject Category</label>
-                                            <select class="form-control" name="subject_categories[]">
-                                                <option value="">Select Subject Category</option>
-                                                <?php foreach ($subject_options as $option): ?>
-                                                    <option value="<?php echo $option; ?>"><?php echo $option; ?></option>
-                                                <?php endforeach; ?>
-                                            </select>
-                                        </div>
-                                        <div class="form-group">
-                                            <label>Subject Detail</label>
-                                            <textarea class="form-control" name="subject_paragraphs[]" rows="3"></textarea>
-                                        </div>
-                                    </div>
+                                <div class="form-group">
+                                    <label>Subject Category</label>
+                                    <select class="form-control" name="subject_category">
+                                        <option value="">Select Subject Category</option>
+                                        <?php foreach ($subject_options as $option): ?>
+                                            <option value="<?php echo $option; ?>"><?php echo $option; ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <small class="form-text text-muted">Choose the category that best describes the book's subject.</small>
                                 </div>
-                                <button type="button" class="btn btn-secondary mb-3" id="add-subject">
-                                    <i class="fas fa-plus"></i> Add Another Subject
-                                </button>
+                                <div class="form-group">
+                                    <label>Subject Detail</label>
+                                    <textarea class="form-control" name="subject_detail" rows="3"></textarea>
+                                    <small class="form-text text-muted">Provide additional details or keywords related to the subject.</small>
+                                </div>
                             </div>
                             <!-- Abstracts Tab -->
                             <div class="tab-pane fade" id="abstracts" role="tabpanel">
@@ -255,13 +261,14 @@ $accession_error = '';
                                         <div class="form-group">
                                             <label for="dimension">Dimensions</label>
                                             <input type="text" class="form-control" id="dimension" name="dimension" placeholder="e.g., 23 cm">
+                                            <small class="form-text text-muted">Specify the physical dimensions of the book.</small>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="form-group">
                                             <label for="prefix_pages">Prefix Pages</label>
                                             <input type="text" class="form-control" id="prefix_pages" name="prefix_pages" placeholder="e.g., xii">
-                                            <small class="form-text text-muted">Roman numerals for prefatory pages.</small>
+                                            <small class="form-text text-muted">Enter the number of prefatory pages in Roman numerals.</small>
                                         </div>
                                     </div>
                                 </div>
@@ -270,27 +277,22 @@ $accession_error = '';
                                         <div class="form-group">
                                             <label for="main_pages">Main Pages</label>
                                             <input type="text" class="form-control" id="main_pages" name="main_pages" placeholder="e.g., 350 p.">
+                                            <small class="form-text text-muted">Provide the total number of main pages in the book.</small>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="form-group">
-                                            <label>Supplementary Content</label><br>
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="checkbox" name="supplementary_content[]" value="ill." id="ill">
-                                                <label class="form-check-label" for="ill">Illustrations</label>
-                                            </div>
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="checkbox" name="supplementary_content[]" value="maps" id="maps">
-                                                <label class="form-check-label" for="maps">Maps</label>
-                                            </div>
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="checkbox" name="supplementary_content[]" value="index" id="index">
-                                                <label class="form-check-label" for="index">Index</label>
-                                            </div>
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="checkbox" name="supplementary_content[]" value="bibliog." id="bibliog">
-                                                <label class="form-check-label" for="bibliog">Bibliography</label>
-                                            </div>
+                                            <label>Supplementary Content</label>
+                                            <select class="form-control" name="supplementary_content[]" multiple>
+                                                <option value="Appendix">Appendix</option>
+                                                <option value="Bibliography">Bibliography</option>
+                                                <option value="Glossary">Glossary</option>
+                                                <option value="Index">Index</option>
+                                                <option value="Illustrations">Illustrations</option>
+                                                <option value="Maps">Maps</option>
+                                                <option value="Tables">Tables</option>
+                                            </select>
+                                            <small class="form-text text-muted">Select any additional content included in the book.</small>
                                         </div>
                                     </div>
                                 </div>
@@ -505,12 +507,12 @@ $accession_error = '';
                                                             </button>
                                                         </div>
                                                     </div>
-                                                    <select id="authorSelect" name="author[]" class="form-control">
-                                                        <option value="">Select Author</option>
+                                                    <select id="authorSelect" name="author[]" class="form-control" multiple>
                                                         <?php foreach ($writers as $writer): ?>
                                                             <option value="<?php echo $writer['id']; ?>"><?php echo $writer['name']; ?></option>
                                                         <?php endforeach; ?>
                                                     </select>
+                                                    <small class="form-text text-muted">Hold Ctrl (Windows) or Command (Mac) to select multiple options.</small>
                                                     <div id="authorPreview" class="selected-preview mt-2"></div>
                                                 </div>
                                             </div>
@@ -526,6 +528,7 @@ $accession_error = '';
                                                             <option value="<?php echo $writer['id']; ?>"><?php echo $writer['name']; ?></option>
                                                         <?php endforeach; ?>
                                                     </select>
+                                                    <small class="form-text text-muted">Hold Ctrl (Windows) or Command (Mac) to select multiple options.</small>
                                                     <div id="coAuthorsPreview" class="selected-preview mt-2"></div>
                                                 </div>
                                             </div>
@@ -541,6 +544,7 @@ $accession_error = '';
                                                             <option value="<?php echo $writer['id']; ?>"><?php echo $writer['name']; ?></option>
                                                         <?php endforeach; ?>
                                                     </select>
+                                                    <small class="form-text text-muted">Hold Ctrl (Windows) or Command (Mac) to select multiple options.</small>
                                                     <div id="editorsPreview" class="selected-preview mt-2"></div>
                                                 </div>
                                             </div>
@@ -1054,20 +1058,6 @@ function updateFormattedCallNumber(input) {
         warningElem.className = 'call-number-warning text-danger d-block mt-1';
         warningElem.style.fontSize = '11px';
         input.parentNode.appendChild(warningElem);
-    }
-    
-    // Check if the user has added trailing spaces to the base call number
-    if (input.value !== input.value.trimEnd()) {
-        warningElem.textContent = 'Warning: Trailing spaces will be removed from call number';
-        warningElem.style.display = 'block';
-    } else if (callParts.length === 0) {
-        warningElem.textContent = 'Please enter a complete call number';
-        warningElem.style.display = 'block';
-    } else if (callParts.length === 1 && baseCallNumber.length > 2) {
-        warningElem.textContent = 'Call numbers should have a space between classification and author cutter (e.g., "HD69.B7 W56")';
-        warningElem.style.display = 'block';
-    } else {
-        warningElem.style.display = 'none';
     }
 }
 </script>
@@ -3248,9 +3238,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<!-- Embedded call-number-fallback code -->
-
-<!-- Embedded author management script -->
 <script>
 /**
  * Author management functionality
@@ -4386,6 +4373,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             </option>
                         <?php endforeach; ?>
                     </select>
+                    <small class="form-text text-muted">Hold Ctrl (Windows) or Command (Mac) to select multiple options.</small>
                 </div>
                 <div class="form-group">
                     <label for="editors_${index}">Editors</label>
@@ -4396,6 +4384,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             </option>
                         <?php endforeach; ?>
                     </select>
+                    <small class="form-text text-muted">Hold Ctrl (Windows) or Command (Mac) to select multiple options.</small>
                 </div>
             `;
             contributorsContainer.appendChild(contributorsDiv);
@@ -4407,5 +4396,223 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Initial population
     updateDetails();
+});
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // ...existing code...
+
+    // Add this to the form submission handler
+    document.getElementById('bookForm').addEventListener('submit', function(e) {
+        // Format call numbers before submission
+        const callNumberInputs = document.querySelectorAll('.call-number-input');
+        
+        // Create hidden inputs for formatted call numbers
+        callNumberInputs.forEach((input, index) => {
+            // Get the formatted call number from the data attribute or preview
+            let formattedCallNumber = input.dataset.formattedCallNumber;
+            if (!formattedCallNumber) {
+                const preview = input.closest('.input-group').querySelector('.call-number-preview');
+                if (preview) {
+                    formattedCallNumber = preview.textContent.replace('→ ', '').trim();
+                }
+            }
+            
+            if (formattedCallNumber) {
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = 'formatted_call_numbers[]';
+                hiddenInput.value = formattedCallNumber;
+                this.appendChild(hiddenInput);
+            }
+        });
+    });
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const publisherSearch = document.getElementById('publisherSearch');
+    const publisherDropdown = document.getElementById('publisher');
+
+    publisherSearch.addEventListener('input', function () {
+        const searchValue = this.value.toLowerCase();
+        Array.from(publisherDropdown.options).forEach(option => {
+            const text = option.textContent.toLowerCase();
+            option.style.display = text.includes(searchValue) ? '' : 'none';
+        });
+    });
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Function to dynamically filter dropdown options
+    function filterDropdown(inputId, dropdownId) {
+        const input = document.getElementById(inputId);
+        const dropdown = document.getElementById(dropdownId);
+
+        input.addEventListener('input', function () {
+            const searchValue = this.value.toLowerCase();
+            Array.from(dropdown.options).forEach(option => {
+                const text = option.textContent.toLowerCase();
+                option.style.display = text.includes(searchValue) ? '' : 'none';
+            });
+        });
+    }
+
+    // Apply the filter function to contributors dropdowns
+    filterDropdown('authorSearch', 'authorSelect');
+    filterDropdown('coAuthorsSearch', 'coAuthorsSelect');
+    filterDropdown('editorsSearch', 'editorsSelect');
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Function to dynamically update the preview for multi-select dropdowns
+    function updateContributorsPreview(selectId, previewId) {
+        const select = document.getElementById(selectId);
+        const preview = document.getElementById(previewId);
+
+        if (!select || !preview) return;
+
+        const selectedOptions = Array.from(select.selectedOptions).map(option => {
+            return `<span class="badge bg-secondary mr-1 text-white">${option.text} <i class="fas fa-times remove-icon" data-value="${option.value}"></i></span>`;
+        });
+
+        preview.innerHTML = selectedOptions.join(' ');
+
+        // Add click event to remove selected options dynamically
+        preview.addEventListener('click', function (event) {
+            if (event.target.classList.contains('remove-icon')) {
+                const value = event.target.getAttribute('data-value');
+                Array.from(select.options).forEach(option => {
+                    if (option.value === value) {
+                        option.selected = false;
+                    }
+                });
+                updateContributorsPreview(selectId, previewId);
+            }
+        });
+    }
+
+    // Attach event listeners to contributors dropdowns
+    document.getElementById('authorSelect').addEventListener('change', function () {
+        updateContributorsPreview('authorSelect', 'authorPreview');
+    });
+    document.getElementById('coAuthorsSelect').addEventListener('change', function () {
+        updateContributorsPreview('coAuthorsSelect', 'coAuthorsPreview');
+    });
+    document.getElementById('editorsSelect').addEventListener('change', function () {
+        updateContributorsPreview('editorsSelect', 'editorsPreview');
+    });
+
+    // Initialize previews on page load
+    updateContributorsPreview('authorSelect', 'authorPreview');
+    updateContributorsPreview('coAuthorsSelect', 'coAuthorsPreview');
+    updateContributorsPreview('editorsSelect', 'editorsPreview');
+});
+</script>
+
+<script>
+/**
+ * Enhanced validation for form submission
+ */
+document.addEventListener("DOMContentLoaded", function() {
+    const form = document.getElementById('bookForm');
+    
+    form.addEventListener('submit', function(e) {
+        let hasErrors = false;
+        let errorMessages = [];
+        
+        // Check accession numbers
+        const accessionInputs = document.querySelectorAll('.accession-input');
+        accessionInputs.forEach(input => {
+            if (!input.value.trim()) {
+                hasErrors = true;
+                errorMessages.push('Accession number is required');
+                input.classList.add('is-invalid');
+            } else if (!/^\d+$/.test(input.value.trim())) {
+                hasErrors = true;
+                errorMessages.push('Accession numbers must be numeric');
+                input.classList.add('is-invalid');
+            } else {
+                input.classList.remove('is-invalid');
+            }
+        });
+        
+        // Check author selection
+        const authorSelect = document.getElementById('authorSelect');
+        if (!authorSelect || authorSelect.selectedOptions.length === 0) {
+            hasErrors = true;
+            errorMessages.push('At least one author must be selected');
+            if (authorSelect) {
+                authorSelect.classList.add('is-invalid');
+                
+                // Add error message below the select
+                let errorFeedback = authorSelect.nextElementSibling;
+                if (!errorFeedback || !errorFeedback.classList.contains('invalid-feedback')) {
+                    errorFeedback = document.createElement('div');
+                    errorFeedback.className = 'invalid-feedback';
+                    authorSelect.parentNode.insertBefore(errorFeedback, authorSelect.nextSibling);
+                }
+                errorFeedback.textContent = 'Please select at least one author';
+            }
+        } else {
+            let hasValidAuthor = false;
+            for (let i = 0; i < authorSelect.selectedOptions.length; i++) {
+                if (authorSelect.selectedOptions[i].value > 0) {
+                    hasValidAuthor = true;
+                    break;
+                }
+            }
+            
+            if (!hasValidAuthor) {
+                hasErrors = true;
+                errorMessages.push('At least one valid author must be selected');
+                authorSelect.classList.add('is-invalid');
+            } else {
+                authorSelect.classList.remove('is-invalid');
+            }
+        }
+        
+        // If we have errors, prevent form submission and show alert
+        if (hasErrors) {
+            e.preventDefault();
+            
+            // Create error alert at the top of the form
+            const formContainer = form.querySelector('.container-fluid');
+            const existingAlert = formContainer.querySelector('.alert-danger');
+            
+            if (existingAlert) {
+                existingAlert.remove(); // Remove existing alert to prevent duplicates
+            }
+            
+            const errorAlert = document.createElement('div');
+            errorAlert.className = 'alert alert-danger alert-dismissible fade show mb-4';
+            errorAlert.setAttribute('role', 'alert');
+            
+            errorAlert.innerHTML = `
+                <i class="fas fa-exclamation-circle me-2"></i>
+                <strong>Error:</strong> Please fix the following errors:
+                <ul class="mb-0 mt-2">
+                    ${errorMessages.map(msg => `<li>${msg}</li>`).join('')}
+                </ul>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            
+            // Insert after the heading container
+            const headingContainer = formContainer.querySelector('.d-flex.justify-content-between');
+            headingContainer.insertAdjacentElement('afterend', errorAlert);
+            
+            // Scroll to the top of the form to show the error
+            window.scrollTo({
+                top: formContainer.offsetTop - 100,
+                behavior: 'smooth'
+            });
+        }
+    });
 });
 </script>

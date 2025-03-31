@@ -73,11 +73,11 @@ $query = "SELECT
     GROUP_CONCAT(CONCAT(call_number, '|', copy_number) ORDER BY copy_number) as call_number_data,
     GROUP_CONCAT(DISTINCT copy_number ORDER BY copy_number) as copy_number_range,
     GROUP_CONCAT(DISTINCT shelf_location ORDER BY shelf_location) as shelf_locations,
-    GROUP_CONCAT(DISTINCT ISBN ORDER BY ISBN) as isbns,
-    COUNT(*) as total_copies,
-    GROUP_CONCAT(DISTINCT series ORDER BY series) as series_data,
-    GROUP_CONCAT(DISTINCT edition ORDER BY edition) as editions,
-    GROUP_CONCAT(DISTINCT volume ORDER BY volume) as volumes
+    ISBN,
+    series,
+    volume,
+    edition,
+    COUNT(*) as total_copies
     FROM books ";
 
 if (!empty($searchQuery)) {
@@ -89,7 +89,7 @@ if (!empty($searchQuery)) {
     $stmt = $conn->prepare($query);
 }
 
-$query .= " GROUP BY title ORDER BY title";
+$query .= " GROUP BY title, ISBN, series, volume, edition ORDER BY title";
 $stmt->execute();
 $result = $stmt->get_result();
 ?>
@@ -224,10 +224,10 @@ $result = $stmt->get_result();
             <th style="text-align: center">Call Number Range</th>
             <th style="text-align: center">Copy Number Range</th>
             <th style="text-align: center">Shelf Locations</th>
-            <th style="text-align: center">ISBN Range</th>
-            <th style="text-align: center">Series Range</th>
-            <th style="text-align: center">Volume Range</th>
-            <th style="text-align: center">Edition Range</th>
+            <th style="text-align: center">ISBN</th>
+            <th style="text-align: center">Series</th>
+            <th style="text-align: center">Volume</th>
+            <th style="text-align: center">Edition</th>
             <th style="text-align: center">Total Copies</th>
         </tr>
     </thead>
@@ -240,18 +240,18 @@ $result = $stmt->get_result();
             GROUP_CONCAT(CONCAT(call_number, '|', copy_number) ORDER BY copy_number) as call_number_data,
             GROUP_CONCAT(DISTINCT copy_number ORDER BY copy_number) as copy_number_range,
             GROUP_CONCAT(DISTINCT shelf_location ORDER BY shelf_location) as shelf_locations,
-            GROUP_CONCAT(DISTINCT ISBN ORDER BY ISBN) as isbns,
-            COUNT(*) as total_copies,
-            GROUP_CONCAT(DISTINCT series ORDER BY series) as series_data,
-            GROUP_CONCAT(DISTINCT edition ORDER BY edition) as editions,
-            GROUP_CONCAT(DISTINCT volume ORDER BY volume) as volumes
+            ISBN,
+            series,
+            volume,
+            edition,
+            COUNT(*) as total_copies
             FROM books ";
         
         if (!empty($searchQuery)) {
             $query .= " WHERE title LIKE '%$searchQuery%' ";
         }
         
-        $query .= " GROUP BY title ORDER BY title";
+        $query .= " GROUP BY title, ISBN, series, volume, edition ORDER BY title";
         
         $result = $conn->query($query);
 
@@ -296,22 +296,6 @@ $result = $stmt->get_result();
             $shelf_locations = array_unique(explode(',', $row['shelf_locations']));
             $formatted_shelf_locations = implode(', ', $shelf_locations);
 
-            // Process ISBNs
-            $isbns = array_unique(explode(',', $row['isbns']));
-            $formatted_isbns = implode(', ', array_filter($isbns));
-
-            // Process series
-            $series = array_unique(explode(',', $row['series_data']));
-            $formatted_series = implode(', ', array_filter($series));
-
-            // Process volumes
-            $volumes = array_unique(explode(',', $row['volumes']));
-            $formatted_volumes = implode(', ', array_filter($volumes));
-
-            // Process editions
-            $editions = array_unique(explode(',', $row['editions']));
-            $formatted_editions = implode(', ', array_filter($editions));
-
             // Format all data for display - reordered columns to put accession first
             echo "<tr data-book-id='" . $ids[0] . "'>
                 <td style='text-align: center'>{$id_range}</td>
@@ -320,10 +304,10 @@ $result = $stmt->get_result();
                 <td style='text-align: center'>" . implode('<br>', $call_numbers) . "</td>
                 <td style='text-align: center'>{$copy_range}</td>
                 <td style='text-align: center'>{$formatted_shelf_locations}</td>
-                <td style='text-align: center'>" . ($formatted_isbns ?: 'N/A') . "</td>
-                <td style='text-align: center'>" . ($formatted_series ?: 'N/A') . "</td>
-                <td style='text-align: center'>" . ($formatted_volumes ?: 'N/A') . "</td>
-                <td style='text-align: center'>" . ($formatted_editions ?: 'N/A') . "</td>
+                <td style='text-align: center'>" . ($row['ISBN'] ?: 'N/A') . "</td>
+                <td style='text-align: center'>" . ($row['series'] ?: 'N/A') . "</td>
+                <td style='text-align: center'>" . ($row['volume'] ?: 'N/A') . "</td>
+                <td style='text-align: center'>" . ($row['edition'] ?: 'N/A') . "</td>
                 <td style='text-align: center'>{$row['total_copies']}</td>
             </tr>";
         }
@@ -391,6 +375,14 @@ $result = $stmt->get_result();
         </div>
         <!-- /.container-fluid -->
 
+        <!-- Custom Context Menu -->
+        <div id="contextMenu" class="dropdown-menu shadow-sm custom-context-menu" style="display:none; position:absolute; z-index:1000;">
+            <a class="dropdown-item context-update" href="#"><i class="fas fa-edit fa-sm fa-fw mr-2 text-gray-400"></i> Update Books</a>
+            <a class="dropdown-item context-view" href="#"><i class="fas fa-eye fa-sm fa-fw mr-2 text-gray-400"></i> View Book Details</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item context-add-copies" href="#"><i class="fas fa-plus fa-sm fa-fw mr-2 text-gray-400"></i> Add Copies</a>
+        </div>
+
         <!-- Footer -->
         <?php include '../Admin/inc/footer.php' ?>
         <!-- End of Footer -->
@@ -415,8 +407,63 @@ $result = $stmt->get_result();
                 
                 window.location.href = `opac.php?book_id=${bookId}`;
             });
+
+            // Improved right-click context menu handler
+            $('#dataTable tbody').on('contextmenu', 'tr', function(e) {
+                e.preventDefault();
+                
+                // Clear previous data to avoid stale values
+                $('#contextMenu').removeData();
+                
+                // Get the row data
+                let row = $(this);
+                let accessionRangeCell = row.find('td:nth-child(1)'); // Accession Range is in the 2nd column (1-based index)
+                
+                // Extract the data
+                let accessionRange = accessionRangeCell.text().trim();
+                
+                // Verify we have the necessary data before proceeding
+                if (!accessionRange) {
+                    console.error('Missing required data for context menu', { accessionRange });
+                    return false;
+                }
+                
+                // Store data in the context menu
+                $('#contextMenu').data('accession-range', accessionRange);
+                
+                // Position and show the menu
+                $('#contextMenu').css({
+                    top: e.pageY + 'px',
+                    left: e.pageX + 'px'
+                }).show();
+                
+                // Add a click event to the document to hide the menu when clicking elsewhere
+                $(document).one('click', function() {
+                    $('#contextMenu').hide();
+                });
+                
+                return false;
+            });
+
+            // Use event delegation for context menu actions
+            $(document).on('click', '.context-update', function() {
+                let accessionRange = $('#contextMenu').data('accession-range');
+                
+                // Verify data before redirecting
+                if (!accessionRange) {
+                    console.error('Missing required data for update action', { accessionRange });
+                    return;
+                }
+                
+                // Log the URL we're about to navigate to
+                let url = `update_books.php?accession_range=${encodeURIComponent(accessionRange)}`;
+                console.log('Navigating to:', url);
+                
+                window.location.href = url;
+            });
         });
         </script>
+        
         <script>
         $(document).ready(function () {
             var table = $('#dataTable').DataTable({
@@ -451,6 +498,35 @@ $result = $stmt->get_result();
             /* Add CSS to hide ID range columns but keep them accessible for JavaScript */
             .hidden-column {
                 display: none;
+            }
+            
+            /* Style for the custom context menu */
+            .custom-context-menu {
+                min-width: 180px;
+                padding: 0.5rem 0;
+                background-color: #fff;
+                border: 1px solid rgba(0,0,0,.15);
+            }
+            
+            .custom-context-menu .dropdown-item {
+                padding: 0.5rem 1rem;
+                color: #3a3b45;
+                font-weight: 400;
+                font-size: 0.85rem;
+            }
+            
+            .custom-context-menu .dropdown-item:hover {
+                background-color: #4e73df;
+                color: white;
+            }
+            
+            .custom-context-menu .dropdown-item:hover i {
+                color: white !important;
+            }
+            
+            /* Add visual cue for right-clickable rows */
+            #dataTable tbody tr {
+                cursor: context-menu;
             }
         </style>
     </div>
