@@ -442,6 +442,15 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
 <body>
     <?php include '../admin/inc/header.php'; ?>
 
+    <!-- Instructions Button - Add to top of page -->
+    <div class="container-fluid">
+        <div class="d-flex justify-content-end mb-3">
+            <button type="button" class="btn btn-info" data-toggle="modal" data-target="#instructionsModal">
+                <i class="fas fa-question-circle"></i> How to Use OPAC
+            </button>
+        </div>
+    </div>
+
     <!-- Main Content -->
     <div id="content" class="d-flex flex-column min-vh-100">
         <div class="container-fluid px-4">
@@ -1405,5 +1414,69 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+
+<!-- Instructions Modal -->
+<div class="modal fade" id="instructionsModal" tabindex="-1" role="dialog" aria-labelledby="instructionsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="instructionsModalLabel">
+                    <i class="fas fa-info-circle mr-2"></i>How to Use the OPAC System
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="card mb-3">
+                    <div class="card-header bg-light">
+                        <h6 class="m-0 font-weight-bold">What is OPAC?</h6>
+                    </div>
+                    <div class="card-body">
+                        <p>OPAC (Online Public Access Catalog) allows you to view detailed information about books in the library collection, including:</p>
+                        <ul>
+                            <li>Bibliographic details (title, author, publication information)</li>
+                            <li>Physical characteristics and content information</li>
+                            <li>Availability status of each copy</li>
+                            <li>Location information for finding the book in the library</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="card mb-3">
+                    <div class="card-header bg-light">
+                        <h6 class="m-0 font-weight-bold">Viewing Book Details</h6>
+                    </div>
+                    <div class="card-body">
+                        <ul>
+                            <li>Book information is presented in a structured format following library standards.</li>
+                            <li>You can see all copies of a book and their current status.</li>
+                            <li>Click on any copy in the holdings table to view its specific details.</li>
+                            <li>The availability count shows how many copies are currently on the shelf.</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h6 class="m-0 font-weight-bold">Export Options</h6>
+                    </div>
+                    <div class="card-body">
+                        <p>You can export book records in different formats:</p>
+                        <ul>
+                            <li><strong>Standard Format</strong>: Simple text export with basic bibliographic information</li>
+                            <li><strong>MARC21</strong>: Machine-Readable Cataloging format for library system interoperability</li>
+                            <li><strong>ISBD</strong>: International Standard Bibliographic Description format</li>
+                        </ul>
+                        <p>Use the export buttons to download the record in your preferred format.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
 </body>
 </html>

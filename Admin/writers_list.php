@@ -165,6 +165,9 @@ $result = $conn->query($sql);
                         <span class="badge badge-light ml-1">0</span>
                     </button>
                     <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#addWriterModal">Add Writer</button>
+                    <button type="button" class="btn btn-info btn-sm ml-2" data-toggle="modal" data-target="#instructionsModal">
+                        <i class="fas fa-question-circle"></i> Instructions
+                    </button>
                 </div>
             </div>
             <div class="card-body px-0"> <!-- Remove padding for full-width scroll -->
@@ -281,10 +284,78 @@ $result = $conn->query($sql);
     </div>
 </div>
 
+<!-- Instructions Modal -->
+<div class="modal fade" id="instructionsModal" tabindex="-1" role="dialog" aria-labelledby="instructionsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="instructionsModalLabel">
+                    <i class="fas fa-info-circle mr-2"></i>Writer Management Instructions
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="card mb-3">
+                    <div class="card-header bg-light">
+                        <h6 class="m-0 font-weight-bold">Managing Writers</h6>
+                    </div>
+                    <div class="card-body">
+                        <p>This page allows you to manage information about authors, editors, and other contributors:</p>
+                        <ul>
+                            <li><strong>View Writers</strong>: The table displays all writers with their personal details</li>
+                            <li><strong>Add New Writer</strong>: Click the "Add Writer" button to create a new writer entry</li>
+                            <li><strong>Edit Writer</strong>: Use the edit button in the action column to modify existing writer information</li>
+                            <li><strong>Delete Writer</strong>: Remove a writer if needed (caution: this may affect book records)</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="card mb-3">
+                    <div class="card-header bg-light">
+                        <h6 class="m-0 font-weight-bold">Writer Information</h6>
+                    </div>
+                    <div class="card-body">
+                        <p>When adding or editing a writer, include the following information:</p>
+                        <ul>
+                            <li><strong>First Name</strong>: The writer's given name</li>
+                            <li><strong>Middle Initial</strong>: Middle name or initial (if applicable)</li>
+                            <li><strong>Last Name</strong>: The writer's family name or surname</li>
+                            <li><strong>Biography</strong> (optional): Brief biographical information about the writer</li>
+                            <li><strong>Specialization</strong> (optional): Primary subject areas or genres</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h6 class="m-0 font-weight-bold">Best Practices</h6>
+                    </div>
+                    <div class="card-body">
+                        <ul>
+                            <li>Always check if a writer already exists in the system before creating a new entry</li>
+                            <li>Be consistent with name formats (e.g., use full first names rather than nicknames)</li>
+                            <li>When adding writers with the same name, include distinguishing information</li>
+                            <li>For writers who use pseudonyms, create separate entries and note the relationship</li>
+                            <li>Use the search function to quickly find writers by name</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Context Menu -->
-<div id="contextMenu" class="dropdown-menu" style="display:none; position:absolute;">
-    <a class="dropdown-item" href="#" id="updateWriter">Update</a>
-    <a class="dropdown-item" href="#" id="deleteWriter">Delete</a>
+<div class="context-menu" id="contextMenu">
+    <ul class="list-group">
+        <li class="list-group-item context-menu-item" data-action="edit"><i class="fas fa-edit mr-2"></i>Edit Writer</li>
+        <li class="list-group-item context-menu-item" data-action="delete"><i class="fas fa-trash-alt mr-2"></i>Delete Writer</li>
+    </ul>
 </div>
 
 <!-- Footer -->
@@ -360,6 +431,39 @@ $result = $conn->query($sql);
     .bulk-delete-btn .badge {
         padding: 0.25rem 0.5rem;
         font-size: 0.875rem;
+    }
+
+    /* Context menu styling */
+    .context-menu {
+        position: absolute;
+        display: none;
+        z-index: 1000;
+        min-width: 180px;
+        padding: 0;
+        box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
+        border-radius: 0.35rem;
+        overflow: hidden;
+    }
+    
+    .context-menu .list-group {
+        margin-bottom: 0;
+    }
+    
+    .context-menu-item {
+        cursor: pointer;
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+        transition: background-color 0.2s;
+    }
+    
+    .context-menu-item:hover {
+        background-color: #f8f9fc;
+        color: #4e73df;
+    }
+    
+    .context-menu-item i {
+        width: 20px;
+        text-align: center;
     }
 </style>
 
@@ -755,5 +859,103 @@ $(document).ready(function () {
     // Remove the old handlers that might interfere
     $('#dataTable tbody').off('click', 'td:first-child');
     $('#dataTable tbody').off('click', 'tr');
+
+    // Context menu handling
+    let contextTarget = null;
+    
+    // Show context menu on right-click
+    $('#dataTable tbody').on('contextmenu', 'tr', function(e) {
+        e.preventDefault();
+        
+        // Get the clicked row data
+        const rowData = table.row(this).data();
+        if (!rowData) return;
+        
+        // Highlight the selected row
+        $('#dataTable tbody tr').removeClass('table-primary');
+        $(this).addClass('table-primary');
+        
+        // Set context target
+        contextTarget = {
+            id: $(this).find('td:eq(1)').text(),
+            firstName: $(this).find('td:eq(2)').text(),
+            middleInit: $(this).find('td:eq(3)').text(),
+            lastName: $(this).find('td:eq(4)').text(),
+            element: this
+        };
+        
+        // Show the context menu at mouse position
+        $('#contextMenu').css({
+            top: e.pageY + 'px',
+            left: e.pageX + 'px',
+            display: 'block'
+        });
+    });
+    
+    // Hide context menu on click outside
+    $(document).click(function() {
+        $('#contextMenu').hide();
+    });
+    
+    // Handle context menu item clicks
+    $('.context-menu-item').on('click', function() {
+        const action = $(this).data('action');
+        
+        if (!contextTarget) return;
+        
+        if (action === 'edit') {
+            window.location.href = `update_writer.php?writer_id=${contextTarget.id}`;
+        } else if (action === 'delete') {
+            Swal.fire({
+                title: 'Delete Writer?',
+                html: `Are you sure you want to delete <strong>${contextTarget.firstName} ${contextTarget.lastName}</strong>?<br><br>
+                      <span class="text-danger">This will also remove all contributor records for this writer.</span>`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, delete it',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Perform delete operation via AJAX
+                    $.ajax({
+                        url: 'delete_writer.php',
+                        type: 'POST',
+                        data: { writer_id: contextTarget.id },
+                        dataType: 'json',
+                        success: function(response) {
+                            if (response.success) {
+                                Swal.fire({
+                                    title: 'Deleted!',
+                                    text: response.message || 'Writer deleted successfully',
+                                    icon: 'success'
+                                }).then(() => {
+                                    // Remove row from table
+                                    table.row($(contextTarget.element)).remove().draw();
+                                });
+                            } else {
+                                Swal.fire({
+                                    title: 'Error!',
+                                    text: response.message || 'Failed to delete writer',
+                                    icon: 'error'
+                                });
+                            }
+                        },
+                        error: function() {
+                            Swal.fire({
+                                title: 'Error!',
+                                text: 'A server error occurred',
+                                icon: 'error'
+                            });
+                        }
+                    });
+                }
+            });
+        }
+        
+        // Hide the context menu
+        $('#contextMenu').hide();
+    });
 });
 </script>

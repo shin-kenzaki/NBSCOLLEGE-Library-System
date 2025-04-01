@@ -75,6 +75,9 @@ $accession_error = '';
                 <div class="container-fluid d-flex justify-content-between align-items-center mb-4">
                     <h1 class="h3 mb-2 text-gray-800">Add Book</h1>
                     <div>
+                        <button type="button" class="btn btn-info mr-2" data-toggle="modal" data-target="#instructionsModal">
+                            <i class="fas fa-question-circle"></i> Instructions
+                        </button>
                         <button type="button" class="btn btn-secondary mr-2" onclick="window.history.back();">
                             <i class="fas fa-arrow-left"></i> Cancel
                         </button>
@@ -412,7 +415,7 @@ $accession_error = '';
                                             <li>Avoid extra spaces at beginning or end of your call number</li>
                                             <li>Trailing spaces will be automatically removed</li>
                                             <li>The system adds proper spacing between components (shelf location, call number, year, volume, copy)</li>
-                                            <li>Example: "REF HD69.B7 W56 2024 c1" (shelf location + classification + author cutter + year + copy)</li>
+                                            <li>Example: "REF HD69.B7 W56 2024 vol1 c1" (shelf location + classification + author cutter + year + vol + copy)</li>
                                         </ul>
                                     </div>
                                     <div class="card-body">
@@ -638,6 +641,80 @@ $accession_error = '';
     <?php include 'inc/footer.php'; ?>
 </div>
 
+<!-- Instructions Modal (detailed version) -->
+<div class="modal fade" id="instructionsModal" tabindex="-1" role="dialog" aria-labelledby="instructionsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="instructionsModalLabel">
+                    <i class="fas fa-info-circle mr-2"></i>How to Add a New Book
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="card mb-3">
+                    <div class="card-header bg-light">
+                        <h6 class="m-0 font-weight-bold">Form Navigation</h6>
+                    </div>
+                    <div class="card-body">
+                        <ul>
+                            <li>This form is divided into multiple tabs for easier data entry.</li>
+                            <li>Complete each tab before proceeding to the next.</li>
+                            <li>Required fields are marked with an asterisk (*).</li>
+                            <li>Use the tab navigation or the Previous/Next buttons to move between sections.</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="card mb-3">
+                    <div class="card-header bg-light">
+                        <h6 class="m-0 font-weight-bold">Accession and Call Numbers</h6>
+                    </div>
+                    <div class="card-body">
+                        <ul>
+                            <li><strong>Accession Number</strong>: Enter a unique identifier for each physical copy.</li>
+                            <li><strong>Call Number</strong>: Format should follow library standards (e.g., "TR Z936.98 L39 2023 c1").</li>
+                            <li><strong>Multiple Copies</strong>: You can specify multiple copies, and the system will auto-increment accession numbers.</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="card mb-3">
+                    <div class="card-header bg-light">
+                        <h6 class="m-0 font-weight-bold">Author, Publisher, and Subject Information</h6>
+                    </div>
+                    <div class="card-body">
+                        <ul>
+                            <li>Select authors from the dropdown or add new authors if needed.</li>
+                            <li>You can specify co-authors and editors separately.</li>
+                            <li>Subject categories help with classification and searching.</li>
+                            <li>Multiple subject entries can be added for more detailed cataloging.</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h6 class="m-0 font-weight-bold">Tips for Success</h6>
+                    </div>
+                    <div class="card-body">
+                        <ul>
+                            <li>The form autosaves your progress as you type.</li>
+                            <li>You can clear individual tabs or the entire form using the clear buttons.</li>
+                            <li>A green checkmark will appear when a tab is completed successfully.</li>
+                            <li>Review all information before final submission.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <style>
 .selected-preview .badge {

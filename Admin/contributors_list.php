@@ -92,10 +92,17 @@ while ($row = $result->fetch_assoc()) {
             <div class="card-header py-3 d-flex flex-wrap align-items-center justify-content-between">
                 <h6 class="m-0 font-weight-bold text-primary">Contributors List</h6>
                 <div class="d-flex align-items-center">
+                    <span class="mr-3 total-contributors-display">
+                        Total Contributors: <?php echo number_format($totalContributors ?? 0); ?>
+                    </span>
                     <button id="returnSelectedBtn" class="btn btn-danger btn-sm mr-2 bulk-delete-btn" disabled>
                         <i class="fas fa-trash"></i>
                         <span>Delete Selected</span>
                         <span class="badge badge-light ml-1">0</span>
+                    </button>
+                    <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#addContributorModal">Add Contributor</button>
+                    <button type="button" class="btn btn-info btn-sm ml-2" data-toggle="modal" data-target="#instructionsModal">
+                        <i class="fas fa-question-circle"></i> Instructions
                     </button>
                 </div>
             </div>
@@ -149,28 +156,92 @@ while ($row = $result->fetch_assoc()) {
     <div id="selected_ids_container"></div>
 </form>
 
-<!-- Context Menu -->
-<div id="contextMenu" class="context-menu" style="display: none; position: fixed; z-index: 1000;">
-    <ul class="context-menu-list list-unstyled m-0">
-        <li class="context-menu-item" data-action="edit"><i class="fas fa-edit"></i> Update</li>
-        <li class="context-menu-item" data-action="delete"><i class="fas fa-trash"></i> Delete</li>
-    </ul>
+<!-- Instructions Modal -->
+<div class="modal fade" id="instructionsModal" tabindex="-1" role="dialog" aria-labelledby="instructionsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="instructionsModalLabel">
+                    <i class="fas fa-info-circle mr-2"></i>Contributors Management Instructions
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="card mb-3">
+                    <div class="card-header bg-light">
+                        <h6 class="m-0 font-weight-bold">What Are Contributors?</h6>
+                    </div>
+                    <div class="card-body">
+                        <p>Contributors are individuals who have contributed to a book in various roles:</p>
+                        <ul>
+                            <li><strong>Authors</strong>: Primary writers responsible for the book content</li>
+                            <li><strong>Co-Authors</strong>: Secondary writers who collaborated on the book</li>
+                            <li><strong>Editors</strong>: Individuals who edited or revised the book content</li>
+                            <li><strong>Translators</strong>: People who translated the book from another language</li>
+                            <li><strong>Illustrators</strong>: Artists who created illustrations for the book</li>
+                        </ul>
+                        <p>Each contributor record links a writer to a specific book with a defined role.</p>
+                    </div>
+                </div>
+                
+                <div class="card mb-3">
+                    <div class="card-header bg-light">
+                        <h6 class="m-0 font-weight-bold">Managing Contributors</h6>
+                    </div>
+                    <div class="card-body">
+                        <p>This page allows you to view and manage book-contributor relationships:</p>
+                        <ul>
+                            <li><strong>View Contributors</strong>: The table displays all book-contributor relationships</li>
+                            <li><strong>Select Contributors</strong>: Click on a row to select it or use the checkbox</li>
+                            <li><strong>Multiple Selection</strong>: Use checkboxes to select multiple contributors for bulk actions</li>
+                            <li><strong>Add Contributor</strong>: Use the "Add Contributor" button to create new contributor relationships</li>
+                            <li><strong>Search and Filter</strong>: Use the search box to quickly find contributors by any field</li>
+                        </ul>
+                        <p>The table can be sorted by clicking on column headers and filtered using the search field at the top right.</p>
+                    </div>
+                </div>
+                
+                <div class="card mb-3">
+                    <div class="card-header bg-light">
+                        <h6 class="m-0 font-weight-bold">Using Bulk Delete</h6>
+                    </div>
+                    <div class="card-body">
+                        <ol>
+                            <li>Select contributors by clicking their checkboxes (or use the header checkbox to select all)</li>
+                            <li>The number of selected items will appear on the "Delete Selected" button</li>
+                            <li>Click the "Delete Selected" button to remove all selected contributor relationships</li>
+                            <li>Confirm the deletion in the confirmation dialog that appears</li>
+                        </ol>
+                        <p class="text-danger"><strong>Note:</strong> When deleting contributor relationships, this only removes the association between writers and books. The writer records and book records remain in the system.</p>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h6 class="m-0 font-weight-bold">Best Practices</h6>
+                    </div>
+                    <div class="card-body">
+                        <ul>
+                            <li>Ensure each book has at least one author assigned as a contributor</li>
+                            <li>Be consistent with role assignments (e.g., don't mix "Author" and "Writer" for the same role)</li>
+                            <li>For anthologies or collections, add all contributing authors with appropriate roles</li>
+                            <li>Use the search and filter features to quickly find specific contributors</li>
+                            <li>Review contributor selections carefully before performing bulk deletions</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <style>
-.context-menu {
-    background: #ffffff;
-    border: 1px solid #cccccc;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    padding: 5px 0;
-}
-.context-menu-item {
-    padding: 8px 15px;
-    cursor: pointer;
-}
-.context-menu-item:hover {
-    background-color: #f0f0f0;
-}
+/* Remove context menu styles */
 
 /* Add checkbox cell styles */
 .checkbox-cell {
@@ -267,95 +338,8 @@ $(document).ready(function() {
         table.columns.adjust();
     });
 
-    // Context menu handling
-    let selectedRow = null;
+    // Remove context menu handlers
     
-    // Hide context menu on document click
-    $(document).on('click', function() {
-        $('#contextMenu').hide();
-    });
-
-    // Prevent context menu on table rows
-    $('#dataTable tbody').on('contextmenu', 'tr', function(e) {
-        e.preventDefault();
-        selectedRow = table.row(this).data();
-        
-        $('#contextMenu')
-            .css({
-                top: e.pageY + 'px',
-                left: e.pageX + 'px'
-            })
-            .show();
-    });
-
-    // Handle context menu actions
-    $('.context-menu-item').on('click', function() {
-        const action = $(this).data('action');
-        
-        if (!selectedRow) return;
-        
-        if (action === 'edit') {
-            window.location.href = 'update_contributors.php?ids=' + selectedRow[1];
-        } else if (action === 'delete') {
-            let idRanges = selectedRow[1]; // Get ID ranges from the second column
-            let bookTitle = selectedRow[2];
-            let contributor = selectedRow[3];
-            let role = selectedRow[4];
-
-            let totalItems = 0;
-            idRanges.split(',').forEach(item => {
-                if (item.includes('-')) {
-                    const [start, end] = item.split('-').map(Number);
-                    totalItems += end - start + 1;
-                } else {
-                    totalItems++;
-                }
-            });
-
-            Swal.fire({
-                title: 'Are you sure?',
-                html: `You are about to delete ${totalItems} contribution(s) from:<br><br>` +
-                      `${contributor} (${role})<br>Book: ${bookTitle}`,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Yes, delete it!'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    $.post('contributors_list.php', {
-                        action: 'delete',
-                        ids: idRanges.split(',').map(range => {
-                            if (range.includes('-')) {
-                                const [start, end] = range.split('-').map(Number);
-                                return Array.from({length: end - start + 1}, (_, i) => start + i);
-                            }
-                            return parseInt(range.trim());
-                        }).flat()
-                    }, function(response) {
-                        if (response.success) {
-                            Swal.fire({
-                                title: 'Deleted!',
-                                text: response.message,
-                                icon: 'success'
-                            }).then(() => {
-                                location.reload();
-                            });
-                        } else {
-                            Swal.fire({
-                                title: 'Error!',
-                                text: response.message,
-                                icon: 'error'
-                            });
-                        }
-                    }, 'json');
-                }
-            });
-        }
-        
-        $('#contextMenu').hide();
-    });
-
     // Modified checkbox handling
     // Header cell click handler
     $(document).on('click', 'thead th:first-child', function(e) {

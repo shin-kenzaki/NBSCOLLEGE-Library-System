@@ -213,6 +213,39 @@ $result = $conn->query($sql);
         padding: 0.25rem 0.5rem;
         font-size: 0.875rem;
     }
+    
+    /* Context menu styling */
+    .context-menu {
+        position: absolute;
+        display: none;
+        z-index: 1000;
+        min-width: 180px;
+        padding: 0;
+        box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
+        border-radius: 0.35rem;
+        overflow: hidden;
+    }
+    
+    .context-menu .list-group {
+        margin-bottom: 0;
+    }
+    
+    .context-menu-item {
+        cursor: pointer;
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+        transition: background-color 0.2s;
+    }
+    
+    .context-menu-item:hover {
+        background-color: #f8f9fc;
+        color: #4e73df;
+    }
+    
+    .context-menu-item i {
+        width: 20px;
+        text-align: center;
+    }
 </style>
 
 <!-- Main Content -->
@@ -231,6 +264,9 @@ $result = $conn->query($sql);
                         <span class="badge badge-light ml-1">0</span>
                     </button>
                     <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#addPublisherModal">Add Publisher</button>
+                    <button type="button" class="btn btn-info btn-sm ml-2" data-toggle="modal" data-target="#instructionsModal">
+                        <i class="fas fa-question-circle"></i> Instructions
+                    </button>
                 </div>
             </div>
             <div class="card-body px-0">
@@ -309,10 +345,76 @@ $result = $conn->query($sql);
     </div>
 </div>
 
+<!-- Instructions Modal -->
+<div class="modal fade" id="instructionsModal" tabindex="-1" role="dialog" aria-labelledby="instructionsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="instructionsModalLabel">
+                    <i class="fas fa-info-circle mr-2"></i>Publisher Management Instructions
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="card mb-3">
+                    <div class="card-header bg-light">
+                        <h6 class="m-0 font-weight-bold">Managing Publishers</h6>
+                    </div>
+                    <div class="card-body">
+                        <p>This page allows you to manage publisher information in the library system:</p>
+                        <ul>
+                            <li><strong>View Publishers</strong>: The table displays all publishers with their details</li>
+                            <li><strong>Add New Publisher</strong>: Click the "Add Publisher" button to create a new publisher entry</li>
+                            <li><strong>Edit Publisher</strong>: Use the edit button in the action column to modify existing publisher information</li>
+                            <li><strong>Delete Publisher</strong>: Remove a publisher if it's no longer needed (caution: this may affect book records)</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="card mb-3">
+                    <div class="card-header bg-light">
+                        <h6 class="m-0 font-weight-bold">Publisher Information</h6>
+                    </div>
+                    <div class="card-body">
+                        <p>When adding or editing a publisher, consider the following fields:</p>
+                        <ul>
+                            <li><strong>Publisher Name</strong>: The official name of the publishing company</li>
+                            <li><strong>Place of Publication</strong>: The city or location where the publisher is based</li>
+                            <li><strong>Website</strong> (optional): URL for the publisher's official website</li>
+                            <li><strong>Contact Information</strong> (optional): Phone, email, or other contact details</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h6 class="m-0 font-weight-bold">Best Practices</h6>
+                    </div>
+                    <div class="card-body">
+                        <ul>
+                            <li>Always check if a publisher already exists before creating a new entry</li>
+                            <li>Maintain consistent naming conventions (e.g., "Oxford University Press" vs. "OUP")</li>
+                            <li>Include specific location information in the Place field (e.g., "New York, NY" rather than just "USA")</li>
+                            <li>Use the search and filter features to quickly find publishers in the list</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Context Menu -->
-<div id="contextMenu" class="dropdown-menu" style="display:none; position:absolute;">
-    <a class="dropdown-item" href="#" id="updatePublisher">Update</a>
-    <a class="dropdown-item" href="#" id="deletePublisher">Delete</a>
+<div class="context-menu" id="contextMenu">
+    <ul class="list-group">
+        <li class="list-group-item context-menu-item" data-action="edit"><i class="fas fa-edit mr-2"></i>Edit Publisher</li>
+        <li class="list-group-item context-menu-item" data-action="delete"><i class="fas fa-trash-alt mr-2"></i>Delete Publisher</li>
+    </ul>
 </div>
 
 <!-- Footer -->
@@ -730,5 +832,102 @@ $(document).ready(function () {
     // Remove the old click handlers that might interfere
     $('#dataTable tbody').off('click', 'td:first-child');
     $('#dataTable tbody').off('click', 'tr');
+
+    // Context menu handling
+    let contextTarget = null;
+    
+    // Show context menu on right-click
+    $('#dataTable tbody').on('contextmenu', 'tr', function(e) {
+        e.preventDefault();
+        
+        // Get the clicked row data
+        const rowData = table.row(this).data();
+        if (!rowData) return;
+        
+        // Highlight the selected row
+        $('#dataTable tbody tr').removeClass('table-primary');
+        $(this).addClass('table-primary');
+        
+        // Set context target
+        contextTarget = {
+            id: $(this).find('td:eq(1)').text(),
+            publisher: $(this).find('td:eq(2)').text(),
+            place: $(this).find('td:eq(3)').text(),
+            element: this
+        };
+        
+        // Show the context menu at mouse position
+        $('#contextMenu').css({
+            top: e.pageY + 'px',
+            left: e.pageX + 'px',
+            display: 'block'
+        });
+    });
+    
+    // Hide context menu on click outside
+    $(document).click(function() {
+        $('#contextMenu').hide();
+    });
+    
+    // Handle context menu item clicks
+    $('.context-menu-item').on('click', function() {
+        const action = $(this).data('action');
+        
+        if (!contextTarget) return;
+        
+        if (action === 'edit') {
+            window.location.href = `update_publisher.php?publisher_id=${contextTarget.id}`;
+        } else if (action === 'delete') {
+            Swal.fire({
+                title: 'Delete Publisher?',
+                html: `Are you sure you want to delete <strong>${contextTarget.publisher}</strong> in <strong>${contextTarget.place}</strong>?<br><br>
+                      <span class="text-danger">This will also remove all publication records for this publisher.</span>`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, delete it',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Perform delete operation via AJAX
+                    $.ajax({
+                        url: 'delete_publisher.php',
+                        type: 'POST',
+                        data: { publisher_id: contextTarget.id },
+                        dataType: 'json',
+                        success: function(response) {
+                            if (response.success) {
+                                Swal.fire({
+                                    title: 'Deleted!',
+                                    text: response.message || 'Publisher deleted successfully',
+                                    icon: 'success'
+                                }).then(() => {
+                                    // Remove row from table
+                                    table.row($(contextTarget.element)).remove().draw();
+                                });
+                            } else {
+                                Swal.fire({
+                                    title: 'Error!',
+                                    text: response.message || 'Failed to delete publisher',
+                                    icon: 'error'
+                                });
+                            }
+                        },
+                        error: function() {
+                            Swal.fire({
+                                title: 'Error!',
+                                text: 'A server error occurred',
+                                icon: 'error'
+                            });
+                        }
+                    });
+                }
+            });
+        }
+        
+        // Hide the context menu
+        $('#contextMenu').hide();
+    });
 });
 </script>

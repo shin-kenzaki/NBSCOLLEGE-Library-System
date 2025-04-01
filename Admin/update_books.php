@@ -605,8 +605,9 @@ if ($first_book) {
                 <div class="container-fluid d-flex justify-content-between align-items-center">
                     <h1 class="h3 mb-2 text-gray-800">Update Books (<?php echo count($books); ?> copies)</h1>
                     <div>
-                        <button type="button" class="btn btn-secondary me-2" onclick="window.location.href='book_list.php';">Cancel</button>
-                        <button type="submit" name="submit" class="btn btn-primary">Update Books</button>
+                        <button type="button" class="btn btn-info" data-toggle="modal" data-target="#instructionsModal">
+                            <i class="fas fa-question-circle"></i> Instructions
+                        </button>
                     </div>
                 </div>
 
@@ -1189,6 +1190,52 @@ if ($first_book) {
                 </div>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- Instructions Modal -->
+<div class="modal fade" id="instructionsModal" tabindex="-1" role="dialog" aria-labelledby="instructionsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="instructionsModalLabel">
+                    <i class="fas fa-info-circle mr-2"></i>How to Update Books
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="card mb-3">
+                    <div class="card-header bg-light">
+                        <h6 class="m-0 font-weight-bold">Basic Information</h6>
+                    </div>
+                    <div class="card-body">
+                        <ol>
+                            <li>This page allows you to update information for all selected book copies simultaneously.</li>
+                            <li>Any changes to common fields will apply to all copies.</li>
+                            <li>You can modify accession numbers and statuses individually for each copy.</li>
+                        </ol>
+                    </div>
+                </div>
+                <div class="card mb-3">
+                    <div class="card-header bg-light">
+                        <h6 class="m-0 font-weight-bold">Tips for Updating</h6>
+                    </div>
+                    <div class="card-body">
+                        <ul>
+                            <li><strong>Call Numbers</strong>: Ensure proper formatting with classification, cutter, and copy number.</li>
+                            <li><strong>Accession Numbers</strong>: Each accession number must be unique in the system.</li>
+                            <li><strong>Contributors</strong>: You can update authors, co-authors, and editors - changes apply to all copies.</li>
+                            <li><strong>Status</strong>: You can set the status of each copy individually (Available, Borrowed, etc.).</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
     </div>
 </div>
 
