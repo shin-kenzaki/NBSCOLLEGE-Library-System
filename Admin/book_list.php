@@ -55,6 +55,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_book_id'])) {
     exit();
 }
 
+// Add copies functionality
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['num_copies']) && isset($_POST['book_id'])) {
+    $numCopiesToAdd = intval($_POST['num_copies']);
+    $firstBookId = intval($_POST['book_id']);
+
+    // Fetch the first book's details
+    $stmt = $conn->prepare("SELECT * FROM books WHERE id = ?");
+    $stmt->bind_param("i", $firstBookId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($result->num_rows === 0) {
+        echo json_encode(['message' => 'Book not found.']);
+        exit();
+    }
+
+    $firstBook = $result->fetch_assoc();
+
+    // Get the current max copy number and accession for this title
+    $stmt = $conn->prepare("SELECT MAX(copy_number) as max_copy, MAX(accession) as max_accession FROM books WHERE title = ?");
+    $stmt->bind_param("s", $firstBook['title']);
+    $stmt->execute();
+    $maxInfo = $stmt->get_result()->fetch_assoc();
+    $currentCopy = $maxInfo['max_copy'] ?: 0;
+    $currentAccession = $maxInfo['max_accession'] ?: 0;
+
+    $successCount = 0;
+
+    for ($i = 1; $i <= $numCopiesToAdd; $i++) {
+        $newCopyNumber = $currentCopy + $i;
+        $newAccession = $currentAccession + $i;
+
+        $query = "INSERT INTO books (
+            accession, title, preferred_title, parallel_title, subject_category,
+            subject_detail, summary, contents, front_image, back_image,
+            dimension, series, volume, edition, copy_number, total_pages,
+            supplementary_contents, ISBN, content_type, media_type, carrier_type,
+            call_number, URL, language, shelf_location, entered_by, date_added,
+            status, last_update
+        ) SELECT 
+            ?, title, preferred_title, parallel_title, subject_category,
+            subject_detail, summary, contents, front_image, back_image,
+            dimension, series, volume, edition, ?,
+            total_pages, supplementary_contents, ISBN, content_type, media_type, carrier_type,
+            call_number, URL, language, shelf_location, entered_by, ?, 'Available', ?
+        FROM books WHERE id = ?";
+
+        $currentDate = date('Y-m-d');
+        $stmt = $conn->prepare($query);
+        $stmt->bind_param("iissi", $newAccession, $newCopyNumber, $currentDate, $currentDate, $firstBookId);
+
+        if ($stmt->execute()) {
+            $successCount++;
+        }
+    }
+
+    echo json_encode(['message' => "Successfully added $successCount copies with status 'Available'."]);
+    exit();
+}
+
 // Check for success message
 $successMessage = '';
 if (isset($_SESSION['success_message'])) {
@@ -417,19 +477,38 @@ $result = $stmt->get_result();
                 
                 // Get the row data
                 let row = $(this);
-                let accessionRangeCell = row.find('td:nth-child(1)'); // Accession Range is in the 2nd column (1-based index)
+                let idRangeCell = row.find('td:eq(0)'); // First column (0-indexed) - ID Range
+                let accessionRangeCell = row.find('td:eq(0)'); // Second column (1-indexed) - Accession Range
+                let titleCell = row.find('td:eq(1)'); // Third column (2-indexed) - Title
                 
                 // Extract the data
+                let idRange = idRangeCell.text().trim();
                 let accessionRange = accessionRangeCell.text().trim();
+                let title = titleCell.text().trim();
+                
+                // Get the first ID and first accession from the ranges
+                let firstId = idRange.split('-')[0].split(',')[0].trim();
+                let firstAccession = accessionRange.split('-')[0].split(',')[0].trim();
+                
+                console.log('Context menu data:', {
+                    idRange: idRange,
+                    accessionRange: accessionRange,
+                    title: title,
+                    firstId: firstId,
+                    firstAccession: firstAccession
+                });
                 
                 // Verify we have the necessary data before proceeding
-                if (!accessionRange) {
-                    console.error('Missing required data for context menu', { accessionRange });
+                if (!firstAccession || !firstId) {
+                    console.error('Missing required data for context menu', { firstAccession, firstId });
                     return false;
                 }
                 
                 // Store data in the context menu
                 $('#contextMenu').data('accession-range', accessionRange);
+                $('#contextMenu').data('first-id', firstId);
+                $('#contextMenu').data('first-accession', firstAccession);
+                $('#contextMenu').data('title', title);
                 
                 // Position and show the menu
                 $('#contextMenu').css({
@@ -460,6 +539,36 @@ $result = $stmt->get_result();
                 console.log('Navigating to:', url);
                 
                 window.location.href = url;
+            });
+            
+            // Add handler for Add Copies option
+            $(document).on('click', '.context-add-copies', function() {
+                let firstId = $('#contextMenu').data('first-id');
+                let firstAccession = $('#contextMenu').data('first-accession');
+                let title = $('#contextMenu').data('title');
+                
+                if (!firstId || !firstAccession) {
+                    console.error('Missing book ID or accession for adding copies');
+                    return;
+                }
+                
+                // Open modal dialog for adding copies
+                $('#addCopiesModal').modal('show');
+                $('#copyBookTitle').text(title);
+                $('#copyBookId').val(firstId);
+                $('#copyBookAccession').val(firstAccession);
+            });
+            
+            // Handle view book details
+            $(document).on('click', '.context-view', function() {
+                let firstId = $('#contextMenu').data('first-id');
+                
+                if (!firstId) {
+                    console.error('Missing book ID for viewing details');
+                    return;
+                }
+                
+                window.location.href = `opac.php?book_id=${firstId}`;
             });
         });
         </script>
@@ -529,6 +638,33 @@ $result = $stmt->get_result();
                 cursor: context-menu;
             }
         </style>
+        
+        <!-- Add Copies Modal -->
+        <div class="modal fade" id="addCopiesModal" tabindex="-1" aria-labelledby="addCopiesModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <form action="process-add-copies.php" method="POST">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="addCopiesModalLabel">Add More Copies</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p>Add additional copies of <strong id="copyBookTitle"></strong></p>
+                            <div class="form-group">
+                                <label for="num_copies">Number of copies to add:</label>
+                                <input type="number" class="form-control" id="num_copies" name="num_copies" min="1" value="1" required>
+                            </div>
+                            <input type="hidden" name="book_id" id="copyBookId" value="">
+                            <input type="hidden" name="accession" id="copyBookAccession" value="">
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Add Copies</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 </body>
 </html>

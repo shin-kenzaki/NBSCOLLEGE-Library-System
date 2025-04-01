@@ -74,9 +74,14 @@ $accession_error = '';
                   onkeydown="return event.key != 'Enter';">
                 <div class="container-fluid d-flex justify-content-between align-items-center mb-4">
                     <h1 class="h3 mb-2 text-gray-800">Add Book</h1>
-                    <button type="button" class="btn btn-warning mr-2" data-clear-form>
-                        <i class="fas fa-trash"></i> Clear Form
-                    </button>
+                    <div>
+                        <button type="button" class="btn btn-secondary mr-2" onclick="window.history.back();">
+                            <i class="fas fa-arrow-left"></i> Cancel
+                        </button>
+                        <button type="button" class="btn btn-warning mr-2" data-clear-form>
+                            <i class="fas fa-trash"></i> Clear Form
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Add Error Message Display -->

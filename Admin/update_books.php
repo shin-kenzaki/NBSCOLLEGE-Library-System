@@ -178,6 +178,8 @@ if (isset($_POST['submit'])) {
             // Use same supplementary content for all copies
             $supplementary_content_value = mysqli_real_escape_string($conn, $supplementary_content);
 
+            $status_value = isset($statuses[$index]) ? mysqli_real_escape_string($conn, $statuses[$index]) : 'Available';
+
             $update_query = "UPDATE books SET 
                 title = ?, 
                 preferred_title = ?, 
@@ -204,7 +206,7 @@ if (isset($_POST['submit'])) {
                 shelf_location = ?,
                 entered_by = ?,
                 date_added = ?,
-                status = ?,
+                status = ?, -- Ensure status is updated
                 updated_by = ?,
                 last_update = ?,
                 accession = ?
@@ -239,7 +241,7 @@ if (isset($_POST['submit'])) {
                 $shelf_location,
                 $entered_by_value,
                 $date_added_value,
-                $preserved_status,
+                $status_value, // Bind the status value
                 $current_admin_id,
                 $update_date,
                 $accession,
@@ -396,23 +398,31 @@ if (isset($_POST['submit'])) {
 // Handle the "Add Copies" functionality in the PHP code
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['num_copies']) && isset($_POST['modal_action']) && $_POST['modal_action'] === 'add_copies') {
     $numCopiesToAdd = intval($_POST['num_copies']);
-    $firstBookId = $bookIds[0]; // Use the first book ID from the hidden input
+    $firstBookId = intval($_POST['book_id']);
 
     // Fetch the first book's details
     $stmt = $conn->prepare("SELECT * FROM books WHERE id = ?");
     $stmt->bind_param("i", $firstBookId);
     $stmt->execute();
-    $firstBook = $stmt->get_result()->fetch_assoc();
+    $result = $stmt->get_result();
+
+    if ($result->num_rows === 0) {
+        echo "<script>alert('Book not found.'); window.location.href = 'update_books.php';</script>";
+        exit();
+    }
+
+    $firstBook = $result->fetch_assoc();
 
     // Get the current max copy number and accession for this title
     $stmt = $conn->prepare("SELECT MAX(copy_number) as max_copy, MAX(accession) as max_accession FROM books WHERE title = ?");
     $stmt->bind_param("s", $firstBook['title']);
     $stmt->execute();
     $maxInfo = $stmt->get_result()->fetch_assoc();
-    $currentCopy = $maxInfo['max_copy'];
-    $currentAccession = $maxInfo['max_accession'];
+    $currentCopy = $maxInfo['max_copy'] ?: 0;
+    $currentAccession = $maxInfo['max_accession'] ?: 0;
 
     $successCount = 0;
+
     for ($i = 1; $i <= $numCopiesToAdd; $i++) {
         $newCopyNumber = $currentCopy + $i;
         $newAccession = $currentAccession + $i;
@@ -429,35 +439,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['num_copies']) && isset
             subject_detail, summary, contents, front_image, back_image,
             dimension, series, volume, edition, ?,
             total_pages, supplementary_contents, ISBN, content_type, media_type, carrier_type,
-            call_number, URL, language, shelf_location, entered_by, date_added,
-            status, last_update
+            call_number, URL, language, shelf_location, entered_by, ?, 'Available', ?
         FROM books WHERE id = ?";
+
+        $currentDate = date('Y-m-d');
         $stmt = $conn->prepare($query);
-        $stmt->bind_param("iii", $newAccession, $newCopyNumber, $firstBookId);
+        $stmt->bind_param("iissi", $newAccession, $newCopyNumber, $currentDate, $currentDate, $firstBookId);
+
         if ($stmt->execute()) {
-            $newBookId = $conn->insert_id;
             $successCount++;
-
-            // Duplicate publication
-            $pubQuery = "INSERT INTO publications (book_id, publisher_id, publish_date)
-                         SELECT ?, publisher_id, publish_date FROM publications WHERE book_id = ?";
-            $pubStmt = $conn->prepare($pubQuery);
-            $pubStmt->bind_param("ii", $newBookId, $firstBookId);
-            $pubStmt->execute();
-
-            // Duplicate contributors
-            $contribQuery = "INSERT INTO contributors (book_id, writer_id, role)
-                             SELECT ?, writer_id, role FROM contributors WHERE book_id = ?";
-            $contribStmt = $conn->prepare($contribQuery);
-            $contribStmt->bind_param("ii", $newBookId, $firstBookId);
-            $contribStmt->execute();
         }
     }
 
-    echo "<script>
-            alert('Successfully added {$successCount} new copies!');
-            window.location.href = window.location.href;
-          </script>";
+    echo "<script>alert('Successfully added $successCount copies with status \"Available\".'); window.location.href = 'update_books.php';</script>";
     exit();
 }
 
@@ -474,18 +468,33 @@ $first_book = null;
 
 // Parse and validate the accession range
 if (!empty($accession_range)) {
+    echo "<script>console.log('Parsing accession range: " . htmlspecialchars($accession_range) . "');</script>";
+    
     // Split the accession range into individual accessions or ranges
     $accession_parts = explode(',', $accession_range);
     $accession_array = [];
 
     foreach ($accession_parts as $part) {
+        $part = trim($part); // Trim whitespace
+        echo "<script>console.log('Processing part: " . htmlspecialchars($part) . "');</script>";
+        
         if (strpos($part, '-') !== false) {
             // Handle range (e.g., "1-3")
-            [$start, $end] = explode('-', $part);
-            $accession_array = array_merge($accession_array, range((int)$start, (int)$end));
+            list($start, $end) = explode('-', $part);
+            $start = (int)trim($start);
+            $end = (int)trim($end);
+            echo "<script>console.log('Range detected: " . $start . " to " . $end . "');</script>";
+            
+            // Ensure start is less than end
+            if ($start <= $end) {
+                $accession_array = array_merge($accession_array, range($start, $end));
+            }
         } else {
             // Handle single accession
-            $accession_array[] = (int)$part;
+            if (is_numeric(trim($part))) {
+                $accession_array[] = (int)trim($part);
+                echo "<script>console.log('Single accession added: " . (int)trim($part) . "');</script>";
+            }
         }
     }
 
@@ -493,22 +502,40 @@ if (!empty($accession_range)) {
     $accession_array = array_unique($accession_array);
     sort($accession_array);
 
-    // Fetch books with the specified accessions
-    $placeholders = implode(',', array_fill(0, count($accession_array), '?'));
-    $book_query = "SELECT * FROM books WHERE accession IN ($placeholders)";
-    $stmt = $conn->prepare($book_query);
-    $stmt->bind_param(str_repeat('i', count($accession_array)), ...$accession_array);
-    $stmt->execute();
-    $books_result = $stmt->get_result();
-    $books = $books_result->fetch_all(MYSQLI_ASSOC);
+    echo "<script>console.log('Final accession array: [" . implode(", ", $accession_array) . "]');</script>";
 
-    // Fetch the first book for shared data
-    if (!empty($books)) {
-        $first_book = $books[0];
+    // Only proceed if we have accession numbers to process
+    if (!empty($accession_array)) {
+        // Fetch books with the specified accessions
+        $placeholders = implode(',', array_fill(0, count($accession_array), '?'));
+        $book_query = "SELECT * FROM books WHERE accession IN ($placeholders)";
+        $stmt = $conn->prepare($book_query);
+        
+        // Dynamically create the type string for bind_param
+        $types = str_repeat('i', count($accession_array));
+        $stmt->bind_param($types, ...$accession_array);
+        
+        $stmt->execute();
+        $books_result = $stmt->get_result();
+        $books = $books_result->fetch_all(MYSQLI_ASSOC);
+        
+        echo "<script>console.log('Books found: " . count($books) . "');</script>";
+
+        // Fetch the first book for shared data
+        if (!empty($books)) {
+            $first_book = $books[0];
+        } else {
+            // Handle case where no books match the accession range
+            echo "<script>
+                    alert('No books found for the specified accession range: " . htmlspecialchars($accession_range) . "');
+                    window.location.href = 'book_list.php';
+                  </script>";
+            exit();
+        }
     } else {
-        // Handle case where no books match the accession range
+        // Handle invalid accession range
         echo "<script>
-                alert('No books found for the specified accession range.');
+                alert('Invalid accession range: " . htmlspecialchars($accession_range) . "');
                 window.location.href = 'book_list.php';
               </script>";
         exit();
@@ -538,6 +565,35 @@ $subject_options = array(
     "Corporate",
     "Geographical"
 );
+
+// Fetch contributors for the selected books
+$bookIds = isset($books) ? array_column($books, 'id') : [];
+$contributors = [];
+if (!empty($bookIds)) {
+    $placeholders = implode(',', array_fill(0, count($bookIds), '?'));
+    $contributors_query = "SELECT book_id, writer_id, role FROM contributors WHERE book_id IN ($placeholders)";
+    $stmt = $conn->prepare($contributors_query);
+    $stmt->bind_param(str_repeat('i', count($bookIds)), ...$bookIds);
+    $stmt->execute();
+    $contributors_result = $stmt->get_result();
+    while ($row = $contributors_result->fetch_assoc()) {
+        $contributors[$row['book_id']][] = $row;
+    }
+}
+
+// Fetch publication details for the first book
+$publication = [];
+if ($first_book) {
+    $publication_query = "SELECT p.publish_date, pub.publisher 
+                          FROM publications p 
+                          LEFT JOIN publishers pub ON p.publisher_id = pub.id 
+                          WHERE p.book_id = ?";
+    $stmt = $conn->prepare($publication_query);
+    $stmt->bind_param("i", $first_book['id']);
+    $stmt->execute();
+    $publication_result = $stmt->get_result();
+    $publication = $publication_result->fetch_assoc();
+}
 ?>
 
 <!-- Main Content -->
@@ -548,17 +604,15 @@ $subject_options = array(
                   onkeydown="return event.key != 'Enter';">
                 <div class="container-fluid d-flex justify-content-between align-items-center">
                     <h1 class="h3 mb-2 text-gray-800">Update Books (<?php echo count($books); ?> copies)</h1>
-                    <button type="submit" name="submit" class="btn btn-primary">Update Books</button>
+                    <div>
+                        <button type="button" class="btn btn-secondary me-2" onclick="window.location.href='book_list.php';">Cancel</button>
+                        <button type="submit" name="submit" class="btn btn-primary">Update Books</button>
+                    </div>
                 </div>
 
                 <!-- Hidden input for book IDs -->
                 <?php foreach ($books as $book): ?>
                     <input type="hidden" name="book_ids[]" value="<?php echo $book['id']; ?>">
-                <?php endforeach; ?>
-
-                <!-- Hidden input for statuses -->
-                <?php foreach ($books as $book): ?>
-                    <input type="hidden" name="statuses[]" value="<?php echo htmlspecialchars($book['status'] ?? 'Available'); ?>">
                 <?php endforeach; ?>
 
                 <!-- Tab Navigation -->
@@ -615,10 +669,12 @@ $subject_options = array(
                                         <option value="">Select Author</option>
                                         <?php foreach ($writers as $writer): 
                                             $isAuthor = false;
-                                            foreach ($contributors as $contributor) {
-                                                if ($contributor['id'] == $writer['id'] && $contributor['role'] == 'Author') {
-                                                    $isAuthor = true;
-                                                    break;
+                                            foreach ($contributors as $bookContributors) {
+                                                foreach ($bookContributors as $contributor) {
+                                                    if ($contributor['writer_id'] == $writer['id'] && $contributor['role'] == 'Author') {
+                                                        $isAuthor = true;
+                                                        break;
+                                                    }
                                                 }
                                             }
                                         ?>
@@ -641,10 +697,12 @@ $subject_options = array(
                                     <select class="form-control" name="co_authors[]" id="coAuthorSelect" multiple>
                                         <?php foreach ($writers as $writer): 
                                             $isCoAuthor = false;
-                                            foreach ($contributors as $contributor) {
-                                                if ($contributor['id'] == $writer['id'] && $contributor['role'] == 'Co-Author') {
-                                                    $isCoAuthor = true;
-                                                    break;
+                                            foreach ($contributors as $bookContributors) {
+                                                foreach ($bookContributors as $contributor) {
+                                                    if ($contributor['writer_id'] == $writer['id'] && $contributor['role'] == 'Co-Author') {
+                                                        $isCoAuthor = true;
+                                                        break;
+                                                    }
                                                 }
                                             }
                                         ?>
@@ -667,10 +725,12 @@ $subject_options = array(
                                     <select class="form-control" name="editors[]" id="editorSelect" multiple>
                                         <?php foreach ($writers as $writer): 
                                             $isEditor = false;
-                                            foreach ($contributors as $contributor) {
-                                                if ($contributor['id'] == $writer['id'] && $contributor['role'] == 'Editor') {
-                                                    $isEditor = true;
-                                                    break;
+                                            foreach ($contributors as $bookContributors) {
+                                                foreach ($bookContributors as $contributor) {
+                                                    if ($contributor['writer_id'] == $writer['id'] && $contributor['role'] == 'Editor') {
+                                                        $isEditor = true;
+                                                        break;
+                                                    }
                                                 }
                                             }
                                         ?>
@@ -829,22 +889,31 @@ $subject_options = array(
                                                value="<?php 
                                                    $call_number = $first_book['call_number'] ?? '';
                                                    
-                                                   // Extract only classification and cutter number
+                                                   // Split the call number into parts by spaces
                                                    $parts = explode(' ', $call_number);
-                                                   
-                                                   // Check if we have enough parts to process
-                                                   if (count($parts) >= 4) {
-                                                       // Remove first part (location code)
-                                                       array_shift($parts);
-                                                       
-                                                       // Remove last two parts (year and copy number)
-                                                       array_pop($parts); // Remove last part (copy number)
-                                                       array_pop($parts); // Remove second last part (year)
-                                                       
-                                                       // Join the remaining parts which should be classification and cutter
+                                                   $space_count = count($parts) - 1;
+
+                                                   if ($space_count === 5) {
+                                                       // Exclude the first part and the last three parts
+                                                       array_shift($parts); // Remove the first part
+                                                       array_pop($parts);   // Remove the last part
+                                                       array_pop($parts);   // Remove the second last part
+                                                       array_pop($parts);   // Remove the third last part
+                                                       echo htmlspecialchars(implode(' ', $parts));
+                                                   } elseif ($space_count === 4) {
+                                                       // Exclude the first part and the last two parts
+                                                       array_shift($parts); // Remove the first part
+                                                       array_pop($parts);   // Remove the last part
+                                                       array_pop($parts);   // Remove the second last part
+                                                       echo htmlspecialchars(implode(' ', $parts));
+                                                   } elseif ($space_count === 3) {
+                                                       // Exclude the first part and the last two parts
+                                                       array_shift($parts); // Remove the first part
+                                                       array_pop($parts);   // Remove the last part
+                                                       array_pop($parts);   // Remove the second last part
                                                        echo htmlspecialchars(implode(' ', $parts));
                                                    } else {
-                                                       // If there are not enough parts, don't display anything
+                                                       // Do not display any call number
                                                        echo '';
                                                    }
                                                ?>">
@@ -946,12 +1015,12 @@ $subject_options = array(
                                                         <th style="width: 120px; white-space: nowrap;">Series</th>
                                                         <th style="width: 120px; white-space: nowrap;">Volume</th>
                                                         <th style="width: 120px; white-space: nowrap;">Edition</th>
-                                                        <th style="width: 120px; white-space: nowrap;">Status</th>
+                                                        <th style="width: 200px; white-space: nowrap;">Status</th>
                                                         <th style="width: 100px; white-space: nowrap;">Actions</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    <?php foreach ($books as $index => $book): ?>
+                                                    <?php foreach ($books as $book): ?>
                                                         <tr class="book-copy" data-book-id="<?php echo $book['id']; ?>">
                                                             <td>
                                                                 <input type="text" class="form-control text-center" name="copy_number[]" value="<?php echo htmlspecialchars($book['copy_number']); ?>">
@@ -984,10 +1053,13 @@ $subject_options = array(
                                                                 <input type="text" class="form-control text-center" name="edition[]" value="<?php echo htmlspecialchars($book['edition']); ?>">
                                                             </td>
                                                             <td>
-                                                                <input type="text" class="form-control text-center" 
-                                                                       value="<?php echo htmlspecialchars($book['status'] ?? 'Available'); ?>" readonly>
-                                                                <input type="hidden" name="statuses[]" 
-                                                                       value="<?php echo htmlspecialchars($book['status'] ?? 'Available'); ?>">
+                                                                <select class="form-control text-center" name="statuses[]">
+                                                                    <option value="Available" <?php echo ($book['status'] == 'Available') ? 'selected' : ''; ?>>Available</option>
+                                                                    <option value="Borrowed" <?php echo ($book['status'] == 'Borrowed') ? 'selected' : ''; ?>>Borrowed</option>
+                                                                    <option value="Lost" <?php echo ($book['status'] == 'Lost') ? 'selected' : ''; ?>>Lost</option>
+                                                                    <option value="Damaged" <?php echo ($book['status'] == 'Damaged') ? 'selected' : ''; ?>>Damaged</option>
+                                                                    <option value="Reserved" <?php echo ($book['status'] == 'Reserved') ? 'selected' : ''; ?>>Reserved</option>
+                                                                    <option value="Processing" <?php echo ($book['status'] == 'Processing') ? 'selected' : ''; ?>>Processing</option>                                                                                                                                 </select>
                                                             </td>
                                                             <td>
                                                                 <button type="button" class="btn btn-outline-danger btn-sm delete-copy" title="Delete this copy">
@@ -1096,19 +1168,20 @@ $subject_options = array(
 <!-- Add the modal for "Add Copies" -->
 <div class="modal fade" id="addCopiesModal" tabindex="-1" aria-labelledby="addCopiesModalLabel" aria-hidden="true">
     <div class="modal-dialog">
-        <form method="POST" action="">
+        <form method="POST" action="process-add-copies.php">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="addCopiesModalLabel">Enter Number of Copies</h5>
+                    <h5 class="modal-title" id="addCopiesModalLabel">Add More Copies</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <input type="hidden" name="modal_action" value="add_copies">
-                    <div class="mb-3">
-                        <label for="num_copies" class="form-label">How many copies to add?</label>
-                        <input type="number" class="form-control" id="num_copies" name="num_copies" min="1" required>
+                    <p>Add additional copies of <strong><?php echo htmlspecialchars($first_book['title'] ?? ''); ?></strong></p>
+                    <div class="form-group">
+                        <label for="num_copies">Number of copies to add:</label>
+                        <input type="number" class="form-control" id="num_copies" name="num_copies" min="1" value="1" required>
                     </div>
-                    <p class="small text-muted">New copies will duplicate the first copy’s information, including contributors and publication details.</p>
+                    <input type="hidden" name="book_id" value="<?php echo htmlspecialchars($first_book['id'] ?? ''); ?>">
+                    <input type="hidden" name="accession" value="<?php echo htmlspecialchars($first_book['accession'] ?? ''); ?>">
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -1441,8 +1514,8 @@ function updateContributorPreviews() {
     let authorHtml = '';
     for (const option of authorSelect.selectedOptions) {
         if (option.value) {
-            authorHtml += `<span class="badge bg-primary text-white me-1 mb-1" data-id="${option.value}" data-role="author">
-                           ${option.text} <i class="fa fa-times ms-1" style="cursor:pointer;" onclick="removeContributor(this)"></i></span>`;
+            authorHtml += `<span class="badge bg-secondary text-white me-1 mb-1" data-id="${option.value}" data-role="author">
+                           ${option.text} <i class="fa fa-times ms-1" style="cursor:pointer;" onclick="removeContributor(this)"></i></span> `;
         }
     }
     authorPreview.innerHTML = authorHtml || '<em class="text-muted">No authors selected</em>';
@@ -1452,7 +1525,7 @@ function updateContributorPreviews() {
     for (const option of coAuthorSelect.selectedOptions) {
         if (option.value) {
             coAuthorHtml += `<span class="badge bg-secondary text-white me-1 mb-1" data-id="${option.value}" data-role="co-author">
-                            ${option.text} <i class="fa fa-times ms-1" style="cursor:pointer;" onclick="removeContributor(this)"></i></span>`;
+                            ${option.text} <i class="fa fa-times ms-1" style="cursor:pointer;" onclick="removeContributor(this)"></i></span> `;
         }
     }
     coAuthorPreview.innerHTML = coAuthorHtml || '<em class="text-muted">No co-authors selected</em>';
@@ -1461,8 +1534,8 @@ function updateContributorPreviews() {
     let editorHtml = '';
     for (const option of editorSelect.selectedOptions) {
         if (option.value) {
-            editorHtml += `<span class="badge bg-info text-white me-1 mb-1" data-id="${option.value}" data-role="editor">
-                          ${option.text} <i class="fa fa-times ms-1" style="cursor:pointer;" onclick="removeContributor(this)"></i></span>`;
+            editorHtml += `<span class="badge bg-secondary text-white me-1 mb-1" data-id="${option.value}" data-role="editor">
+                          ${option.text} <i class="fa fa-times ms-1" style="cursor:pointer;" onclick="removeContributor(this)"></i></span> `;
         }
     }
     editorPreview.innerHTML = editorHtml || '<em class="text-muted">No editors selected</em>';
