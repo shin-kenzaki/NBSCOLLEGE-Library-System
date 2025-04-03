@@ -109,15 +109,7 @@ try {
             throw new Exception("Error creating borrowing record");
         }
 
-        // Update user statistics
-        $sql = "UPDATE users 
-                SET borrowed_books = borrowed_books + 1
-                WHERE id = ?";
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("i", $row['user_id']);
-        if (!$stmt->execute()) {
-            throw new Exception("Error updating user statistics");
-        }
+        // Removed user statistics update since borrowed_books column no longer exists
     }
 
     $conn->commit();

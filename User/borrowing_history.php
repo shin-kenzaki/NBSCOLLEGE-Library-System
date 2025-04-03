@@ -78,8 +78,11 @@ include 'inc/header.php';
 <div id="content" class="d-flex flex-column min-vh-100">
     <div class="container-fluid">
         <div class="card shadow mb-4">
-            <div class="card-header py-3">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
                 <h6 class="m-0 font-weight-bold text-primary">Borrowing History</h6>
+                <a href="searchbook.php" class="btn btn-sm btn-primary">
+                    <i class="fas fa-search"></i> Search Books
+                </a>
             </div>
             <div class="card-body">
                 <div class="table-responsive">

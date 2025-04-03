@@ -285,10 +285,10 @@ $accession_error = '';
             <!-- Fix: Remove enctype if not needed -->
             <form id="bookForm" action="step-by-step-add-book-form.php" method="POST" enctype="multipart/form-data" class="h-100" 
                   onkeydown="return event.key != 'Enter';">
-                <div class="container-fluid d-flex justify-content-between align-items-center">
+                <div class="container-fluid d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3">
                     <h1 class="h3 mb-2 text-gray-800">Add Book</h1>
                     <!-- Fix: Change button type to submit -->
-                    <button type="submit" name="submit" class="btn btn-success">Add Book</button>
+                    <button type="submit" name="submit" class="btn btn-success mt-2 mt-md-0">Add Book</button>
                 </div>
 
                 <!-- Display Shortcut Information -->
@@ -398,28 +398,30 @@ $accession_error = '';
                 </div>
 
                 <div class="row">
-                    <div class="col-xl-12 col-lg-7">
-                        <!-- Tab Navigation -->
-                        <ul class="nav nav-tabs" id="formTabs" role="tablist">
-                            <li class="nav-item">
-                                <a class="nav-link active" data-bs-toggle="tab" href="#title-proper" role="tab">Title Proper</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" data-bs-toggle="tab" href="#subject-entry" role="tab">Access Point</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" data-bs-toggle="tab" href="#abstracts" role="tab">Abstracts</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" data-bs-toggle="tab" href="#description" role="tab">Description</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" data-bs-toggle="tab" href="#local-info" role="tab">Local Information</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" data-bs-toggle="tab" href="#publication" role="tab">Publication</a>
-                            </li>
-                        </ul>
+                    <div class="col-xl-12 col-lg-12">
+                        <!-- Tab Navigation - Make scrollable on small screens -->
+                        <div class="nav-tab-wrapper overflow-auto">
+                            <ul class="nav nav-tabs" id="formTabs" role="tablist">
+                                <li class="nav-item">
+                                    <a class="nav-link active" data-bs-toggle="tab" href="#title-proper" role="tab">Title Proper</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" data-bs-toggle="tab" href="#subject-entry" role="tab">Access Point</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" data-bs-toggle="tab" href="#abstracts" role="tab">Abstracts</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" data-bs-toggle="tab" href="#description" role="tab">Description</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" data-bs-toggle="tab" href="#local-info" role="tab">Local Information</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" data-bs-toggle="tab" href="#publication" role="tab">Publication</a>
+                                </li>
+                            </ul>
+                        </div>
 
                         <div class="tab-content mt-3" id="formTabsContent">
                             <!-- Title Proper Tab -->
@@ -870,6 +872,82 @@ $accession_error = '';
     <?php include '../admin/inc/footer.php'; ?>
 </div>
 
+<!-- Add this style for responsive improvements -->
+<style>
+/* Responsive fixes */
+.nav-tab-wrapper {
+    width: 100%;
+    white-space: nowrap;
+    margin-bottom: 15px;
+}
+
+@media (max-width: 768px) {
+    .input-group {
+        flex-wrap: wrap;
+    }
+    
+    .input-group > * {
+        flex: 0 0 100%;
+        margin-bottom: 5px;
+    }
+    
+    .input-group .input-group-text {
+        width: 100%;
+        border-radius: 0.25rem 0.25rem 0 0;
+    }
+    
+    .input-group .form-control {
+        width: 100%;
+        border-radius: 0 0 0.25rem 0.25rem;
+    }
+    
+    .input-group .shelf-location-select {
+        width: 100%;
+        margin-top: 5px;
+        border-radius: 0.25rem;
+    }
+    
+    .accession-group .row {
+        margin-bottom: 10px;
+    }
+    
+    .copy-number-input {
+        width: 100% !important;
+    }
+    
+    .call-number-preview {
+        position: static !important;
+        transform: none !important;
+        display: block;
+        width: 100%;
+        padding: 5px 0;
+        text-align: center;
+    }
+}
+
+/* Fix overflow in tables */
+.table-responsive {
+    overflow-x: auto;
+}
+
+/* Improve tab display */
+@media (max-width: 576px) {
+    .nav-tabs {
+        border-bottom: none;
+    }
+    
+    .nav-tabs .nav-item {
+        display: inline-block;
+    }
+    
+    .nav-tabs .nav-link {
+        margin-bottom: 5px;
+        border: 1px solid #dee2e6;
+        border-radius: 0.25rem;
+    }
+}
+</style>
+
 <!-- Bootstrap and JS -->
 <script src="inc/js/demo/chart-area-demo.js"></script>
 <script src="inc/js/demo/chart-pie-demo.js"></script>
@@ -938,7 +1016,7 @@ function updateISBNFields() {
         seriesInput.placeholder = 'Series';
         
         seriesDiv.appendChild(seriesInput);
-        rowDiv.appendChild(seriesDiv);
+        rowDiv.appendChild(seriesInput);
 
         // Create Volume input
         const volumeDiv = document.createElement('div');
@@ -951,7 +1029,7 @@ function updateISBNFields() {
         volumeInput.placeholder = 'Volume';
         
         volumeDiv.appendChild(volumeInput);
-        rowDiv.appendChild(volumeDiv);
+        rowDiv.appendChild(volumeInput);
 
         // Create Edition input
         const editionDiv = document.createElement('div');
@@ -964,7 +1042,7 @@ function updateISBNFields() {
         editionInput.placeholder = 'Edition';
         
         editionDiv.appendChild(editionInput);
-        rowDiv.appendChild(editionDiv);
+        rowDiv.appendChild(editionInput);
         
         groupDiv.appendChild(rowDiv);
         detailsForAccessionGroupContainer.appendChild(groupDiv);

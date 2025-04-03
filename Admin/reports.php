@@ -389,762 +389,765 @@ while ($row = mysqli_fetch_assoc($rstatusesResult)) {
 include 'inc/header.php';
 ?>
 
-<div class="container-fluid">
-    <h1 class="h3 mb-4 text-gray-800">Reports</h1>
+<div id="content" class="d-flex flex-column min-vh-100">
+    <!-- Main Content -->
+    <div class="container-fluid">
+        <h1 class="h3 mb-4 text-gray-800">Reports</h1>
 
-    <ul class="nav nav-tabs" id="myTabs" role="tablist">
-        <li class="nav-item">
-            <a class="nav-link active" id="borrowings-tab" data-toggle="tab" href="#borrowings" role="tab" aria-controls="borrowings" aria-selected="true">Borrowings</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" id="reservations-tab" data-toggle="tab" href="#reservations" role="tab" aria-controls="reservations" aria-selected="false">Reservations</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" id="users-tab" data-toggle="tab" href="#users" role="tab" aria-controls="users" aria-selected="false">Admins/Users</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" id="books-tab" data-toggle="tab" href="#books" role="tab" aria-controls="books" aria-selected="false">Books</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" id="fines-tab" data-toggle="tab" href="#fines" role="tab" aria-controls="fines" aria-selected="false">Fines</a>
-        </li>
-    </ul>
+        <ul class="nav nav-tabs" id="myTabs" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active" id="borrowings-tab" data-toggle="tab" href="#borrowings" role="tab" aria-controls="borrowings" aria-selected="true">Borrowings</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="reservations-tab" data-toggle="tab" href="#reservations" role="tab" aria-controls="reservations" aria-selected="false">Reservations</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="users-tab" data-toggle="tab" href="#users" role="tab" aria-controls="users" aria-selected="false">Admins/Users</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="books-tab" data-toggle="tab" href="#books" role="tab" aria-controls="books" aria-selected="false">Books</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="fines-tab" data-toggle="tab" href="#fines" role="tab" aria-controls="fines" aria-selected="false">Fines</a>
+            </li>
+        </ul>
 
-    <div class="tab-content" id="myTabsContent">
-        <div class="tab-pane fade show active" id="borrowings" role="tabpanel" aria-labelledby="borrowings-tab">
-            <!-- Borrowings Filter -->
-            <div class="card shadow mt-4">
-                <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 font-weight-bold text-primary">Filter Borrowings</h6>
-                    <button class="btn btn-sm btn-primary" id="toggleBorrowingsFilter">
-                        <i class="fas fa-filter"></i> Toggle Filter
-                    </button>
-                </div>
-                <div class="card-body <?= empty($filterParams) ? 'd-none' : '' ?>" id="borrowingsFilterForm">
-                    <form method="get" action="" class="mb-0" id="borrowingsFilterFormElement">
-                        <div class="row">
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label for="bstatus">Status</label>
-                                    <select class="form-control form-control-sm" id="bstatus" name="bstatus">
-                                        <option value="">All Statuses</option>
-                                        <?php foreach($statuses as $status): ?>
-                                            <option value="<?= $status ?>" <?= ($statusFilter == $status) ? 'selected' : '' ?>>
-                                                <?= $status ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label for="bdate_start">From Date</label>
-                                    <input type="date" class="form-control form-control-sm" id="bdate_start" 
-                                           name="bdate_start" value="<?= $dateStart ?>">
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label for="bdate_end">To Date</label>
-                                    <input type="date" class="form-control form-control-sm" id="bdate_end" 
-                                           name="bdate_end" value="<?= $dateEnd ?>">
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label for="buser">Borrower</label>
-                                    <input type="text" class="form-control form-control-sm" id="buser" 
-                                           name="buser" placeholder="Name or ID" value="<?= htmlspecialchars($userFilter) ?>">
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label for="bbook">Book</label>
-                                    <input type="text" class="form-control form-control-sm" id="bbook" 
-                                           name="bbook" placeholder="Title or Accession" value="<?= htmlspecialchars($bookFilter) ?>">
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="form-group d-flex justify-content-center" style="margin-top: 2rem">
-                                    <button type="button" id="applyFilters" class="btn btn-primary btn-sm mr-2">
-                                        <i class="fas fa-filter"></i> Apply
-                                    </button>
-                                    <button type="button" id="resetFilters" class="btn btn-secondary btn-sm">
-                                        <i class="fas fa-undo"></i> Reset
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
-            
-            <!-- Borrowings Table -->
-            <div class="card shadow mt-4">
-                <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 font-weight-bold text-primary">Recent Borrowings</h6>
-                    <div>
-                        <button class="btn btn-sm btn-success" id="exportBorrowingsTable">
-                            <i class="fas fa-file-excel"></i> Export to Excel
+        <div class="tab-content" id="myTabsContent">
+            <div class="tab-pane fade show active" id="borrowings" role="tabpanel" aria-labelledby="borrowings-tab">
+                <!-- Borrowings Filter -->
+                <div class="card shadow mt-4">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-primary">Filter Borrowings</h6>
+                        <button class="btn btn-sm btn-primary" id="toggleBorrowingsFilter">
+                            <i class="fas fa-filter"></i> Toggle Filter
                         </button>
                     </div>
+                    <div class="card-body <?= empty($filterParams) ? 'd-none' : '' ?>" id="borrowingsFilterForm">
+                        <form method="get" action="" class="mb-0" id="borrowingsFilterFormElement">
+                            <div class="row">
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label for="bstatus">Status</label>
+                                        <select class="form-control form-control-sm" id="bstatus" name="bstatus">
+                                            <option value="">All Statuses</option>
+                                            <?php foreach($statuses as $status): ?>
+                                                <option value="<?= $status ?>" <?= ($statusFilter == $status) ? 'selected' : '' ?>>
+                                                    <?= $status ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label for="bdate_start">From Date</label>
+                                        <input type="date" class="form-control form-control-sm" id="bdate_start" 
+                                            name="bdate_start" value="<?= $dateStart ?>">
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label for="bdate_end">To Date</label>
+                                        <input type="date" class="form-control form-control-sm" id="bdate_end" 
+                                            name="bdate_end" value="<?= $dateEnd ?>">
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label for="buser">Borrower</label>
+                                        <input type="text" class="form-control form-control-sm" id="buser" 
+                                            name="buser" placeholder="Name or ID" value="<?= htmlspecialchars($userFilter) ?>">
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label for="bbook">Book</label>
+                                        <input type="text" class="form-control form-control-sm" id="bbook" 
+                                            name="bbook" placeholder="Title or Accession" value="<?= htmlspecialchars($bookFilter) ?>">
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group d-flex justify-content-center" style="margin-top: 2rem">
+                                        <button type="button" id="applyFilters" class="btn btn-primary btn-sm mr-2">
+                                            <i class="fas fa-filter"></i> Apply
+                                        </button>
+                                        <button type="button" id="resetFilters" class="btn btn-secondary btn-sm">
+                                            <i class="fas fa-undo"></i> Reset
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
                 </div>
                 
-                <div class="card-body">
-                    <!-- Results summary -->
-                    <div id="filterSummary" class="mb-3 <?= empty($filterParams) ? 'd-none' : '' ?>">
-                        <span class="text-primary font-weight-bold">Filter applied:</span> 
-                        Showing <span id="totalResults"><?= $totalRecords ?></span> result<span id="pluralSuffix"><?= $totalRecords != 1 ? 's' : '' ?></span>
+                <!-- Borrowings Table -->
+                <div class="card shadow mt-4">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-primary">Recent Borrowings</h6>
+                        <div>
+                            <button class="btn btn-sm btn-success" id="exportBorrowingsTable">
+                                <i class="fas fa-file-excel"></i> Export to Excel
+                            </button>
+                        </div>
                     </div>
-                
-                    <div class="table-responsive" id="borrowingsTableContainer">
-                        <!-- Table content will be loaded here -->
-                        <table class="table table-bordered table-striped" id="borrowingsTable" width="100%" cellspacing="0">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Borrower</th>
-                                    <th>Book</th>
-                                    <th>Status</th>
-                                    <th>Issue Date</th>
-                                    <th>Due Date</th>
-                                    <th>Return Date</th>
-                                    <th>Issued By</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php if (mysqli_num_rows($borrowingsResult) > 0): ?>
-                                    <?php while ($row = mysqli_fetch_assoc($borrowingsResult)): ?>
-                                        <tr>
-                                            <td><?= $row['id'] ?></td>
-                                            <td>
-                                                <?= htmlspecialchars($row['user_firstname'] . ' ' . $row['user_lastname']) ?>
-                                                <br><small class="text-muted"><?= $row['school_id'] ?> (<?= $row['usertype'] ?>)</small>
-                                            </td>
-                                            <td>
-                                                <?= htmlspecialchars($row['title']) ?>
-                                                <br><small class="text-muted">Accession: <?= $row['accession'] ?></small>
-                                            </td>
-                                            <td>
-                                                <?php
-                                                    $statusClass = '';
-                                                    switch($row['status']) {
-                                                        case 'Active':
-                                                            $statusClass = 'badge-primary';
-                                                            break;
-                                                        case 'Returned':
-                                                            $statusClass = 'badge-success';
-                                                            break;
-                                                        case 'Damaged':
-                                                            $statusClass = 'badge-warning';
-                                                            break;
-                                                        case 'Lost':
-                                                            $statusClass = 'badge-danger';
-                                                            break;
-                                                        default:
-                                                            $statusClass = 'badge-secondary';
-                                                    }
-                                                ?>
-                                                <span class="badge <?= $statusClass ?>"><?= $row['status'] ?></span>
-                                            </td>
-                                            <td><?= date('M d, Y', strtotime($row['issue_date'])) ?></td>
-                                            <td><?= $row['due_date'] ? date('M d, Y', strtotime($row['due_date'])) : '-' ?></td>
-                                            <td><?= $row['return_date'] ? date('M d, Y', strtotime($row['return_date'])) : '-' ?></td>
-                                            <td><?= htmlspecialchars($row['admin_firstname'] . ' ' . $row['admin_lastname']) ?>
-                                                <br><small class="text-muted">(<?= $row['admin_role'] ?>)</small>
-                                            </td>
-                                        </tr>
-                                    <?php endwhile; ?>
-                                <?php else: ?>
+                    
+                    <div class="card-body">
+                        <!-- Results summary -->
+                        <div id="filterSummary" class="mb-3 <?= empty($filterParams) ? 'd-none' : '' ?>">
+                            <span class="text-primary font-weight-bold">Filter applied:</span> 
+                            Showing <span id="totalResults"><?= $totalRecords ?></span> result<span id="pluralSuffix"><?= $totalRecords != 1 ? 's' : '' ?></span>
+                        </div>
+                    
+                        <div class="table-responsive" id="borrowingsTableContainer">
+                            <!-- Table content will be loaded here -->
+                            <table class="table table-bordered table-striped" id="borrowingsTable" width="100%" cellspacing="0">
+                                <thead>
                                     <tr>
-                                        <td colspan="8" class="text-center">No borrowing records found</td>
+                                        <th>ID</th>
+                                        <th>Borrower</th>
+                                        <th>Book</th>
+                                        <th>Status</th>
+                                        <th>Issue Date</th>
+                                        <th>Due Date</th>
+                                        <th>Return Date</th>
+                                        <th>Issued By</th>
                                     </tr>
-                                <?php endif; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    <!-- Pagination with filters -->
-                    <div id="paginationContainer">
-                        <?php if ($totalPages > 1): ?>
-                        <nav aria-label="Borrowings pagination">
-                            <ul class="pagination justify-content-center mt-4">
-                                <li class="page-item <?= ($page <= 1) ? 'disabled' : '' ?>">
-                                    <a class="page-link pagination-link" href="#" data-page="<?= $page-1 ?>" tabindex="-1">Previous</a>
-                                </li>
-                                
-                                <?php for($i = 1; $i <= $totalPages; $i++): ?>
-                                    <li class="page-item <?= ($page == $i) ? 'active' : '' ?>">
-                                        <a class="page-link pagination-link" href="#" data-page="<?= $i ?>"><?= $i ?></a>
-                                    </li>
-                                <?php endfor; ?>
-                                
-                                <li class="page-item <?= ($page >= $totalPages) ? 'disabled' : '' ?>">
-                                    <a class="page-link pagination-link" href="#" data-page="<?= $page+1 ?>">Next</a>
-                                </li>
-                            </ul>
-                        </nav>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Keep the rest of your borrowings report content unchanged -->
-            <div class="card shadow mt-4">
-                <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 font-weight-bold text-primary">Borrowings Report - Last 7 Days</h6>
-                    <div>
-                        <button class="btn btn-sm btn-primary" id="downloadBorrowingsReport">Download Report</button>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <div class="chart-area" style="height: 300px;">
-                        <canvas id="borrowingsChart"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="tab-pane fade" id="reservations" role="tabpanel" aria-labelledby="reservations-tab">
-            <!-- Reservations Filter -->
-            <div class="card shadow mt-4">
-                <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 font-weight-bold text-primary">Filter Reservations</h6>
-                    <button class="btn btn-sm btn-primary" id="toggleReservationsFilter">
-                        <i class="fas fa-filter"></i> Toggle Filter
-                    </button>
-                </div>
-                <div class="card-body <?= empty($rfilterParams) ? 'd-none' : '' ?>" id="reservationsFilterForm">
-                    <form method="get" action="" class="mb-0" id="reservationsFilterFormElement">
-                        <div class="row">
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label for="rstatus">Status</label>
-                                    <select class="form-control form-control-sm" id="rstatus" name="rstatus">
-                                        <option value="">All Statuses</option>
-                                        <?php foreach($rstatuses as $status): ?>
-                                            <option value="<?= $status ?>" <?= ($rstatusFilter == $status) ? 'selected' : '' ?>>
-                                                <?= $status ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label for="rdate_start">From Date</label>
-                                    <input type="date" class="form-control form-control-sm" id="rdate_start" 
-                                           name="rdate_start" value="<?= $rdateStart ?>">
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label for="rdate_end">To Date</label>
-                                    <input type="date" class="form-control form-control-sm" id="rdate_end" 
-                                           name="rdate_end" value="<?= $rdateEnd ?>">
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label for="ruser">User</label>
-                                    <input type="text" class="form-control form-control-sm" id="ruser" 
-                                           name="ruser" placeholder="Name or ID" value="<?= htmlspecialchars($ruserFilter) ?>">
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label for="rbook">Book</label>
-                                    <input type="text" class="form-control form-control-sm" id="rbook" 
-                                           name="rbook" placeholder="Title or Accession" value="<?= htmlspecialchars($rbookFilter) ?>">
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="form-group d-flex justify-content-center" style="margin-top: 2rem">
-                                    <button type="button" id="applyReservationsFilters" class="btn btn-primary btn-sm mr-2">
-                                        <i class="fas fa-filter"></i> Apply
-                                    </button>
-                                    <button type="button" id="resetReservationsFilters" class="btn btn-secondary btn-sm">
-                                        <i class="fas fa-undo"></i> Reset
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
-            
-            <!-- Reservations Table -->
-            <div class="card shadow mt-4">
-                <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 font-weight-bold text-primary">Recent Reservations</h6>
-                    <div>
-                        <button class="btn btn-sm btn-success" id="exportReservationsTable">
-                            <i class="fas fa-file-excel"></i> Export to Excel
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="card-body">
-                    <!-- Results summary -->
-                    <div id="rfilterSummary" class="mb-3 <?= empty($rfilterParams) ? 'd-none' : '' ?>">
-                        <span class="text-primary font-weight-bold">Filter applied:</span> 
-                        Showing <span id="rtotalResults"><?= $rtotalRecords ?></span> result<span id="rpluralSuffix"><?= $rtotalRecords != 1 ? 's' : '' ?></span>
-                    </div>
-                
-                    <div class="table-responsive" id="reservationsTableContainer">
-                        <!-- Table content will be loaded here -->
-                        <table class="table table-bordered table-striped" id="reservationsTable" width="100%" cellspacing="0">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>User</th>
-                                    <th>Book</th>
-                                    <th>Status</th>
-                                    <th>Reserved On</th>
-                                    <th>Ready On</th>
-                                    <th>Received On</th>
-                                    <th>Staff</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php if (mysqli_num_rows($reservationsResult) > 0): ?>
-                                    <?php while ($row = mysqli_fetch_assoc($reservationsResult)): ?>
+                                </thead>
+                                <tbody>
+                                    <?php if (mysqli_num_rows($borrowingsResult) > 0): ?>
+                                        <?php while ($row = mysqli_fetch_assoc($borrowingsResult)): ?>
+                                            <tr>
+                                                <td><?= $row['id'] ?></td>
+                                                <td>
+                                                    <?= htmlspecialchars($row['user_firstname'] . ' ' . $row['user_lastname']) ?>
+                                                    <br><small class="text-muted"><?= $row['school_id'] ?> (<?= $row['usertype'] ?>)</small>
+                                                </td>
+                                                <td>
+                                                    <?= htmlspecialchars($row['title']) ?>
+                                                    <br><small class="text-muted">Accession: <?= $row['accession'] ?></small>
+                                                </td>
+                                                <td>
+                                                    <?php
+                                                        $statusClass = '';
+                                                        switch($row['status']) {
+                                                            case 'Active':
+                                                                $statusClass = 'badge-primary';
+                                                                break;
+                                                            case 'Returned':
+                                                                $statusClass = 'badge-success';
+                                                                break;
+                                                            case 'Damaged':
+                                                                $statusClass = 'badge-warning';
+                                                                break;
+                                                            case 'Lost':
+                                                                $statusClass = 'badge-danger';
+                                                                break;
+                                                            default:
+                                                                $statusClass = 'badge-secondary';
+                                                        }
+                                                    ?>
+                                                    <span class="badge <?= $statusClass ?>"><?= $row['status'] ?></span>
+                                                </td>
+                                                <td><?= date('M d, Y', strtotime($row['issue_date'])) ?></td>
+                                                <td><?= $row['due_date'] ? date('M d, Y', strtotime($row['due_date'])) : '-' ?></td>
+                                                <td><?= $row['return_date'] ? date('M d, Y', strtotime($row['return_date'])) : '-' ?></td>
+                                                <td><?= htmlspecialchars($row['admin_firstname'] . ' ' . $row['admin_lastname']) ?>
+                                                    <br><small class="text-muted">(<?= $row['admin_role'] ?>)</small>
+                                                </td>
+                                            </tr>
+                                        <?php endwhile; ?>
+                                    <?php else: ?>
                                         <tr>
-                                            <td><?= $row['id'] ?></td>
-                                            <td>
-                                                <?= htmlspecialchars($row['user_firstname'] . ' ' . $row['user_lastname']) ?>
-                                                <br><small class="text-muted"><?= $row['school_id'] ?> (<?= $row['usertype'] ?>)</small>
-                                            </td>
-                                            <td>
-                                                <?= htmlspecialchars($row['title']) ?>
-                                                <br><small class="text-muted">Accession: <?= $row['accession'] ?></small>
-                                            </td>
-                                            <td>
-                                                <?php
-                                                    $statusClass = '';
-                                                    switch($row['status']) {
-                                                        case 'Pending':
-                                                            $statusClass = 'badge-warning';
-                                                            break;
-                                                        case 'Ready':
-                                                            $statusClass = 'badge-info';
-                                                            break;
-                                                        case 'Recieved':
-                                                            $statusClass = 'badge-success';
-                                                            break;
-                                                        case 'Cancelled':
-                                                            $statusClass = 'badge-danger';
-                                                            break;
-                                                        default:
-                                                            $statusClass = 'badge-secondary';
-                                                    }
-                                                ?>
-                                                <span class="badge <?= $statusClass ?>"><?= $row['status'] ?></span>
-                                            </td>
-                                            <td><?= date('M d, Y', strtotime($row['reserve_date'])) ?></td>
-                                            <td><?= $row['ready_date'] ? date('M d, Y', strtotime($row['ready_date'])) : '-' ?></td>
-                                            <td><?= $row['recieved_date'] ? date('M d, Y', strtotime($row['recieved_date'])) : '-' ?></td>
-                                            <td><?= $row['ready_date'] ? htmlspecialchars($row['ready_admin_firstname'] . ' ' . $row['ready_admin_lastname']) . 
-                                                '<br><small class="text-muted">(' . $row['ready_admin_role'] . ')</small>' : '-' ?></td>
+                                            <td colspan="8" class="text-center">No borrowing records found</td>
                                         </tr>
-                                    <?php endwhile; ?>
-                                <?php else: ?>
-                                    <tr>
-                                        <td colspan="8" class="text-center">No reservation records found</td>
-                                    </tr>
-                                <?php endif; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    <!-- Pagination with filters -->
-                    <div id="rpaginationContainer">
-                        <?php if ($rtotalPages > 1): ?>
-                        <nav aria-label="Reservations pagination">
-                            <ul class="pagination justify-content-center mt-4">
-                                <li class="page-item <?= ($rpage <= 1) ? 'disabled' : '' ?>">
-                                    <a class="page-link rpagination-link" href="#" data-page="<?= $rpage-1 ?>" tabindex="-1">Previous</a>
-                                </li>
-                                
-                                <?php for($i = 1; $i <= $rtotalPages; $i++): ?>
-                                    <li class="page-item <?= ($rpage == $i) ? 'active' : '' ?>">
-                                        <a class="page-link rpagination-link" href="#" data-page="<?= $i ?>"><?= $i ?></a>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Pagination with filters -->
+                        <div id="paginationContainer">
+                            <?php if ($totalPages > 1): ?>
+                            <nav aria-label="Borrowings pagination">
+                                <ul class="pagination justify-content-center mt-4">
+                                    <li class="page-item <?= ($page <= 1) ? 'disabled' : '' ?>">
+                                        <a class="page-link pagination-link" href="#" data-page="<?= $page-1 ?>" tabindex="-1">Previous</a>
                                     </li>
-                                <?php endfor; ?>
-                                
-                                <li class="page-item <?= ($rpage >= $rtotalPages) ? 'disabled' : '' ?>">
-                                    <a class="page-link rpagination-link" href="#" data-page="<?= $rpage+1 ?>">Next</a>
-                                </li>
-                            </ul>
-                        </nav>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Reservations Report - keeping the original chart -->
-            <div class="card shadow mt-4">
-                <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 font-weight-bold text-primary">Reservations Report - Last 7 Days</h6>
-                    <div>
-                        <button class="btn btn-sm btn-primary" id="downloadReservationsReport">Download Report</button>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <div class="chart-area" style="height: 300px;">
-                        <canvas id="reservationsChart"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="tab-pane fade" id="users" role="tabpanel" aria-labelledby="users-tab">
-            <!-- Users Filter -->
-            <div class="card shadow mt-4">
-                <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 font-weight-bold text-primary">Filter Users</h6>
-                    <button class="btn btn-sm btn-primary" id="toggleUsersFilter">
-                        <i class="fas fa-filter"></i> Toggle Filter
-                    </button>
-                </div>
-                <div class="card-body d-none" id="usersFilterForm">
-                    <form method="get" action="" class="mb-0" id="usersFilterFormElement">
-                        <div class="row">
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label for="urole">User Type</label>
-                                    <select class="form-control form-control-sm" id="urole" name="urole">
-                                        <option value="">All Types</option>
-                                        <option value="Admin">Admin</option>
-                                        <option value="Librarian">Librarian</option>
-                                        <option value="Assistant">Assistant</option>
-                                        <option value="Encoder">Encoder</option>
-                                        <option value="Student">Student</option>
-                                        <option value="Faculty">Faculty</option>
-                                        <option value="Staff">Staff</option>
-                                        <option value="Visitor">Visitor</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label for="udate_start">From Date</label>
-                                    <input type="date" class="form-control form-control-sm" id="udate_start" 
-                                           name="udate_start" value="">
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label for="udate_end">To Date</label>
-                                    <input type="date" class="form-control form-control-sm" id="udate_end" 
-                                           name="udate_end" value="">
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label for="usearch">Search</label>
-                                    <input type="text" class="form-control form-control-sm" id="usearch" 
-                                           name="usearch" placeholder="Name or ID" value="">
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label for="ustatus">Status</label>
-                                    <select class="form-control form-control-sm" id="ustatus" name="ustatus">
-                                        <option value="">All Statuses</option>
-                                        <option value="1">Active</option>
-                                        <option value="0">Inactive</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="form-group d-flex justify-content-center" style="margin-top: 2rem">
-                                    <button type="button" id="applyUsersFilters" class="btn btn-primary btn-sm mr-2">
-                                        <i class="fas fa-filter"></i> Apply
-                                    </button>
-                                    <button type="button" id="resetUsersFilters" class="btn btn-secondary btn-sm">
-                                        <i class="fas fa-undo"></i> Reset
-                                    </button>
-                                </div>
-                            </div>
+                                    
+                                    <?php for($i = 1; $i <= $totalPages; $i++): ?>
+                                        <li class="page-item <?= ($page == $i) ? 'active' : '' ?>">
+                                            <a class="page-link pagination-link" href="#" data-page="<?= $i ?>"><?= $i ?></a>
+                                        </li>
+                                    <?php endfor; ?>
+                                    
+                                    <li class="page-item <?= ($page >= $totalPages) ? 'disabled' : '' ?>">
+                                        <a class="page-link pagination-link" href="#" data-page="<?= $page+1 ?>">Next</a>
+                                    </li>
+                                </ul>
+                            </nav>
+                            <?php endif; ?>
                         </div>
-                    </form>
+                    </div>
+                </div>
+
+                <!-- Keep the rest of your borrowings report content unchanged -->
+                <div class="card shadow mt-4">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-primary">Borrowings Report - Last 7 Days</h6>
+                        <div>
+                            <button class="btn btn-sm btn-primary" id="downloadBorrowingsReport">Download Report</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-area" style="height: 300px;">
+                            <canvas id="borrowingsChart"></canvas>
+                        </div>
+                    </div>
                 </div>
             </div>
-            
-            <!-- Users Table -->
-            <div class="card shadow mt-4">
-                <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 font-weight-bold text-primary">Users & Admins</h6>
-                    <div>
-                        <button class="btn btn-sm btn-success" id="exportUsersTable">
-                            <i class="fas fa-file-excel"></i> Export to Excel
+
+            <div class="tab-pane fade" id="reservations" role="tabpanel" aria-labelledby="reservations-tab">
+                <!-- Reservations Filter -->
+                <div class="card shadow mt-4">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-primary">Filter Reservations</h6>
+                        <button class="btn btn-sm btn-primary" id="toggleReservationsFilter">
+                            <i class="fas fa-filter"></i> Toggle Filter
                         </button>
                     </div>
+                    <div class="card-body <?= empty($rfilterParams) ? 'd-none' : '' ?>" id="reservationsFilterForm">
+                        <form method="get" action="" class="mb-0" id="reservationsFilterFormElement">
+                            <div class="row">
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label for="rstatus">Status</label>
+                                        <select class="form-control form-control-sm" id="rstatus" name="rstatus">
+                                            <option value="">All Statuses</option>
+                                            <?php foreach($rstatuses as $status): ?>
+                                                <option value="<?= $status ?>" <?= ($rstatusFilter == $status) ? 'selected' : '' ?>>
+                                                    <?= $status ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label for="rdate_start">From Date</label>
+                                        <input type="date" class="form-control form-control-sm" id="rdate_start" 
+                                            name="rdate_start" value="<?= $rdateStart ?>">
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label for="rdate_end">To Date</label>
+                                        <input type="date" class="form-control form-control-sm" id="rdate_end" 
+                                            name="rdate_end" value="<?= $rdateEnd ?>">
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label for="ruser">User</label>
+                                        <input type="text" class="form-control form-control-sm" id="ruser" 
+                                            name="ruser" placeholder="Name or ID" value="<?= htmlspecialchars($ruserFilter) ?>">
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label for="rbook">Book</label>
+                                        <input type="text" class="form-control form-control-sm" id="rbook" 
+                                            name="rbook" placeholder="Title or Accession" value="<?= htmlspecialchars($rbookFilter) ?>">
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group d-flex justify-content-center" style="margin-top: 2rem">
+                                        <button type="button" id="applyReservationsFilters" class="btn btn-primary btn-sm mr-2">
+                                            <i class="fas fa-filter"></i> Apply
+                                        </button>
+                                        <button type="button" id="resetReservationsFilters" class="btn btn-secondary btn-sm">
+                                            <i class="fas fa-undo"></i> Reset
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
                 </div>
                 
-                <div class="card-body">
-                    <!-- Results summary -->
-                    <div id="ufilterSummary" class="mb-3 d-none">
-                        <span class="text-primary font-weight-bold">Filter applied:</span> 
-                        Showing <span id="utotalResults">0</span> result<span id="upluralSuffix">s</span>
-                    </div>
-                
-                    <div class="table-responsive" id="usersTableContainer">
-                        <!-- Table content will be loaded here -->
-                        <div class="text-center my-4">
-                            <i class="fas fa-spinner fa-spin fa-2x"></i>
-                            <p class="mt-2">Loading users data...</p>
+                <!-- Reservations Table -->
+                <div class="card shadow mt-4">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-primary">Recent Reservations</h6>
+                        <div>
+                            <button class="btn btn-sm btn-success" id="exportReservationsTable">
+                                <i class="fas fa-file-excel"></i> Export to Excel
+                            </button>
                         </div>
                     </div>
                     
-                    <!-- Pagination container -->
-                    <div id="upaginationContainer"></div>
-                </div>
-            </div>
-
-            <!-- Users Report - keep the original chart -->
-            <div class="card shadow mt-4">
-                <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 font-weight-bold text-primary">Users Report - Last 7 Days</h6>
-                    <div>
-                        <button class="btn btn-sm btn-primary" id="downloadUsersReport">Download Report</button>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <div class="chart-area" style="height: 300px;">
-                        <canvas id="usersChart"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="tab-pane fade" id="books" role="tabpanel" aria-labelledby="books-tab">
-            <!-- Books Filter -->
-            <div class="card shadow mt-4">
-                <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 font-weight-bold text-primary">Filter Books</h6>
-                    <button class="btn btn-sm btn-primary" id="toggleBooksFilter">
-                        <i class="fas fa-filter"></i> Toggle Filter
-                    </button>
-                </div>
-                <div class="card-body d-none" id="booksFilterForm">
-                    <form method="get" action="" class="mb-0" id="booksFilterFormElement">
-                        <div class="row">
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label for="bookstatus">Status</label>
-                                    <select class="form-control form-control-sm" id="bookstatus" name="bookstatus">
-                                        <option value="">All Statuses</option>
-                                        <option value="Available">Available</option>
-                                        <option value="Borrowed">Borrowed</option>
-                                        <option value="Reserved">Reserved</option>
-                                        <option value="Damaged">Damaged</option>
-                                        <option value="Lost">Lost</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label for="bookdate_start">From Date</label>
-                                    <input type="date" class="form-control form-control-sm" id="bookdate_start" 
-                                           name="bookdate_start" value="">
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label for="bookdate_end">To Date</label>
-                                    <input type="date" class="form-control form-control-sm" id="bookdate_end" 
-                                           name="bookdate_end" value="">
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label for="booktitle">Title/Accession</label>
-                                    <input type="text" class="form-control form-control-sm" id="booktitle" 
-                                           name="booktitle" placeholder="Title or Accession" value="">
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label for="booklocation">Location</label>
-                                    <input type="text" class="form-control form-control-sm" id="booklocation" 
-                                           name="booklocation" placeholder="Shelf location" value="">
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="form-group d-flex justify-content-center" style="margin-top: 2rem">
-                                    <button type="button" id="applyBooksFilters" class="btn btn-primary btn-sm mr-2">
-                                        <i class="fas fa-filter"></i> Apply
-                                    </button>
-                                    <button type="button" id="resetBooksFilters" class="btn btn-secondary btn-sm">
-                                        <i class="fas fa-undo"></i> Reset
-                                    </button>
-                                </div>
-                            </div>
+                    <div class="card-body">
+                        <!-- Results summary -->
+                        <div id="rfilterSummary" class="mb-3 <?= empty($rfilterParams) ? 'd-none' : '' ?>">
+                            <span class="text-primary font-weight-bold">Filter applied:</span> 
+                            Showing <span id="rtotalResults"><?= $rtotalRecords ?></span> result<span id="rpluralSuffix"><?= $rtotalRecords != 1 ? 's' : '' ?></span>
                         </div>
-                    </form>
+                    
+                        <div class="table-responsive" id="reservationsTableContainer">
+                            <!-- Table content will be loaded here -->
+                            <table class="table table-bordered table-striped" id="reservationsTable" width="100%" cellspacing="0">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>User</th>
+                                        <th>Book</th>
+                                        <th>Status</th>
+                                        <th>Reserved On</th>
+                                        <th>Ready On</th>
+                                        <th>Received On</th>
+                                        <th>Staff</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php if (mysqli_num_rows($reservationsResult) > 0): ?>
+                                        <?php while ($row = mysqli_fetch_assoc($reservationsResult)): ?>
+                                            <tr>
+                                                <td><?= $row['id'] ?></td>
+                                                <td>
+                                                    <?= htmlspecialchars($row['user_firstname'] . ' ' . $row['user_lastname']) ?>
+                                                    <br><small class="text-muted"><?= $row['school_id'] ?> (<?= $row['usertype'] ?>)</small>
+                                                </td>
+                                                <td>
+                                                    <?= htmlspecialchars($row['title']) ?>
+                                                    <br><small class="text-muted">Accession: <?= $row['accession'] ?></small>
+                                                </td>
+                                                <td>
+                                                    <?php
+                                                        $statusClass = '';
+                                                        switch($row['status']) {
+                                                            case 'Pending':
+                                                                $statusClass = 'badge-warning';
+                                                                break;
+                                                            case 'Ready':
+                                                                $statusClass = 'badge-info';
+                                                                break;
+                                                            case 'Recieved':
+                                                                $statusClass = 'badge-success';
+                                                                break;
+                                                            case 'Cancelled':
+                                                                $statusClass = 'badge-danger';
+                                                                break;
+                                                            default:
+                                                                $statusClass = 'badge-secondary';
+                                                        }
+                                                    ?>
+                                                    <span class="badge <?= $statusClass ?>"><?= $row['status'] ?></span>
+                                                </td>
+                                                <td><?= date('M d, Y', strtotime($row['reserve_date'])) ?></td>
+                                                <td><?= $row['ready_date'] ? date('M d, Y', strtotime($row['ready_date'])) : '-' ?></td>
+                                                <td><?= $row['recieved_date'] ? date('M d, Y', strtotime($row['recieved_date'])) : '-' ?></td>
+                                                <td><?= $row['ready_date'] ? htmlspecialchars($row['ready_admin_firstname'] . ' ' . $row['ready_admin_lastname']) . 
+                                                    '<br><small class="text-muted">(' . $row['ready_admin_role'] . ')</small>' : '-' ?></td>
+                                            </tr>
+                                        <?php endwhile; ?>
+                                    <?php else: ?>
+                                        <tr>
+                                            <td colspan="8" class="text-center">No reservation records found</td>
+                                        </tr>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Pagination with filters -->
+                        <div id="rpaginationContainer">
+                            <?php if ($rtotalPages > 1): ?>
+                            <nav aria-label="Reservations pagination">
+                                <ul class="pagination justify-content-center mt-4">
+                                    <li class="page-item <?= ($rpage <= 1) ? 'disabled' : '' ?>">
+                                        <a class="page-link rpagination-link" href="#" data-page="<?= $rpage-1 ?>" tabindex="-1">Previous</a>
+                                    </li>
+                                    
+                                    <?php for($i = 1; $i <= $rtotalPages; $i++): ?>
+                                        <li class="page-item <?= ($rpage == $i) ? 'active' : '' ?>">
+                                            <a class="page-link rpagination-link" href="#" data-page="<?= $i ?>"><?= $i ?></a>
+                                        </li>
+                                    <?php endfor; ?>
+                                    
+                                    <li class="page-item <?= ($rpage >= $rtotalPages) ? 'disabled' : '' ?>">
+                                        <a class="page-link rpagination-link" href="#" data-page="<?= $rpage+1 ?>">Next</a>
+                                    </li>
+                                </ul>
+                            </nav>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reservations Report - keeping the original chart -->
+                <div class="card shadow mt-4">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-primary">Reservations Report - Last 7 Days</h6>
+                        <div>
+                            <button class="btn btn-sm btn-primary" id="downloadReservationsReport">Download Report</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-area" style="height: 300px;">
+                            <canvas id="reservationsChart"></canvas>
+                        </div>
+                    </div>
                 </div>
             </div>
-            
-            <!-- Books Table -->
-            <div class="card shadow mt-4">
-                <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 font-weight-bold text-primary">Books Inventory</h6>
-                    <div>
-                        <button class="btn btn-sm btn-success" id="exportBooksTable">
-                            <i class="fas fa-file-excel"></i> Export to Excel
+
+            <div class="tab-pane fade" id="users" role="tabpanel" aria-labelledby="users-tab">
+                <!-- Users Filter -->
+                <div class="card shadow mt-4">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-primary">Filter Users</h6>
+                        <button class="btn btn-sm btn-primary" id="toggleUsersFilter">
+                            <i class="fas fa-filter"></i> Toggle Filter
                         </button>
                     </div>
+                    <div class="card-body d-none" id="usersFilterForm">
+                        <form method="get" action="" class="mb-0" id="usersFilterFormElement">
+                            <div class="row">
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label for="urole">User Type</label>
+                                        <select class="form-control form-control-sm" id="urole" name="urole">
+                                            <option value="">All Types</option>
+                                            <option value="Admin">Admin</option>
+                                            <option value="Librarian">Librarian</option>
+                                            <option value="Assistant">Assistant</option>
+                                            <option value="Encoder">Encoder</option>
+                                            <option value="Student">Student</option>
+                                            <option value="Faculty">Faculty</option>
+                                            <option value="Staff">Staff</option>
+                                            <option value="Visitor">Visitor</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label for="udate_start">From Date</label>
+                                        <input type="date" class="form-control form-control-sm" id="udate_start" 
+                                            name="udate_start" value="">
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label for="udate_end">To Date</label>
+                                        <input type="date" class="form-control form-control-sm" id="udate_end" 
+                                            name="udate_end" value="">
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label for="usearch">Search</label>
+                                        <input type="text" class="form-control form-control-sm" id="usearch" 
+                                            name="usearch" placeholder="Name or ID" value="">
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label for="ustatus">Status</label>
+                                        <select class="form-control form-control-sm" id="ustatus" name="ustatus">
+                                            <option value="">All Statuses</option>
+                                            <option value="1">Active</option>
+                                            <option value="0">Inactive</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group d-flex justify-content-center" style="margin-top: 2rem">
+                                        <button type="button" id="applyUsersFilters" class="btn btn-primary btn-sm mr-2">
+                                            <i class="fas fa-filter"></i> Apply
+                                        </button>
+                                        <button type="button" id="resetUsersFilters" class="btn btn-secondary btn-sm">
+                                            <i class="fas fa-undo"></i> Reset
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
                 </div>
                 
-                <div class="card-body">
-                    <!-- Results summary -->
-                    <div id="bookfilterSummary" class="mb-3 d-none">
-                        <span class="text-primary font-weight-bold">Filter applied:</span> 
-                        Showing <span id="booktotalResults">0</span> result<span id="bookpluralSuffix">s</span>
-                    </div>
-                
-                    <div class="table-responsive" id="booksTableContainer">
-                        <!-- Table content will be loaded here -->
-                        <div class="text-center my-4">
-                            <i class="fas fa-spinner fa-spin fa-2x"></i>
-                            <p class="mt-2">Loading books data...</p>
+                <!-- Users Table -->
+                <div class="card shadow mt-4">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-primary">Users & Admins</h6>
+                        <div>
+                            <button class="btn btn-sm btn-success" id="exportUsersTable">
+                                <i class="fas fa-file-excel"></i> Export to Excel
+                            </button>
                         </div>
                     </div>
                     
-                    <!-- Pagination container -->
-                    <div id="bookpaginationContainer"></div>
-                </div>
-            </div>
-
-            <!-- Books Report - existing chart -->
-            <div class="card shadow mt-4">
-                <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 font-weight-bold text-primary">Books Report - Last 7 Days</h6>
-                    <div>
-                        <button class="btn btn-sm btn-primary" id="downloadBooksReport">Download Report</button>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <div class="chart-area" style="height: 300px;">
-                        <canvas id="booksChart"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="tab-pane fade" id="fines" role="tabpanel" aria-labelledby="fines-tab">
-            <!-- Fines Filter -->
-            <div class="card shadow mt-4">
-                <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 font-weight-bold text-primary">Filter Fines</h6>
-                    <button class="btn btn-sm btn-primary" id="toggleFinesFilter">
-                        <i class="fas fa-filter"></i> Toggle Filter
-                    </button>
-                </div>
-                <div class="card-body d-none" id="finesFilterForm">
-                    <form method="get" action="" class="mb-0" id="finesFilterFormElement">
-                        <div class="row">
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label for="fstatus">Status</label>
-                                    <select class="form-control form-control-sm" id="fstatus" name="fstatus">
-                                        <option value="">All Statuses</option>
-                                        <option value="Paid">Paid</option>
-                                        <option value="Unpaid">Unpaid</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label for="fdate_start">From Date</label>
-                                    <input type="date" class="form-control form-control-sm" id="fdate_start" 
-                                           name="fdate_start" value="">
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label for="fdate_end">To Date</label>
-                                    <input type="date" class="form-control form-control-sm" id="fdate_end" 
-                                           name="fdate_end" value="">
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label for="fuser">User</label>
-                                    <input type="text" class="form-control form-control-sm" id="fuser" 
-                                           name="fuser" placeholder="Name or ID" value="">
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label for="ftype">Fine Type</label>
-                                    <select class="form-control form-control-sm" id="ftype" name="ftype">
-                                        <option value="">All Types</option>
-                                        <option value="Overdue">Overdue</option>
-                                        <option value="Damaged">Damaged</option>
-                                        <option value="Lost">Lost</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="form-group d-flex justify-content-center" style="margin-top: 2rem">
-                                    <button type="button" id="applyFinesFilters" class="btn btn-primary btn-sm mr-2">
-                                        <i class="fas fa-filter"></i> Apply
-                                    </button>
-                                    <button type="button" id="resetFinesFilters" class="btn btn-secondary btn-sm">
-                                        <i class="fas fa-undo"></i> Reset
-                                    </button>
-                                </div>
+                    <div class="card-body">
+                        <!-- Results summary -->
+                        <div id="ufilterSummary" class="mb-3 d-none">
+                            <span class="text-primary font-weight-bold">Filter applied:</span> 
+                            Showing <span id="utotalResults">0</span> result<span id="upluralSuffix">s</span>
+                        </div>
+                    
+                        <div class="table-responsive" id="usersTableContainer">
+                            <!-- Table content will be loaded here -->
+                            <div class="text-center my-4">
+                                <i class="fas fa-spinner fa-spin fa-2x"></i>
+                                <p class="mt-2">Loading users data...</p>
                             </div>
                         </div>
-                    </form>
+                        
+                        <!-- Pagination container -->
+                        <div id="upaginationContainer"></div>
+                    </div>
+                </div>
+
+                <!-- Users Report - keep the original chart -->
+                <div class="card shadow mt-4">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-primary">Users Report - Last 7 Days</h6>
+                        <div>
+                            <button class="btn btn-sm btn-primary" id="downloadUsersReport">Download Report</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-area" style="height: 300px;">
+                            <canvas id="usersChart"></canvas>
+                        </div>
+                    </div>
                 </div>
             </div>
-            
-            <!-- Fines Table -->
-            <div class="card shadow mt-4">
-                <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 font-weight-bold text-primary">Fines Records</h6>
-                    <div>
-                        <button class="btn btn-sm btn-success" id="exportFinesTable">
-                            <i class="fas fa-file-excel"></i> Export to Excel
+
+            <div class="tab-pane fade" id="books" role="tabpanel" aria-labelledby="books-tab">
+                <!-- Books Filter -->
+                <div class="card shadow mt-4">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-primary">Filter Books</h6>
+                        <button class="btn btn-sm btn-primary" id="toggleBooksFilter">
+                            <i class="fas fa-filter"></i> Toggle Filter
                         </button>
+                    </div>
+                    <div class="card-body d-none" id="booksFilterForm">
+                        <form method="get" action="" class="mb-0" id="booksFilterFormElement">
+                            <div class="row">
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label for="bookstatus">Status</label>
+                                        <select class="form-control form-control-sm" id="bookstatus" name="bookstatus">
+                                            <option value="">All Statuses</option>
+                                            <option value="Available">Available</option>
+                                            <option value="Borrowed">Borrowed</option>
+                                            <option value="Reserved">Reserved</option>
+                                            <option value="Damaged">Damaged</option>
+                                            <option value="Lost">Lost</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label for="bookdate_start">From Date</label>
+                                        <input type="date" class="form-control form-control-sm" id="bookdate_start" 
+                                            name="bookdate_start" value="">
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label for="bookdate_end">To Date</label>
+                                        <input type="date" class="form-control form-control-sm" id="bookdate_end" 
+                                            name="bookdate_end" value="">
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label for="booktitle">Title/Accession</label>
+                                        <input type="text" class="form-control form-control-sm" id="booktitle" 
+                                            name="booktitle" placeholder="Title or Accession" value="">
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label for="booklocation">Location</label>
+                                        <input type="text" class="form-control form-control-sm" id="booklocation" 
+                                            name="booklocation" placeholder="Shelf location" value="">
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group d-flex justify-content-center" style="margin-top: 2rem">
+                                        <button type="button" id="applyBooksFilters" class="btn btn-primary btn-sm mr-2">
+                                            <i class="fas fa-filter"></i> Apply
+                                        </button>
+                                        <button type="button" id="resetBooksFilters" class="btn btn-secondary btn-sm">
+                                            <i class="fas fa-undo"></i> Reset
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
                     </div>
                 </div>
                 
-                <div class="card-body">
-                    <!-- Results summary -->
-                    <div id="ffilterSummary" class="mb-3 d-none">
-                        <span class="text-primary font-weight-bold">Filter applied:</span> 
-                        Showing <span id="ftotalResults">0</span> result<span id="fpluralSuffix">s</span>
-                    </div>
-                
-                    <div class="table-responsive" id="finesTableContainer">
-                        <!-- Table content will be loaded here -->
-                        <div class="text-center my-4">
-                            <i class="fas fa-spinner fa-spin fa-2x"></i>
-                            <p class="mt-2">Loading fines data...</p>
+                <!-- Books Table -->
+                <div class="card shadow mt-4">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-primary">Books Inventory</h6>
+                        <div>
+                            <button class="btn btn-sm btn-success" id="exportBooksTable">
+                                <i class="fas fa-file-excel"></i> Export to Excel
+                            </button>
                         </div>
                     </div>
                     
-                    <!-- Pagination container -->
-                    <div id="fpaginationContainer"></div>
+                    <div class="card-body">
+                        <!-- Results summary -->
+                        <div id="bookfilterSummary" class="mb-3 d-none">
+                            <span class="text-primary font-weight-bold">Filter applied:</span> 
+                            Showing <span id="booktotalResults">0</span> result<span id="bookpluralSuffix">s</span>
+                        </div>
+                    
+                        <div class="table-responsive" id="booksTableContainer">
+                            <!-- Table content will be loaded here -->
+                            <div class="text-center my-4">
+                                <i class="fas fa-spinner fa-spin fa-2x"></i>
+                                <p class="mt-2">Loading books data...</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Pagination container -->
+                        <div id="bookpaginationContainer"></div>
+                    </div>
+                </div>
+
+                <!-- Books Report - existing chart -->
+                <div class="card shadow mt-4">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-primary">Books Report - Last 7 Days</h6>
+                        <div>
+                            <button class="btn btn-sm btn-primary" id="downloadBooksReport">Download Report</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-area" style="height: 300px;">
+                            <canvas id="booksChart"></canvas>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Fines Report - Chart -->
-            <div class="card shadow mt-4">
-                <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 font-weight-bold text-primary">Fines Report - Last 7 Days</h6>
-                    <div>
-                        <button class="btn btn-sm btn-primary" id="downloadFinesReport">Download Report</button>
+            <div class="tab-pane fade" id="fines" role="tabpanel" aria-labelledby="fines-tab">
+                <!-- Fines Filter -->
+                <div class="card shadow mt-4">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-primary">Filter Fines</h6>
+                        <button class="btn btn-sm btn-primary" id="toggleFinesFilter">
+                            <i class="fas fa-filter"></i> Toggle Filter
+                        </button>
+                    </div>
+                    <div class="card-body d-none" id="finesFilterForm">
+                        <form method="get" action="" class="mb-0" id="finesFilterFormElement">
+                            <div class="row">
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label for="fstatus">Status</label>
+                                        <select class="form-control form-control-sm" id="fstatus" name="fstatus">
+                                            <option value="">All Statuses</option>
+                                            <option value="Paid">Paid</option>
+                                            <option value="Unpaid">Unpaid</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label for="fdate_start">From Date</label>
+                                        <input type="date" class="form-control form-control-sm" id="fdate_start" 
+                                            name="fdate_start" value="">
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label for="fdate_end">To Date</label>
+                                        <input type="date" class="form-control form-control-sm" id="fdate_end" 
+                                            name="fdate_end" value="">
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label for="fuser">User</label>
+                                        <input type="text" class="form-control form-control-sm" id="fuser" 
+                                            name="fuser" placeholder="Name or ID" value="">
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label for="ftype">Fine Type</label>
+                                        <select class="form-control form-control-sm" id="ftype" name="ftype">
+                                            <option value="">All Types</option>
+                                            <option value="Overdue">Overdue</option>
+                                            <option value="Damaged">Damaged</option>
+                                            <option value="Lost">Lost</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group d-flex justify-content-center" style="margin-top: 2rem">
+                                        <button type="button" id="applyFinesFilters" class="btn btn-primary btn-sm mr-2">
+                                            <i class="fas fa-filter"></i> Apply
+                                        </button>
+                                        <button type="button" id="resetFinesFilters" class="btn btn-secondary btn-sm">
+                                            <i class="fas fa-undo"></i> Reset
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
                     </div>
                 </div>
-                <div class="card-body">
-                    <div class="chart-area" style="height: 300px;">
-                        <canvas id="finesChart"></canvas>
+                
+                <!-- Fines Table -->
+                <div class="card shadow mt-4">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-primary">Fines Records</h6>
+                        <div>
+                            <button class="btn btn-sm btn-success" id="exportFinesTable">
+                                <i class="fas fa-file-excel"></i> Export to Excel
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="card-body">
+                        <!-- Results summary -->
+                        <div id="ffilterSummary" class="mb-3 d-none">
+                            <span class="text-primary font-weight-bold">Filter applied:</span> 
+                            Showing <span id="ftotalResults">0</span> result<span id="fpluralSuffix">s</span>
+                        </div>
+                    
+                        <div class="table-responsive" id="finesTableContainer">
+                            <!-- Table content will be loaded here -->
+                            <div class="text-center my-4">
+                                <i class="fas fa-spinner fa-spin fa-2x"></i>
+                                <p class="mt-2">Loading fines data...</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Pagination container -->
+                        <div id="fpaginationContainer"></div>
+                    </div>
+                </div>
+
+                <!-- Fines Report - Chart -->
+                <div class="card shadow mt-4">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-primary">Fines Report - Last 7 Days</h6>
+                        <div>
+                            <button class="btn btn-sm btn-primary" id="downloadFinesReport">Download Report</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-area" style="height: 300px;">
+                            <canvas id="finesChart"></canvas>
+                        </div>
                     </div>
                 </div>
             </div>

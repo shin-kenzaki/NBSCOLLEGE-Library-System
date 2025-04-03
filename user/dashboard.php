@@ -10,10 +10,14 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['usertype'], ['Student',
 
 $user_id = $_SESSION['user_id'];
 
-// Fetch user analytics from users table
-$query = "SELECT borrowed_books, returned_books, damaged_books, lost_books 
-          FROM users 
-          WHERE id = ?";
+// Fetch user analytics from borrowings table instead of users table
+$query = "SELECT 
+          COUNT(CASE WHEN status IN ('Borrowed', 'Overdue') THEN 1 END) as borrowed_books,
+          COUNT(CASE WHEN status = 'Returned' THEN 1 END) as returned_books,
+          COUNT(CASE WHEN status = 'Damaged' THEN 1 END) as damaged_books,
+          COUNT(CASE WHEN status = 'Lost' THEN 1 END) as lost_books
+          FROM borrowings 
+          WHERE user_id = ?";
 $stmt = $conn->prepare($query);
 $stmt->bind_param('i', $user_id);
 $stmt->execute();
@@ -116,6 +120,89 @@ include '../user/inc/header.php';
 <!-- Main Content -->
 <div id="content" class="d-flex flex-column min-vh-100">
     <div class="container-fluid">
+        <!-- Page Heading -->
+        <div class="d-sm-flex align-items-center justify-content-between mb-4">
+            <h1 class="h3 mb-0 text-gray-800">My Dashboard</h1>
+            <a href="reports.php" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
+                <i class="fas fa-download fa-sm text-white-50"></i> Generate Report
+            </a>
+        </div>
+
+        <!-- Content Row - Activity Summary -->
+        <div class="row">
+            <!-- Borrowed Books Card -->
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-primary shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                    Currently Borrowed</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800"><?= isset($analytics['borrowed_books']) ? $analytics['borrowed_books'] : 0 ?></div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-book fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Returned Books Card -->
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-success shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                    Returned Books</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800"><?= isset($analytics['returned_books']) ? $analytics['returned_books'] : 0 ?></div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Damaged Books Card -->
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-warning shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                    Damaged Books</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800"><?= isset($analytics['damaged_books']) ? $analytics['damaged_books'] : 0 ?></div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lost Books Card -->
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-danger shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                    Lost Books</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800"><?= isset($analytics['lost_books']) ? $analytics['lost_books'] : 0 ?></div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-times-circle fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- User Analytics Section -->
         <div class="row">
             <!-- Pie Chart -->
@@ -124,6 +211,20 @@ include '../user/inc/header.php';
                     <!-- Card Header - Dropdown -->
                     <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
                         <h6 class="m-0 font-weight-bold text-primary">Books Status Overview</h6>
+                        <div class="dropdown no-arrow">
+                            <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink"
+                               data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                            </a>
+                            <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in"
+                                 aria-labelledby="dropdownMenuLink">
+                                <div class="dropdown-header">Chart Options:</div>
+                                <a class="dropdown-item" href="#">View Details</a>
+                                <a class="dropdown-item" href="#">Download Data</a>
+                                <div class="dropdown-divider"></div>
+                                <a class="dropdown-item" href="#">View All Activities</a>
+                            </div>
+                        </div>
                     </div>
                     <!-- Card Body -->
                     <div class="card-body">
@@ -153,7 +254,22 @@ include '../user/inc/header.php';
                 <div class="card shadow mb-4">
                     <!-- Card Header -->
                     <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                        <h6 class="m-0 font-weight-bold text-primary">Books Overview Timeline</h6>
+                        <h6 class="m-0 font-weight-bold text-primary">Borrowing Activity This Month</h6>
+                        <div class="dropdown no-arrow">
+                            <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink2"
+                               data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                            </a>
+                            <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in"
+                                 aria-labelledby="dropdownMenuLink2">
+                                <div class="dropdown-header">Timeline Options:</div>
+                                <a class="dropdown-item" href="#">This Week</a>
+                                <a class="dropdown-item" href="#">This Month</a>
+                                <a class="dropdown-item" href="#">This Year</a>
+                                <div class="dropdown-divider"></div>
+                                <a class="dropdown-item" href="#">Export Data</a>
+                            </div>
+                        </div>
                     </div>
                     <!-- Card Body -->
                     <div class="card-body">
@@ -165,61 +281,95 @@ include '../user/inc/header.php';
             </div>
         </div>
 
-        <!-- Reservations Section -->
+        <!-- Active Items Row (Reservations & Cart) -->
         <div class="row">
-            <div class="col-xl-12 col-md-12 mb-4">
-                <div class="card shadow h-100 py-2">
+            <!-- Current Reservations Column -->
+            <div class="col-lg-6 mb-4">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3 d-flex align-items-center justify-content-between">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-bookmark mr-1"></i> Current Reservations
+                        </h6>
+                        <a href="book_reservations.php" class="btn btn-sm btn-primary">
+                            View All
+                        </a>
+                    </div>
                     <div class="card-body">
-                        <h6 class="m-0 font-weight-bold text-primary">Current Reservations</h6>
-                        <div class="table-responsive mt-3">
-                            <table class="table table-bordered" width="100%" cellspacing="0">
-                                <thead>
-                                    <tr>
-                                        <th>Title</th>
-                                        <th>Reserve Date</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php while ($row = $reservations->fetch_assoc()): ?>
+                        <?php if ($reservations->num_rows > 0): ?>
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover" width="100%" cellspacing="0">
+                                    <thead class="thead-light">
                                         <tr>
-                                            <td><?php echo htmlspecialchars($row['title']); ?></td>
-                                            <td><?php echo date('Y-m-d h:i A', strtotime($row['reserve_date'])); ?></td>
-                                            <td><?php echo htmlspecialchars($row['status']); ?></td>
+                                            <th>Title</th>
+                                            <th>Reserve Date</th>
+                                            <th>Status</th>
                                         </tr>
-                                    <?php endwhile; ?>
-                                </tbody>
-                            </table>
-                        </div>
+                                    </thead>
+                                    <tbody>
+                                        <?php while ($row = $reservations->fetch_assoc()): ?>
+                                            <tr>
+                                                <td><?php echo htmlspecialchars($row['title']); ?></td>
+                                                <td><?php echo date('M d, Y', strtotime($row['reserve_date'])); ?></td>
+                                                <td>
+                                                    <?php 
+                                                    $status_class = ($row['status'] == 'Ready') ? 'success' : 'warning';
+                                                    echo '<span class="badge badge-'.$status_class.'">'.$row['status'].'</span>';
+                                                    ?>
+                                                </td>
+                                            </tr>
+                                        <?php endwhile; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php else: ?>
+                            <div class="text-center py-4">
+                                <i class="fas fa-book-open fa-3x text-gray-300 mb-3"></i>
+                                <p class="text-gray-600">No active reservations found.</p>
+                                <a href="searchbook.php" class="btn btn-sm btn-primary">Browse Books</a>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Cart Section -->
-        <div class="row">
-            <div class="col-xl-12 col-md-12 mb-4">
-                <div class="card shadow h-100 py-2">
+            <!-- Cart Items Column -->
+            <div class="col-lg-6 mb-4">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3 d-flex align-items-center justify-content-between">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-shopping-cart mr-1"></i> Cart Items
+                        </h6>
+                        <a href="cart.php" class="btn btn-sm btn-primary">
+                            View Cart
+                        </a>
+                    </div>
                     <div class="card-body">
-                        <h6 class="m-0 font-weight-bold text-primary">Active Cart Items</h6>
-                        <div class="table-responsive mt-3">
-                            <table class="table table-bordered" width="100%" cellspacing="0">
-                                <thead>
-                                    <tr>
-                                        <th>Title</th>
-                                        <th>Date Added</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php while ($row = $cart_items->fetch_assoc()): ?>
+                        <?php if ($cart_items->num_rows > 0): ?>
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover" width="100%" cellspacing="0">
+                                    <thead class="thead-light">
                                         <tr>
-                                            <td><?php echo htmlspecialchars($row['title']); ?></td>
-                                            <td><?php echo date('Y-m-d h:i A', strtotime($row['date'])); ?></td>
+                                            <th>Title</th>
+                                            <th>Added On</th>
                                         </tr>
-                                    <?php endwhile; ?>
-                                </tbody>
-                            </table>
-                        </div>
+                                    </thead>
+                                    <tbody>
+                                        <?php while ($row = $cart_items->fetch_assoc()): ?>
+                                            <tr>
+                                                <td><?php echo htmlspecialchars($row['title']); ?></td>
+                                                <td><?php echo date('M d, Y', strtotime($row['date'])); ?></td>
+                                            </tr>
+                                        <?php endwhile; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php else: ?>
+                            <div class="text-center py-4">
+                                <i class="fas fa-shopping-cart fa-3x text-gray-300 mb-3"></i>
+                                <p class="text-gray-600">Your cart is empty.</p>
+                                <a href="searchbook.php" class="btn btn-sm btn-primary">Add Books</a>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -227,32 +377,166 @@ include '../user/inc/header.php';
 
         <!-- Recent Borrowings Section -->
         <div class="row">
-            <div class="col-xl-12 col-md-12 mb-4">
-                <div class="card shadow h-100 py-2">
+            <div class="col-xl-12 mb-4">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3 d-flex align-items-center justify-content-between">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-history mr-1"></i> Recent Borrowing History
+                        </h6>
+                        <a href="borrowing_history.php" class="btn btn-sm btn-primary">
+                            View Full History
+                        </a>
+                    </div>
                     <div class="card-body">
-                        <h6 class="m-0 font-weight-bold text-primary">Recent Borrowings</h6>
-                        <div class="table-responsive mt-3">
-                            <table class="table table-bordered" width="100%" cellspacing="0">
-                                <thead>
-                                    <tr>
-                                        <th>Title</th>
-                                        <th>Borrow Date</th>
-                                        <th>Return Date</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php while ($row = $borrowing_history->fetch_assoc()): ?>
+                        <?php if ($borrowing_history->num_rows > 0): ?>
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover" width="100%" cellspacing="0">
+                                    <thead class="thead-light">
                                         <tr>
-                                            <td><?php echo htmlspecialchars($row['title']); ?></td>
-                                            <td><?php echo date('Y-m-d', strtotime($row['issue_date'])); ?></td>
-                                            <td><?php echo date('Y-m-d', strtotime($row['return_date'])); ?></td>
-                                            <td><?php echo htmlspecialchars($row['status']); ?></td>
+                                            <th>Title</th>
+                                            <th>Borrow Date</th>
+                                            <th>Return Date</th>
+                                            <th>Status</th>
                                         </tr>
-                                    <?php endwhile; ?>
-                                </tbody>
-                            </table>
-                        </div>
+                                    </thead>
+                                    <tbody>
+                                        <?php while ($row = $borrowing_history->fetch_assoc()): ?>
+                                            <tr>
+                                                <td><?php echo htmlspecialchars($row['title']); ?></td>
+                                                <td><?php echo date('M d, Y', strtotime($row['issue_date'])); ?></td>
+                                                <td><?php echo date('M d, Y', strtotime($row['return_date'])); ?></td>
+                                                <td>
+                                                    <?php 
+                                                    $status_badge = '';
+                                                    switch($row['status']) {
+                                                        case 'Returned':
+                                                            $status_badge = 'success';
+                                                            break;
+                                                        case 'Damaged':
+                                                            $status_badge = 'warning';
+                                                            break;
+                                                        case 'Lost':
+                                                            $status_badge = 'danger';
+                                                            break;
+                                                        case 'Overdue':
+                                                            $status_badge = 'danger';
+                                                            break;
+                                                        default:
+                                                            $status_badge = 'primary';
+                                                    }
+                                                    echo '<span class="badge badge-'.$status_badge.'">'.$row['status'].'</span>';
+                                                    ?>
+                                                </td>
+                                            </tr>
+                                        <?php endwhile; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php else: ?>
+                            <div class="text-center py-4">
+                                <i class="fas fa-book fa-3x text-gray-300 mb-3"></i>
+                                <p class="text-gray-600">No borrowing history found.</p>
+                                <a href="searchbook.php" class="btn btn-sm btn-primary">Browse Books</a>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reservation History Section -->
+        <div class="row">
+            <div class="col-xl-12 mb-4">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3 d-flex align-items-center justify-content-between">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-bookmark mr-1"></i> Reservation History
+                        </h6>
+                        <a href="reservation_history.php" class="btn btn-sm btn-primary">
+                            View All Reservations
+                        </a>
+                    </div>
+                    <div class="card-body">
+                        <?php
+                        // Fetch recent reservation history, limit to 10 items
+                        $reservation_history_query = "SELECT 
+                            r.id, b.title, r.reserve_date, r.status,
+                            CASE 
+                                WHEN r.status = 'Ready' THEN r.ready_date
+                                WHEN r.status = 'Cancelled' THEN r.cancel_date
+                                WHEN r.status = 'Issued' THEN r.issue_date
+                                ELSE NULL
+                            END AS action_date
+                            FROM reservations r 
+                            JOIN books b ON r.book_id = b.id 
+                            WHERE r.user_id = ? 
+                            ORDER BY r.reserve_date DESC
+                            LIMIT 10";
+                        $reservation_history_stmt = $conn->prepare($reservation_history_query);
+                        $reservation_history_stmt->bind_param('i', $user_id);
+                        $reservation_history_stmt->execute();
+                        $reservation_history = $reservation_history_stmt->get_result();
+                        ?>
+                        
+                        <?php if ($reservation_history->num_rows > 0): ?>
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover" width="100%" cellspacing="0">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th>Title</th>
+                                            <th>Reserve Date</th>
+                                            <th>Status Date</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php while ($row = $reservation_history->fetch_assoc()): ?>
+                                            <tr>
+                                                <td><?php echo htmlspecialchars($row['title']); ?></td>
+                                                <td><?php echo date('M d, Y', strtotime($row['reserve_date'])); ?></td>
+                                                <td>
+                                                    <?php 
+                                                    if ($row['action_date']) {
+                                                        echo date('M d, Y', strtotime($row['action_date']));
+                                                    } else {
+                                                        echo '-';
+                                                    }
+                                                    ?>
+                                                </td>
+                                                <td>
+                                                    <?php 
+                                                    $status_badge = '';
+                                                    switch($row['status']) {
+                                                        case 'Ready':
+                                                            $status_badge = 'success';
+                                                            break;
+                                                        case 'Cancelled':
+                                                            $status_badge = 'danger';
+                                                            break;
+                                                        case 'Issued':
+                                                            $status_badge = 'primary';
+                                                            break;
+                                                        case 'Pending':
+                                                            $status_badge = 'warning';
+                                                            break;
+                                                        default:
+                                                            $status_badge = 'secondary';
+                                                    }
+                                                    echo '<span class="badge badge-'.$status_badge.'">'.$row['status'].'</span>';
+                                                    ?>
+                                                </td>
+                                            </tr>
+                                        <?php endwhile; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php else: ?>
+                            <div class="text-center py-4">
+                                <i class="fas fa-bookmark fa-3x text-gray-300 mb-3"></i>
+                                <p class="text-gray-600">No reservation history found.</p>
+                                <a href="searchbook.php" class="btn btn-sm btn-primary">Browse Books</a>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -293,7 +577,7 @@ function number_format(number, decimals, dec_point, thousands_sep) {
     return s.join(dec);
 }
 
-// Replace the line chart JavaScript with:
+// Line Chart
 var ctx = document.getElementById("myLineChart");
 var myLineChart = new Chart(ctx, {
     type: "line",
@@ -384,17 +668,19 @@ var myLineChart = new Chart(ctx, {
     }
 });
 
-// Pie Chart Example
+// Pie Chart
 var ctx = document.getElementById("myPieChart");
 var myPieChart = new Chart(ctx, {
     type: 'doughnut',
     data: {
         labels: ["Borrowed", "Returned", "Damaged", "Lost"],
         datasets: [{
-            data: [<?php echo $analytics['borrowed_books']; ?>,
-                   <?php echo $analytics['returned_books']; ?>, 
-                   <?php echo $analytics['damaged_books']; ?>, 
-                   <?php echo $analytics['lost_books']; ?>],
+            data: [
+                <?php echo isset($analytics['borrowed_books']) ? $analytics['borrowed_books'] : 0; ?>,
+                <?php echo isset($analytics['returned_books']) ? $analytics['returned_books'] : 0; ?>, 
+                <?php echo isset($analytics['damaged_books']) ? $analytics['damaged_books'] : 0; ?>, 
+                <?php echo isset($analytics['lost_books']) ? $analytics['lost_books'] : 0; ?>
+            ],
             backgroundColor: ['#4e73df', '#1cc88a', '#f6c23e', '#e74a3b'],
             hoverBackgroundColor: ['#2e59d9', '#17a673', '#f4b619', '#e02d1b'],
             hoverBorderColor: "rgba(234, 236, 244, 1)",

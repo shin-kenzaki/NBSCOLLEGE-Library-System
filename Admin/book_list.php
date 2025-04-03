@@ -278,23 +278,23 @@ $result = $stmt->get_result();
 </div>
                 <div class="card-body px-0"> <!-- Remove padding for full-width scroll -->
                     <div class="table-responsive px-3"> <!-- Add padding inside scroll container -->
-                        <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
-    <thead>
-        <tr>
-            <th style="text-align: center">ID Range</th>
-            <th style="text-align: center">Accession Range</th>
-            <th style="text-align: center">Title</th>
-            <th style="text-align: center">Call Number Range</th>
-            <th style="text-align: center">Copy Number Range</th>
-            <th style="text-align: center">Shelf Locations</th>
-            <th style="text-align: center">ISBN</th>
-            <th style="text-align: center">Series</th>
-            <th style="text-align: center">Volume</th>
-            <th style="text-align: center">Edition</th>
-            <th style="text-align: center">Total Copies</th>
-        </tr>
-    </thead>
-    <tbody>
+                        <table class="table table-bordered table-striped" id="dataTable" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th style="text-align: center">ID Range</th>
+                                    <th style="text-align: center">Accession Range</th>
+                                    <th style="text-align: center">Title</th>
+                                    <th style="text-align: center">Call Number Range</th>
+                                    <th style="text-align: center">Copy Number Range</th>
+                                    <th style="text-align: center">Shelf Locations</th>
+                                    <th style="text-align: center">ISBN</th>
+                                    <th style="text-align: center">Series</th>
+                                    <th style="text-align: center">Volume</th>
+                                    <th style="text-align: center">Edition</th>
+                                    <th style="text-align: center">Total Copies</th>
+                                </tr>
+                            </thead>
+                            <tbody>
         <?php
         $query = "SELECT 
             title,
@@ -575,12 +575,12 @@ $result = $stmt->get_result();
                 "scrollX": true, // Enable horizontal scrolling
                 "columnDefs": [
                     {
-                        "targets": 0, 
-                        "visible": false,
-                        "searchable": false
+                        "targets": [0], // First column - ID Range
+                        "visible": true,
+                        "searchable": true
                     }
                 ],
-                "order": [[2, "asc"]], 
+                "order": [[2, "asc"]], // Sort by Title column
                 "language": {
                     "search": "_INPUT_",
                     "searchPlaceholder": "Search..."
@@ -626,6 +626,26 @@ $result = $stmt->get_result();
             /* Add visual cue for right-clickable rows */
             #dataTable tbody tr {
                 cursor: context-menu;
+            }
+            
+            /* Add selected row styling */
+            #dataTable tbody tr.selected {
+                background-color: rgba(0, 123, 255, 0.1) !important;
+            }
+            
+            /* Override striped table styling for selected rows */
+            #dataTable.table-striped tbody tr.selected:nth-of-type(odd),
+            #dataTable.table-striped tbody tr.selected:nth-of-type(even) {
+                background-color: rgba(0, 123, 255, 0.1) !important;
+            }
+
+            /* Enhance alternating row colors with hover effect preservation */
+            #dataTable.table-striped tbody tr:nth-of-type(odd) {
+                background-color: rgba(0, 0, 0, 0.03);
+            }
+
+            #dataTable.table-striped tbody tr:hover {
+                background-color: rgba(0, 123, 255, 0.05);
             }
         </style>
         

@@ -41,7 +41,8 @@ $values = [
     'lastname' => '',
     'email' => '',
     'contact_no' => '',
-    'usertype' => '', // Remove password from values array
+    'usertype' => '', 
+    'department' => '', // Add department to values array
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -51,7 +52,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $lastname = trim($_POST['lastname'] ?? '');
     $email = $_POST['email'] ?? ''; 
     $contact_no = $_POST['contact_no'] ?? '';
-    $usertype = $_POST['usertype'] ?? ''; // Add null coalescing operator
+    $usertype = $_POST['usertype'] ?? ''; 
+    $department = $_POST['department'] ?? ''; // Get department from POST data
     $status = 1; // Automatically set status to Active (1)
     
     // Default values
@@ -66,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id_image = '/upload/default-id.png';
 
     // Store values to retain input data
-    $values = compact('school_id', 'firstname', 'middle_init', 'lastname', 'email', 'contact_no', 'usertype');
+    $values = compact('school_id', 'firstname', 'middle_init', 'lastname', 'email', 'contact_no', 'usertype', 'department');
 
     // Generate password automatically
     $password = generatePassword(12); // 12 characters long
@@ -119,25 +121,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $sql = "INSERT INTO users (
                 school_id, firstname, middle_init, lastname, 
                 email, password, contact_no, user_image, 
-                usertype, borrowed_books, returned_books, 
-                damaged_books, lost_books, address, 
-                id_type, id_image, status, date_added, last_update
+                usertype, address, id_type, id_image, 
+                status, date_added, last_update, department
             ) VALUES (
                 ?, ?, ?, ?, 
                 ?, ?, ?, ?,
-                ?, ?, ?, 
-                ?, ?, ?,
-                ?, ?, ?, NOW(), NOW()
+                ?, ?, ?, ?,
+                ?, NOW(), NOW(), ?
             )";
             
             $stmt = $conn->prepare($sql);
             $stmt->bind_param(
-                "sssssssssiiiisssi",
+                "ssssssssssssss",
                 $school_id, $firstname, $middle_init, $lastname,
                 $email, $hashed_password, $contact_no, $image,
-                $usertype, $borrowed_books, $returned_books,
-                $damaged_books, $lost_books, $address,
-                $id_type, $id_image, $status
+                $usertype, $address, $id_type, $id_image,
+                $status, $department
             );
 
             if ($stmt->execute()) {
@@ -217,14 +216,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <table class="table table-bordered table-striped" id="usersTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
-                                <th class="text-center" style="width: 30px;">
-                                    <input type="checkbox" id="selectAll" class="select-all-checkbox">
-                                </th>
+                                <th class="text-center" style="width: 30px;" id="selectAllHeader">Select</th>
                                 <th class="text-center">ID</th>
                                 <th class="text-center">Physical ID Number</th>
                                 <th class="text-center">Name</th>
                                 <th class="text-center">Email</th>
-                                <th class="text-center">Borrowed</th>
+                                <th class="text-center">Borrowing</th>
                                 <th class="text-center">Returned</th>
                                 <th class="text-center">Damaged</th>
                                 <th class="text-center">Lost</th>
@@ -235,11 +232,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </thead>
                         <tbody>
                             <?php
+                            // Modified query to get user data and calculate borrowing stats from the borrowings table
                             $query = "SELECT u.*, 
-                                u.borrowed_books,
-                                u.returned_books,
-                                u.damaged_books,
-                                u.lost_books
+                                (SELECT COUNT(*) FROM borrowings WHERE user_id = u.id AND status IN ('Borrowed', 'Overdue')) AS borrowed_books,
+                                (SELECT COUNT(*) FROM borrowings WHERE user_id = u.id AND status = 'Returned') AS returned_books,
+                                (SELECT COUNT(*) FROM borrowings WHERE user_id = u.id AND status = 'Damaged') AS damaged_books,
+                                (SELECT COUNT(*) FROM borrowings WHERE user_id = u.id AND status = 'Lost') AS lost_books
                                 FROM users u
                                 ORDER BY u.date_added DESC";
                             $result = $conn->query($query);
@@ -277,6 +275,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div id="contextMenu" class="dropdown-menu" style="display:none; position:absolute;">
     <a class="dropdown-item" href="#" id="viewUser">View Details</a>
     <a class="dropdown-item" href="#" id="updateUser">Update</a>
+    <a class="dropdown-item" href="#" id="generatePassword">Generate New Password</a>
     <a class="dropdown-item" href="#" id="banUser">Ban User</a>
     <a class="dropdown-item" href="#" id="disableUser">Disable User</a>
     <a class="dropdown-item" href="#" id="deleteUser">Delete</a>
@@ -339,16 +338,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <label>Contact Number</label>
                         <input type="text" name="contact_no" class="form-control" value="<?= htmlspecialchars($values['contact_no'] ?? '') ?>">
                     </div>
-                    <div class="form-group">
-                        <label>User Type</label>
-                        <select name="usertype" class="form-control">
-                            <option value="" disabled <?= empty($values['usertype']) ? 'selected' : '' ?>>Select User Type</option>
-                            <option value="Student" <?= ($values['usertype'] ?? '') == 'Student' ? 'selected' : '' ?>>Student</option>
-                            <option value="Faculty" <?= ($values['usertype'] ?? '') == 'Faculty' ? 'selected' : '' ?>>Faculty</option>
-                            <option value="Staff" <?= ($values['usertype'] ?? '') == 'Staff' ? 'selected' : '' ?>>Staff</option>
-                            <option value="Visitor" <?= ($values['usertype'] ?? '') == 'Visitor' ? 'selected' : '' ?>>Visitor</option>
-                        </select>
-                        <small class="text-danger"><?= $errors['usertype'] ?? '' ?></small>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Department</label>
+                                <select name="department" class="form-control">
+                                    <option value="" <?= empty($values['department']) ? 'selected' : '' ?>>Select Department</option>
+                                    <option value="Computer Science" <?= ($values['department'] ?? '') == 'Computer Science' ? 'selected' : '' ?>>Computer Science</option>
+                                    <option value="Accounting Information System" <?= ($values['department'] ?? '') == 'Accounting Information System' ? 'selected' : '' ?>>Accounting Information System</option>
+                                    <option value="Accountancy" <?= ($values['department'] ?? '') == 'Accountancy' ? 'selected' : '' ?>>Accountancy</option>
+                                    <option value="Entrepreneurship" <?= ($values['department'] ?? '') == 'Entrepreneurship' ? 'selected' : '' ?>>Entrepreneurship</option>
+                                    <option value="Tourism Management" <?= ($values['department'] ?? '') == 'Tourism Management' ? 'selected' : '' ?>>Tourism Management</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>User Type</label>
+                                <select name="usertype" class="form-control">
+                                    <option value="" disabled <?= empty($values['usertype']) ? 'selected' : '' ?>>Select User Type</option>
+                                    <option value="Student" <?= ($values['usertype'] ?? '') == 'Student' ? 'selected' : '' ?>>Student</option>
+                                    <option value="Faculty" <?= ($values['usertype'] ?? '') == 'Faculty' ? 'selected' : '' ?>>Faculty</option>
+                                    <option value="Staff" <?= ($values['usertype'] ?? '') == 'Staff' ? 'selected' : '' ?>>Staff</option>
+                                    <option value="Visitor" <?= ($values['usertype'] ?? '') == 'Visitor' ? 'selected' : '' ?>>Visitor</option>
+                                </select>
+                                <small class="text-danger"><?= $errors['usertype'] ?? '' ?></small>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -411,202 +427,51 @@ $(document).ready(function() {
     $('#updateUser').click(function() {
         window.location.href = `edit_user.php?id=${selectedUserId}`;
     });
-
-    $('#banUser').click(function() {
-        handleStatusChange(selectedUserId, 2, 'ban');
-    });
-
-    $('#disableUser').click(function() {
-        handleStatusChange(selectedUserId, 3, 'disable');
-    });
-
-    $('#deleteUser').click(function() {
+    
+    // Add new generate password action
+    $('#generatePassword').click(function() {
         Swal.fire({
-            title: 'Delete User?',
-            text: 'Are you sure you want to delete this user? This action cannot be undone.',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Yes, delete it!'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                $.ajax({
-                    url: 'delete_user.php',
-                    method: 'GET',
-                    data: { id: selectedUserId },
-                    success: function(response) {
-                        const res = JSON.parse(response);
-                        if (res.status === 'success') {
-                            Swal.fire(
-                                'Deleted!',
-                                res.message,
-                                'success'
-                            ).then(() => {
-                                location.reload();
-                            });
-                        } else {
-                            Swal.fire(
-                                'Error!',
-                                res.message,
-                                'error'
-                            );
-                        }
-                    },
-                    error: function() {
-                        Swal.fire(
-                            'Error!',
-                            'An error occurred while deleting the user.',
-                            'error'
-                        );
-                    }
-                });
-            }
-        });
-    });
-
-    // Change this line to use a more specific selector
-    $('.add-user-btn').attr('data-toggle', 'modal').attr('data-target', '#addUserModal');
-
-    // Add this to handle modal state after form submission with errors
-    <?php if (isset($formSubmitted)): ?>
-    $('#addUserModal').modal('show');
-    <?php endif; ?>
-
-    // Enhanced form validation and submission
-    $('#addUserForm').on('submit', function(e) {
-        e.preventDefault();
-        
-        // Check required fields
-        let form = this;
-        let hasErrors = false;
-        
-        // Basic validation before showing confirmation
-        if (!form.school_id.value) {
-            $('[name="school_id"]').next('.text-danger').text('Physical ID number is required.');
-            hasErrors = true;
-        }
-        if (!form.firstname.value) {
-            $('[name="firstname"]').next('.text-danger').text('First name is required.');
-            hasErrors = true;
-        }
-        if (!form.lastname.value) {
-            $('[name="lastname"]').next('.text-danger').text('Last name is required.');
-            hasErrors = true;
-        }
-        if (!form.email.value) {
-            $('[name="email"]').next('.text-danger').text('Email is required.');
-            hasErrors = true;
-        }
-        if (!form.usertype.value) {
-            $('[name="usertype"]').next('.text-danger').text('Please select a user type.');
-            hasErrors = true;
-        }
-
-        if (hasErrors) {
-            return false;
-        }
-
-        // Updated confirmation message with centered content
-        Swal.fire({
-            title: 'Confirm User Addition',
-            html: `
-                <div class='text-center'>
-                    <p>Are you sure you want to add this user?</p>
-                    <p><strong>Physical ID Number:</strong> ${form.school_id.value}</p>
-                </div>
-            `,
+            title: 'Generate New Password?',
+            text: 'Are you sure you want to generate a new password for this user?',
             icon: 'question',
             showCancelButton: true,
             confirmButtonColor: '#3085d6',
             cancelButtonColor: '#d33',
-            confirmButtonText: 'Yes, add user',
-            cancelButtonText: 'Cancel'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                form.submit();
-            }
-        });
-    });
-
-    // Select All functionality
-    $('#selectAll').change(function() {
-        const isChecked = $(this).prop('checked');
-        
-        // Update all checkboxes
-        $('.user-checkbox').prop('checked', isChecked);
-        
-        // Update row highlighting
-        updateRowSelectionVisuals();
-        
-        // Update counts and button states
-        updateSelectedCount();
-    });
-
-    // Individual checkbox handler
-    $(document).on('change', '.user-checkbox', function() {
-        const allChecked = $('.user-checkbox:checked').length === $('.user-checkbox').length;
-        $('#selectAll').prop('checked', allChecked);
-        updateSelectedCount();
-    });
-
-    // Update selected count and button state
-    function updateSelectedCount() {
-        const checkedBoxes = $('.user-checkbox:checked').length;
-        $('#selectedCount').text(checkedBoxes);
-        $('#selectedBanCount').text(checkedBoxes);
-        $('#selectedDisableCount').text(checkedBoxes);
-        $('#selectedActivateCount').text(checkedBoxes);
-        $('#bulkDeleteBtn').prop('disabled', checkedBoxes === 0);
-        $('#bulkBanBtn').prop('disabled', checkedBoxes === 0);
-        $('#bulkDisableBtn').prop('disabled', checkedBoxes === 0);
-        $('#bulkActivateBtn').prop('disabled', checkedBoxes === 0);
-    }
-
-    // Bulk delete handler
-    $('#bulkDeleteBtn').click(function() {
-        const selectedUsers = $('.user-checkbox:checked').map(function() {
-            return $(this).data('user-id');
-        }).get();
-
-        if (selectedUsers.length === 0) return;
-
-        Swal.fire({
-            title: 'Delete Selected Users?',
-            text: `Are you sure you want to delete ${selectedUsers.length} user(s)? This action cannot be undone!`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Yes, delete them!'
+            confirmButtonText: 'Yes, generate new password'
         }).then((result) => {
             if (result.isConfirmed) {
                 $.ajax({
-                    url: 'bulk_delete_users.php',
+                    url: 'generate_user_password.php',
                     method: 'POST',
-                    data: { userIds: selectedUsers },
+                    data: { userId: selectedUserId },
+                    dataType: 'json',
                     success: function(response) {
-                        try {
-                            const result = JSON.parse(response);
-                            if (result.success) {
-                                Swal.fire(
-                                    'Deleted!',
-                                    result.message,
-                                    'success'
-                                ).then(() => {
-                                    location.reload();
-                                });
-                            } else {
-                                Swal.fire(
-                                    'Error!',
-                                    result.message,
-                                    'error'
-                                );
-                            }
-                        } catch (e) {
+                        if (response.success) {
+                            Swal.fire({
+                                title: 'Password Generated!',
+                                html: `
+                                    <div class='text-center'>
+                                        <p>A new password has been generated.</p>
+                                        <p><strong>ID Number:</strong> ${response.school_id}</p>
+                                        <p><strong>User:</strong> ${response.user_name}</p>
+                                        <div class="input-group mb-3">
+                                            <input type="text" id="newPassword" class="form-control" value="${response.password}" readonly>
+                                            <div class="input-group-append">
+                                                <button class="btn btn-outline-secondary" type="button" onclick="copyPassword()">
+                                                    <i class="fas fa-copy"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <p class='text-danger'><small>Please make sure to copy this password now!</small></p>
+                                    </div>
+                                `,
+                                icon: 'success',
+                                confirmButtonText: 'OK'
+                            });
+                        } else {
                             Swal.fire(
                                 'Error!',
-                                'An unexpected error occurred',
+                                response.message,
                                 'error'
                             );
                         }
@@ -614,7 +479,7 @@ $(document).ready(function() {
                     error: function() {
                         Swal.fire(
                             'Error!',
-                            'Failed to delete users',
+                            'Failed to generate new password',
                             'error'
                         );
                     }
@@ -623,240 +488,37 @@ $(document).ready(function() {
         });
     });
 
-    // Bulk ban handler
-    $('#bulkBanBtn').click(function() {
-        handleBulkStatusChange(2, 'ban');
-    });
-
-    // Bulk disable handler
-    $('#bulkDisableBtn').click(function() {
-        handleBulkStatusChange(3, 'disable');
-    });
-
-    // Add bulk activate handler
-    $('#bulkActivateBtn').click(function() {
-        const selectedUsers = $('.user-checkbox:checked').map(function() {
-            return $(this).data('user-id');
-        }).get();
-
-        if (selectedUsers.length === 0) return;
-
-        Swal.fire({
-            title: 'Activate Selected Users?',
-            text: `Are you sure you want to activate ${selectedUsers.length} user(s)?`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#28a745',
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'Yes, activate them!'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                $.ajax({
-                    url: 'bulk_update_status.php',
-                    method: 'POST',
-                    data: { 
-                        userIds: selectedUsers,
-                        status: 1  // 1 represents "Active" status
-                    },
-                    success: function(response) {
-                        try {
-                            const result = JSON.parse(response);
-                            if (result.success) {
-                                Swal.fire(
-                                    'Activated!',
-                                    result.message,
-                                    'success'
-                                ).then(() => {
-                                    location.reload();
-                                });
-                            } else {
-                                Swal.fire(
-                                    'Error!',
-                                    result.message,
-                                    'error'
-                                );
-                            }
-                        } catch (e) {
-                            Swal.fire(
-                                'Error!',
-                                'An unexpected error occurred',
-                                'error'
-                            );
-                        }
-                    }
-                });
-            }
-        });
-    });
-
-    function handleStatusChange(userId, status, action) {
-        const actionText = action === 'ban' ? 'ban' : 'disable';
-        Swal.fire({
-            title: `${actionText.charAt(0).toUpperCase() + actionText.slice(1)} User?`,
-            text: `Are you sure you want to ${actionText} this user?`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: `Yes, ${actionText} them!`
-        }).then((result) => {
-            if (result.isConfirmed) {
-                $.ajax({
-                    url: 'update_user_status.php',
-                    method: 'POST',
-                    data: { 
-                        userId: userId,
-                        status: status
-                    },
-                    success: function(response) {
-                        try {
-                            const result = JSON.parse(response);
-                            if (result.success) {
-                                Swal.fire(
-                                    `${actionText.charAt(0).toUpperCase() + actionText.slice(1)}ned!`,
-                                    result.message,
-                                    'success'
-                                ).then(() => {
-                                    location.reload();
-                                });
-                            } else {
-                                Swal.fire(
-                                    'Error!',
-                                    result.message,
-                                    'error'
-                                );
-                            }
-                        } catch (e) {
-                            Swal.fire(
-                                'Error!',
-                                'An unexpected error occurred',
-                                'error'
-                            );
-                        }
-                    }
-                });
-            }
-        });
-    }
-
-    function handleBulkStatusChange(status, action) {
-        const selectedUsers = $('.user-checkbox:checked').map(function() {
-            return $(this).data('user-id');
-        }).get();
-
-        if (selectedUsers.length === 0) return;
-
-        const actionText = action === 'ban' ? 'ban' : 'disable';
-        
-        Swal.fire({
-            title: `${actionText.charAt(0).toUpperCase() + actionText.slice(1)} Selected Users?`,
-            text: `Are you sure you want to ${actionText} ${selectedUsers.length} user(s)?`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: `Yes, ${actionText} them!`
-        }).then((result) => {
-            if (result.isConfirmed) {
-                $.ajax({
-                    url: 'bulk_update_status.php',
-                    method: 'POST',
-                    data: { 
-                        userIds: selectedUsers,
-                        status: status
-                    },
-                    success: function(response) {
-                        try {
-                            const result = JSON.parse(response);
-                            if (result.success) {
-                                Swal.fire(
-                                    `${actionText.charAt(0).toUpperCase() + actionText.slice(1)}ned!`,
-                                    result.message,
-                                    'success'
-                                ).then(() => {
-                                    location.reload();
-                                });
-                            } else {
-                                Swal.fire(
-                                    'Error!',
-                                    result.message,
-                                    'error'
-                                );
-                            }
-                        } catch (e) {
-                            Swal.fire(
-                                'Error!',
-                                'An unexpected error occurred',
-                                'error'
-                            );
-                        }
-                    }
-                });
-            }
-        });
-    }
-
-    // Add window resize handler
-    $(window).on('resize', function () {
-        table.columns.adjust();
-    });
-
-    // Add row selection on click functionality 
-    $('#usersTable tbody').on('click', 'tr', function(e) {
-        // Ignore if clicking on checkbox directly or buttons
-        if (e.target.type === 'checkbox' || $(e.target).hasClass('btn') || $(e.target).closest('.btn').length) {
-            return;
-        }
-        
-        // Toggle the row's checkbox
-        const checkbox = $(this).find('.user-checkbox');
-        checkbox.prop('checked', !checkbox.prop('checked')).trigger('change');
-    });
-
-    // Make cells within rows clickable for selection
-    $('#usersTable tbody').on('click', 'td', function(e) {
-        // Skip if clicking directly on checkbox or interactive elements
-        if (e.target.type === 'checkbox' || $(e.target).hasClass('btn') || 
-            $(e.target).closest('.btn').length || $(e.target).is('a')) {
-            return;
-        }
-        
-        // Avoid double triggering with the row click handler
-        e.stopPropagation();
-        
-        // Toggle the row's checkbox
-        const checkbox = $(this).closest('tr').find('.user-checkbox');
-        checkbox.prop('checked', !checkbox.prop('checked')).trigger('change');
-    });
-
-    // Add visual feedback for selected rows
-    $('<style>')
-        .text(`
-            #usersTable tbody tr {
-                cursor: pointer;
-            }
-            #usersTable tbody tr.selected {
-                background-color: rgba(0, 123, 255, 0.1) !important;
-            }
-        `)
-        .appendTo('head');
-
-    // Update visual selection state for rows
-    function updateRowSelectionVisuals() {
-        $('#usersTable tbody tr').each(function() {
-            const isChecked = $(this).find('.user-checkbox').prop('checked');
-            $(this).toggleClass('selected', isChecked);
-        });
-    }
+    // ...existing code for banUser, disableUser, deleteUser...
     
-    // Monitor checkbox changes to update row visuals
-    $(document).on('change', '.user-checkbox, #selectAll', function() {
-        updateRowSelectionVisuals();
-    });
-    
-    // Initialize selection visuals
-    updateRowSelectionVisuals();
+    // ...existing code...
 });
+
+// Function to copy the generated password
+function copyPassword() {
+    const passwordField = document.getElementById('newPassword');
+    passwordField.select();
+    document.execCommand('copy');
+    
+    // Show a small tooltip/notification that password was copied
+    const tooltip = document.createElement('div');
+    tooltip.textContent = 'Password copied!';
+    tooltip.style.position = 'absolute';
+    tooltip.style.backgroundColor = 'rgba(0,0,0,0.7)';
+    tooltip.style.color = 'white';
+    tooltip.style.padding = '5px 10px';
+    tooltip.style.borderRadius = '3px';
+    tooltip.style.fontSize = '12px';
+    tooltip.style.zIndex = '9999';
+    tooltip.style.left = '50%';
+    tooltip.style.top = '50%';
+    tooltip.style.transform = 'translate(-50%, -50%)';
+    
+    document.body.appendChild(tooltip);
+    
+    setTimeout(() => {
+        document.body.removeChild(tooltip);
+    }, 1500);
+}
 </script>
 
 <style>

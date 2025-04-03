@@ -346,9 +346,7 @@ $result = mysqli_query($conn, $query);
                         <table class="table table-bordered table-striped" id="adminsTable" width="100%" cellspacing="0">
                             <thead>
                                 <tr>
-                                    <th class="text-center">
-                                        <input type="checkbox" id="selectAll">
-                                    </th>
+                                    <th class="text-center" id="selectAllHeader" style="width: 40px;">Select</th>
                                     <th class="text-center">ID</th>
                                     <th class="text-center">Employee ID</th>
                                     <th class="text-center">Name</th>
@@ -392,6 +390,7 @@ $result = mysqli_query($conn, $query);
             <div id="contextMenu" class="dropdown-menu" style="display:none; position:absolute;">
                 <a class="dropdown-item" id="viewAdmin">View Details</a>
                 <a class="dropdown-item" id="updateAdmin">Update</a>
+                <a class="dropdown-item" id="generatePassword">Generate New Password</a>
                 <a class="dropdown-item" id="deleteAdmin">Delete</a>
             </div>
 
@@ -516,23 +515,6 @@ $(document).ready(function() {
         table.columns.adjust();
     });
 
-    // Function to update selected admin IDs
-    function updateSelectedAdminIds() {
-        selectedAdminIds = [];
-        $('.selectRow:checked').each(function() {
-            var adminId = $(this).closest('tr').find('td:nth-child(2)').text();
-            if (!selectedAdminIds.includes(adminId)) {
-                selectedAdminIds.push(adminId);
-            }
-        });
-
-        $.post('selected_admins.php', {
-            selectedAdminIds: selectedAdminIds
-        }, function(response) {
-            fetchAdmins();
-        }, 'json');
-    }
-
     // Function to fetch and reload admin data
     function fetchAdmins() {
         var searchQuery = $('input[name="search"]').val();
@@ -549,22 +531,7 @@ $(document).ready(function() {
         });
     }
 
-    // Select All functionality
-    $('#selectAll').click(function() {
-        $('.selectRow').prop('checked', this.checked);
-        updateSelectedCount();
-    });
-
-    $('.selectRow').click(function() {
-        if ($('.selectRow:checked').length == $('.selectRow').length) {
-            $('#selectAll').prop('checked', true);
-        } else {
-            $('#selectAll').prop('checked', false);
-        }
-        updateSelectedCount();
-    });
-
-    // Context Menu
+    // Keep context menu functionality
     var selectedAdminId;
 
     $('#adminsTable tbody').on('contextmenu', 'tr', function(e) {
@@ -593,6 +560,66 @@ $(document).ready(function() {
 
     $('#updateAdmin').click(function() {
         window.location.href = `edit_admin.php?id=${selectedAdminId}`;
+    });
+    
+    // Add new generate password action
+    $('#generatePassword').click(function() {
+        Swal.fire({
+            title: 'Generate New Password?',
+            text: 'Are you sure you want to generate a new password for this admin?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, generate new password'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: 'generate_admin_password.php',
+                    method: 'POST',
+                    data: { adminId: selectedAdminId },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                title: 'Password Generated!',
+                                html: `
+                                    <div class='text-center'>
+                                        <p>A new password has been generated.</p>
+                                        <p><strong>Employee ID:</strong> ${response.employee_id}</p>
+                                        <p><strong>Admin:</strong> ${response.admin_name}</p>
+                                        <div class="input-group mb-3">
+                                            <input type="text" id="newPassword" class="form-control" value="${response.password}" readonly>
+                                            <div class="input-group-append">
+                                                <button class="btn btn-outline-secondary" type="button" onclick="copyPassword()">
+                                                    <i class="fas fa-copy"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <p class='text-danger'><small>Please make sure to copy this password now!</small></p>
+                                    </div>
+                                `,
+                                icon: 'success',
+                                confirmButtonText: 'OK'
+                            });
+                        } else {
+                            Swal.fire(
+                                'Error!',
+                                response.message,
+                                'error'
+                            );
+                        }
+                    },
+                    error: function() {
+                        Swal.fire(
+                            'Error!',
+                            'Failed to generate new password',
+                            'error'
+                        );
+                    }
+                });
+            }
+        });
     });
 
     // Update delete admin with SweetAlert
@@ -845,17 +872,7 @@ $(document).ready(function() {
     }
 
     // Update checkbox handlers to use the new count function
-    $('#selectAll').click(function() {
-        $('.selectRow').prop('checked', this.checked);
-        updateSelectedCount();
-    });
-
     $('.selectRow').click(function() {
-        if ($('.selectRow:checked').length == $('.selectRow').length) {
-            $('#selectAll').prop('checked', true);
-        } else {
-            $('#selectAll').prop('checked', false);
-        }
         updateSelectedCount();
     });
 
@@ -912,41 +929,39 @@ $(document).ready(function() {
     }
     
     // Listen for checkbox changes to update visuals
-    $(document).on('change', '.selectRow, #selectAll', function() {
+    $(document).on('change', '.selectRow', function() {
         updateAdminRowSelectionVisuals();
         updateSelectedCount();
     });
     
     // Initialize selection visuals on page load
     updateAdminRowSelectionVisuals();
-    
-    // Fix Select All functionality to update row highlighting
-    $('#selectAll').click(function() {
-        const isChecked = $(this).prop('checked');
-        
-        // Update all checkboxes
-        $('.selectRow').prop('checked', isChecked);
-        
-        // Update the visual state of rows
-        updateAdminRowSelectionVisuals();
-        
-        // Update counts and button states
-        updateSelectedCount();
-    });
-    
-    // Make sure the event delegated handlers for .selectRow also trigger visual updates
-    $(document).on('change', '.selectRow', function() {
-        if ($('.selectRow:checked').length === $('.selectRow').length && $('.selectRow').length > 0) {
-            $('#selectAll').prop('checked', true);
-        } else {
-            $('#selectAll').prop('checked', false);
-        }
-        
-        // Update the visual state of rows
-        updateAdminRowSelectionVisuals();
-        
-        // Update counts
-        updateSelectedCount();
-    });
 });
+
+// Function to copy the generated password
+function copyPassword() {
+    const passwordField = document.getElementById('newPassword');
+    passwordField.select();
+    document.execCommand('copy');
+    
+    // Show a small tooltip/notification that password was copied
+    const tooltip = document.createElement('div');
+    tooltip.textContent = 'Password copied!';
+    tooltip.style.position = 'absolute';
+    tooltip.style.backgroundColor = 'rgba(0,0,0,0.7)';
+    tooltip.style.color = 'white';
+    tooltip.style.padding = '5px 10px';
+    tooltip.style.borderRadius = '3px';
+    tooltip.style.fontSize = '12px';
+    tooltip.style.zIndex = '9999';
+    tooltip.style.left = '50%';
+    tooltip.style.top = '50%';
+    tooltip.style.transform = 'translate(-50%, -50%)';
+    
+    document.body.appendChild(tooltip);
+    
+    setTimeout(() => {
+        document.body.removeChild(tooltip);
+    }, 1500);
+}
 </script>

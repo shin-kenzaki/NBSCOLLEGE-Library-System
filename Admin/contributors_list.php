@@ -92,9 +92,6 @@ while ($row = $result->fetch_assoc()) {
             <div class="card-header py-3 d-flex flex-wrap align-items-center justify-content-between">
                 <h6 class="m-0 font-weight-bold text-primary">Contributors List</h6>
                 <div class="d-flex align-items-center">
-                    <span class="mr-3 total-contributors-display">
-                        Total Contributors: <?php echo number_format($totalContributors ?? 0); ?>
-                    </span>
                     <button id="returnSelectedBtn" class="btn btn-danger btn-sm mr-2 bulk-delete-btn" disabled>
                         <i class="fas fa-trash"></i>
                         <span>Delete Selected</span>
@@ -110,7 +107,7 @@ while ($row = $result->fetch_assoc()) {
                     <table class="table table-bordered table-striped" id="dataTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
-                                <th style="cursor: pointer; text-align: center;" id="checkboxHeader"><input type="checkbox" id="selectAll"></th>
+                                <th style="text-align: center;">Select</th>
                                 <th style='text-align: center;'>ID Range</th>
                                 <th style='text-align: center;'>Book Title</th>
                                 <th style='text-align: center;'>Contributor</th>
@@ -325,6 +322,17 @@ while ($row = $result->fetch_assoc()) {
     width: 100%;
     padding: 0 !important;
 }
+
+/* Add selected class styling */
+#dataTable tbody tr.selected {
+    background-color: rgba(0, 123, 255, 0.1) !important;
+}
+
+/* Override striped table styling for selected rows */
+#dataTable.table-striped tbody tr.selected:nth-of-type(odd),
+#dataTable.table-striped tbody tr.selected:nth-of-type(even) {
+    background-color: rgba(0, 123, 255, 0.1) !important;
+}
 </style>
 
 <?php include '../Admin/inc/footer.php'; ?>
@@ -376,33 +384,6 @@ $(document).ready(function() {
     // Remove context menu handlers
     
     // Modified checkbox handling
-    // Header cell click handler
-    $(document).on('click', 'thead th:first-child', function(e) {
-        // If the click was directly on the checkbox, don't execute this handler
-        if (e.target.type === 'checkbox') return;
-        
-        // Find and click the checkbox
-        var checkbox = $('#selectAll');
-        checkbox.prop('checked', !checkbox.prop('checked'));
-        $('.row-checkbox').prop('checked', checkbox.prop('checked'));
-    });
-
-    // Keep the original checkbox change handlers
-    $('#selectAll').change(function() {
-        $('.row-checkbox').prop('checked', $(this).prop('checked'));
-    });
-
-    $('#dataTable tbody').on('change', '.row-checkbox', function() {
-        if (!$(this).prop('checked')) {
-            $('#selectAll').prop('checked', false);
-        } else {
-            var allChecked = true;
-            $('.row-checkbox').each(function() {
-                if (!$(this).prop('checked')) allChecked = false;
-            });
-            $('#selectAll').prop('checked', allChecked);
-        }
-    });
 
     // Add cell click handler for the checkbox column
     $('#dataTable tbody').on('click', 'td:first-child', function(e) {
@@ -434,6 +415,7 @@ $(document).ready(function() {
     // Handle checkbox changes
     $('#dataTable').on('change', '.row-checkbox', function() {
         updateDeleteButton();
+        updateRowSelectionState(); // Make sure this gets called
     });
 
     // Handle bulk delete
@@ -584,8 +566,16 @@ $(document).ready(function() {
     // Update row selection visuals
     function updateRowSelectionState() {
         $('#dataTable tbody tr').each(function() {
-            const isChecked = $(this).find('.row-checkbox').prop('checked');
-            $(this).toggleClass('selected', isChecked);
+            const checkbox = $(this).find('.row-checkbox');
+            const isChecked = checkbox.prop('checked');
+            
+            // Clear any existing row styling first
+            $(this).removeClass('selected');
+            
+            // Apply selected class if checkbox is checked
+            if (isChecked) {
+                $(this).addClass('selected');
+            }
         });
         
         // Also update the delete button badge with count of selected items
@@ -599,17 +589,9 @@ $(document).ready(function() {
         updateRowSelectionState();
     });
 
-    // Update row visuals when "Select All/Unselect All" is used
-    $('#selectAll, #checkboxHeader').on('click', function(e) {
-        if ($(this).is('th')) {
-            const checkbox = $('#selectAll');
-            checkbox.prop('checked', !checkbox.prop('checked'));
-        }
-        $('.row-checkbox').prop('checked', $('#selectAll').prop('checked'));
-        updateRowSelectionState(); // Ensure rows are highlighted/unhighlighted
-        if ($(this).is('input')) {
-            e.stopPropagation();
-        }
+    // Call this function after DataTable is drawn
+    table.on('draw', function() {
+        updateRowSelectionState();
     });
 
     // Initialize row selection visuals on page load

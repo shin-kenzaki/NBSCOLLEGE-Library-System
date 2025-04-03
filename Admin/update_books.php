@@ -156,6 +156,9 @@ if (isset($_POST['submit'])) {
             $volume_value = isset($volumes[$index]) ? mysqli_real_escape_string($conn, $volumes[$index]) : '';
             $edition_value = isset($editions[$index]) ? mysqli_real_escape_string($conn, $editions[$index]) : '';
             
+            // Fix: Properly capture copy number value
+            $copy_number = isset($_POST['copy_number'][$index]) ? intval($_POST['copy_number'][$index]) : 1;
+            
             $entered_by_value = isset($original_data['entered_by']) ? $original_data['entered_by'] : '';
             $date_added_value = isset($original_data['date_added']) ? $original_data['date_added'] : date('Y-m-d');
 
@@ -194,6 +197,7 @@ if (isset($_POST['submit'])) {
                 series = ?,
                 volume = ?,
                 edition = ?,
+                copy_number = ?,
                 total_pages = ?,
                 supplementary_contents = ?,
                 ISBN = ?,
@@ -215,7 +219,7 @@ if (isset($_POST['submit'])) {
             $stmt = $conn->prepare($update_query);
             
             // Bind parameters with copy-specific values including preserved entered_by/date_added
-            $stmt->bind_param("sssssssssssssssssssssssssssssi", 
+            $stmt->bind_param("ssssssssssssssssssssssssssssssi", 
                 $title, 
                 $preferred_title, 
                 $parallel_title,
@@ -229,6 +233,7 @@ if (isset($_POST['submit'])) {
                 $series_value,     // Use individual series value for this copy
                 $volume_value,     // Use individual volume value for this copy
                 $edition_value,    // Use individual edition value for this copy
+                $copy_number,      // Include copy_number in binding
                 $total_page,
                 $supplementary_content_value,
                 $ISBN,
@@ -605,6 +610,9 @@ if ($first_book) {
                 <div class="container-fluid d-flex justify-content-between align-items-center">
                     <h1 class="h3 mb-2 text-gray-800">Update Books (<?php echo count($books); ?> copies)</h1>
                     <div>
+                        <button type="submit" name="submit" class="btn btn-success me-2">
+                            <i class="fas fa-save"></i> Save Changes
+                        </button>
                         <button type="button" class="btn btn-info" data-toggle="modal" data-target="#instructionsModal">
                             <i class="fas fa-question-circle"></i> Instructions
                         </button>
@@ -685,7 +693,7 @@ if ($first_book) {
                                         <?php endforeach; ?>
                                     </select>
                                     <small class="text-muted">Hold Ctrl/Cmd to select multiple items</small>
-                                    <div id="authorPreview" class="mt-2 p-2 border rounded bg-light"></div>
+                                    <div class="mt-2 border rounded bg-light" id="authorPreview"></div>
                                 </div>
                                 
                                 <div class="col-md-4">
@@ -1286,17 +1294,20 @@ document.addEventListener("DOMContentLoaded", function() {
         
         copies.forEach((copy) => {
             const copyNumberInput = copy.querySelector('input[name="copy_number[]"]');
-            const copyNum = copyNumberInput.value.replace(/^c/, '');
-            const shelfLocation = copy.querySelector('select[name="shelf_location[]"]').value;
+            const shelfLocationSelect = copy.querySelector('select[name="shelf_location[]"]');
             const volumeInput = copy.querySelector('input[name="volume[]"]');
-            const volumeText = volumeInput && volumeInput.value.trim() ? `vol${volumeInput.value.trim()}` : ''; // Removed trailing space
             
-            // Validate raw call number format (only classification and cutter)
-            if (!/^[A-Z0-9]+(\.[0-9]+)?\s[A-Z][0-9]+$/.test(rawCallNumber)) {
+            // Get values
+            const copyNum = copyNumberInput.value.replace(/^c/, '');
+            const shelfLocation = shelfLocationSelect.value;
+            const volumeText = volumeInput && volumeInput.value.trim() ? `vol${volumeInput.value.trim()}` : '';
+            
+            // Validate raw call number format
+            if (rawCallNumber && !/^[A-Z0-9]+(\.[0-9]+)?\s[A-Z][0-9]+$/.test(rawCallNumber)) {
                 console.warn('Call number format should be like "Z936.98 L39"');
             }
             
-            // Store complete call number in hidden input
+            // Build call number
             const formattedCallNumber = [
                 shelfLocation,         // Location code (e.g., TR)
                 rawCallNumber,         // Classification and cutter (e.g., Z936.98 L39)
@@ -1312,19 +1323,20 @@ document.addEventListener("DOMContentLoaded", function() {
             // Append copy number
             finalCallNumber += ` c${copyNum}`;
             
-            // Update hidden input with complete call number
+            // Update call number field
             const callNumberField = copy.querySelector('input[name="call_numbers[]"]');
             if (callNumberField) {
                 callNumberField.value = finalCallNumber;
             }
-
-            // Display only classification and cutter in the display element
-            const displayElement = copy.querySelector('.call-number-display');
-            if (displayElement) {
-                displayElement.textContent = rawCallNumber; // Only show classification and cutter
-            }
         });
     }
+
+    // Add event listeners for copy number changes
+    document.querySelectorAll('input[name="copy_number[]"]').forEach(input => {
+        input.addEventListener('input', function() {
+            formatCallNumber();
+        });
+    });
 
     // Single, unified updateCopyNumbers function
     function updateCopyNumbers() {
@@ -1474,6 +1486,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (data.success) {
                         bookCopyRow.remove();
                         
+                        await Swal.fire({
+                            title: 'Copy Deleted',
+                            text: data.message || 'Book copy deleted successfully.',
+                            icon: 'success',
+                            confirmButtonText: 'OK'
+                        });
+                        
                         // Check if this was the last copy
                         const remainingCopies = document.querySelectorAll('.book-copy').length;
                         if (remainingCopies === 0) {
@@ -1488,8 +1507,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     } else {
                         await Swal.fire({
-                            title: 'Error',
-                            text: data.error || 'Failed to delete the copy.',
+                            title: 'Cannot Delete Book',
+                            text: data.error || 'This book cannot be deleted because it is currently in use.',
                             icon: 'error'
                         });
                     }
@@ -1577,7 +1596,7 @@ function updateContributorPreviews() {
     }
     coAuthorPreview.innerHTML = coAuthorHtml || '<em class="text-muted">No co-authors selected</em>';
 
-    // Update editor preview
+    // Update editor preview 
     let editorHtml = '';
     for (const option of editorSelect.selectedOptions) {
         if (option.value) {

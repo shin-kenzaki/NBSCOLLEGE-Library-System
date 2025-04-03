@@ -161,6 +161,15 @@ $result = $conn->query($query);
     .warning-card {
         border-left-color: #f6c23e;
     }
+    
+    /* Add alternating row colors */
+    #dataTable.table-striped tbody tr:nth-of-type(odd) {
+        background-color: rgba(0, 0, 0, 0.03);
+    }
+
+    #dataTable.table-striped tbody tr:hover {
+        background-color: rgba(0, 123, 255, 0.05);
+    }
 </style>
 
 <!-- Main Content -->
@@ -260,7 +269,7 @@ $result = $conn->query($query);
             </div>
             <div class="card-body">
                 <div class="table-responsive">
-                    <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <table class="table table-bordered table-striped" id="dataTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
                                 <th class="text-center">Book Title</th>

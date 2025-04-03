@@ -15,6 +15,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $password = $_POST['password'];
     $hashed_password = password_hash($password, PASSWORD_DEFAULT);
     $usertype = mysqli_real_escape_string($conn, $_POST['usertype']);
+    $department = mysqli_real_escape_string($conn, $_POST['department']);
     $image = '../Images/Profile/default-avatar.jpg';
 
     // Append period to middle initial if not empty
@@ -30,6 +31,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $_SESSION['email'] = $email;
     $_SESSION['hashed_password'] = $hashed_password;
     $_SESSION['usertype'] = $usertype;
+    $_SESSION['department'] = $department;
     $_SESSION['image'] = $image;
 
     $_SESSION['otp_allowed'] = true;
@@ -411,6 +413,21 @@ function capitalizeFirstLetter(input) {
                       <option value="Staff">Staff</option>
                     </select>
                   </div>
+                </div>
+
+                <div class="form-group">
+                  <select
+                    name="department"
+                    class="form-control select-dropdown"
+                    required
+                  >
+                    <option value="">Select Department</option>
+                    <option value="Computer Science">Computer Science</option>
+                    <option value="Accounting Information System">Accounting Information System</option>
+                    <option value="Accountancy">Accountancy</option>
+                    <option value="Entrepreneurship">Entrepreneurship</option>
+                    <option value="Tourism Management">Tourism Management</option>
+                  </select>
                 </div>
 
                 <button

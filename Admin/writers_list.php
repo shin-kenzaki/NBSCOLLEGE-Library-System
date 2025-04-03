@@ -182,11 +182,11 @@ $result = $conn->query($sql);
                     <table class="table table-bordered table-striped" id="dataTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
-                                <th style="cursor: pointer; text-align: center;" id="checkboxHeader"><input type="checkbox" id="selectAll"></th>
-                                <th class="text-center">ID</th>
-                                <th class="text-center">First Name</th>
-                                <th class="text-center">Middle Initial</th>
-                                <th class="text-center">Last Name</th>
+                                <th style="text-align: center;">Select</th>
+                                <th style="text-align: center;">ID</th>
+                                <th style="text-align: center;">First Name</th>
+                                <th style="text-align: center;">Middle Initial</th>
+                                <th style="text-align: center;">Last Name</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -579,6 +579,13 @@ $result = $conn->query($sql);
         width: 100%;
         padding: 0 !important;
     }
+
+    /* Create highlighted row styling that overrides striped table */
+    #dataTable tbody tr.selected,
+    #dataTable.table-striped tbody tr.selected:nth-of-type(odd),
+    #dataTable.table-striped tbody tr.selected:nth-of-type(even) {
+        background-color: rgba(0, 123, 255, 0.1) !important;
+    }
 </style>
 
 <script>
@@ -822,6 +829,8 @@ $(document).ready(function () {
         
         // Update select all checkbox
         updateSelectAllCheckbox();
+        // Update row selection visuals after initializing checkboxes
+        updateRowSelectionState();
     }
     
     // Update the select all checkbox state
@@ -1123,17 +1132,39 @@ $(document).ready(function () {
         `)
         .appendTo('head');
 
-    // Update row selection visual state
+    // Update row selection visual state - completely rewritten for better handling
     function updateRowSelectionState() {
+        // First, remove the selected class from all rows
+        $('#dataTable tbody tr').removeClass('selected');
+        
+        // Then apply it only to rows where the checkbox is checked
         $('#dataTable tbody tr').each(function() {
-            const isChecked = $(this).find('.row-checkbox').prop('checked');
-            $(this).toggleClass('selected', isChecked);
+            const checkbox = $(this).find('.row-checkbox');
+            if (checkbox.length && checkbox.prop('checked')) {
+                $(this).addClass('selected');
+            }
         });
+        
+        // Update delete button state
+        const count = $('.row-checkbox:checked').length;
+        $('.bulk-delete-btn .badge').text(count);
+        $('.bulk-delete-btn').prop('disabled', count === 0);
     }
     
     // Listen for checkbox state changes to update row selection visuals
     $('#dataTable tbody').on('change', '.row-checkbox', function() {
-        updateRowSelectionState();
+        // Update just this row's class based on its checkbox
+        const row = $(this).closest('tr');
+        if ($(this).prop('checked')) {
+            row.addClass('selected');
+        } else {
+            row.removeClass('selected');
+        }
+        
+        // Also update the delete button badge
+        const count = $('.row-checkbox:checked').length;
+        $('.bulk-delete-btn .badge').text(count);
+        $('.bulk-delete-btn').prop('disabled', count === 0);
     });
     
     // Initialize row selection state
@@ -1162,6 +1193,9 @@ $(document).ready(function () {
                 checkbox.wrap('<div class="checkbox-wrapper"></div>');
             }
         });
+        
+        // Re-apply row selection highlights after table redraw
+        updateRowSelectionState();
     });
 
     // Force the table to recalculate column widths after initialization
