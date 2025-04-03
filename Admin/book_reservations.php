@@ -256,13 +256,56 @@ $checkboxStyles = "margin: 0; vertical-align: middle;";
             <?php endif; ?>
             <div class="card-body">
                 <!-- Remove the old filter summary div that was here -->
-                
+                <style>
+                    /* Add alternating row colors */
+                    #dataTable.table-striped tbody tr:nth-of-type(odd) {
+                        background-color: rgba(0, 0, 0, 0.03);
+                    }
+
+                    #dataTable.table-striped tbody tr:hover {
+                        background-color: rgba(0, 123, 255, 0.05);
+                    }
+                    
+                    /* Add selected row styles */
+                    #dataTable tbody tr.selected {
+                        background-color: rgba(0, 123, 255, 0.1) !important;
+                    }
+                    
+                    /* Ensure selected rows override striped styles */
+                    #dataTable.table-striped tbody tr.selected:nth-of-type(odd),
+                    #dataTable.table-striped tbody tr.selected:nth-of-type(even) {
+                        background-color: rgba(0, 123, 255, 0.1) !important;
+                    }
+                    
+                    /* Add hover effect styles */
+                    #dataTable tbody tr {
+                        transition: background-color 0.2s;
+                        cursor: pointer;
+                    }
+
+                    #dataTable tbody tr:hover {
+                        background-color: rgba(0, 123, 255, 0.05);
+                    }
+                    
+                    /* Checkbox styling */
+                    .checkbox-cell {
+                        cursor: pointer;
+                        text-align: center;
+                        vertical-align: middle;
+                        width: 40px !important;
+                    }
+                    
+                    .checkbox-cell input[type="checkbox"] {
+                        margin: 0 auto;
+                        display: block;
+                    }
+                </style>
                 <div class="table-responsive" style="<?php echo $tableResponsiveStyles; ?>">
-                    <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <table class="table table-bordered table-striped" id="dataTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
-                                <th style="<?php echo $checkboxColumnStyles; ?> width: 30px;">
-                                    <input type="checkbox" id="selectAll" title="Select/Unselect All" style="<?php echo $checkboxStyles; ?>">
+                                <th style="<?php echo $checkboxColumnStyles; ?> width: 30px;" id="checkboxHeader">
+                                    Select
                                 </th>
                                 <th style="<?php echo $tableCenterStyles; ?>">User</th>
                                 <th style="<?php echo $tableCenterStyles; ?>">Book</th>
@@ -1088,6 +1131,98 @@ $checkboxStyles = "margin: 0; vertical-align: middle;";
                 }
             });
         });
+        
+        // Function to update the highlighting of selected rows
+        function updateRowSelectionState() {
+            // First, remove the selected class from all rows
+            $('#dataTable tbody tr').removeClass('selected');
+            
+            // Then add it only to rows with checked checkboxes
+            $('.reservation-checkbox:checked').each(function() {
+                $(this).closest('tr').addClass('selected');
+            });
+            
+            // Update button states
+            updateBulkButtons();
+        }
+        
+        // Handle row clicks to select/deselect rows
+        $('#dataTable tbody').on('click', 'tr', function(e) {
+            // Ignore clicks on checkbox itself and on action buttons
+            if (e.target.type === 'checkbox' || $(e.target).hasClass('btn') || $(e.target).parent().hasClass('btn')) {
+                return;
+            }
+            
+            const checkbox = $(this).find('.reservation-checkbox');
+            if (checkbox.is(':disabled')) return;
+            
+            checkbox.prop('checked', !checkbox.prop('checked')).trigger('change');
+        });
+        
+        // Update row selection when checkbox state changes
+        $(document).on('change', '.reservation-checkbox', function() {
+            const $row = $(this).closest('tr');
+            
+            if ($(this).prop('checked')) {
+                $row.addClass('selected');
+            } else {
+                $row.removeClass('selected');
+            }
+            
+            const totalCheckable = $('.reservation-checkbox').filter(function() {
+                const status = $(this).closest('tr').find('td:eq(5) span').text().trim();
+                return status === 'Pending' || status === 'Ready';
+            }).length;
+            
+            const totalChecked = $('.reservation-checkbox:checked').length;
+            
+            $('#selectAll').prop({
+                'checked': totalChecked > 0 && totalChecked === totalCheckable,
+                'indeterminate': totalChecked > 0 && totalChecked < totalCheckable
+            });
+            
+            updateBulkButtons();
+        });
+        
+        // Handle select all checkbox
+        $('#selectAll').change(function() {
+            const isChecked = $(this).prop('checked');
+            $('.reservation-checkbox').each(function() {
+                const $row = $(this).closest('tr');
+                const status = $row.data('status');
+                
+                // Only allow selection of Pending and Ready items
+                if (status === 'Pending' || status === 'Ready') {
+                    $(this).prop('checked', isChecked);
+                    
+                    if (isChecked) {
+                        $row.addClass('selected');
+                    } else {
+                        $row.removeClass('selected');
+                    }
+                }
+            });
+            
+            updateBulkButtons();
+        });
+        
+        // Handle header checkbox cell click
+        $(document).on('click', '#checkboxHeader', function(e) {
+            // If the click was directly on the checkbox, don't execute this handler
+            if (e.target.type === 'checkbox') return;
+            
+            // Find and toggle the checkbox
+            var checkbox = $('#selectAll');
+            checkbox.prop('checked', !checkbox.prop('checked')).trigger('change');
+        });
+        
+        // Initialize row selection states after DataTable is fully loaded
+        $('#dataTable').on('draw.dt', function() {
+            updateRowSelectionState();
+        });
+        
+        // Initialize row selection state on page load
+        updateRowSelectionState();
     });
 </script>
 </body>

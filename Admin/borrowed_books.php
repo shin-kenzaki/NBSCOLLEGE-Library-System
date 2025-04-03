@@ -357,6 +357,26 @@ if (isset($_SESSION['emails_sent']) && $_SESSION['emails_sent']) {
         margin: 0 auto;
         display: block;
     }
+
+    /* Add alternating row colors */
+    #dataTable.table-striped tbody tr:nth-of-type(odd) {
+        background-color: rgba(0, 0, 0, 0.03);
+    }
+
+    #dataTable.table-striped tbody tr:hover {
+        background-color: rgba(0, 123, 255, 0.05);
+    }
+    
+    /* Add selected row styles */
+    #dataTable tbody tr.selected {
+        background-color: rgba(0, 123, 255, 0.1) !important;
+    }
+    
+    /* Ensure selected rows override striped styles */
+    #dataTable.table-striped tbody tr.selected:nth-of-type(odd),
+    #dataTable.table-striped tbody tr.selected:nth-of-type(even) {
+        background-color: rgba(0, 123, 255, 0.1) !important;
+    }
 </style>
 
 <!-- Main Content -->
@@ -489,11 +509,11 @@ if (isset($_SESSION['emails_sent']) && $_SESSION['emails_sent']) {
                 }
             </style>
             <div class="table-responsive">
-                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                <table class="table table-bordered table-striped" id="dataTable" width="100%" cellspacing="0">
                     <thead>
                         <tr>
                             <th style="width: 30px; cursor: pointer;" id="checkboxHeader">
-                                <input type="checkbox" id="selectAll" title="Select/Unselect All">
+                                Select
                             </th>
                             <th class="text-center">Accession No.</th>
                             <th class="text-center">Book Title</th>
@@ -541,6 +561,9 @@ if (isset($_SESSION['emails_sent']) && $_SESSION['emails_sent']) {
             </div>
         </div>
     </div>
+
+    <!-- Hidden checkbox for select all functionality -->
+    <input type="checkbox" id="selectAll" style="display:none;">
 
     <!-- Statistics Cards - Moved below the table card -->
     <h4 class="mb-3 text-gray-800">Statistics Overview</h4>
@@ -1107,11 +1130,16 @@ if (isset($_SESSION['emails_sent']) && $_SESSION['emails_sent']) {
             const selectedBooks = $('.borrow-checkbox:checked').map(function() {
                 const row = $(this).closest('tr');
                 return {
-                    id: $(this).data('borrow-id'),
+                    id: row.data('book-id'), // Using book-id instead of borrow-id
                     title: row.data('book-title'),
                     borrower: row.data('borrower')
                 };
             }).get();
+
+            if (selectedBooks.length === 0) {
+                Swal.fire('Warning', 'Please select at least one book to return', 'warning');
+                return;
+            }
 
             let booksListHtml = '<ul class="list-group mt-3">';
             selectedBooks.forEach(book => {
@@ -1128,23 +1156,46 @@ if (isset($_SESSION['emails_sent']) && $_SESSION['emails_sent']) {
                 confirmButtonColor: '#28a745',
                 cancelButtonColor: '#d33',
                 showLoaderOnConfirm: true,
-                preConfirm: () => {
-                    return $.ajax({
-                        url: 'bulk_return_books.php',
-                        method: 'POST',
-                        data: { borrowIds: selectedItems },
-                        dataType: 'json'
-                    }).catch(error => {
-                        Swal.showValidationMessage(`Request failed: ${error}`);
-                    });
-                },
-                allowOutsideClick: () => !Swal.isLoading()
+                allowOutsideClick: () => !Swal.isLoading(),
+                preConfirm: async () => {
+                    // Process each book return sequentially
+                    const results = [];
+                    for (const book of selectedBooks) {
+                        try {
+                            // Call book_returned.php for each book
+                            const response = await fetch(`book_returned.php?id=${book.id}`);
+                            if (!response.ok) {
+                                throw new Error(`Failed to return book: ${book.title}`);
+                            }
+                            results.push({
+                                success: true,
+                                book: book.title
+                            });
+                        } catch (error) {
+                            results.push({
+                                success: false,
+                                book: book.title,
+                                error: error.message
+                            });
+                        }
+                    }
+                    return results;
+                }
             }).then((result) => {
                 if (result.isConfirmed) {
+                    const results = result.value;
+                    const successful = results.filter(r => r.success).length;
+                    const failed = results.filter(r => !r.success).length;
+                    
+                    let message = `Successfully returned ${successful} books.`;
+                    if (failed > 0) {
+                        message += ` Failed to return ${failed} books.`;
+                    }
+                    
                     Swal.fire({
-                        title: 'Success!',
-                        text: result.value.message,
-                        icon: 'success'
+                        title: 'Process Complete',
+                        text: message,
+                        icon: successful > 0 ? 'success' : 'error'
                     }).then(() => {
                         window.location.reload();
                     });
@@ -1238,12 +1289,28 @@ if (isset($_SESSION['emails_sent']) && $_SESSION['emails_sent']) {
                     // Only select checkboxes for Active or Overdue items
                     if (status === 'Active' || status === 'Overdue') {
                         $(this).prop('checked', isChecked);
+                        if (isChecked) {
+                            $row.addClass('selected');
+                        } else {
+                            $row.removeClass('selected');
+                        }
                     }
                 });
-                updateSelectedCount();
+                
+                // Update the button states
+                const totalChecked = $('.borrow-checkbox:checked').length;
+                $('#selectedCount, #selectedCountDueDate').text(totalChecked);
+                $('#updateDueDateBtn, #returnSelectedBtn').prop('disabled', totalChecked === 0);
             });
 
             $(document).on('change', '.borrow-checkbox', function() {
+                const $row = $(this).closest('tr');
+                if ($(this).prop('checked')) {
+                    $row.addClass('selected');
+                } else {
+                    $row.removeClass('selected');
+                }
+                
                 const totalEligible = $('.borrow-checkbox').filter(function() {
                     const status = $(this).closest('tr').find('td:eq(8) span').text().trim();
                     return status === 'Active' || status === 'Overdue';
@@ -1256,7 +1323,9 @@ if (isset($_SESSION['emails_sent']) && $_SESSION['emails_sent']) {
                     'indeterminate': totalChecked > 0 && totalChecked < totalEligible
                 });
 
-                updateSelectedCount();
+                // Update button states
+                $('#selectedCount, #selectedCountDueDate').text(totalChecked);
+                $('#updateDueDateBtn, #returnSelectedBtn').prop('disabled', totalChecked === 0);
             });
         }
 
@@ -1276,6 +1345,13 @@ if (isset($_SESSION['emails_sent']) && $_SESSION['emails_sent']) {
             // Find the checkbox within this row and toggle it
             var checkbox = $(this).find('.borrow-checkbox');
             checkbox.prop('checked', !checkbox.prop('checked')).trigger('change');
+            
+            // Update row selection visualization
+            if (checkbox.prop('checked')) {
+                $(this).addClass('selected');
+            } else {
+                $(this).removeClass('selected');
+            }
         });
 
         // Handle header checkbox cell click
@@ -1285,25 +1361,32 @@ if (isset($_SESSION['emails_sent']) && $_SESSION['emails_sent']) {
 
             // Find and toggle the checkbox
             var checkbox = $('#selectAll');
-            checkbox.prop('checked', !checkbox.prop('checked'));
-
-            // Update all checkboxes based on the state
-            const isChecked = checkbox.prop('checked');
-            $('.borrow-checkbox').each(function() {
-                const $row = $(this).closest('tr');
-                const status = $row.find('td:eq(8) span').text().trim();
-                // Only select checkboxes for Active or Overdue items
-                if (status === 'Active' || status === 'Overdue') {
-                    $(this).prop('checked', isChecked);
-                }
-            });
-
-            updateSelectedCount();
+            checkbox.prop('checked', !checkbox.prop('checked')).trigger('change');
         });
+
+        // Initialize row selection states
+        updateRowSelectionState();
 
     });
 
-
+    // Function to update the selected state of rows
+    function updateRowSelectionState() {
+        // First, remove the selected class from all rows
+        $('#dataTable tbody tr').removeClass('selected');
+        
+        // Then add it to rows with checked checkboxes
+        $('#dataTable tbody tr').each(function() {
+            const checkbox = $(this).find('.borrow-checkbox');
+            if (checkbox.length && checkbox.prop('checked')) {
+                $(this).addClass('selected');
+            }
+        });
+        
+        // Update button states based on selection count
+        const count = $('.borrow-checkbox:checked').length;
+        $('#selectedCount, #selectedCountDueDate').text(count);
+        $('#updateDueDateBtn, #returnSelectedBtn').prop('disabled', count === 0);
+    }
 </script>
 
 </body>

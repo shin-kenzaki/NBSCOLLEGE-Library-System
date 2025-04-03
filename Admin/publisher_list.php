@@ -283,6 +283,17 @@ $result = $conn->query($sql);
         width: 100%;
         padding: 0 !important;
     }
+
+    /* Add selected class styling */
+    #dataTable tbody tr.selected {
+        background-color: rgba(0, 123, 255, 0.1) !important;
+    }
+    
+    /* Override striped table styling for selected rows */
+    #dataTable.table-striped tbody tr.selected:nth-of-type(odd),
+    #dataTable.table-striped tbody tr.selected:nth-of-type(even) {
+        background-color: rgba(0, 123, 255, 0.1) !important;
+    }
 </style>
 
 <!-- Main Content -->

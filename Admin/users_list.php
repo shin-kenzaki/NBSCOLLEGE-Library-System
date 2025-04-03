@@ -121,28 +121,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $sql = "INSERT INTO users (
                 school_id, firstname, middle_init, lastname, 
                 email, password, contact_no, user_image, 
-                usertype, borrowed_books, returned_books, 
-                damaged_books, lost_books, address, 
-                id_type, id_image, status, date_added, last_update,
-                department
+                usertype, address, id_type, id_image, 
+                status, date_added, last_update, department
             ) VALUES (
                 ?, ?, ?, ?, 
                 ?, ?, ?, ?,
-                ?, ?, ?, 
-                ?, ?, ?,
-                ?, ?, ?, NOW(), NOW(),
-                ?
+                ?, ?, ?, ?,
+                ?, NOW(), NOW(), ?
             )";
             
             $stmt = $conn->prepare($sql);
             $stmt->bind_param(
-                "ssssssssiiiisssis",
+                "ssssssssssssss",
                 $school_id, $firstname, $middle_init, $lastname,
                 $email, $hashed_password, $contact_no, $image,
-                $usertype, $borrowed_books, $returned_books,
-                $damaged_books, $lost_books, $address,
-                $id_type, $id_image, $status,
-                $department
+                $usertype, $address, $id_type, $id_image,
+                $status, $department
             );
 
             if ($stmt->execute()) {

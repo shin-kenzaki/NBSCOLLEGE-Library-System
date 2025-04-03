@@ -26,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     // Check user type - if student, apply the 3-book limit
-    $user_query = "SELECT usertype, borrowed_books FROM users WHERE id = ?";
+    $user_query = "SELECT usertype FROM users WHERE id = ?";
     $stmt = $conn->prepare($user_query);
     $stmt->bind_param('i', $user_id);
     $stmt->execute();
@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($user['usertype'] == 'Student') {
         // Get current active borrowings and reservations count
         $count_query = "SELECT 
-                        (SELECT COUNT(*) FROM borrowings WHERE user_id = ? AND status = 'Active') +
+                        (SELECT COUNT(*) FROM borrowings WHERE user_id = ? AND status IN ('Active', 'Overdue')) +
                         (SELECT COUNT(*) FROM reservations WHERE user_id = ? AND status IN ('Pending', 'Ready')) as total_books";
         $stmt = $conn->prepare($count_query);
         $stmt->bind_param('ii', $user_id, $user_id);
@@ -124,14 +124,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute();
         }
         
-        // Update user's borrowed books count
-        $update_user = "UPDATE users SET 
-                        borrowed_books = borrowed_books + ?,
-                        last_update = CURDATE()
-                        WHERE id = ?";
-        $book_count = count($book_ids);
+        // Update user's last_update timestamp and ensure status is active
+        $update_user = "UPDATE users SET last_update = CURDATE(), status = 1 WHERE id = ?";
         $stmt = $conn->prepare($update_user);
-        $stmt->bind_param('ii', $book_count, $user_id);
+        $stmt->bind_param('i', $user_id);
         $stmt->execute();
         
         // Commit transaction

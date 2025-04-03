@@ -312,6 +312,17 @@ while ($row = $result->fetch_assoc()) {
     width: 100%;
     padding: 0 !important;
 }
+
+/* Add selected row styling */
+#dataTable tbody tr.selected {
+    background-color: rgba(0, 123, 255, 0.1) !important;
+}
+
+/* Override striped table styling for selected rows */
+#dataTable.table-striped tbody tr.selected:nth-of-type(odd),
+#dataTable.table-striped tbody tr.selected:nth-of-type(even) {
+    background-color: rgba(0, 123, 255, 0.1) !important;
+}
 </style>
 
 <?php include '../Admin/inc/footer.php'; ?>
@@ -543,13 +554,31 @@ $(document).ready(function() {
     // Function to update row selection state
     function updateRowSelectionState() {
         $('#dataTable tbody tr').each(function() {
-            const isChecked = $(this).find('.row-checkbox').prop('checked');
-            $(this).toggleClass('selected', isChecked);
+            const checkbox = $(this).find('.row-checkbox');
+            const isChecked = checkbox.prop('checked');
+            
+            // Clear any existing row styling first
+            $(this).removeClass('selected');
+            
+            // Apply selected class if checkbox is checked
+            if (isChecked) {
+                $(this).addClass('selected');
+            }
         });
+        
+        // Also update delete button state
+        const count = $('.row-checkbox:checked').length;
+        $('.bulk-delete-btn .badge').text(count);
+        $('.bulk-delete-btn').prop('disabled', count === 0);
     }
 
     // Listen for checkbox state changes to update row selection visuals
     $('#dataTable tbody').on('change', '.row-checkbox', function() {
+        updateRowSelectionState();
+    });
+    
+    // Call this function after DataTable is drawn
+    table.on('draw', function() {
         updateRowSelectionState();
     });
 
