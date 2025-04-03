@@ -35,7 +35,7 @@ $values = [
 function generatePassword($length = 10) {
     $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()';
     $password = '';
-    for ($i = 0; $i < $length; $i++) {
+    for ($i = 0; $length > $i; $i++) {
         $password .= $chars[rand(0, strlen($chars) - 1)];
     }
     return $password;
@@ -248,6 +248,72 @@ $result = mysqli_query($conn, $query);
             justify-content: center;
         }
     }
+
+    /* Center checkboxes in cells */
+    #adminsTable th:first-child,
+    #adminsTable td:first-child {
+        text-align: center;
+        vertical-align: middle;
+    }
+    
+    /* Make sure checkbox inputs are centered */
+    #adminsTable #selectAll,
+    #adminsTable .selectRow {
+        margin: 0 auto;
+        display: block;
+    }
+    
+    /* Enhanced hover effect for checkbox column */
+    #adminsTable tbody tr td:first-child,
+    #adminsTable thead tr th:first-child {
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+        width: 40px !important;
+        min-width: 40px !important;
+    }
+    
+    #adminsTable tbody tr td:first-child:hover,
+    #adminsTable thead tr th:first-child:hover {
+        background-color: rgba(0, 123, 255, 0.15);
+    }
+    
+    /* Add a hover effect to the entire row */
+    #adminsTable tbody tr:hover {
+        background-color: rgba(0, 123, 255, 0.05);
+    }
+    
+    /* Style for active/selected rows */
+    #adminsTable tbody tr.selected td:first-child,
+    #adminsTable tbody tr.context-menu-active td:first-child {
+        background-color: rgba(0, 123, 255, 0.25);
+    }
+
+    /* Enhanced table striping with hover preservation */
+    #adminsTable.table-striped tbody tr:nth-of-type(odd) {
+        background-color: rgba(0, 0, 0, 0.03);
+    }
+    
+    #adminsTable.table-striped tbody tr:hover {
+        background-color: rgba(0, 123, 255, 0.05) !important;
+    }
+    
+    /* Ensure checkbox cell hover takes precedence over striping */
+    #adminsTable tbody tr td:first-child:hover,
+    #adminsTable thead tr th:first-child:hover {
+        background-color: rgba(0, 123, 255, 0.15) !important;
+    }
+    
+    /* Make header row stand out more */
+    #adminsTable thead th {
+        background-color: #f8f9fc;
+        border-bottom: 2px solid #e3e6f0;
+    }
+    
+    /* Maintain style for active/selected rows */
+    #adminsTable tbody tr.selected,
+    #adminsTable tbody tr.context-menu-active {
+        background-color: rgba(0, 123, 255, 0.08) !important;
+    }
 </style>
 
             <!-- Main Content -->
@@ -277,10 +343,12 @@ $result = mysqli_query($conn, $query);
                 <div class="card-body px-0">
                     <div class="table-responsive px-3">
                         <!-- Remove the custom search form -->
-                        <table class="table table-bordered" id="adminsTable" width="100%" cellspacing="0">
+                        <table class="table table-bordered table-striped" id="adminsTable" width="100%" cellspacing="0">
                             <thead>
                                 <tr>
-                                    <th><input type="checkbox" id="selectAll"></th>
+                                    <th class="text-center">
+                                        <input type="checkbox" id="selectAll">
+                                    </th>
                                     <th class="text-center">ID</th>
                                     <th class="text-center">Employee ID</th>
                                     <th class="text-center">Name</th>
@@ -429,6 +497,9 @@ $(document).ready(function() {
             "search": "_INPUT_",
             "searchPlaceholder": "Search..."
         },
+        "columnDefs": [
+            { "orderable": false, "targets": 0 } // Disable sorting on checkbox column
+        ],
         "initComplete": function() {
             // Style the search input with Bootstrap
             $('#adminsTable_filter input').addClass('form-control form-control-sm');
@@ -785,6 +856,96 @@ $(document).ready(function() {
         } else {
             $('#selectAll').prop('checked', false);
         }
+        updateSelectedCount();
+    });
+
+    // Add row click functionality for selection
+    $('#adminsTable tbody').on('click', 'tr', function(e) {
+        // Skip if clicking directly on checkbox or interactive elements
+        if (e.target.type === 'checkbox' || $(e.target).hasClass('btn') || 
+            $(e.target).closest('.btn').length || $(e.target).is('a')) {
+            return;
+        }
+        
+        // Toggle the row's checkbox
+        const checkbox = $(this).find('.selectRow');
+        checkbox.prop('checked', !checkbox.prop('checked')).trigger('change');
+    });
+
+    // Enable cell clicks for row selection
+    $('#adminsTable tbody').on('click', 'td', function(e) {
+        // Skip if clicking directly on the checkbox or interactive elements
+        if (e.target.type === 'checkbox' || $(e.target).hasClass('btn') || 
+            $(e.target).closest('.btn').length || $(e.target).is('a')) {
+            return;
+        }
+        
+        // Prevent triggering multiple handlers
+        e.stopPropagation();
+        
+        // Toggle the row's checkbox
+        const checkbox = $(this).closest('tr').find('.selectRow');
+        checkbox.prop('checked', !checkbox.prop('checked')).trigger('change');
+    });
+
+    // Add visual styling for selectable rows
+    $('<style>')
+        .text(`
+            #adminsTable tbody tr {
+                cursor: pointer;
+            }
+            #adminsTable tbody tr.selected {
+                background-color: rgba(0, 123, 255, 0.1) !important;
+            }
+            #adminsTable tbody tr.selected td {
+                background-color: rgba(0, 123, 255, 0.05);
+            }
+        `)
+        .appendTo('head');
+
+    // Function to update row selection visual state
+    function updateAdminRowSelectionVisuals() {
+        $('#adminsTable tbody tr').each(function() {
+            const isChecked = $(this).find('.selectRow').prop('checked');
+            $(this).toggleClass('selected', isChecked);
+        });
+    }
+    
+    // Listen for checkbox changes to update visuals
+    $(document).on('change', '.selectRow, #selectAll', function() {
+        updateAdminRowSelectionVisuals();
+        updateSelectedCount();
+    });
+    
+    // Initialize selection visuals on page load
+    updateAdminRowSelectionVisuals();
+    
+    // Fix Select All functionality to update row highlighting
+    $('#selectAll').click(function() {
+        const isChecked = $(this).prop('checked');
+        
+        // Update all checkboxes
+        $('.selectRow').prop('checked', isChecked);
+        
+        // Update the visual state of rows
+        updateAdminRowSelectionVisuals();
+        
+        // Update counts and button states
+        updateSelectedCount();
+    });
+    
+    // Make sure the event delegated handlers for .selectRow also trigger visual updates
+    $(document).on('change', '.selectRow', function() {
+        if ($('.selectRow:checked').length === $('.selectRow').length && $('.selectRow').length > 0) {
+            $('#selectAll').prop('checked', true);
+        } else {
+            $('#selectAll').prop('checked', false);
+        }
+        
+        // Update the visual state of rows
+        updateAdminRowSelectionVisuals();
+        
+        // Update counts
         updateSelectedCount();
     });
 });

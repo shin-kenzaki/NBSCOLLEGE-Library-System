@@ -112,24 +112,46 @@ $accession_error = '';
                         <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-info-circle mr-2"></i>Instructions</h6>
                     </div>
                     <div class="card-body">
+                        <div class="alert alert-info">
+                            <strong>Note:</strong> There are two ways to add books to the library system:
+                        </div>
                         <div class="row">
                             <div class="col-md-6">
-                                <h6 class="font-weight-bold">General Guidelines:</h6>
-                                <ul class="mb-0">
-                                    <li>Ensure all required fields are filled before proceeding to the next tab.</li>
-                                    <li>Accession numbers must be unique and numeric.</li>
-                                    <li>Authors, publishers, and other contributors must be selected or added as needed.</li>
-                                    <li>Call numbers should follow the library's classification system.</li>
-                                </ul>
+                                <div class="card mb-3">
+                                    <div class="card-header bg-primary text-white">
+                                        <h6 class="m-0 font-weight-bold">Option 1: Advanced Form (Current)</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <p>This advanced form allows you to add detailed book information all at once with full control over all fields.</p>
+                                        <p><strong>Best for:</strong> Librarians and staff who are familiar with cataloging and need to input comprehensive details.</p>
+                                        <ul class="mb-0">
+                                            <li>Complete bibliographic details</li>
+                                            <li>Multiple accession numbers</li>
+                                            <li>Full cataloging information</li>
+                                        </ul>
+                                    </div>
+                                </div>
                             </div>
                             <div class="col-md-6">
-                                <h6 class="font-weight-bold">How to use:</h6>
-                                <ol class="mb-0">
-                                    <li>Fill in the details for each tab sequentially.</li>
-                                    <li>Use the "Add" buttons to include additional authors, publishers, or accession groups.</li>
-                                    <li>Review the generated call numbers and ensure they are accurate.</li>
-                                    <li>Click "Submit" on the last tab to save the book details.</li>
-                                </ol>
+                                <div class="card mb-3">
+                                    <div class="card-header bg-success text-white">
+                                        <h6 class="m-0 font-weight-bold">Option 2: Step-by-Step Form</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <p>The step-by-step form breaks down the process into simpler guided stages.</p>
+                                        <p><strong>Best for:</strong> New staff members or those who prefer a more guided approach.</p>
+                                        <ul class="mb-0">
+                                            <li>Simplified interface</li>
+                                            <li>Guided process with explanations</li>
+                                            <li>Basic required fields only</li>
+                                        </ul>
+                                        <div class="mt-3">
+                                            <a href="step-by-step-add-book.php" class="btn btn-success btn-sm">
+                                                <i class="fas fa-tasks"></i> Switch to Step-by-Step Form
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -654,58 +676,131 @@ $accession_error = '';
                 </button>
             </div>
             <div class="modal-body">
-                <div class="card mb-3">
-                    <div class="card-header bg-light">
-                        <h6 class="m-0 font-weight-bold">Form Navigation</h6>
-                    </div>
-                    <div class="card-body">
-                        <ul>
-                            <li>This form is divided into multiple tabs for easier data entry.</li>
-                            <li>Complete each tab before proceeding to the next.</li>
-                            <li>Required fields are marked with an asterisk (*).</li>
-                            <li>Use the tab navigation or the Previous/Next buttons to move between sections.</li>
-                        </ul>
-                    </div>
-                </div>
+                <!-- Add new tab for book entry methods -->
+                <ul class="nav nav-tabs mb-3" id="instructionMethodTabs" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" id="methods-tab" data-toggle="tab" href="#methods" role="tab" aria-controls="methods" aria-selected="true">Book Entry Methods</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="navigation-tab" data-toggle="tab" href="#navigation" role="tab" aria-controls="navigation" aria-selected="false">Form Navigation</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="accession-tab" data-toggle="tab" href="#accession" role="tab" aria-controls="accession" aria-selected="false">Accession & Call Numbers</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="author-tab" data-toggle="tab" href="#author" role="tab" aria-controls="author" aria-selected="false">Author & Publisher Information</a>
+                    </li>
+                </ul>
                 
-                <div class="card mb-3">
-                    <div class="card-header bg-light">
-                        <h6 class="m-0 font-weight-bold">Accession and Call Numbers</h6>
+                <div class="tab-content" id="instructionTabsContent">
+                    <!-- New Tab: Book Entry Methods -->
+                    <div class="tab-pane fade show active" id="methods" role="tabpanel" aria-labelledby="methods-tab">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card mb-3">
+                                    <div class="card-header bg-primary text-white">
+                                        <h6 class="m-0 font-weight-bold">Advanced Form (Current)</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <p><strong>Purpose:</strong> Complete, detailed book cataloging with all possible metadata.</p>
+                                        <h6 class="font-weight-bold">Features:</h6>
+                                        <ul>
+                                            <li>Multiple tabs for organizing different types of information</li>
+                                            <li>Support for multiple accession numbers and copies</li>
+                                            <li>Full MARC21-compatible fields</li>
+                                            <li>Comprehensive subject categorization</li>
+                                            <li>Supports complex publication information</li>
+                                        </ul>
+                                        <p><strong>Who should use this:</strong></p>
+                                        <ul>
+                                            <li>Librarians with cataloging experience</li>
+                                            <li>When adding rare or special collection items</li>
+                                            <li>When full bibliographic details are required</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card mb-3">
+                                    <div class="card-header bg-success text-white">
+                                        <h6 class="m-0 font-weight-bold">Step-by-Step Form</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <p><strong>Purpose:</strong> Simplified, guided book entry with contextual help.</p>
+                                        <h6 class="font-weight-bold">Features:</h6>
+                                        <ul>
+                                            <li>One screen at a time with clear instructions</li>
+                                            <li>Required fields clearly marked</li>
+                                            <li>Help text for each field</li>
+                                            <li>Automatic data validation</li>
+                                            <li>Preview of entered information before submission</li>
+                                        </ul>
+                                        <p><strong>Who should use this:</strong></p>
+                                        <ul>
+                                            <li>New library staff members</li>
+                                            <li>When adding standard books with basic information</li>
+                                            <li>When training new catalogers</li>
+                                        </ul>
+                                        <div class="mt-3">
+                                            <a href="step-by-step-add-book.php" class="btn btn-success btn-sm">
+                                                <i class="fas fa-tasks"></i> Switch to Step-by-Step Form
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="card-body">
-                        <ul>
-                            <li><strong>Accession Number</strong>: Enter a unique identifier for each physical copy.</li>
-                            <li><strong>Call Number</strong>: Format should follow library standards (e.g., "TR Z936.98 L39 2023 c1").</li>
-                            <li><strong>Multiple Copies</strong>: You can specify multiple copies, and the system will auto-increment accession numbers.</li>
-                        </ul>
+                    
+                    <!-- Existing Tabs -->
+                    <div class="tab-pane fade" id="navigation" role="tabpanel" aria-labelledby="navigation-tab">
+                        <!-- Existing navigation content -->
+                        <div class="card mb-3">
+                            <div class="card-header bg-light">
+                                <h6 class="m-0 font-weight-bold">Form Navigation</h6>
+                            </div>
+                            <div class="card-body">
+                                <ul>
+                                    <li>This form is divided into multiple tabs for easier data entry.</li>
+                                    <li>Complete each tab before proceeding to the next.</li>
+                                    <li>Required fields are marked with an asterisk (*).</li>
+                                    <li>Use the tab navigation or the Previous/Next buttons to move between sections.</li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                
-                <div class="card mb-3">
-                    <div class="card-header bg-light">
-                        <h6 class="m-0 font-weight-bold">Author, Publisher, and Subject Information</h6>
+                    
+                    <div class="tab-pane fade" id="accession" role="tabpanel" aria-labelledby="accession-tab">
+                        <!-- Existing accession content -->
+                        <div class="card mb-3">
+                            <div class="card-header bg-light">
+                                <h6 class="m-0 font-weight-bold">Accession and Call Numbers</h6>
+                            </div>
+                            <div class="card-body">
+                                <ul>
+                                    <li><strong>Accession Number</strong>: Enter a unique identifier for each physical copy.</li>
+                                    <li><strong>Call Number</strong>: Format should follow library standards (e.g., "TR Z936.98 L39 2023 c1").</li>
+                                    <li><strong>Multiple Copies</strong>: You can specify multiple copies, and the system will auto-increment accession numbers.</li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
-                    <div class="card-body">
-                        <ul>
-                            <li>Select authors from the dropdown or add new authors if needed.</li>
-                            <li>You can specify co-authors and editors separately.</li>
-                            <li>Subject categories help with classification and searching.</li>
-                            <li>Multiple subject entries can be added for more detailed cataloging.</li>
-                        </ul>
-                    </div>
-                </div>
-                
-                <div class="card">
-                    <div class="card-header bg-light">
-                        <h6 class="m-0 font-weight-bold">Tips for Success</h6>
-                    </div>
-                    <div class="card-body">
-                        <ul>
-                            <li>The form autosaves your progress as you type.</li>
-                            <li>You can clear individual tabs or the entire form using the clear buttons.</li>
-                            <li>A green checkmark will appear when a tab is completed successfully.</li>
-                            <li>Review all information before final submission.</li>
-                        </ul>
+                    
+                    <div class="tab-pane fade" id="author" role="tabpanel" aria-labelledby="author-tab">
+                        <!-- Existing author content -->
+                        <div class="card mb-3">
+                            <div class="card-header bg-light">
+                                <h6 class="m-0 font-weight-bold">Author, Publisher, and Subject Information</h6>
+                            </div>
+                            <div class="card-body">
+                                <ul>
+                                    <li>Select authors from the dropdown or add new authors if needed.</li>
+                                    <li>You can specify co-authors and editors separately.</li>
+                                    <li>Subject categories help with classification and searching.</li>
+                                    <li>Multiple subject entries can be added for more detailed cataloging.</li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

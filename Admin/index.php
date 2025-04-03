@@ -138,6 +138,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             align-items: center;
             min-height: 100vh; /* Make sure the row takes at least the full viewport height */
         }
+        
+        /* Style for the entrance button */
+        .library-entrance-btn {
+            margin-top: 15px;
+            background-color: #4e73df;
+            border-color: #4e73df;
+            color: white;
+            transition: all 0.3s;
+        }
+        
+        .library-entrance-btn:hover {
+            background-color: #2e59d9;
+            border-color: #2653d4;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
     </style>
 
 </head>
@@ -192,6 +208,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <hr>
                                     <div class="text-center">
                                         <a class="small" href="forgot_password.php">Forgot Password?</a>
+                                    </div>
+                                    
+                                    <div class="text-center mt-3">
+                                        <a href="library_entrance.php" class="btn btn-block library-entrance-btn">
+                                            <i class="fas fa-door-open mr-2"></i>Library Entrance Login
+                                        </a>
                                     </div>
                                     
                                 </div>

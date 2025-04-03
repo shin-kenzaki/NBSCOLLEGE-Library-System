@@ -1,4 +1,5 @@
 <?php
+ob_start(); // Start output buffering to prevent "headers already sent" errors
 session_start();
 
 // Check if the user is logged in and has the appropriate admin role
@@ -246,6 +247,42 @@ $result = $conn->query($sql);
         width: 20px;
         text-align: center;
     }
+    
+    /* Improved checkbox centering */
+    #dataTable th:first-child,
+    #dataTable td:first-child {
+        text-align: center;
+        vertical-align: middle;
+        width: 40px !important;
+        min-width: 40px !important;
+        max-width: 40px !important;
+        box-sizing: border-box;
+        padding: 0.75rem 0.5rem;
+    }
+    
+    #checkboxHeader {
+        width: 40px !important;
+        min-width: 40px !important;
+        max-width: 40px !important;
+        padding: 0.75rem 0.5rem !important;
+        box-sizing: border-box;
+    }
+    
+    #dataTable input[type="checkbox"] {
+        margin: 0 auto;
+        display: block;
+        width: 16px;
+        height: 16px;
+    }
+    
+    .checkbox-wrapper {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100%;
+        width: 100%;
+        padding: 0 !important;
+    }
 </style>
 
 <!-- Main Content -->
@@ -277,7 +314,7 @@ $result = $conn->query($sql);
                         <div id="selected_ids_container"></div>
                     </form>
                     
-                    <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <table class="table table-bordered table-striped" id="dataTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
                                 <th style="cursor: pointer; text-align: center;" id="checkboxHeader"><input type="checkbox" id="selectAll"></th>
@@ -929,5 +966,119 @@ $(document).ready(function () {
         // Hide the context menu
         $('#contextMenu').hide();
     });
+
+    // Wrap checkboxes in centering div for better alignment
+    $('#dataTable tbody tr td:first-child').each(function() {
+        // Only add wrapper if not already wrapped
+        if (!$(this).find('.checkbox-wrapper').length) {
+            const checkbox = $(this).find('input[type="checkbox"]');
+            checkbox.wrap('<div class="checkbox-wrapper"></div>');
+        }
+    });
+    
+    // Also ensure header checkbox is centered
+    if (!$('#checkboxHeader .checkbox-wrapper').length) {
+        $('#selectAll').wrap('<div class="checkbox-wrapper"></div>');
+    }
+    
+    // Make sure newly added rows also get wrapper
+    table.on('draw', function() {
+        $('#dataTable tbody tr td:first-child').each(function() {
+            if (!$(this).find('.checkbox-wrapper').length) {
+                const checkbox = $(this).find('input[type="checkbox"]');
+                checkbox.wrap('<div class="checkbox-wrapper"></div>');
+            }
+        });
+    });
+
+    // Add row click handler to toggle the row checkbox
+    $('#dataTable tbody').on('click', 'tr', function(e) {
+        // Ignore clicks on checkbox itself or action buttons
+        if (e.target.type === 'checkbox' || $(e.target).hasClass('btn') || $(e.target).parent().hasClass('btn')) {
+            return;
+        }
+
+        // Find the checkbox within this row and toggle it
+        var checkbox = $(this).find('.row-checkbox');
+        checkbox.prop('checked', !checkbox.prop('checked')).trigger('change');
+    });
+
+    // Update row selection visuals
+    function updateRowSelectionState() {
+        $('#dataTable tbody tr').each(function() {
+            const isChecked = $(this).find('.row-checkbox').prop('checked');
+            $(this).toggleClass('selected', isChecked);
+        });
+        
+        // Also update the delete button badge with count of selected items
+        const count = $('.row-checkbox:checked').length;
+        $('.bulk-delete-btn .badge').text(count);
+        $('.bulk-delete-btn').prop('disabled', count === 0);
+    }
+
+    // Listen for checkbox state changes to update row selection visuals
+    $('#dataTable tbody').on('change', '.row-checkbox', function() {
+        updateRowSelectionState();
+    });
+
+    // Update row visuals when "Select All/Unselect All" is used
+    $('#selectAll, #checkboxHeader').on('click', function(e) {
+        if ($(this).is('th')) {
+            const checkbox = $('#selectAll');
+            checkbox.prop('checked', !checkbox.prop('checked'));
+        }
+        $('.row-checkbox').prop('checked', $('#selectAll').prop('checked'));
+        updateRowSelectionState(); // Ensure rows are highlighted/unhighlighted
+        if ($(this).is('input')) {
+            e.stopPropagation();
+        }
+    });
+
+    // Initialize row selection visuals on page load
+    updateRowSelectionState();
+    
+    // Add selected class styling
+    $('<style>').text(`
+        #dataTable tbody tr.selected {
+            background-color: rgba(0, 123, 255, 0.1) !important;
+        }
+    `).appendTo('head');
+});
+</script>
+
+<script>
+$(document).ready(function() {
+    // ...existing code...
+
+    // Update row selection visuals
+    function updateRowSelectionState() {
+        $('#dataTable tbody tr').each(function() {
+            const isChecked = $(this).find('.row-checkbox').prop('checked');
+            $(this).toggleClass('selected', isChecked);
+        });
+    }
+
+    // Update row visuals when "Select All/Unselect All" is used
+    $('#selectAll, #checkboxHeader').on('click', function(e) {
+        if ($(this).is('th')) {
+            const checkbox = $('#selectAll');
+            checkbox.prop('checked', !checkbox.prop('checked'));
+        }
+        $('.row-checkbox').prop('checked', $('#selectAll').prop('checked'));
+        updateRowSelectionState(); // Ensure rows are highlighted/unhighlighted
+        if ($(this).is('input')) {
+            e.stopPropagation();
+        }
+    });
+
+    // Update visuals when individual checkboxes are toggled
+    $('#dataTable tbody').on('change', '.row-checkbox', function() {
+        updateRowSelectionState();
+    });
+
+    // Initialize row selection visuals on page load
+    updateRowSelectionState();
+
+    // ...existing code...
 });
 </script>

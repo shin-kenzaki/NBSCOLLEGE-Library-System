@@ -214,10 +214,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             <div class="card-body px-0">
                 <div class="table-responsive px-3">
-                    <table class="table table-bordered" id="usersTable" width="100%" cellspacing="0">
+                    <table class="table table-bordered table-striped" id="usersTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
-                                <th style="width: 30px;">
+                                <th class="text-center" style="width: 30px;">
                                     <input type="checkbox" id="selectAll" class="select-all-checkbox">
                                 </th>
                                 <th class="text-center">ID</th>
@@ -378,7 +378,10 @@ $(document).ready(function() {
         "language": {
             "search": "_INPUT_",
             "searchPlaceholder": "Search..."
-        }
+        },
+        "columnDefs": [
+            { "orderable": false, "targets": 0 } // Disable sorting on checkbox column
+        ]
     });
 
     // Context Menu functionality
@@ -529,7 +532,14 @@ $(document).ready(function() {
     // Select All functionality
     $('#selectAll').change(function() {
         const isChecked = $(this).prop('checked');
+        
+        // Update all checkboxes
         $('.user-checkbox').prop('checked', isChecked);
+        
+        // Update row highlighting
+        updateRowSelectionVisuals();
+        
+        // Update counts and button states
         updateSelectedCount();
     });
 
@@ -790,6 +800,62 @@ $(document).ready(function() {
     $(window).on('resize', function () {
         table.columns.adjust();
     });
+
+    // Add row selection on click functionality 
+    $('#usersTable tbody').on('click', 'tr', function(e) {
+        // Ignore if clicking on checkbox directly or buttons
+        if (e.target.type === 'checkbox' || $(e.target).hasClass('btn') || $(e.target).closest('.btn').length) {
+            return;
+        }
+        
+        // Toggle the row's checkbox
+        const checkbox = $(this).find('.user-checkbox');
+        checkbox.prop('checked', !checkbox.prop('checked')).trigger('change');
+    });
+
+    // Make cells within rows clickable for selection
+    $('#usersTable tbody').on('click', 'td', function(e) {
+        // Skip if clicking directly on checkbox or interactive elements
+        if (e.target.type === 'checkbox' || $(e.target).hasClass('btn') || 
+            $(e.target).closest('.btn').length || $(e.target).is('a')) {
+            return;
+        }
+        
+        // Avoid double triggering with the row click handler
+        e.stopPropagation();
+        
+        // Toggle the row's checkbox
+        const checkbox = $(this).closest('tr').find('.user-checkbox');
+        checkbox.prop('checked', !checkbox.prop('checked')).trigger('change');
+    });
+
+    // Add visual feedback for selected rows
+    $('<style>')
+        .text(`
+            #usersTable tbody tr {
+                cursor: pointer;
+            }
+            #usersTable tbody tr.selected {
+                background-color: rgba(0, 123, 255, 0.1) !important;
+            }
+        `)
+        .appendTo('head');
+
+    // Update visual selection state for rows
+    function updateRowSelectionVisuals() {
+        $('#usersTable tbody tr').each(function() {
+            const isChecked = $(this).find('.user-checkbox').prop('checked');
+            $(this).toggleClass('selected', isChecked);
+        });
+    }
+    
+    // Monitor checkbox changes to update row visuals
+    $(document).on('change', '.user-checkbox, #selectAll', function() {
+        updateRowSelectionVisuals();
+    });
+    
+    // Initialize selection visuals
+    updateRowSelectionVisuals();
 });
 </script>
 
@@ -854,6 +920,66 @@ $(document).ready(function() {
             text-align: center;
             margin-bottom: 10px !important;
         }
+    }
+    
+    /* Center checkboxes in cells */
+    #usersTable th:first-child,
+    #usersTable td:first-child {
+        text-align: center;
+        vertical-align: middle;
+    }
+    
+    /* Make sure checkbox inputs are centered */
+    #usersTable .select-all-checkbox,
+    #usersTable .user-checkbox {
+        margin: 0 auto;
+        display: block;
+    }
+    
+    /* Enhanced hover effect for checkbox column */
+    #usersTable tbody tr td:first-child,
+    #usersTable thead tr th:first-child {
+        cursor: pointer;
+        background-clip: padding-box;
+        transition: background-color 0.2s ease;
+    }
+    
+    #usersTable tbody tr td:first-child:hover,
+    #usersTable thead tr th:first-child:hover {
+        background-color: rgba(0, 123, 255, 0.15);
+    }
+    
+    /* Checkbox cell base style */
+    #usersTable th:first-child,
+    #usersTable td:first-child {
+        width: 40px !important;
+        min-width: 40px !important;
+    }
+    
+    /* Highlight the entire row on hover */
+    #usersTable tbody tr:hover {
+        background-color: rgba(0, 123, 255, 0.05);
+    }
+    
+    /* Enhanced table striping with hover preservation */
+    #usersTable.table-striped tbody tr:nth-of-type(odd) {
+        background-color: rgba(0, 0, 0, 0.03);
+    }
+    
+    #usersTable.table-striped tbody tr:hover {
+        background-color: rgba(0, 123, 255, 0.05) !important;
+    }
+    
+    /* Maintain highlight on checkbox cells even with striping */
+    #usersTable tbody tr td:first-child:hover,
+    #usersTable thead tr th:first-child:hover {
+        background-color: rgba(0, 123, 255, 0.15) !important;
+    }
+    
+    /* Make header row stand out more */
+    #usersTable thead th {
+        background-color: #f8f9fc;
+        border-bottom: 2px solid #e3e6f0;
     }
 </style>
 

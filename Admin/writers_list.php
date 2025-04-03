@@ -1,4 +1,5 @@
 <?php
+ob_start(); // Start output buffering to prevent "headers already sent" errors
 session_start();
 
 // Check if the user is logged in
@@ -178,7 +179,7 @@ $result = $conn->query($sql);
                         <div id="selected_ids_container"></div>
                     </form>
                     
-                    <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <table class="table table-bordered table-striped" id="dataTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
                                 <th style="cursor: pointer; text-align: center;" id="checkboxHeader"><input type="checkbox" id="selectAll"></th>
@@ -465,6 +466,119 @@ $result = $conn->query($sql);
         width: 20px;
         text-align: center;
     }
+    
+    /* Enhanced hover effect for checkbox column */
+    #dataTable tbody tr td:first-child:hover,
+    #dataTable thead tr th:first-child:hover {
+        background-color: rgba(0, 123, 255, 0.15);
+        transition: background-color 0.2s ease;
+    }
+    
+    /* Add a highlight to the entire row on hover */
+    #dataTable tbody tr:hover {
+        background-color: rgba(0, 123, 255, 0.05);
+    }
+    
+    /* Make the checkbox header stand out more */
+    #checkboxHeader {
+        cursor: pointer;
+        background-color: rgba(0, 123, 255, 0.05);
+    }
+    
+    #checkboxHeader:hover {
+        background-color: rgba(0, 123, 255, 0.15);
+    }
+    
+    /* Enhance alternating row colors with hover effect preservation */
+    #dataTable.table-striped tbody tr:nth-of-type(odd) {
+        background-color: rgba(0, 0, 0, 0.03);
+    }
+    
+    #dataTable.table-striped tbody tr:hover {
+        background-color: rgba(0, 123, 255, 0.05);
+    }
+    
+    /* Make header row stand out more */
+    #dataTable thead th {
+        background-color: #f8f9fc;
+        border-bottom: 2px solid #e3e6f0;
+    }
+
+    /* Improved checkbox centering for writers table */
+    #dataTable th:first-child,
+    #dataTable td:first-child {
+        text-align: center;
+        vertical-align: middle;
+        width: 40px !important;
+        min-width: 40px !important;
+        position: relative;
+    }
+    
+    /* Center checkboxes better in cells */
+    #dataTable input[type="checkbox"] {
+        margin: 0 auto;
+        display: block;
+        position: relative;
+        top: 0;
+        left: 0;
+    }
+    
+    /* Create wrapper for checkbox to ensure centering */
+    .checkbox-wrapper {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100%;
+        width: 100%;
+    }
+    
+    /* Remove any existing table cell padding and add it to wrapper */
+    #dataTable td:first-child {
+        padding: 0;
+    }
+    
+    .checkbox-wrapper {
+        padding: 0.75rem;
+    }
+
+    /* Fix inconsistent column width for checkbox cells */
+    #dataTable th:first-child,
+    #dataTable td:first-child {
+        text-align: center;
+        vertical-align: middle;
+        width: 40px !important;
+        min-width: 40px !important;
+        max-width: 40px !important;
+        box-sizing: border-box;
+        padding: 0.75rem 0.5rem;
+    }
+    
+    /* Ensure the header checkbox cell is the same size as the data cells */
+    #checkboxHeader {
+        width: 40px !important;
+        min-width: 40px !important;
+        max-width: 40px !important;
+        padding: 0.75rem 0.5rem !important;
+        box-sizing: border-box;
+    }
+    
+    /* Ensure all checkboxes are centered and sized consistently */
+    #dataTable input[type="checkbox"] {
+        margin: 0 auto;
+        display: block;
+        width: 16px;
+        height: 16px;
+    }
+    
+    /* Remove any extra padding from inside the checkbox wrapper */
+    .checkbox-wrapper {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100%;
+        width: 100%;
+        padding: 0 !important;
+    }
 </style>
 
 <script>
@@ -486,7 +600,8 @@ $(document).ready(function () {
                 "orderable": false, 
                 "searchable": false,
                 "targets": 0,
-                "className": "checkbox-cell" // Add checkbox-cell class
+                "className": "checkbox-cell", // Add checkbox-cell class
+                "width": "40px" // Set explicit width for checkbox column
             }
         ],
         "initComplete": function() {
@@ -647,6 +762,8 @@ $(document).ready(function () {
         }
         
         saveSelectedIds();
+        // Update the visual selection state of rows
+        updateRowSelectionState();
     });
 
     // Handle individual checkbox changes
@@ -716,6 +833,7 @@ $(document).ready(function () {
     // Save selected IDs to session via AJAX
     function saveSelectedIds() {
         updateDeleteButton(); // Add this line
+        updateRowSelectionState(); // Ensure visuals are updated whenever IDs change
         $.ajax({
             url: 'writers_list.php',
             type: 'POST',
@@ -831,6 +949,8 @@ $(document).ready(function () {
             selectedIds = [];
         }
         saveSelectedIds();
+        // Update the visual selection state of rows
+        updateRowSelectionState();
     });
 
     // Remove old header click handlers
@@ -956,6 +1076,107 @@ $(document).ready(function () {
         
         // Hide the context menu
         $('#contextMenu').hide();
+    });
+
+    // Add row selection functionality - click anywhere on row to toggle checkbox
+    $('#dataTable tbody').on('click', 'tr', function(e) {
+        // Ignore clicks on checkbox itself and action buttons
+        if (e.target.type === 'checkbox' || $(e.target).hasClass('btn') || $(e.target).parent().hasClass('btn')) {
+            return;
+        }
+        
+        // Find the checkbox within this row and toggle it
+        var checkbox = $(this).find('.row-checkbox');
+        checkbox.prop('checked', !checkbox.prop('checked')).trigger('change');
+    });
+
+    // Update to make entire row clickable for selection
+    $('#dataTable tbody').on('click', 'td', function(e) {
+        // Skip if clicking directly on the checkbox or if the cell has buttons
+        if (e.target.type === 'checkbox' || $(e.target).hasClass('btn') || $(e.target).parent().hasClass('btn')) {
+            return;
+        }
+        
+        // Toggle the row's checkbox
+        const checkbox = $(this).closest('tr').find('.row-checkbox');
+        checkbox.prop('checked', !checkbox.prop('checked')).trigger('change');
+    });
+
+    // Remove conflicting handlers to avoid multiple toggling
+    $('#dataTable tbody').off('click', 'td:first-child');
+
+    // Clear any previously set row click handlers
+    $('#dataTable tbody').off('click', 'tr');
+    
+    // Add visual feedback for clickable rows
+    $('<style>')
+        .text(`
+            #dataTable tbody tr {
+                cursor: pointer;
+            }
+            #dataTable tbody tr:hover td:not(:first-child) {
+                background-color: rgba(0, 123, 255, 0.05);
+            }
+            #dataTable tbody tr.selected {
+                background-color: rgba(0, 123, 255, 0.1) !important;
+            }
+        `)
+        .appendTo('head');
+
+    // Update row selection visual state
+    function updateRowSelectionState() {
+        $('#dataTable tbody tr').each(function() {
+            const isChecked = $(this).find('.row-checkbox').prop('checked');
+            $(this).toggleClass('selected', isChecked);
+        });
+    }
+    
+    // Listen for checkbox state changes to update row selection visuals
+    $('#dataTable tbody').on('change', '.row-checkbox', function() {
+        updateRowSelectionState();
+    });
+    
+    // Initialize row selection state
+    initializeCheckboxes();
+    updateRowSelectionState();
+
+    // Wrap checkboxes in centering div for better alignment
+    $('#dataTable tbody tr td:first-child').each(function() {
+        // Only add wrapper if not already wrapped
+        if (!$(this).find('.checkbox-wrapper').length) {
+            const checkbox = $(this).find('input[type="checkbox"]');
+            checkbox.wrap('<div class="checkbox-wrapper"></div>');
+        }
+    });
+    
+    // Also ensure header checkbox is centered
+    if (!$('#checkboxHeader .checkbox-wrapper').length) {
+        $('#selectAll').wrap('<div class="checkbox-wrapper"></div>');
+    }
+    
+    // Make sure newly added rows also get wrapper
+    table.on('draw', function() {
+        $('#dataTable tbody tr td:first-child').each(function() {
+            if (!$(this).find('.checkbox-wrapper').length) {
+                const checkbox = $(this).find('input[type="checkbox"]');
+                checkbox.wrap('<div class="checkbox-wrapper"></div>');
+            }
+        });
+    });
+
+    // Force the table to recalculate column widths after initialization
+    setTimeout(function() {
+        table.columns.adjust();
+    }, 100);
+    
+    // Ensure equal width of header and data cells
+    $('#dataTable').on('draw.dt', function() {
+        // Get the width of the first cell in the first row
+        const firstCellWidth = $('#dataTable tbody tr:first-child td:first-child').outerWidth();
+        if (firstCellWidth) {
+            // Apply the same width to the header
+            $('#checkboxHeader').width(firstCellWidth);
+        }
     });
 });
 </script>
