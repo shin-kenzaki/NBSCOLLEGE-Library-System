@@ -182,11 +182,11 @@ $result = $conn->query($sql);
                     <table class="table table-bordered table-striped" id="dataTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
-                                <th style="cursor: pointer; text-align: center;" id="checkboxHeader"><input type="checkbox" id="selectAll"></th>
-                                <th class="text-center">ID</th>
-                                <th class="text-center">First Name</th>
-                                <th class="text-center">Middle Initial</th>
-                                <th class="text-center">Last Name</th>
+                                <th style="text-align: center;">Select</th>
+                                <th style="text-align: center;">ID</th>
+                                <th style="text-align: center;">First Name</th>
+                                <th style="text-align: center;">Middle Initial</th>
+                                <th style="text-align: center;">Last Name</th>
                             </tr>
                         </thead>
                         <tbody>

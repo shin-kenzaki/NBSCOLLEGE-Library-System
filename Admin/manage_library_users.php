@@ -531,53 +531,16 @@ include '../admin/inc/header.php';
                 </div>
                 <div class="card-body px-0">
                     <div class="table-responsive px-3">
-                        <table class="table table-bordered" id="usersTable" width="100%" cellspacing="0">
+                        <table class="table table-bordered table-striped" id="usersTable" width="100%" cellspacing="0">
                             <thead>
                                 <tr>
-                                    <th style="cursor: pointer; text-align: center;" id="checkboxHeader">
-                                        <input type="checkbox" id="selectAll">
-                                    </th>
-                                    <th>
-                                        <a href="?sort=id&order=<?php echo $sort_field === 'id' && $sort_order === 'ASC' ? 'DESC' : 'ASC'; ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>">
-                                            ID
-                                            <?php if ($sort_field === 'id'): ?>
-                                                <i class="fas fa-sort-<?php echo $sort_order === 'ASC' ? 'up' : 'down'; ?>"></i>
-                                            <?php endif; ?>
-                                        </a>
-                                    </th>
-                                    <th>
-                                        <a href="?sort=student_number&order=<?php echo $sort_field === 'student_number' && $sort_order === 'ASC' ? 'DESC' : 'ASC'; ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>">
-                                            Student/Employee #
-                                            <?php if ($sort_field === 'student_number'): ?>
-                                                <i class="fas fa-sort-<?php echo $sort_order === 'ASC' ? 'up' : 'down'; ?>"></i>
-                                            <?php endif; ?>
-                                        </a>
-                                    </th>
-                                    <th>
-                                        <a href="?sort=firstname&order=<?php echo $sort_field === 'firstname' && $sort_order === 'ASC' ? 'DESC' : 'ASC'; ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>">
-                                            Name
-                                            <?php if ($sort_field === 'firstname'): ?>
-                                                <i class="fas fa-sort-<?php echo $sort_order === 'ASC' ? 'up' : 'down'; ?>"></i>
-                                            <?php endif; ?>
-                                        </a>
-                                    </th>
-                                    <th>
-                                        <a href="?sort=course&order=<?php echo $sort_field === 'course' && $sort_order === 'ASC' ? 'DESC' : 'ASC'; ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>">
-                                            Course/Dept
-                                            <?php if ($sort_field === 'course'): ?>
-                                                <i class="fas fa-sort-<?php echo $sort_order === 'ASC' ? 'up' : 'down'; ?>"></i>
-                                            <?php endif; ?>
-                                        </a>
-                                    </th>
-                                    <th>
-                                        <a href="?sort=year&order=<?php echo $sort_field === 'year' && $sort_order === 'ASC' ? 'DESC' : 'ASC'; ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>">
-                                            Year
-                                            <?php if ($sort_field === 'year'): ?>
-                                                <i class="fas fa-sort-<?php echo $sort_order === 'ASC' ? 'up' : 'down'; ?>"></i>
-                                            <?php endif; ?>
-                                        </a>
-                                    </th>
-                                    <th>Gender</th>
+                                    <th style="text-align: center;">Select</th>
+                                    <th style="text-align: center;">ID</th>
+                                    <th style="text-align: center;">Student/Employee #</th>
+                                    <th style="text-align: center;">Name</th>
+                                    <th style="text-align: center;">Course/Dept</th>
+                                    <th style="text-align: center;">Year</th>
+                                    <th style="text-align: center;">Gender</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -587,8 +550,8 @@ include '../admin/inc/header.php';
                                             <td style="text-align: center;">
                                                 <input type="checkbox" class="row-checkbox" value="<?php echo $user['id']; ?>">
                                             </td>
-                                            <td><?php echo $user['id']; ?></td>
-                                            <td><?php echo htmlspecialchars($user['student_number']); ?></td>
+                                            <td style="text-align: center;"><?php echo $user['id']; ?></td>
+                                            <td style="text-align: center;"><?php echo htmlspecialchars($user['student_number']); ?></td>
                                             <td>
                                                 <?php 
                                                 echo htmlspecialchars($user['firstname']) . ' ';
@@ -598,9 +561,9 @@ include '../admin/inc/header.php';
                                                 echo htmlspecialchars($user['lastname']);
                                                 ?>
                                             </td>
-                                            <td><?php echo htmlspecialchars($user['course']); ?></td>
-                                            <td><?php echo htmlspecialchars($user['year']); ?></td>
-                                            <td><?php echo htmlspecialchars($user['gender']); ?></td>
+                                            <td style="text-align: center;"><?php echo htmlspecialchars($user['course']); ?></td>
+                                            <td style="text-align: center;"><?php echo htmlspecialchars($user['year']); ?></td>
+                                            <td style="text-align: center;"><?php echo htmlspecialchars($user['gender']); ?></td>
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php endif; ?>
@@ -757,6 +720,20 @@ include '../admin/inc/header.php';
     .context-menu-item i {
         width: 20px;
         text-align: center;
+    }
+    
+    /* Highlight selected row */
+    #usersTable tbody tr.context-menu-active {
+        background-color: rgba(78, 115, 223, 0.1);
+    }
+    
+    /* Add alternating row colors */
+    #usersTable.table-striped tbody tr:nth-of-type(odd) {
+        background-color: rgba(0, 0, 0, 0.03);
+    }
+    
+    #usersTable.table-striped tbody tr:hover {
+        background-color: rgba(0, 123, 255, 0.05);
     }
     
     /* Highlight selected row */

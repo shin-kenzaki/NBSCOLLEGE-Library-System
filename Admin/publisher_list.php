@@ -317,7 +317,7 @@ $result = $conn->query($sql);
                     <table class="table table-bordered table-striped" id="dataTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
-                                <th style="cursor: pointer; text-align: center;" id="checkboxHeader"><input type="checkbox" id="selectAll"></th>
+                                <th style="text-align: center;">Select</th>
                                 <th class="text-center">ID</th>
                                 <th class="text-center">Publisher</th>
                                 <th class="text-center">Place of Publication</th>
@@ -599,35 +599,6 @@ $(document).ready(function () {
         $('#addPublishersForm').submit();
     });
 
-    // Handle select all checkbox and header click
-    $('#selectAll, #checkboxHeader').on('click', function(e) {
-        if ($(this).is('th')) {
-            // If clicking the header cell, toggle the checkbox
-            const checkbox = $('#selectAll');
-            checkbox.prop('checked', !checkbox.prop('checked'));
-        }
-        // Apply the checkbox state to all row checkboxes
-        $('.row-checkbox').prop('checked', $('#selectAll').prop('checked'));
-        // Prevent event bubbling when clicking the checkbox itself
-        if ($(this).is('input')) {
-            e.stopPropagation();
-        }
-        
-        // Update the selectedIds array
-        if ($('#selectAll').prop('checked')) {
-            $('.row-checkbox').each(function() {
-                var id = $(this).val();
-                if (!selectedIds.includes(id)) {
-                    selectedIds.push(id);
-                }
-            });
-        } else {
-            selectedIds = [];
-        }
-        
-        saveSelectedIds();
-    });
-
     // Handle individual checkbox changes
     $('#dataTable tbody').on('change', '.row-checkbox', function() {
         var id = $(this).val();
@@ -640,8 +611,6 @@ $(document).ready(function () {
             selectedIds = selectedIds.filter(item => item !== id);
         }
         
-        // Update select all checkbox
-        updateSelectAllCheckbox();
         saveSelectedIds();
     });
 
@@ -681,15 +650,6 @@ $(document).ready(function () {
                 $(this).prop('checked', true);
             }
         });
-        
-        // Update select all checkbox
-        updateSelectAllCheckbox();
-    }
-    
-    // Update the select all checkbox state
-    function updateSelectAllCheckbox() {
-        var allChecked = $('.row-checkbox:checked').length === $('.row-checkbox').length && $('.row-checkbox').length > 0;
-        $('#selectAll').prop('checked', allChecked);
     }
     
     // Save selected IDs to session via AJAX
@@ -735,36 +695,7 @@ $(document).ready(function () {
             selectedIds = selectedIds.filter(item => item !== id);
         }
         
-        updateSelectAllCheckbox();
         saveSelectedIds();
-    });
-    
-    // Handle select all checkbox
-    $('#selectAll').on('change', function() {
-        var isChecked = $(this).prop('checked');
-        
-        $('.row-checkbox').each(function() {
-            $(this).prop('checked', isChecked);
-            
-            var id = $(this).val();
-            if (isChecked && !selectedIds.includes(id)) {
-                selectedIds.push(id);
-            }
-        });
-        
-        if (!isChecked) {
-            selectedIds = [];
-        }
-        
-        saveSelectedIds();
-    });
-    
-    // Handle header cell click for select all
-    $('#checkboxHeader').on('click', function(e) {
-        // If clicking directly on the checkbox, don't execute this
-        if (e.target.type === 'checkbox') return;
-        
-        $('#selectAll').trigger('click');
     });
     
     // Handle bulk actions
@@ -1021,19 +952,6 @@ $(document).ready(function () {
         updateRowSelectionState();
     });
 
-    // Update row visuals when "Select All/Unselect All" is used
-    $('#selectAll, #checkboxHeader').on('click', function(e) {
-        if ($(this).is('th')) {
-            const checkbox = $('#selectAll');
-            checkbox.prop('checked', !checkbox.prop('checked'));
-        }
-        $('.row-checkbox').prop('checked', $('#selectAll').prop('checked'));
-        updateRowSelectionState(); // Ensure rows are highlighted/unhighlighted
-        if ($(this).is('input')) {
-            e.stopPropagation();
-        }
-    });
-
     // Initialize row selection visuals on page load
     updateRowSelectionState();
     
@@ -1057,19 +975,6 @@ $(document).ready(function() {
             $(this).toggleClass('selected', isChecked);
         });
     }
-
-    // Update row visuals when "Select All/Unselect All" is used
-    $('#selectAll, #checkboxHeader').on('click', function(e) {
-        if ($(this).is('th')) {
-            const checkbox = $('#selectAll');
-            checkbox.prop('checked', !checkbox.prop('checked'));
-        }
-        $('.row-checkbox').prop('checked', $('#selectAll').prop('checked'));
-        updateRowSelectionState(); // Ensure rows are highlighted/unhighlighted
-        if ($(this).is('input')) {
-            e.stopPropagation();
-        }
-    });
 
     // Update visuals when individual checkboxes are toggled
     $('#dataTable tbody').on('change', '.row-checkbox', function() {

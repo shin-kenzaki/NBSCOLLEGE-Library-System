@@ -431,6 +431,61 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
         .shadow {
             box-shadow: 0 8px 16px rgba(0,0,0,0.1) !important;
         }
+        
+        /* Table responsive scrolling styles */
+        .table-responsive-horizontal {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            position: relative;
+        }
+        
+        .table-holdings {
+            width: 100%;
+            min-width: 970px; /* Ensure table expands beyond screen width on small devices */
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        
+        .scroll-indicator {
+            color: #6c757d;
+            padding: 8px;
+            font-size: 14px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+        
+        /* Fix horizontal scrollbar visibility on small screens */
+        @media (max-width: 768px) {
+            .table-responsive-horizontal::-webkit-scrollbar {
+                height: 6px;
+            }
+            
+            .table-responsive-horizontal::-webkit-scrollbar-track {
+                background: #f1f1f1;
+            }
+            
+            .table-responsive-horizontal::-webkit-scrollbar-thumb {
+                background: #888;
+                border-radius: 3px;
+            }
+            
+            .table-responsive-horizontal::-webkit-scrollbar-thumb:hover {
+                background: #555;
+            }
+            
+            .table-holdings th,
+            .table-holdings td {
+                white-space: nowrap;
+            }
+        }
     </style>
     <!-- Add Bootstrap CSS and JS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -717,35 +772,39 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                                         Available: <?php echo htmlspecialchars($inShelf); ?>
                                     </div>
                                     <div class="btn-group">
-                                        <button type="button" 
-                                                class="btn btn-danger btn-sm" 
-                                                onclick="confirmDeleteAllCopies('<?php echo htmlspecialchars($book['title']); ?>')">
-                                            <i class="fas fa-trash"></i> Delete All
-                                        </button>
                                         <a href="export_barcodes.php?title=<?php echo urlencode($book['title']); ?>" 
                                            class="btn btn-sm btn-primary" 
                                            target="_blank">
                                             <i class="fas fa-download"></i> Export Barcodes
                                         </a>
+                                        <?php if (in_array($_SESSION['role'], ['Admin', 'Librarian'])): ?>
+                                        <button class="btn btn-sm btn-danger" onclick="confirmDeleteAllCopies('<?php echo htmlspecialchars($book['title']); ?>')">
+                                            <i class="fas fa-trash"></i> Delete All Copies
+                                        </button>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                             </div>
                             <div class="card-body">
                                 <?php if (!empty($allCopies)): ?>
-                                    <div class="table-responsive">
-                                        <table class="table table-bordered table-striped" width="100%" cellspacing="0">
+                                    <div class="table-responsive-horizontal">
+                                        <div class="scroll-indicator d-block d-lg-none text-center mb-2">
+                                            <i class="fas fa-arrows-alt-h"></i> Swipe horizontally to see more details
+                                        </div>
+                                        <table class="table table-bordered table-striped table-holdings" width="100%" cellspacing="0">
                                             <thead class="thead-light">
                                                 <tr>
-                                                    <th>Accession</th>
-                                                    <th>Call Number</th>
-                                                    <th>Copy</th>
-                                                    <th>Status</th>
-                                                    <th>Location</th>
-                                                    <th>Last Update</th>
-                                                    <th>Series</th>
-                                                    <th>Volume</th>
-                                                    <th>Edition</th>
-                                                    <th>ISBN</th>
+                                                    <th style="min-width: 100px;">Accession</th>
+                                                    <th style="min-width: 120px;">Call Number</th>
+                                                    <th style="min-width: 60px;">Copy</th>
+                                                    <th style="min-width: 90px;">Status</th>
+                                                    <th style="min-width: 120px;">Location</th>
+                                                    <th style="min-width: 100px;">Last Update</th>
+                                                    <th style="min-width: 100px;">Series</th>
+                                                    <th style="min-width: 80px;">Volume</th>
+                                                    <th style="min-width: 80px;">Edition</th>
+                                                    <th style="min-width: 120px;">ISBN</th>
+                                                    <th style="min-width: 80px;">Actions</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -765,6 +824,11 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                                                         <td><?php echo !empty($copy['volume']) ? htmlspecialchars($copy['volume']) : '-'; ?></td>
                                                         <td><?php echo !empty($copy['edition']) ? htmlspecialchars($copy['edition']) : '-'; ?></td>
                                                         <td><?php echo !empty($copy['ISBN']) ? htmlspecialchars($copy['ISBN']) : '-'; ?></td>
+                                                        <td>
+                                                            <button type="button" class="btn btn-danger btn-sm" onclick="confirmDeleteCopy(<?php echo htmlspecialchars($copy['id']); ?>, '<?php echo htmlspecialchars($copy['accession']); ?>')">
+                                                                <i class="fas fa-trash"></i>
+                                                            </button>
+                                                        </td>
                                                     </tr>
                                                 <?php endforeach; ?>
                                             </tbody>
@@ -1198,27 +1262,26 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
     </script>
 
     <script>
-function confirmDeleteAllCopies(title) {
+function confirmDeleteCopy(bookId, accession) {
     Swal.fire({
-        title: 'Delete All Copies?',
+        title: 'Delete Book Copy?',
         html: `
-            Are you sure you want to delete all copies of "<strong>${title}</strong>"?<br><br>
-            <span class="text-danger">This action cannot be undone!</span><br>
-            Total copies to be deleted: <strong><?php echo htmlspecialchars($totalCopies); ?></strong>
+            Are you sure you want to delete the copy with accession #<strong>${accession}</strong>?<br><br>
+            <span class="text-danger">This action cannot be undone!</span>
         `,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#d33',
         cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Yes, delete all!',
+        confirmButtonText: 'Yes, delete it!',
         cancelButtonText: 'Cancel',
         reverseButtons: true
     }).then(async (result) => {
         if (result.isConfirmed) {
             // Show loading state
             Swal.fire({
-                title: 'Deleting...',
-                html: 'Please wait while deleting all copies.',
+                title: 'Checking book status...',
+                html: 'Please wait while we check if this book can be deleted.',
                 allowOutsideClick: false,
                 allowEscapeKey: false,
                 didOpen: () => {
@@ -1227,13 +1290,13 @@ function confirmDeleteAllCopies(title) {
             });
 
             try {
-                const response = await fetch('delete_all_copies.php', {
+                const response = await fetch('delete_copy.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        title: title
+                        bookId: bookId
                     })
                 });
 
@@ -1242,25 +1305,156 @@ function confirmDeleteAllCopies(title) {
                 if (data.success) {
                     Swal.fire({
                         title: 'Success!',
-                        text: data.message || `Successfully deleted all copies of "${title}".`,
+                        text: data.message || `Successfully deleted book copy with accession #${accession}.`,
                         icon: 'success'
                     }).then(() => {
-                        window.location.href = 'book_list.php';
+                        location.reload();
                     });
                 } else {
                     Swal.fire({
-                        title: 'Error!',
-                        text: data.error || 'Failed to delete copies',
+                        title: 'Cannot Delete Book',
+                        html: data.error || 'Failed to delete copy. The book may be currently in use.',
                         icon: 'error'
                     });
                 }
             } catch (error) {
                 Swal.fire({
                     title: 'Error!',
-                    text: 'An unexpected error occurred while deleting copies',
+                    text: 'An unexpected error occurred while deleting the copy',
                     icon: 'error'
                 });
             }
+        }
+    });
+}
+
+// Add new function to handle deleting all copies
+function confirmDeleteAllCopies(title) {
+    // Get all book IDs from the table
+    const copyRows = document.querySelectorAll('.copy-row');
+    const bookIds = Array.from(copyRows).map(row => parseInt(row.getAttribute('data-book-id')));
+    
+    if (bookIds.length === 0) {
+        Swal.fire({
+            title: 'No copies found',
+            text: 'There are no copies available to delete.',
+            icon: 'info'
+        });
+        return;
+    }
+    
+    Swal.fire({
+        title: 'Delete All Copies?',
+        html: `
+            Are you sure you want to delete all ${bookIds.length} copies of <strong>"${title}"</strong>?<br><br>
+            <span class="text-danger">This action cannot be undone!</span>
+        `,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete all!',
+        cancelButtonText: 'Cancel',
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Start the deletion process
+            deleteAllCopies(bookIds, title);
+        }
+    });
+}
+
+async function deleteAllCopies(bookIds, title) {
+    // Create progress modal
+    Swal.fire({
+        title: 'Deleting Copies',
+        html: `
+            <div class="text-start mb-3">
+                Deleting all copies of "${title}".<br>
+                Progress: <span id="delete-progress">0</span>/${bookIds.length}
+            </div>
+            <div class="progress">
+                <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-danger" 
+                     role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+            <div id="deletion-status" class="mt-3"></div>
+        `,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false
+    });
+    
+    // Track success and failure counts
+    let successCount = 0;
+    let failureCount = 0;
+    let failureMessages = [];
+    
+    // Process each book ID sequentially
+    for (let i = 0; i < bookIds.length; i++) {
+        const bookId = bookIds[i];
+        
+        try {
+            const response = await fetch('delete_copy.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ bookId: bookId })
+            });
+            
+            const data = await response.json();
+            
+            // Update progress
+            document.getElementById('delete-progress').textContent = i + 1;
+            document.getElementById('progress-bar').style.width = `${((i + 1) / bookIds.length) * 100}%`;
+            
+            if (data.success) {
+                successCount++;
+                document.getElementById('deletion-status').innerHTML += `
+                    <div class="alert alert-success py-1 mb-1">Book ID ${bookId}: Deleted successfully</div>
+                `;
+            } else {
+                failureCount++;
+                document.getElementById('deletion-status').innerHTML += `
+                    <div class="alert alert-danger py-1 mb-1">Book ID ${bookId}: ${data.error}</div>
+                `;
+                failureMessages.push(`Book ID ${bookId}: ${data.error}`);
+            }
+        } catch (error) {
+            failureCount++;
+            document.getElementById('deletion-status').innerHTML += `
+                <div class="alert alert-danger py-1 mb-1">Book ID ${bookId}: Unexpected error</div>
+            `;
+            failureMessages.push(`Book ID ${bookId}: Unexpected error`);
+        }
+    }
+    
+    // Show final results
+    let resultIcon, resultTitle, resultHtml;
+    
+    if (failureCount === 0) {
+        resultIcon = 'success';
+        resultTitle = 'All Copies Deleted';
+        resultHtml = `Successfully deleted all ${successCount} copies of "${title}".`;
+    } else if (successCount === 0) {
+        resultIcon = 'error';
+        resultTitle = 'Failed to Delete Copies';
+        resultHtml = `Failed to delete any copies of "${title}".<br><br>`;
+        resultHtml += failureMessages.join('<br>');
+    } else {
+        resultIcon = 'warning';
+        resultTitle = 'Partial Deletion';
+        resultHtml = `Deleted ${successCount} copies, but failed to delete ${failureCount} copies of "${title}".<br><br>`;
+        resultHtml += failureMessages.join('<br>');
+    }
+    
+    Swal.fire({
+        title: resultTitle,
+        html: resultHtml,
+        icon: resultIcon,
+        confirmButtonText: 'OK'
+    }).then(() => {
+        if (successCount > 0) {
+            // Redirect to book list if at least one copy was deleted
+            window.location.href = 'book_list.php';
         }
     });
 }
@@ -1406,7 +1600,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         // Rebind confirm delete function
-        const deleteBtn = document.querySelector('[onclick^="confirmDeleteAllCopies"]');
+        const deleteBtn = document.querySelector('[onclick^="confirmDeleteCopy"]');
         if (deleteBtn) {
             const originalOnclick = deleteBtn.getAttribute('onclick');
             deleteBtn.setAttribute('onclick', originalOnclick);

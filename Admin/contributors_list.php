@@ -92,9 +92,6 @@ while ($row = $result->fetch_assoc()) {
             <div class="card-header py-3 d-flex flex-wrap align-items-center justify-content-between">
                 <h6 class="m-0 font-weight-bold text-primary">Contributors List</h6>
                 <div class="d-flex align-items-center">
-                    <span class="mr-3 total-contributors-display">
-                        Total Contributors: <?php echo number_format($totalContributors ?? 0); ?>
-                    </span>
                     <button id="returnSelectedBtn" class="btn btn-danger btn-sm mr-2 bulk-delete-btn" disabled>
                         <i class="fas fa-trash"></i>
                         <span>Delete Selected</span>
@@ -110,7 +107,7 @@ while ($row = $result->fetch_assoc()) {
                     <table class="table table-bordered table-striped" id="dataTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
-                                <th style="cursor: pointer; text-align: center;" id="checkboxHeader"><input type="checkbox" id="selectAll"></th>
+                                <th style="text-align: center;">Select</th>
                                 <th style='text-align: center;'>ID Range</th>
                                 <th style='text-align: center;'>Book Title</th>
                                 <th style='text-align: center;'>Contributor</th>
@@ -376,33 +373,6 @@ $(document).ready(function() {
     // Remove context menu handlers
     
     // Modified checkbox handling
-    // Header cell click handler
-    $(document).on('click', 'thead th:first-child', function(e) {
-        // If the click was directly on the checkbox, don't execute this handler
-        if (e.target.type === 'checkbox') return;
-        
-        // Find and click the checkbox
-        var checkbox = $('#selectAll');
-        checkbox.prop('checked', !checkbox.prop('checked'));
-        $('.row-checkbox').prop('checked', checkbox.prop('checked'));
-    });
-
-    // Keep the original checkbox change handlers
-    $('#selectAll').change(function() {
-        $('.row-checkbox').prop('checked', $(this).prop('checked'));
-    });
-
-    $('#dataTable tbody').on('change', '.row-checkbox', function() {
-        if (!$(this).prop('checked')) {
-            $('#selectAll').prop('checked', false);
-        } else {
-            var allChecked = true;
-            $('.row-checkbox').each(function() {
-                if (!$(this).prop('checked')) allChecked = false;
-            });
-            $('#selectAll').prop('checked', allChecked);
-        }
-    });
 
     // Add cell click handler for the checkbox column
     $('#dataTable tbody').on('click', 'td:first-child', function(e) {
@@ -597,19 +567,6 @@ $(document).ready(function() {
     // Listen for checkbox state changes to update row selection visuals
     $('#dataTable tbody').on('change', '.row-checkbox', function() {
         updateRowSelectionState();
-    });
-
-    // Update row visuals when "Select All/Unselect All" is used
-    $('#selectAll, #checkboxHeader').on('click', function(e) {
-        if ($(this).is('th')) {
-            const checkbox = $('#selectAll');
-            checkbox.prop('checked', !checkbox.prop('checked'));
-        }
-        $('.row-checkbox').prop('checked', $('#selectAll').prop('checked'));
-        updateRowSelectionState(); // Ensure rows are highlighted/unhighlighted
-        if ($(this).is('input')) {
-            e.stopPropagation();
-        }
     });
 
     // Initialize row selection visuals on page load

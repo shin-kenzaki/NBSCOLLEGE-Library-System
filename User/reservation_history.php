@@ -10,15 +10,27 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['usertype'], ['Student',
 
 $user_id = $_SESSION['user_id'];
 
-$query = "SELECT r.id, b.title, r.reserve_date, r.recieved_date, r.cancel_date,
-          CASE
-              WHEN r.recieved_date IS NOT NULL THEN 'Received'
-              WHEN r.cancel_date IS NOT NULL THEN 'Cancelled'
-              ELSE 'Unknown'
-          END AS status_text
-          FROM reservations r
-          JOIN books b ON r.book_id = b.id
-          WHERE r.user_id = ? AND (r.recieved_date IS NOT NULL OR r.cancel_date IS NOT NULL)";
+$query = "SELECT 
+    r.id, 
+    b.title, 
+    r.reserve_date, 
+    r.ready_date,
+    CONCAT(a1.firstname, ' ', a1.lastname) as ready_by_name,
+    r.issue_date,
+    CONCAT(a2.firstname, ' ', a2.lastname) as issued_by_name,
+    r.cancel_date,
+    CONCAT(COALESCE(a3.firstname, u2.firstname), ' ', COALESCE(a3.lastname, u2.lastname)) AS cancelled_by_name,
+    r.cancelled_by_role,
+    r.status 
+FROM reservations r 
+JOIN books b ON r.book_id = b.id 
+LEFT JOIN admins a1 ON r.ready_by = a1.id
+LEFT JOIN admins a2 ON r.issued_by = a2.id
+LEFT JOIN admins a3 ON (r.cancelled_by = a3.id AND r.cancelled_by_role = 'Admin')
+LEFT JOIN users u2 ON (r.cancelled_by = u2.id AND r.cancelled_by_role = 'User')
+WHERE r.user_id = ? 
+ORDER BY r.reserve_date DESC";
+
 $stmt = $conn->prepare($query);
 $stmt->bind_param('i', $user_id);
 $stmt->execute();
@@ -61,6 +73,19 @@ include 'inc/header.php';
         .table-responsive table th {
             vertical-align: middle !important;
         }
+        .badge {
+            display: inline-block;
+            white-space: normal;
+            text-align: center;
+            line-height: 1.2;
+        }
+        .badge br {
+            display: block;
+        }
+        .badge small {
+            display: block;
+            margin-top: 3px;
+        }
     </style>
 </head>
 
@@ -68,17 +93,22 @@ include 'inc/header.php';
 <div id="content" class="d-flex flex-column min-vh-100">
     <div class="container-fluid">
         <div class="card shadow mb-4">
-            <div class="card-header py-3">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
                 <h6 class="m-0 font-weight-bold text-primary">Reservation History</h6>
+                <a href="searchbook.php" class="btn btn-sm btn-primary">
+                    <i class="fas fa-search"></i> Search Books
+                </a>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
+                                <th class="text-center">ID</th>
                                 <th class="text-center">Title</th>
                                 <th class="text-center">Reserve Date</th>
-                                <th class="text-center">Received Date</th>
+                                <th class="text-center">Ready Date</th>
+                                <th class="text-center">Issue Date</th>
                                 <th class="text-center">Cancel Date</th>
                                 <th class="text-center">Status</th>
                             </tr>
@@ -86,11 +116,44 @@ include 'inc/header.php';
                         <tbody>
                             <?php while ($row = $result->fetch_assoc()): ?>
                                 <tr>
+                                    <td class="text-center"><?php echo htmlspecialchars($row['id']); ?></td>
                                     <td><?php echo htmlspecialchars($row['title']); ?></td>
                                     <td class="text-center"><?php echo date('Y-m-d h:i A', strtotime($row['reserve_date'])); ?></td>
-                                    <td class="text-center"><?php echo $row['recieved_date'] ? date('Y-m-d h:i A', strtotime($row['recieved_date'])) : '-'; ?></td>
+                                    <td class="text-center"><?php echo $row['ready_date'] ? date('Y-m-d h:i A', strtotime($row['ready_date'])) : '-'; ?></td>
+                                    <td class="text-center"><?php echo $row['issue_date'] ? date('Y-m-d h:i A', strtotime($row['issue_date'])) : '-'; ?></td>
                                     <td class="text-center"><?php echo $row['cancel_date'] ? date('Y-m-d h:i A', strtotime($row['cancel_date'])) : '-'; ?></td>
-                                    <td class="text-center"><?php echo htmlspecialchars($row['status_text']); ?></td>
+                                    <td class="text-center">
+                                        <?php if ($row["status"] == 'Ready'): ?>
+                                            <span class="badge badge-success p-2" 
+                                                  data-toggle="tooltip" 
+                                                  title="Made ready by: <?php echo htmlspecialchars($row["ready_by_name"]); ?> on <?php echo date('Y-m-d h:i A', strtotime($row["ready_date"])); ?>">
+                                                <i class="fas fa-check"></i> READY
+                                                <small>Book is ready for pickup</small>
+                                            </span>
+                                        <?php elseif ($row["status"] == 'Cancelled'): ?>
+                                            <span class="badge badge-danger p-2" 
+                                                  data-toggle="tooltip" 
+                                                  title="Cancelled by: <?php echo htmlspecialchars($row["cancelled_by_name"]); ?> (<?php echo $row["cancelled_by_role"]; ?>)
+                                                         on <?php echo date('Y-m-d h:i A', strtotime($row["cancel_date"])); ?>">
+                                                <i class="fas fa-times"></i> CANCELLED
+                                            </span>
+                                        <?php elseif ($row["status"] == 'Issued'): ?>
+                                            <span class="badge badge-primary p-2"
+                                                  data-toggle="tooltip"
+                                                  title="Issued by: <?php echo htmlspecialchars($row["issued_by_name"]); ?> on <?php echo date('Y-m-d h:i A', strtotime($row["issue_date"])); ?>">
+                                                <i class="fas fa-book"></i> ISSUED
+                                            </span>
+                                        <?php elseif ($row["status"] == 'Pending'): ?>
+                                            <span class="badge badge-warning p-2">
+                                                <i class="fas fa-clock"></i> Pending
+                                                <small>Waiting for librarian</small>
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="badge badge-secondary p-2">
+                                                <?php echo htmlspecialchars($row["status"]); ?>
+                                            </span>
+                                        <?php endif; ?>
+                                    </td>
                                 </tr>
                             <?php endwhile; ?>
                         </tbody>
@@ -114,13 +177,21 @@ $(document).ready(function() {
             "searchPlaceholder": "Search within results..."
         },
         "pageLength": 10,
-        "order": [[0, 'asc']], // Sort by ID by default
-        "responsive": false, // Disable responsive mode to remove dropdown arrows
-        "scrollX": true, // Keep horizontal scrolling
-        "autoWidth": false, // Fixed width columns for better control
+        "order": [[2, 'desc']], // Sort by reserve date (newest first)
+        "responsive": false,
+        "scrollX": true,
+        "autoWidth": false,
         "initComplete": function() {
             $('#dataTable_filter input').addClass('form-control form-control-sm');
+            
+            // Initialize tooltips
+            $('[data-toggle="tooltip"]').tooltip();
         }
+    });
+    
+    // Adjust table columns on window resize
+    $(window).on('resize', function () {
+        $('#dataTable').DataTable().columns.adjust();
     });
 });
 </script>

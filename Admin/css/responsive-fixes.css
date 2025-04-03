@@ -1,0 +1,125 @@
+/**
+ * Global responsive fixes for the Library System
+ */
+
+/* Improve form layouts on small screens */
+@media (max-width: 767px) {
+    /* Form layout improvements */
+    .form-group {
+        margin-bottom: 1rem;
+    }
+    
+    /* Input groups responsive improvements */
+    .input-group {
+        flex-wrap: wrap;
+    }
+    
+    .input-group > * {
+        flex: 0 0 100%;
+        margin-bottom: 5px;
+    }
+    
+    .input-group-text {
+        width: 100%;
+        justify-content: center;
+        border-radius: 0.25rem 0.25rem 0 0 !important;
+    }
+    
+    .input-group .form-control {
+        border-radius: 0 0 0.25rem 0.25rem !important;
+    }
+    
+    /* Make tables responsive */
+    .table-responsive {
+        overflow-x: auto;
+    }
+    
+    /* Tab navigation scrollable */
+    .nav-tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .nav-tabs .nav-item {
+        float: none;
+        display: inline-block;
+    }
+    
+    /* Improve button spacing */
+    .btn {
+        margin-bottom: 5px;
+    }
+    
+    /* Better alerts */
+    .alert {
+        padding: 0.75rem 1rem;
+    }
+    
+    /* Fix spacing */
+    .container-fluid {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+}
+
+/* Improve call number layout */
+@media (max-width: 767px) {
+    .call-number-input, 
+    .copy-number-input {
+        width: 100% !important;
+    }
+    
+    .call-number-preview {
+        position: static !important;
+        transform: none !important;
+        display: block;
+        margin-top: 5px;
+        text-align: center;
+    }
+    
+    /* Fix for field overflow */
+    input, select, textarea {
+        max-width: 100%;
+    }
+}
+
+/* Ensure badges wrap properly */
+.badge {
+    white-space: normal;
+    text-align: left;
+    margin-bottom: 2px;
+}
+
+/* Better mobile modals */
+@media (max-width: 576px) {
+    .modal-dialog {
+        margin: 0.5rem;
+    }
+    
+    .modal-content {
+        padding: 0.5rem;
+    }
+    
+    /* Make SweetAlert responsive */
+    .swal2-popup {
+        width: 90% !important;
+        padding: 1em !important;
+    }
+    
+    .swal2-content {
+        font-size: 0.9em !important;
+    }
+}
+
+/* Accession group responsive styling */
+@media (max-width: 767px) {
+    .accession-group .row [class*="col-"] {
+        margin-bottom: 10px;
+    }
+    
+    .accession-details .row [class*="col-"] {
+        margin-bottom: 10px;
+    }
+}

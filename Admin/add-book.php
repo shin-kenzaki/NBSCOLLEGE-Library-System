@@ -65,6 +65,147 @@ $accession_error = '';
 
 ?>
 
+<!-- Add these responsive styles before the closing </head> tag -->
+<style>
+/* Responsive improvements for add-book.php */
+@media (max-width: 767px) {
+    /* Input groups responsive adjustments */
+    .input-group {
+        flex-wrap: wrap;
+    }
+    
+    .input-group > * {
+        flex: 0 0 100%;
+        margin-bottom: 5px;
+        width: 100% !important;
+    }
+    
+    .input-group .input-group-text {
+        border-radius: 0.25rem 0.25rem 0 0;
+        justify-content: center;
+    }
+    
+    .input-group input.form-control,
+    .input-group select.form-control {
+        border-radius: 0 0 0.25rem 0.25rem;
+    }
+    
+    /* Call number and copy number inputs */
+    .input-group .call-number-input,
+    .input-group .copy-number-input {
+        min-width: 100% !important;
+        flex: 0 0 100% !important;
+    }
+    
+    /* Preview elements positioning */
+    .call-number-preview {
+        position: static !important;
+        transform: none !important;
+        display: block;
+        margin-top: 5px;
+        text-align: center;
+        width: 100%;
+    }
+    
+    /* Improve modal display on small screens */
+    .swal2-popup {
+        width: 90% !important;
+        padding: 1em !important;
+    }
+    
+    /* Tab navigation scrollable */
+    #formTabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+        display: flex;
+        padding-bottom: 5px;
+    }
+    
+    #formTabs .nav-item {
+        float: none;
+        display: inline-block;
+    }
+    
+    /* Button spacing on mobile */
+    .btn {
+        margin-bottom: 5px;
+    }
+    
+    .d-flex {
+        flex-wrap: wrap;
+    }
+    
+    /* Tab navigation buttons visibility */
+    .tab-navigation-buttons {
+        width: 100%;
+        justify-content: space-between;
+        margin-top: 10px;
+    }
+    
+    /* Accession group layout improvements */
+    .accession-group .row {
+        margin-bottom: 10px;
+    }
+    
+    .accession-group .col-md-2 {
+        margin-top: 10px;
+    }
+    
+    /* Fix modal overflow */
+    .modal-dialog {
+        max-width: 95%;
+        margin: 10px auto;
+    }
+}
+
+/* Make tab content more readable on mobile */
+.tab-pane {
+    padding: 15px 10px;
+}
+
+/* Ensure proper form layout */
+@media (max-width: 576px) {
+    .container-fluid {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+    
+    .row [class^="col-"] {
+        padding-left: 5px;
+        padding-right: 5px;
+    }
+    
+    .card {
+        margin-bottom: 15px;
+    }
+    
+    /* Fix spacing in accession-group sections */
+    .accession-details .row {
+        margin-left: -5px;
+        margin-right: -5px;
+    }
+    
+    /* Adjust small preview text */
+    small {
+        display: inline-block;
+        margin-top: 3px;
+    }
+}
+
+/* Fix multi-select and preview elements */
+.selected-preview {
+    flex-wrap: wrap;
+}
+
+.selected-preview .badge {
+    white-space: normal;
+    text-align: left;
+    margin-bottom: 5px;
+}
+</style>
+
 <!-- Main Content -->
 <div id="content-wrapper" class="d-flex flex-column min-vh-100">
     <div id="content" class="flex-grow-1">
@@ -72,16 +213,16 @@ $accession_error = '';
             <!-- Fix: Remove enctype if not needed -->
             <form id="bookForm" action="add-book.php" method="POST" enctype="multipart/form-data" class="h-100" 
                   onkeydown="return event.key != 'Enter';">
-                <div class="container-fluid d-flex justify-content-between align-items-center mb-4">
+                <div class="container-fluid d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
                     <h1 class="h3 mb-2 text-gray-800">Add Book</h1>
-                    <div>
-                        <button type="button" class="btn btn-info mr-2" data-toggle="modal" data-target="#instructionsModal">
+                    <div class="button-group mt-2 mt-md-0">
+                        <button type="button" class="btn btn-info mr-2 mb-2 mb-md-0" data-toggle="modal" data-target="#instructionsModal">
                             <i class="fas fa-question-circle"></i> Instructions
                         </button>
-                        <button type="button" class="btn btn-secondary mr-2" onclick="window.history.back();">
+                        <button type="button" class="btn btn-secondary mr-2 mb-2 mb-md-0" onclick="window.history.back();">
                             <i class="fas fa-arrow-left"></i> Cancel
                         </button>
-                        <button type="button" class="btn btn-warning mr-2" data-clear-form>
+                        <button type="button" class="btn btn-warning mr-2 mb-2 mb-md-0" data-clear-form>
                             <i class="fas fa-trash"></i> Clear Form
                         </button>
                     </div>
@@ -106,12 +247,12 @@ $accession_error = '';
                 <?php unset($_SESSION['success_message']); ?>
                 <?php endif; ?>
 
-                <!-- Instructions Card -->
+                <!-- Instructions Card - Collapsible on mobile -->
                 <div class="card shadow mb-4">
-                    <div class="card-header py-3">
-                        <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-info-circle mr-2"></i>Instructions</h6>
+                    <div class="card-header py-3" id="instructionsHeader" style="cursor: pointer;" onclick="toggleInstructions()">
+                        <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-info-circle mr-2"></i>Instructions <i class="fas fa-chevron-down float-right" id="instructionsToggle"></i></h6>
                     </div>
-                    <div class="card-body">
+                    <div class="card-body" id="instructionsBody">
                         <div class="alert alert-info">
                             <strong>Note:</strong> There are two ways to add books to the library system:
                         </div>
@@ -165,10 +306,10 @@ $accession_error = '';
                 </div>
 
                 <div class="row">
-                    <div class="col-xl-12 col-lg-7">
-                        <!-- Tab Navigation -->
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <ul class="nav nav-tabs flex-grow-1" id="formTabs" role="tablist">
+                    <div class="col-xl-12 col-lg-12">
+                        <!-- Tab Navigation - Make scrollable on mobile -->
+                        <div class="nav-tab-wrapper overflow-auto">
+                            <ul class="nav nav-tabs flex-nowrap" id="formTabs" role="tablist">
                                 <li class="nav-item">
                                     <a class="nav-link active" id="title-tab" data-toggle="tab" href="#title-proper" role="tab">
                                         <i class="fas fa-book"></i> Title Information
@@ -201,7 +342,10 @@ $accession_error = '';
                                 </li>
                             </ul>
                         </div>
-                        <div class="tab-content card border-0 shadow-sm p-4 mt-3" id="formTabsContent">
+                        
+                        <!-- Tab content with responsive styling -->
+                        <div class="tab-content card border-0 shadow-sm p-3 p-md-4 mt-3" id="formTabsContent">
+                            <!-- Tab content remains the same -->
                             <!-- Title Proper Tab -->
                             <div class="tab-pane fade show active" id="title-proper" role="tabpanel">
                                 <div class="d-flex justify-content-between align-items-center mb-3">

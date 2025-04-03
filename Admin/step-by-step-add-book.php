@@ -61,8 +61,8 @@ include 'inc/header.php';
 <div id="content">
     <div class="container-fluid">
         <div class="card shadow mb-4">
-            <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                <h6 class="m-0 font-weight-bold text-primary">Add Book Shortcut</h6>
+            <div class="card-header py-3 d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center">
+                <h6 class="m-0 font-weight-bold text-primary mb-2 mb-sm-0">Add Book Shortcut</h6>
                 <!-- Reset Progress Button -->
                 <form method="post" onsubmit="return confirmReset()">
                     <button type="submit" name="reset_progress" class="btn btn-danger btn-sm">
@@ -78,21 +78,21 @@ include 'inc/header.php';
                     </div>
                 </div>
 
-                <!-- Step Indicators -->
+                <!-- Step Indicators - Improve for mobile -->
                 <div class="row mb-4 text-center">
-                    <div class="col-md-4">
+                    <div class="col-6 col-md-4 mb-3 mb-md-0">
                         <div class="step <?php echo $current_step >= 1 ? 'active' : ''; ?> <?php echo $_SESSION['book_shortcut']['steps_completed']['writer'] ? 'completed' : ''; ?>">
                             <div class="step-icon">1</div>
                             <div class="step-text">Check/Add Writer</div>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-6 col-md-4 mb-3 mb-md-0">
                         <div class="step <?php echo $current_step >= 2 ? 'active' : ''; ?> <?php echo $_SESSION['book_shortcut']['steps_completed']['publisher'] ? 'completed' : ''; ?>">
                             <div class="step-icon">2</div>
                             <div class="step-text">Check/Add Publisher</div>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-12 col-md-4">
                         <div class="step <?php echo $current_step >= 3 ? 'active' : ''; ?> <?php echo $_SESSION['book_shortcut']['steps_completed']['title'] ? 'completed' : ''; ?>">
                             <div class="step-icon">3</div>
                             <div class="step-text">Book Details & Add</div>
@@ -129,7 +129,7 @@ include 'inc/header.php';
                         <?php if ($current_step > 1): ?>
                             <form method="post" class="d-inline">
                                 <input type="hidden" name="step" value="<?php echo $current_step - 1; ?>">
-                                <button type="submit" class="btn btn-secondary mr-2">Previous Step</button>
+                                <button type="submit" class="btn btn-secondary mr-2 mb-2 mb-sm-0">Previous Step</button>
                             </form>
                         <?php endif; ?>
                         
@@ -144,10 +144,10 @@ include 'inc/header.php';
                     </div>
                 </div>
 
-                <!-- Progress Summary -->
+                <!-- Progress Summary - Improve for mobile -->
                 <div class="mt-4 p-3 bg-light rounded">
                     <h6>Progress Summary:</h6>
-                    <ul class="list-unstyled">
+                    <ul class="list-unstyled summary-list">
                         <li class="mb-2">Writer(s): 
                             <?php 
                             if (!empty($_SESSION['book_shortcut']['selected_writers'])) {
@@ -183,7 +183,7 @@ include 'inc/header.php';
                             }
                             ?>
                         </li>
-                        <li>Publisher: 
+                        <li class="mb-2">Publisher: 
                             <?php 
                             if ($_SESSION['book_shortcut']['publisher_id']) {
                                 $publisher_id = $_SESSION['book_shortcut']['publisher_id'];
@@ -254,6 +254,45 @@ include 'inc/header.php';
     top: 5px;
     right: 50%;
     font-size: 12px;
+}
+
+/* Add responsive styles */
+@media (max-width: 767px) {
+    .summary-list li {
+        word-break: break-word;
+    }
+    
+    .badge {
+        display: inline-block;
+        margin-bottom: 3px;
+    }
+    
+    .step {
+        padding: 5px;
+        margin-bottom: 15px;
+    }
+    
+    .step-text {
+        font-size: 0.9rem;
+    }
+}
+
+/* Ensure badges wrap properly */
+.badge {
+    white-space: normal;
+    text-align: left;
+}
+
+/* Make progress summary more readable on mobile */
+@media (max-width: 576px) {
+    .summary-list {
+        padding-left: 0;
+    }
+    
+    .summary-list li {
+        padding: 8px 0;
+        border-bottom: 1px solid #eee;
+    }
 }
 </style>
 

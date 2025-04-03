@@ -217,14 +217,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <table class="table table-bordered table-striped" id="usersTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
-                                <th class="text-center" style="width: 30px;">
-                                    <input type="checkbox" id="selectAll" class="select-all-checkbox">
-                                </th>
+                                <th class="text-center" style="width: 30px;" id="selectAllHeader">Select</th>
                                 <th class="text-center">ID</th>
                                 <th class="text-center">Physical ID Number</th>
                                 <th class="text-center">Name</th>
                                 <th class="text-center">Email</th>
-                                <th class="text-center">Borrowed</th>
+                                <th class="text-center">Borrowing</th>
                                 <th class="text-center">Returned</th>
                                 <th class="text-center">Damaged</th>
                                 <th class="text-center">Lost</th>
@@ -235,11 +233,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </thead>
                         <tbody>
                             <?php
+                            // Modified query to get user data and calculate borrowing stats from the borrowings table
                             $query = "SELECT u.*, 
-                                u.borrowed_books,
-                                u.returned_books,
-                                u.damaged_books,
-                                u.lost_books
+                                (SELECT COUNT(*) FROM borrowings WHERE user_id = u.id AND status IN ('Borrowed', 'Overdue')) AS borrowed_books,
+                                (SELECT COUNT(*) FROM borrowings WHERE user_id = u.id AND status = 'Returned') AS returned_books,
+                                (SELECT COUNT(*) FROM borrowings WHERE user_id = u.id AND status = 'Damaged') AS damaged_books,
+                                (SELECT COUNT(*) FROM borrowings WHERE user_id = u.id AND status = 'Lost') AS lost_books
                                 FROM users u
                                 ORDER BY u.date_added DESC";
                             $result = $conn->query($query);
@@ -529,24 +528,8 @@ $(document).ready(function() {
         });
     });
 
-    // Select All functionality
-    $('#selectAll').change(function() {
-        const isChecked = $(this).prop('checked');
-        
-        // Update all checkboxes
-        $('.user-checkbox').prop('checked', isChecked);
-        
-        // Update row highlighting
-        updateRowSelectionVisuals();
-        
-        // Update counts and button states
-        updateSelectedCount();
-    });
-
-    // Individual checkbox handler
+    // Individual checkbox handler - keep this
     $(document).on('change', '.user-checkbox', function() {
-        const allChecked = $('.user-checkbox:checked').length === $('.user-checkbox').length;
-        $('#selectAll').prop('checked', allChecked);
         updateSelectedCount();
     });
 
@@ -563,7 +546,7 @@ $(document).ready(function() {
         $('#bulkActivateBtn').prop('disabled', checkedBoxes === 0);
     }
 
-    // Bulk delete handler
+    // Keep bulk action handlers
     $('#bulkDeleteBtn').click(function() {
         const selectedUsers = $('.user-checkbox:checked').map(function() {
             return $(this).data('user-id');
