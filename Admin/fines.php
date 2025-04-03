@@ -60,6 +60,7 @@ if ($typeFilter) {
 
 // Fetch fines with related information
 $query = "SELECT f.id, f.type, f.amount, f.status, f.date, f.payment_date,
+          f.reminder_sent, -- Include reminder_sent column
           b.issue_date, b.due_date, b.return_date,
           bk.title AS book_title,
           CONCAT(u.firstname, ' ', u.lastname) AS borrower_name,
@@ -75,7 +76,7 @@ $query = "SELECT f.id, f.type, f.amount, f.status, f.date, f.payment_date,
 $result = $conn->query($query);
 
 // Count total number of records for the filter summary
-$countQuery = "SELECT COUNT(*) as total FROM fines f 
+$countQuery = "SELECT COUNT(*) as total FROM fines f
               JOIN borrowings b ON f.borrowing_id = b.id
               JOIN books bk ON b.book_id = bk.id
               JOIN users u ON b.user_id = u.id
@@ -186,28 +187,28 @@ $totalPaidValue = $paidFinesRow['total_paid_value'] ?: 0;
                         <div class="col-md-2">
                             <div class="form-group">
                                 <label for="date_start">From Date</label>
-                                <input type="date" class="form-control form-control-sm" id="date_start" 
+                                <input type="date" class="form-control form-control-sm" id="date_start"
                                        name="date_start" value="<?= $dateStart ?>">
                             </div>
                         </div>
                         <div class="col-md-2">
                             <div class="form-group">
                                 <label for="date_end">To Date</label>
-                                <input type="date" class="form-control form-control-sm" id="date_end" 
+                                <input type="date" class="form-control form-control-sm" id="date_end"
                                        name="date_end" value="<?= $dateEnd ?>">
                             </div>
                         </div>
                         <div class="col-md-2">
                             <div class="form-group">
                                 <label for="user">Borrower</label>
-                                <input type="text" class="form-control form-control-sm" id="user" 
+                                <input type="text" class="form-control form-control-sm" id="user"
                                        name="user" placeholder="Name or ID" value="<?= htmlspecialchars($userFilter) ?>">
                             </div>
                         </div>
                         <div class="col-md-2">
                             <div class="form-group">
                                 <label for="book">Book</label>
-                                <input type="text" class="form-control form-control-sm" id="book" 
+                                <input type="text" class="form-control form-control-sm" id="book"
                                        name="book" placeholder="Title" value="<?= htmlspecialchars($bookFilter) ?>">
                             </div>
                         </div>
@@ -243,9 +244,11 @@ $totalPaidValue = $paidFinesRow['total_paid_value'] ?: 0;
                 <div>
                     <!-- Results summary -->
                     <span id="filterSummary" class="mr-3 <?= empty($filterParams) ? 'd-none' : '' ?>">
-                        <span class="text-primary font-weight-bold">Filter applied:</span> 
+                        <span class="text-primary font-weight-bold">Filter applied:</span>
                         Showing <span id="totalResults"><?= $totalRecords ?></span> result<span id="pluralSuffix"><?= $totalRecords != 1 ? 's' : '' ?></span>
                     </span>
+                    <button id="remindAllBtn" class="btn btn-warning btn-sm mr-2">Remind All</button>
+
                     <button id="exportPaidFinesBtn" class="btn btn-success btn-sm mr-2">Export Paid Fines</button>
                     <button id="exportUnpaidFinesBtn" class="btn btn-danger btn-sm">Export Unpaid Fines</button>
                 </div>
@@ -265,10 +268,11 @@ $totalPaidValue = $paidFinesRow['total_paid_value'] ?: 0;
                                 <th class="text-center">Return Date</th>
                                 <th class="text-center">Status</th>
                                 <th class="text-center">Payment Date</th>
+                                <th class="text-center">Reminder</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <?php while ($row = $result->fetch_assoc()): ?>
+                        <?php while ($row = $result->fetch_assoc()): ?>
                                 <tr data-fine-id="<?php echo $row['id']; ?>"
                                     data-amount="<?php echo $row['amount']; ?>"
                                     data-borrower="<?php echo htmlspecialchars($row['borrower_name']); ?>"
@@ -301,8 +305,12 @@ $totalPaidValue = $paidFinesRow['total_paid_value'] ?: 0;
                                             : '-';
                                         ?>
                                     </td>
+                                    <td class="text-center">
+                                        <?php echo ($row['reminder_sent'] == 1) ? '<span class="badge badge-success">Reminder Sent</span>' : '<span class="badge badge-warning">Not Reminded</span>'; ?>
+                                    </td>
                                 </tr>
                             <?php endwhile; ?>
+
                         </tbody>
                     </table>
                 </div>
@@ -413,10 +421,10 @@ $(document).ready(function() {
     // Reset filters
     $('#resetFilters').on('click', function(e) {
         e.preventDefault();
-        
+
         // Store the current visibility state of the filter form
         const isFilterVisible = !$('#filterForm').hasClass('d-none');
-        
+
         // Clear all filter values
         $('#status').val('');
         $('#date_start').val('');
@@ -424,10 +432,10 @@ $(document).ready(function() {
         $('#user').val('');
         $('#book').val('');
         $('#type').val('');
-        
+
         // Update the filter summary to indicate no filters
         $('#filterSummary').addClass('d-none');
-        
+
         // Use AJAX to reload content with explicitly empty parameters
         $.ajax({
             url: 'fines.php',
@@ -444,27 +452,27 @@ $(document).ready(function() {
             success: function(data) {
                 // Parse the response HTML
                 const $data = $(data);
-                
+
                 // Extract the table content
                 let tableHtml = $data.find('#finesTable').parent().html();
                 // Update just the table content
                 $('.table-responsive').html(tableHtml);
-                
+
                 // Update statistics cards
                 let statsHtml = $data.find('.row.mb-4').html();
                 $('.row.mb-4').html(statsHtml);
-                
+
                 // Update browser URL to remove query parameters without reloading
                 const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
                 window.history.pushState({path: newUrl}, '', newUrl);
-                
+
                 // Reinitialize DataTable
                 if ($.fn.DataTable.isDataTable('#finesTable')) {
                     $('#finesTable').DataTable().destroy();
                 }
-                
+
                 initializeDataTable();
-                
+
                 // Restore the filter form visibility state
                 if (isFilterVisible) {
                     $('#filterForm').removeClass('d-none');
@@ -476,10 +484,10 @@ $(document).ready(function() {
     // Handle form submission (Apply filters)
     $('#finesFilterForm').on('submit', function(e) {
         e.preventDefault();
-        
+
         // Store the current visibility state of the filter form
         const isFilterVisible = !$('#filterForm').hasClass('d-none');
-        
+
         // Submit the form using AJAX
         $.ajax({
             url: 'fines.php',
@@ -488,35 +496,35 @@ $(document).ready(function() {
             success: function(data) {
                 // Parse the response HTML
                 const $data = $(data);
-                
+
                 // Extract the table content
                 let tableHtml = $data.find('#finesTable').parent().html();
                 // Update just the table content
                 $('.table-responsive').html(tableHtml);
-                
+
                 // Update filter summary
                 let filterSummaryHtml = $data.find('#filterSummary').html();
                 $('#filterSummary').html(filterSummaryHtml);
-                
+
                 // Update statistics cards
                 let statsHtml = $data.find('.row.mb-4').html();
                 $('.row.mb-4').html(statsHtml);
-                
+
                 // Show or hide the filter summary based on whether filters are applied
-                if ($('#status').val() || $('#date_start').val() || $('#date_end').val() || 
+                if ($('#status').val() || $('#date_start').val() || $('#date_end').val() ||
                     $('#user').val() || $('#book').val() || $('#type').val()) {
                     $('#filterSummary').removeClass('d-none');
                 } else {
                     $('#filterSummary').addClass('d-none');
                 }
-                
+
                 // Reinitialize DataTable
                 if ($.fn.DataTable.isDataTable('#finesTable')) {
                     $('#finesTable').DataTable().destroy();
                 }
-                
+
                 initializeDataTable();
-                
+
                 // Restore the filter form visibility state
                 if (isFilterVisible) {
                     $('#filterForm').removeClass('d-none');
@@ -550,7 +558,7 @@ $(document).ready(function() {
                 $('.dataTables_paginate .paginate_button').addClass('btn btn-sm btn-outline-primary mx-1');
             }
         });
-        
+
         // Rebind context menu on newly loaded table rows
         $('#finesTable tbody').on('contextmenu', 'tr', function(e) {
             e.preventDefault();
@@ -566,7 +574,7 @@ $(document).ready(function() {
                 display: "block"
             });
         });
-        
+
         // Add window resize handler for the table
         $(window).on('resize', function() {
             table.columns.adjust().draw();
@@ -701,6 +709,53 @@ $(document).ready(function() {
     // Export Unpaid Fines
     $('#exportUnpaidFinesBtn').click(function() {
         window.location.href = 'export_fines.php?status=Unpaid';
+    });
+});
+</script>
+<script>
+$(document).ready(function() {
+    // Handle "Remind All" button click
+    $('#remindAllBtn').on('click', function() {
+        Swal.fire({
+            title: 'Send Reminders to All Unpaid Fines',
+            text: `Are you sure you want to send reminders to all users with unpaid fines?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Send',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#dc3545',
+            showLoaderOnConfirm: true,
+            preConfirm: () => {
+                return $.ajax({
+                    url: 'send_fine_reminders.php',
+                    type: 'POST',
+                    data: {
+                        action: 'remind_all'
+                    },
+                    dataType: 'json'
+                }).then(response => {
+                    if (response.status === 'success') {
+                        return response;
+                    } else {
+                        throw new Error(response.message || 'Failed to send reminders.');
+                    }
+                }).catch(error => {
+                    Swal.showValidationMessage(`Error: ${error.message}`);
+                });
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Reminders Sent!',
+                    text: result.value.message,
+                    icon: 'success',
+                    confirmButtonText: 'OK'
+                }).then(() => {
+                    window.location.reload();
+                });
+            }
+        });
     });
 });
 </script>
