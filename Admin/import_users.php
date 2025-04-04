@@ -14,6 +14,7 @@ $status = '';
 $importCount = 0;
 $errorCount = 0;
 $errors = [];
+$importedUsers = [];
 
 // Process import
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['import_file'])) {
@@ -41,6 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['import_file'])) {
             $importCount = $results['success'];
             $errorCount = $results['error'];
             $errors = $results['errors'];
+            $importedUsers = $results['imported_users'] ?? [];
             
             if ($importCount > 0) {
                 $status = 'success';
@@ -48,11 +50,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['import_file'])) {
                 if ($errorCount > 0) {
                     $message .= " $errorCount records had errors.";
                 }
-                
-                // Store success message in session and redirect
-                $_SESSION['import_success'] = $message;
-                header("Location: manage_library_users.php");
-                exit();
             } else {
                 $status = 'error';
                 $message = "No records were imported. Please check your file format.";
@@ -81,6 +78,7 @@ function processCSV($filePath, $conn) {
     $success = 0;
     $error = 0;
     $errors = [];
+    $importedUsers = [];
     
     // Open the CSV file
     if (($handle = fopen($filePath, "r")) !== FALSE) {
@@ -88,7 +86,7 @@ function processCSV($filePath, $conn) {
         $header = fgetcsv($handle, 1000, ",");
         
         // Check if the header matches our expected format
-        $expectedHeader = ['Student Number', 'Course', 'Year', 'Firstname', 'Middle Initial', 'Lastname', 'Gender'];
+        $expectedHeader = ['ID', 'Firstname', 'Middle Initial', 'Lastname', 'Gender', 'Department', 'Usertype'];
         $headerMatch = true;
         
         // Check if all expected columns exist
@@ -116,18 +114,18 @@ function processCSV($filePath, $conn) {
             }
             
             // Extract data
-            $studentNumber = trim($data[0]);
-            $course = trim($data[1]);
-            $year = trim($data[2]);
-            $firstname = trim($data[3]);
-            $middleInit = trim($data[4]);
-            $lastname = trim($data[5]);
-            $gender = trim($data[6]);
+            $schoolId = trim($data[0]);
+            $firstname = trim($data[1]);
+            $middleInit = trim($data[2]);
+            $lastname = trim($data[3]);
+            $gender = trim($data[4]);
+            $department = trim($data[5]);
+            $usertype = trim($data[6]);
             
             // Basic validation
-            if (empty($studentNumber) || !is_numeric($studentNumber)) {
+            if (empty($schoolId) || !is_numeric($schoolId)) {
                 $error++;
-                $errors[] = "Row $rowNum: Invalid student number. Must be numeric.";
+                $errors[] = "Row $rowNum: Invalid ID number. Must be numeric.";
                 continue;
             }
             
@@ -137,20 +135,47 @@ function processCSV($filePath, $conn) {
                 continue;
             }
             
-            // Check if student already exists
-            $checkSql = "SELECT id FROM physical_login_users WHERE student_number = ?";
+            if (empty($usertype)) {
+                $error++;
+                $errors[] = "Row $rowNum: Usertype is required.";
+                continue;
+            }
+            
+            // Generate email with the correct format: first letter of firstname + lastname + 20xx@student.nbscollege.edu.ph
+            // where xx is the first two digits of the school ID
+            $firstnameLetter = strtolower(substr($firstname, 0, 1));
+            $lastnameForEmail = strtolower(str_replace(' ', '', $lastname));
+            $yearFromId = '20' . substr($schoolId, 0, 2); // Extract first 2 digits and prefix with '20'
+            $email = $firstnameLetter . $lastnameForEmail . $yearFromId . "@student.nbscollege.edu.ph";
+            
+            // Generate random password
+            $password = generateStrongPassword(12);
+            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+            
+            // Set default values
+            $contact_no = '';
+            $user_image = '../Images/Profile/default-avatar.jpg';
+            $address = '';
+            $id_type = '';
+            $id_image = '/upload/default-id.png';
+            $status = '1'; // Active
+            
+            // Check if user already exists
+            $checkSql = "SELECT id FROM users WHERE school_id = ?";
             $checkStmt = $conn->prepare($checkSql);
-            $checkStmt->bind_param("i", $studentNumber);
+            $checkStmt->bind_param("i", $schoolId);
             $checkStmt->execute();
             $checkResult = $checkStmt->get_result();
             
             if ($checkResult->num_rows > 0) {
                 // Update existing record
-                $updateSql = "UPDATE physical_login_users 
-                              SET course = ?, year = ?, firstname = ?, middle_init = ?, lastname = ?, gender = ? 
-                              WHERE student_number = ?";
+                $updateSql = "UPDATE users 
+                              SET firstname = ?, middle_init = ?, lastname = ?, 
+                              department = ?, usertype = ?
+                              WHERE school_id = ?";
                 $updateStmt = $conn->prepare($updateSql);
-                $updateStmt->bind_param("ssssssi", $course, $year, $firstname, $middleInit, $lastname, $gender, $studentNumber);
+                $updateStmt->bind_param("sssssi", $firstname, $middleInit, $lastname, 
+                                      $department, $usertype, $schoolId);
                 
                 if ($updateStmt->execute()) {
                     $success++;
@@ -160,14 +185,37 @@ function processCSV($filePath, $conn) {
                 }
                 $updateStmt->close();
             } else {
-                // Insert new record
-                $insertSql = "INSERT INTO physical_login_users (student_number, course, year, firstname, middle_init, lastname, gender) 
-                              VALUES (?, ?, ?, ?, ?, ?, ?)";
+                // Insert new record - fixed bind_param count
+                $insertSql = "INSERT INTO users (
+                    school_id, firstname, middle_init, lastname, 
+                    email, password, contact_no, user_image, 
+                    department, usertype, address, id_type, 
+                    id_image, status
+                ) VALUES (
+                    ?, ?, ?, ?, 
+                    ?, ?, ?, ?,
+                    ?, ?, ?, ?,
+                    ?, ?
+                )";
+                
                 $insertStmt = $conn->prepare($insertSql);
-                $insertStmt->bind_param("issssss", $studentNumber, $course, $year, $firstname, $middleInit, $lastname, $gender);
+                $insertStmt->bind_param("issssssssssssi", 
+                    $schoolId, $firstname, $middleInit, $lastname,
+                    $email, $hashed_password, $contact_no, $user_image,
+                    $department, $usertype, $address, $id_type,
+                    $id_image, $status
+                );
                 
                 if ($insertStmt->execute()) {
                     $success++;
+                    $importedUsers[] = [
+                        'id' => $schoolId,
+                        'name' => "$firstname $middleInit $lastname",
+                        'email' => $email,
+                        'password' => $password,
+                        'usertype' => $usertype,
+                        'department' => $department
+                    ];
                 } else {
                     $error++;
                     $errors[] = "Row $rowNum: Error inserting record: " . $conn->error;
@@ -186,7 +234,8 @@ function processCSV($filePath, $conn) {
     return [
         'success' => $success,
         'error' => $error,
-        'errors' => $errors
+        'errors' => $errors,
+        'imported_users' => $importedUsers
     ];
 }
 
@@ -201,6 +250,7 @@ function processXLSX($filePath, $conn) {
     $success = 0;
     $error = 0;
     $errors = [];
+    $importedUsers = [];
     
     // Check if PhpSpreadsheet is installed
     if (!class_exists('PhpOffice\PhpSpreadsheet\IOFactory')) {
@@ -223,11 +273,10 @@ function processXLSX($filePath, $conn) {
         $worksheet = $spreadsheet->getActiveSheet();
         
         // Check the header row (row 1)
-        $expectedHeader = ['Student Number', 'Course', 'Year', 'Firstname', 'Middle Initial', 'Lastname', 'Gender'];
+        $expectedHeader = ['ID', 'Firstname', 'Middle Initial', 'Lastname', 'Gender', 'Department', 'Usertype'];
         $headerMatch = true;
         
         for ($col = 1; $col <= count($expectedHeader); $col++) {
-            // Fix: Use cellExists and getCell instead of getCellByColumnAndRow
             $cellCoordinate = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col) . '1';
             if (!$worksheet->cellExists($cellCoordinate)) {
                 $headerMatch = false;
@@ -249,7 +298,6 @@ function processXLSX($filePath, $conn) {
         
         // Process each row starting from row 2 (after header)
         for ($row = 2; $row <= $highestRow; $row++) {
-            // Fix: Use proper cell access method for each column
             $colA = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(1) . $row;
             $colB = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(2) . $row;
             $colC = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(3) . $row;
@@ -258,23 +306,23 @@ function processXLSX($filePath, $conn) {
             $colF = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(6) . $row;
             $colG = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(7) . $row;
             
-            $studentNumber = trim($worksheet->cellExists($colA) ? $worksheet->getCell($colA)->getValue() : '');
-            $course = trim($worksheet->cellExists($colB) ? $worksheet->getCell($colB)->getValue() : '');
-            $year = trim($worksheet->cellExists($colC) ? $worksheet->getCell($colC)->getValue() : '');
-            $firstname = trim($worksheet->cellExists($colD) ? $worksheet->getCell($colD)->getValue() : '');
-            $middleInit = trim($worksheet->cellExists($colE) ? $worksheet->getCell($colE)->getValue() : '');
-            $lastname = trim($worksheet->cellExists($colF) ? $worksheet->getCell($colF)->getValue() : '');
-            $gender = trim($worksheet->cellExists($colG) ? $worksheet->getCell($colG)->getValue() : '');
+            $schoolId = trim($worksheet->cellExists($colA) ? $worksheet->getCell($colA)->getValue() : '');
+            $firstname = trim($worksheet->cellExists($colB) ? $worksheet->getCell($colB)->getValue() : '');
+            $middleInit = trim($worksheet->cellExists($colC) ? $worksheet->getCell($colC)->getValue() : '');
+            $lastname = trim($worksheet->cellExists($colD) ? $worksheet->getCell($colD)->getValue() : '');
+            $gender = trim($worksheet->cellExists($colE) ? $worksheet->getCell($colE)->getValue() : '');
+            $department = trim($worksheet->cellExists($colF) ? $worksheet->getCell($colF)->getValue() : '');
+            $usertype = trim($worksheet->cellExists($colG) ? $worksheet->getCell($colG)->getValue() : '');
             
             // Skip empty rows
-            if (empty($studentNumber) && empty($firstname) && empty($lastname)) {
+            if (empty($schoolId) && empty($firstname) && empty($lastname)) {
                 continue;
             }
             
             // Basic validation
-            if (empty($studentNumber) || !is_numeric($studentNumber)) {
+            if (empty($schoolId) || !is_numeric($schoolId)) {
                 $error++;
-                $errors[] = "Row $row: Invalid student number. Must be numeric.";
+                $errors[] = "Row $row: Invalid ID number. Must be numeric.";
                 continue;
             }
             
@@ -284,20 +332,47 @@ function processXLSX($filePath, $conn) {
                 continue;
             }
             
-            // Check if student already exists
-            $checkSql = "SELECT id FROM physical_login_users WHERE student_number = ?";
+            if (empty($usertype)) {
+                $error++;
+                $errors[] = "Row $row: Usertype is required.";
+                continue;
+            }
+            
+            // Generate email with the correct format: first letter of firstname + lastname + 20xx@student.nbscollege.edu.ph
+            // where xx is the first two digits of the school ID
+            $firstnameLetter = strtolower(substr($firstname, 0, 1));
+            $lastnameForEmail = strtolower(str_replace(' ', '', $lastname));
+            $yearFromId = '20' . substr($schoolId, 0, 2); // Extract first 2 digits and prefix with '20'
+            $email = $firstnameLetter . $lastnameForEmail . $yearFromId . "@student.nbscollege.edu.ph";
+            
+            // Generate random password
+            $password = generateStrongPassword(12);
+            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+            
+            // Set default values
+            $contact_no = '';
+            $user_image = '../Images/Profile/default-avatar.jpg';
+            $address = '';
+            $id_type = '';
+            $id_image = '/upload/default-id.png';
+            $status = '1'; // Active
+            
+            // Check if user already exists
+            $checkSql = "SELECT id FROM users WHERE school_id = ?";
             $checkStmt = $conn->prepare($checkSql);
-            $checkStmt->bind_param("i", $studentNumber);
+            $checkStmt->bind_param("i", $schoolId);
             $checkStmt->execute();
             $checkResult = $checkStmt->get_result();
             
             if ($checkResult->num_rows > 0) {
                 // Update existing record
-                $updateSql = "UPDATE physical_login_users 
-                              SET course = ?, year = ?, firstname = ?, middle_init = ?, lastname = ?, gender = ? 
-                              WHERE student_number = ?";
+                $updateSql = "UPDATE users 
+                              SET firstname = ?, middle_init = ?, lastname = ?, 
+                              department = ?, usertype = ?
+                              WHERE school_id = ?";
                 $updateStmt = $conn->prepare($updateSql);
-                $updateStmt->bind_param("ssssssi", $course, $year, $firstname, $middleInit, $lastname, $gender, $studentNumber);
+                $updateStmt->bind_param("sssssi", $firstname, $middleInit, $lastname, 
+                                      $department, $usertype, $schoolId);
                 
                 if ($updateStmt->execute()) {
                     $success++;
@@ -307,14 +382,37 @@ function processXLSX($filePath, $conn) {
                 }
                 $updateStmt->close();
             } else {
-                // Insert new record
-                $insertSql = "INSERT INTO physical_login_users (student_number, course, year, firstname, middle_init, lastname, gender) 
-                              VALUES (?, ?, ?, ?, ?, ?, ?)";
+                // Insert new record - fixed bind_param count
+                $insertSql = "INSERT INTO users (
+                    school_id, firstname, middle_init, lastname, 
+                    email, password, contact_no, user_image, 
+                    department, usertype, address, id_type, 
+                    id_image, status
+                ) VALUES (
+                    ?, ?, ?, ?, 
+                    ?, ?, ?, ?,
+                    ?, ?, ?, ?,
+                    ?, ?
+                )";
+                
                 $insertStmt = $conn->prepare($insertSql);
-                $insertStmt->bind_param("issssss", $studentNumber, $course, $year, $firstname, $middleInit, $lastname, $gender);
+                $insertStmt->bind_param("issssssssssssi", 
+                    $schoolId, $firstname, $middleInit, $lastname,
+                    $email, $hashed_password, $contact_no, $user_image,
+                    $department, $usertype, $address, $id_type,
+                    $id_image, $status
+                );
                 
                 if ($insertStmt->execute()) {
                     $success++;
+                    $importedUsers[] = [
+                        'id' => $schoolId,
+                        'name' => "$firstname $middleInit $lastname",
+                        'email' => $email,
+                        'password' => $password,
+                        'usertype' => $usertype,
+                        'department' => $department
+                    ];
                 } else {
                     $error++;
                     $errors[] = "Row $row: Error inserting record: " . $conn->error;
@@ -332,8 +430,24 @@ function processXLSX($filePath, $conn) {
     return [
         'success' => $success,
         'error' => $error,
-        'errors' => $errors
+        'errors' => $errors,
+        'imported_users' => $importedUsers
     ];
+}
+
+/**
+ * Generate a strong random password
+ *
+ * @param int $length Length of the password
+ * @return string The generated password
+ */
+function generateStrongPassword($length = 12) {
+    $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()';
+    $password = '';
+    for ($i = 0; $i < $length; $i++) {
+        $password .= $chars[rand(0, strlen($chars) - 1)];
+    }
+    return $password;
 }
 ?>
 
@@ -442,6 +556,92 @@ function processXLSX($filePath, $conn) {
             margin: 15px 0;
             overflow-x: auto;
         }
+        
+        .password-table {
+            margin-top: 1.5rem;
+            overflow-x: auto;
+        }
+        
+        .password-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .password-table th, 
+        .password-table td {
+            padding: 8px 12px;
+            border: 1px solid #e3e6f0;
+            text-align: left;
+        }
+        
+        .password-table th {
+            background-color: #f8f9fc;
+            color: #4e73df;
+            font-weight: 600;
+        }
+        
+        .password-table tr:nth-child(even) {
+            background-color: #f8f9fc;
+        }
+        
+        .password-table tr:hover {
+            background-color: rgba(78, 115, 223, 0.1);
+        }
+        
+        .copy-button {
+            background-color: #4e73df;
+            color: #fff;
+            border: none;
+            border-radius: 3px;
+            padding: 5px 10px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .copy-button:hover {
+            background-color: #2e59d9;
+        }
+        
+        .password-field {
+            font-family: monospace;
+            background-color: #f8f9fe;
+            padding: 3px 8px;
+            border-radius: 3px;
+            border: 1px solid #e3e6f0;
+            display: inline-block;
+            min-width: 120px;
+        }
+        
+        .export-buttons {
+            margin-top: 1rem;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        .export-btn {
+            background-color: #1cc88a;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .export-btn:hover {
+            background-color: #169b6b;
+        }
+        
+        .alert-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border-color: #bee5eb;
+        }
     </style>
 </head>
 <body>
@@ -452,44 +652,110 @@ function processXLSX($filePath, $conn) {
             <div class="alert alert-success">
                 <?php echo $message; ?>
             </div>
+            
+            <?php if (!empty($importedUsers)): ?>
+                <div class="alert alert-info">
+                    <h5 class="mb-3">Important:</h5>
+                    <p>The following passwords have been generated for the imported users. Please save this information as it will not be displayed again.</p>
+                    <p><strong>Tip:</strong> You can use the "Export to Excel" or "Copy All" buttons to save this information for your records.</p>
+                </div>
+                
+                <div class="password-table">
+                    <table id="users-password-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Department</th>
+                                <th>User Type</th>
+                                <th>Password</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($importedUsers as $user): ?>
+                                <tr>
+                                    <td><?php echo htmlspecialchars($user['id']); ?></td>
+                                    <td><?php echo htmlspecialchars($user['name']); ?></td>
+                                    <td><?php echo htmlspecialchars($user['email']); ?></td>
+                                    <td><?php echo htmlspecialchars($user['department']); ?></td>
+                                    <td><?php echo htmlspecialchars($user['usertype']); ?></td>
+                                    <td><span class="password-field"><?php echo htmlspecialchars($user['password']); ?></span></td>
+                                    <td>
+                                        <button type="button" class="copy-button" onclick="copyPassword('<?php echo htmlspecialchars($user['password']); ?>')">
+                                            Copy
+                                        </button>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="export-buttons">
+                    <button type="button" class="export-btn" onclick="exportToExcel()">
+                        <i class="fas fa-file-excel"></i> Export to Excel
+                    </button>
+                    <button type="button" class="export-btn" onclick="copyAllPasswords()">
+                        <i class="fas fa-copy"></i> Copy All
+                    </button>
+                    <a href="users_list.php" class="export-btn">
+                        <i class="fas fa-users"></i> Go to Users List
+                    </a>
+                </div>
+            <?php else: ?>
+                <div class="d-grid gap-2 d-md-flex justify-content-center mt-3">
+                    <a href="users_list.php" class="btn btn-primary">
+                        <i class="fas fa-users"></i> Go to Users List
+                    </a>
+                </div>
+            <?php endif; ?>
+            
         <?php elseif ($status === 'error'): ?>
             <div class="alert alert-danger">
                 <?php echo $message; ?>
             </div>
         <?php endif; ?>
         
-        <div class="import-steps">
-            <h5>Instructions:</h5>
-            <ol>
-                <li>Prepare your Excel (XLSX) or CSV file with the following columns:
-                    <div class="sample-header">
-                        Student Number, Course, Year, Firstname, Middle Initial, Lastname, Gender
-                    </div>
-                </li>
-                <li>Ensure the first row contains the column headers exactly as shown above</li>
-                <li>For CSV files, use comma (,) as the delimiter</li>
-                <li>Select your file using the form below and click "Import"</li>
-            </ol>
-        </div>
-        
-        <form method="POST" action="" enctype="multipart/form-data">
-            <div class="mb-3">
-                <label for="import_file" class="form-label">Select File (XLSX or CSV)</label>
-                <input class="form-control" type="file" id="import_file" name="import_file" accept=".xlsx,.csv" required>
-                <div class="form-text">
-                    Maximum file size: 5MB
-                </div>
+        <?php if (!$status): ?>
+            <div class="import-steps">
+                <h5>Instructions:</h5>
+                <ol>
+                    <li>Prepare your Excel (XLSX) or CSV file with the following columns:
+                        <div class="sample-header">
+                            ID, Firstname, Middle Initial, Lastname, Gender, Department, Usertype
+                        </div>
+                    </li>
+                    <li>Ensure the first row contains the column headers exactly as shown above</li>
+                    <li>The "ID" column will be used as the school_id in the system</li>
+                    <li>The "Department" should be one of: Computer Science, Accounting Information System, Accountancy, Entrepreneurship, Tourism Management</li>
+                    <li>The "Usertype" field should be one of: Student, Faculty, Staff, or Visitor</li>
+                    <li>For CSV files, use comma (,) as the delimiter</li>
+                    <li>Select your file using the form below and click "Import"</li>
+                    <li>A system-generated email and password will be created for new users</li>
+                </ol>
             </div>
             
-            <div class="d-grid gap-2 d-md-flex">
-                <button type="submit" class="btn btn-primary flex-grow-1">
-                    <i class="fas fa-file-import me-2"></i> Import
-                </button>
-                <a href="manage_library_users.php" class="btn btn-secondary flex-grow-1">
-                    <i class="fas fa-times me-2"></i> Cancel
-                </a>
-            </div>
-        </form>
+            <form method="POST" action="" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label for="import_file" class="form-label">Select File (XLSX or CSV)</label>
+                    <input class="form-control" type="file" id="import_file" name="import_file" accept=".xlsx,.csv" required>
+                    <div class="form-text">
+                        Maximum file size: 5MB
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2 d-md-flex">
+                    <button type="submit" class="btn btn-primary flex-grow-1">
+                        <i class="fas fa-file-import me-2"></i> Import
+                    </button>
+                    <a href="users_list.php" class="btn btn-secondary flex-grow-1">
+                        <i class="fas fa-times me-2"></i> Cancel
+                    </a>
+                </div>
+            </form>
+        <?php endif; ?>
         
         <?php if ($errorCount > 0): ?>
             <div class="mt-4">
@@ -515,14 +781,96 @@ function processXLSX($filePath, $conn) {
             </div>
         <?php endif; ?>
         
-        <div class="text-center mt-4">
-            <a href="library_entrance.php" class="back-link">
-                <i class="fas fa-arrow-left me-1"></i>Display Library Entrance
-            </a>
-        </div>
+        <?php if (!$status): ?>
+            <div class="text-center mt-4">
+                <a href="library_entrance.php" class="back-link">
+                    <i class="fas fa-arrow-left me-1"></i>Display Library Entrance
+                </a>
+                &nbsp;|&nbsp;
+                <a href="users_list.php" class="back-link">
+                    <i class="fas fa-users me-1"></i>Back to Users List
+                </a>
+            </div>
+        <?php endif; ?>
     </div>
     
     <!-- Bootstrap Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Add SheetJS (for Excel export) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
+    <script>
+        function copyPassword(password) {
+            const tempInput = document.createElement('input');
+            tempInput.value = password;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+            
+            // Show a tooltip or notification
+            showToast('Password copied to clipboard');
+        }
+        
+        function showToast(message) {
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.className = 'toast-notification';
+            toast.textContent = message;
+            toast.style.position = 'fixed';
+            toast.style.bottom = '20px';
+            toast.style.right = '20px';
+            toast.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+            toast.style.color = 'white';
+            toast.style.padding = '10px 20px';
+            toast.style.borderRadius = '5px';
+            toast.style.zIndex = '9999';
+            
+            // Add to document
+            document.body.appendChild(toast);
+            
+            // Remove after timeout
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.5s';
+                setTimeout(() => {
+                    document.body.removeChild(toast);
+                }, 500);
+            }, 2000);
+        }
+        
+        function exportToExcel() {
+            const table = document.getElementById('users-password-table');
+            const wb = XLSX.utils.table_to_book(table, { sheet: "Imported Users" });
+            XLSX.writeFile(wb, 'imported_users_' + new Date().toISOString().slice(0,10) + '.xlsx');
+        }
+        
+        function copyAllPasswords() {
+            const table = document.getElementById('users-password-table');
+            const rows = table.querySelectorAll('tbody tr');
+            
+            let text = "ID\tName\tEmail\tDepartment\tUser Type\tPassword\n";
+            
+            rows.forEach(row => {
+                const columns = row.querySelectorAll('td');
+                text += columns[0].textContent + "\t"; // ID
+                text += columns[1].textContent + "\t"; // Name
+                text += columns[2].textContent + "\t"; // Email
+                text += columns[3].textContent + "\t"; // Department
+                text += columns[4].textContent + "\t"; // User Type
+                text += columns[5].textContent.trim() + "\n"; // Password
+            });
+            
+            const tempInput = document.createElement('textarea');
+            tempInput.value = text;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+            
+            showToast('All user data copied to clipboard');
+        }
+    </script>
 </body>
 </html>

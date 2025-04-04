@@ -206,6 +206,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <button id="bulkDeleteBtn" class="btn btn-danger btn-sm mr-2" disabled>
                         Delete Selected (<span id="selectedCount">0</span>)
                     </button>
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-primary btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="fas fa-download"></i> Export
+                        </button>
+                        <div class="dropdown-menu">
+                            <a class="dropdown-item" href="#" id="exportExcel">Excel (.xlsx)</a>
+                            <a class="dropdown-item" href="#" id="exportCSV">CSV (.csv)</a>
+                            <a class="dropdown-item" href="#" id="exportPDF">PDF (.pdf)</a>
+                        </div>
+                    </div>
+                    <a href="import_users.php" class="btn btn-info btn-sm mr-2">
+                        <i class="fas fa-file-import"></i> Import Users
+                    </a>
                     <a href="#" class="btn btn-success btn-sm add-user-btn" data-toggle="modal" data-target="#addUserModal">
                         <i class="fas fa-plus"></i> Add New User
                     </a>
@@ -378,6 +391,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <!-- Add SweetAlert2 library before your closing body tag -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<!-- Add SheetJS (for Excel export) and jsPDF (for PDF export) before your closing body tag -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 
 <script>
 $(document).ready(function() {
@@ -389,47 +406,183 @@ $(document).ready(function() {
                "<'row mt-3'<'col-sm-5'i><'col-sm-7 d-flex justify-content-end'p>>",
         "order": [[10, "desc"]],
         "pageLength": 10,
+        "lengthMenu": [[10, 25, 50, 100, 500, -1], [10, 25, 50, 100, 500, "All"]],
         "responsive": false,
         "scrollX": true,
         "language": {
             "search": "_INPUT_",
-            "searchPlaceholder": "Search..."
+            "searchPlaceholder": "Search...",
+            "emptyTable": "No users found in the database",
+            "zeroRecords": "No matching users found"
         },
         "columnDefs": [
             { "orderable": false, "targets": 0 } // Disable sorting on checkbox column
-        ]
+        ],
+        "initComplete": function() {
+            // Apply Bootstrap styling to search input
+            $('#usersTable_filter input').addClass('form-control form-control-sm');
+            $('#usersTable_filter').addClass('d-flex align-items-center');
+            $('#usersTable_filter label').append('<i class="fas fa-search ml-2"></i>');
+            
+            // Style pagination buttons
+            $('.dataTables_paginate .paginate_button').addClass('btn btn-sm btn-outline-primary mx-1');
+        },
+        "drawCallback": function() {
+            // Re-apply row selection highlights after table redraw
+            updateRowSelectionState();
+        }
     });
 
-    // Context Menu functionality
-    var selectedUserId;
+    // Add a confirmation dialog when "All" option is selected
+    $('#usersTable').on('length.dt', function ( e, settings, len ) {
+        if (len === -1) {
+            Swal.fire({
+                title: 'Display All Entries?',
+                text: "Are you sure you want to display all entries? This may cause performance issues.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, display all!'
+            }).then((result) => {
+                if (result.dismiss === Swal.DismissReason.cancel) {
+                    // If the user cancels, reset the page length to the previous value
+                    table.page.len(settings._iDisplayLength).draw();
+                }
+            });
+        }
+    });
 
-    $('#usersTable tbody').on('contextmenu', 'tr', function(e) {
+    // Force adjusting column widths after initialization
+    setTimeout(function() {
+        table.columns.adjust();
+    }, 100);
+
+    // Add window resize handler to maintain proper column widths
+    $(window).on('resize', function () {
+        table.columns.adjust();
+    });
+    
+    var selectedUserId;
+    var selectedUserRow;
+
+    $(document).off('contextmenu', '#usersTable tbody tr');
+    $(document).off('click', '#contextMenu a');
+    
+    $(document).on('contextmenu', '#usersTable tbody tr', function(e) {
         e.preventDefault();
-        selectedUserId = $(this).find('td:nth-child(2)').text();
+        selectedUserRow = $(this);
+        selectedUserId = $(this).find('td:eq(1)').text().trim();
+        
         $('#contextMenu').css({
             display: 'block',
             left: e.pageX,
             top: e.pageY
         });
+        
+        $('#usersTable tbody tr').removeClass('context-active');
+        $(this).addClass('context-active');
+        
         return false;
     });
 
-    // Hide context menu on click outside
-    $(document).click(function() {
-        $('#contextMenu').hide();
+    $(document).on('click', function(e) {
+        if (!$(e.target).closest('#contextMenu').length) {
+            $('#contextMenu').hide();
+            $('#usersTable tbody tr').removeClass('context-active');
+        }
     });
 
-    // Context Menu Actions
-    $('#viewUser').click(function() {
+    $(document).on('click', '#viewUser', function(e) {
+        e.preventDefault();
         window.location.href = `view_user.php?id=${selectedUserId}`;
     });
 
-    $('#updateUser').click(function() {
+    $(document).on('click', '#updateUser', function(e) {
+        e.preventDefault();
         window.location.href = `edit_user.php?id=${selectedUserId}`;
     });
     
-    // Add new generate password action
-    $('#generatePassword').click(function() {
+    $(document).on('click', '#banUser', function(e) {
+        e.preventDefault();
+        Swal.fire({
+            title: 'Ban User?',
+            text: 'Are you sure you want to ban this user?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ffc107',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, ban user'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: 'update_user_status.php',
+                    method: 'POST',
+                    data: { userId: selectedUserId, status: 2 },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                title: 'User Banned!',
+                                text: response.message,
+                                icon: 'success'
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire('Error!', response.message, 'error');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error(xhr.responseText);
+                        Swal.fire('Error!', 'An error occurred while processing your request.', 'error');
+                    }
+                });
+            }
+        });
+    });
+    
+    $(document).on('click', '#disableUser', function(e) {
+        e.preventDefault();
+        Swal.fire({
+            title: 'Disable User?',
+            text: 'Are you sure you want to disable this user?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#6c757d',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, disable user'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: 'update_user_status.php',
+                    method: 'POST',
+                    data: { userId: selectedUserId, status: 3 },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                title: 'User Disabled!',
+                                text: response.message,
+                                icon: 'success'
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire('Error!', response.message, 'error');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error(xhr.responseText);
+                        Swal.fire('Error!', 'An error occurred while processing your request.', 'error');
+                    }
+                });
+            }
+        });
+    });
+    
+    $(document).on('click', '#generatePassword', function(e) {
+        e.preventDefault();
         Swal.fire({
             title: 'Generate New Password?',
             text: 'Are you sure you want to generate a new password for this user?',
@@ -476,7 +629,8 @@ $(document).ready(function() {
                             );
                         }
                     },
-                    error: function() {
+                    error: function(xhr, status, error) {
+                        console.error(xhr.responseText);
                         Swal.fire(
                             'Error!',
                             'Failed to generate new password',
@@ -488,41 +642,406 @@ $(document).ready(function() {
         });
     });
 
-    // ...existing code for banUser, disableUser, deleteUser...
+    $(document).on('click', '#deleteUser', function(e) {
+        e.preventDefault();
+        Swal.fire({
+            title: 'Delete User?',
+            text: 'Are you sure you want to delete this user? This action cannot be undone!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: 'delete_user.php',
+                    method: 'GET',
+                    data: { id: selectedUserId },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            Swal.fire({
+                                title: 'Deleted!',
+                                text: response.message,
+                                icon: 'success'
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire('Error!', response.message, 'error');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error(xhr.responseText);
+                        Swal.fire('Error!', 'An error occurred while deleting the user.', 'error');
+                    }
+                });
+            }
+        });
+    });
+
+    $('#usersTable tbody').off('click', 'tr');
+    $('#usersTable tbody').off('click', 'td');
+
+    $(document).on('click', '#usersTable tbody tr', function(e) {
+        if (e.target.type === 'checkbox' || $(e.target).hasClass('btn') || 
+            $(e.target).closest('.btn').length || $(e.target).is('a') ||
+            $(e.target).closest('.dropdown-menu').length) {
+            return;
+        }
+        
+        const checkbox = $(this).find('.user-checkbox');
+        checkbox.prop('checked', !checkbox.prop('checked')).trigger('change');
+    });
+
+    $(document).on('change', '.user-checkbox', function() {
+        const userId = parseInt($(this).data('user-id'));
+        
+        if ($(this).prop('checked')) {
+            if (!selectedUserIds.includes(userId)) {
+                selectedUserIds.push(userId);
+            }
+        } else {
+            selectedUserIds = selectedUserIds.filter(id => id !== userId);
+        }
+        
+        updateRowSelectionState();
+    });
+
+    $('#bulkDeleteBtn').off('click').on('click', function() {
+        handleBulkDelete();
+    });
     
-    // ...existing code...
+    $('#bulkActivateBtn').off('click').on('click', function() {
+        handleBulkStatus(1, 'Activate');
+    });
+    
+    $('#bulkBanBtn').off('click').on('click', function() {
+        handleBulkStatus(2, 'Ban');
+    });
+    
+    $('#bulkDisableBtn').off('click').on('click', function() {
+        handleBulkStatus(3, 'Disable');
+    });
+
+    function handleBulkDelete() {
+        if (selectedUserIds.length === 0) {
+            Swal.fire({
+                title: 'No Users Selected',
+                text: 'Please select at least one user to delete.',
+                icon: 'warning',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+        
+        Swal.fire({
+            title: 'Delete Selected Users?',
+            text: `Are you sure you want to delete ${selectedUserIds.length} selected user(s)? This action cannot be undone.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete them!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: 'batch_delete_users.php',
+                    method: 'POST',
+                    data: { user_ids: selectedUserIds },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                title: 'Deleted!',
+                                text: response.message,
+                                icon: 'success',
+                                confirmButtonText: 'OK'
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Error!',
+                                text: response.message,
+                                icon: 'error',
+                                confirmButtonText: 'OK'
+                            });
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error(xhr.responseText);
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'An error occurred while processing your request.',
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                });
+            }
+        });
+    }
+    
+    function handleBulkStatus(statusCode, actionName) {
+        if (selectedUserIds.length === 0) {
+            Swal.fire({
+                title: 'No Users Selected',
+                text: `Please select at least one user to ${actionName.toLowerCase()}.`,
+                icon: 'warning',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+        
+        let confirmButtonColor = '#28a745';
+        if (statusCode === 2) confirmButtonColor = '#ffc107';
+        if (statusCode === 3) confirmButtonColor = '#6c757d';
+        
+        Swal.fire({
+            title: `${actionName} Selected Users?`,
+            text: `Are you sure you want to ${actionName.toLowerCase()} ${selectedUserIds.length} selected user(s)?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: confirmButtonColor,
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: `Yes, ${actionName.toLowerCase()} them!`
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: 'batch_update_status.php',
+                    method: 'POST',
+                    data: { user_ids: selectedUserIds, status: statusCode },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                title: 'Success!',
+                                text: response.message,
+                                icon: 'success'
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Error!',
+                                text: response.message,
+                                icon: 'error'
+                            });
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error(xhr.responseText);
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'An error occurred while processing your request.',
+                            icon: 'error'
+                        });
+                    }
+                });
+            }
+        });
+    }
+
+    function updateRowSelectionState() {
+        $('#usersTable tbody tr').each(function() {
+            const checkbox = $(this).find('.user-checkbox');
+            const isChecked = checkbox.prop('checked');
+            $(this).toggleClass('selected', isChecked);
+        });
+        
+        const count = selectedUserIds.length;
+        $('#selectedCount').text(count);
+        $('#selectedActivateCount').text(count);
+        $('#selectedBanCount').text(count);
+        $('#selectedDisableCount').text(count);
+        
+        $('#bulkActivateBtn').prop('disabled', count === 0);
+        $('#bulkBanBtn').prop('disabled', count === 0);
+        $('#bulkDisableBtn').prop('disabled', count === 0);
+        $('#bulkDeleteBtn').prop('disabled', count === 0);
+    }
+    
+    updateRowSelectionState();
+
+    // Export to Excel
+    $('#exportExcel').on('click', function(e) {
+        e.preventDefault();
+        exportTableToExcel();
+    });
+    
+    // Export to CSV
+    $('#exportCSV').on('click', function(e) {
+        e.preventDefault();
+        exportTableToCSV();
+    });
+    
+    // Export to PDF
+    $('#exportPDF').on('click', function(e) {
+        e.preventDefault();
+        exportTableToPDF();
+    });
+    
+    // Function to export table to Excel
+    function exportTableToExcel() {
+        // Clone the table to modify it without affecting the original
+        const table = $('#usersTable').clone();
+        
+        // Remove the checkbox column and any action buttons
+        table.find('th:first-child, td:first-child').remove();
+        
+        const wb = XLSX.utils.table_to_book(table[0], { sheet: "Users" });
+        XLSX.writeFile(wb, 'users_list_' + new Date().toISOString().slice(0,10) + '.xlsx');
+        
+        Swal.fire({
+            title: 'Success!',
+            text: 'Users list exported to Excel',
+            icon: 'success',
+            confirmButtonText: 'OK'
+        });
+    }
+    
+    // Function to export table to CSV
+    function exportTableToCSV() {
+        // Clone the table to modify it without affecting the original
+        const table = $('#usersTable').clone();
+        
+        // Remove the checkbox column and any action buttons
+        table.find('th:first-child, td:first-child').remove();
+        
+        let csv = [];
+        
+        // Get headers
+        let headers = [];
+        table.find('thead th').each(function() {
+            headers.push($(this).text().trim());
+        });
+        csv.push(headers.join(','));
+        
+        // Get data rows
+        table.find('tbody tr').each(function() {
+            let row = [];
+            $(this).find('td').each(function() {
+                // Remove any commas from the cell text to avoid CSV parsing issues
+                let text = $(this).text().trim().replace(/,/g, ' ');
+                row.push(text);
+            });
+            csv.push(row.join(','));
+        });
+        
+        // Create CSV file and download
+        let csvContent = csv.join('\n');
+        let blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        let url = URL.createObjectURL(blob);
+        
+        let link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', 'users_list_' + new Date().toISOString().slice(0,10) + '.csv');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        Swal.fire({
+            title: 'Success!',
+            text: 'Users list exported to CSV',
+            icon: 'success',
+            confirmButtonText: 'OK'
+        });
+    }
+    
+    // Function to export table to PDF
+    function exportTableToPDF() {
+        // Define PDF document
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('landscape');
+        
+        // Clone the table to modify it without affecting the original
+        const table = $('#usersTable').clone();
+        
+        // Remove the checkbox column
+        table.find('th:first-child, td:first-child').remove();
+        
+        // Extract data for the PDF
+        let headers = [];
+        table.find('thead th').each(function() {
+            headers.push($(this).text().trim());
+        });
+        
+        let data = [];
+        table.find('tbody tr').each(function() {
+            let row = [];
+            $(this).find('td').each(function() {
+                row.push($(this).text().trim());
+            });
+            data.push(row);
+        });
+        
+        // Add title to the PDF
+        doc.setFontSize(18);
+        doc.text('NBSC Library - Users List', 14, 15);
+        doc.setFontSize(10);
+        doc.text('Generated on ' + new Date().toLocaleString(), 14, 22);
+        
+        // Add table to the PDF
+        doc.autoTable({
+            head: [headers],
+            body: data,
+            startY: 25,
+            styles: {
+                fontSize: 8,
+                cellPadding: 2,
+                overflow: 'linebreak'
+            },
+            columnStyles: {
+                0: { cellWidth: 15 }, // ID column
+                1: { cellWidth: 20 }, // Physical ID column
+                2: { cellWidth: 40 }, // Name column
+                3: { cellWidth: 45 }  // Email column
+            }
+        });
+        
+        // Save PDF file
+        doc.save('users_list_' + new Date().toISOString().slice(0,10) + '.pdf');
+        
+        Swal.fire({
+            title: 'Success!',
+            text: 'Users list exported to PDF',
+            icon: 'success',
+            confirmButtonText: 'OK'
+        });
+    }
 });
 
-// Function to copy the generated password
 function copyPassword() {
     const passwordField = document.getElementById('newPassword');
-    passwordField.select();
-    document.execCommand('copy');
-    
-    // Show a small tooltip/notification that password was copied
-    const tooltip = document.createElement('div');
-    tooltip.textContent = 'Password copied!';
-    tooltip.style.position = 'absolute';
-    tooltip.style.backgroundColor = 'rgba(0,0,0,0.7)';
-    tooltip.style.color = 'white';
-    tooltip.style.padding = '5px 10px';
-    tooltip.style.borderRadius = '3px';
-    tooltip.style.fontSize = '12px';
-    tooltip.style.zIndex = '9999';
-    tooltip.style.left = '50%';
-    tooltip.style.top = '50%';
-    tooltip.style.transform = 'translate(-50%, -50%)';
-    
-    document.body.appendChild(tooltip);
-    
-    setTimeout(() => {
-        document.body.removeChild(tooltip);
-    }, 1500);
+    if (passwordField) {
+        passwordField.select();
+        document.execCommand('copy');
+        
+        const tooltip = document.createElement('div');
+        tooltip.textContent = 'Password copied!';
+        tooltip.style.position = 'absolute';
+        tooltip.style.backgroundColor = 'rgba(0,0,0,0.7)';
+        tooltip.style.color = 'white';
+        tooltip.style.padding = '5px 10px';
+        tooltip.style.borderRadius = '3px';
+        tooltip.style.fontSize = '12px';
+        tooltip.style.zIndex = '9999';
+        tooltip.style.left = '50%';
+        tooltip.style.top = '50%';
+        tooltip.style.transform = 'translate(-50%, -50%)';
+        
+        document.body.appendChild(tooltip);
+        
+        setTimeout(() => {
+            document.body.removeChild(tooltip);
+        }, 1500);
+    }
 }
 </script>
 
 <style>
-    /* Add responsive table styles */
     .table-responsive {
         width: 100%;
         margin-bottom: 1rem;
@@ -544,7 +1063,6 @@ function copyPassword() {
         white-space: nowrap;
     }
 
-    /* Add to existing styles */
     .card-header {
         display: flex;
         flex-wrap: wrap;
@@ -584,21 +1102,18 @@ function copyPassword() {
         }
     }
     
-    /* Center checkboxes in cells */
     #usersTable th:first-child,
     #usersTable td:first-child {
         text-align: center;
         vertical-align: middle;
     }
     
-    /* Make sure checkbox inputs are centered */
     #usersTable .select-all-checkbox,
     #usersTable .user-checkbox {
         margin: 0 auto;
         display: block;
     }
     
-    /* Enhanced hover effect for checkbox column */
     #usersTable tbody tr td:first-child,
     #usersTable thead tr th:first-child {
         cursor: pointer;
@@ -611,19 +1126,16 @@ function copyPassword() {
         background-color: rgba(0, 123, 255, 0.15);
     }
     
-    /* Checkbox cell base style */
     #usersTable th:first-child,
     #usersTable td:first-child {
         width: 40px !important;
         min-width: 40px !important;
     }
     
-    /* Highlight the entire row on hover */
     #usersTable tbody tr:hover {
         background-color: rgba(0, 123, 255, 0.05);
     }
     
-    /* Enhanced table striping with hover preservation */
     #usersTable.table-striped tbody tr:nth-of-type(odd) {
         background-color: rgba(0, 0, 0, 0.03);
     }
@@ -632,16 +1144,70 @@ function copyPassword() {
         background-color: rgba(0, 123, 255, 0.05) !important;
     }
     
-    /* Maintain highlight on checkbox cells even with striping */
     #usersTable tbody tr td:first-child:hover,
     #usersTable thead tr th:first-child:hover {
         background-color: rgba(0, 123, 255, 0.15) !important;
     }
     
-    /* Make header row stand out more */
     #usersTable thead th {
         background-color: #f8f9fc;
         border-bottom: 2px solid #e3e6f0;
+    }
+    
+    #usersTable tbody tr.selected {
+        background-color: rgba(0, 123, 255, 0.1) !important;
+    }
+    
+    #usersTable tbody tr.selected td {
+        background-color: rgba(0, 123, 255, 0.05);
+    }
+    
+    #usersTable.table-striped tbody tr.selected:nth-of-type(odd),
+    #usersTable.table-striped tbody tr.selected:nth-of-type(even) {
+        background-color: rgba(0, 123, 255, 0.1) !important;
+    }
+    
+    #usersTable tbody tr:hover {
+        background-color: rgba(0, 123, 255, 0.05);
+        cursor: pointer;
+    }
+    
+    #usersTable tbody tr {
+        cursor: pointer;
+    }
+    
+    #usersTable tbody tr.context-active {
+        background-color: rgba(0, 123, 255, 0.15) !important;
+    }
+    
+    #contextMenu {
+        z-index: 1000;
+        min-width: 200px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    
+    #contextMenu .dropdown-item {
+        padding: 8px 16px;
+        cursor: pointer;
+    }
+    
+    #contextMenu .dropdown-item:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .user-checkbox {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+    
+    .dataTables_empty {
+        padding: 50px 0 !important;
+        text-align: center !important;
+        font-weight: 500 !important;
+        color: #6c757d !important;
+        background-color: #f8f9fc !important;
+        border-bottom: none !important;
     }
 </style>
 

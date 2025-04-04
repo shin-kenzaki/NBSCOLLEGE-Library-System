@@ -595,6 +595,7 @@ $(document).ready(function () {
                "<'row'<'col-sm-12'tr>>" +
                "<'row mt-3'<'col-sm-5'i><'col-sm-7 d-flex justify-content-end'p>>",
         "pageLength": 10,
+        "lengthMenu": [[10, 25, 50, 100, 500, -1], [10, 25, 50, 100, 500, "All"]],
         "responsive": false, // Disable DataTables responsive handling
         "scrollX": true, // Enable horizontal scrolling
         "order": [[1, "asc"]], // Sort by First Name by default
@@ -616,6 +617,26 @@ $(document).ready(function () {
             $('#dataTable_filter').addClass('d-flex align-items-center');
             $('#dataTable_filter label').append('<i class="fas fa-search ml-2"></i>');
             $('.dataTables_paginate .paginate_button').addClass('btn btn-sm btn-outline-primary mx-1');
+        }
+    });
+
+    // Add a confirmation dialog when "All" option is selected
+    $('#dataTable').on('length.dt', function ( e, settings, len ) {
+        if (len === -1) {
+            Swal.fire({
+                title: 'Display All Entries?',
+                text: "Are you sure you want to display all entries? This may cause performance issues.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, display all!'
+            }).then((result) => {
+                if (result.dismiss === Swal.DismissReason.cancel) {
+                    // If the user cancels, reset the page length to the previous value
+                    table.page.len(settings._iDisplayLength).draw();
+                }
+            });
         }
     });
 

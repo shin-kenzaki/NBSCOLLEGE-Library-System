@@ -279,7 +279,8 @@ CREATE TABLE `physical_login_users` (
   `firstname` varchar(100) NOT NULL,
   `middle_init` varchar(100) NOT NULL,
   `lastname` varchar(100) NOT NULL,
-  `gender` varchar(50) NOT NULL
+  `gender` varchar(50) NOT NULL,
+  `usertype` varchar(50) NOT NULL DEFAULT 'Student'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --

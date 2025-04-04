@@ -110,6 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         html: `
                             <div class='text-center'>
                                 <p>Admin added successfully!</p>
+                                <p><strong>Employee ID:</strong> " . $employee_id . "</p>
                                 <p><strong>Generated Password:</strong> " . $password . "</p>
                                 <p class='text-danger'><small>Please make sure to copy this information now!</small></p>
                             </div>
@@ -314,6 +315,26 @@ $result = mysqli_query($conn, $query);
     #adminsTable tbody tr.context-menu-active {
         background-color: rgba(0, 123, 255, 0.08) !important;
     }
+
+    /* Fix empty table messages styling */
+    .dataTables_empty {
+        padding: 50px 0 !important;
+        text-align: center !important;
+        font-weight: 500 !important;
+        color: #6c757d !important;
+        background-color: #f8f9fc !important;
+        border-bottom: none !important;
+    }
+    
+    /* Selected row styling */
+    #adminsTable tbody tr.selected {
+        background-color: rgba(0, 123, 255, 0.1) !important;
+    }
+    
+    #adminsTable.table-striped tbody tr.selected:nth-of-type(odd),
+    #adminsTable.table-striped tbody tr.selected:nth-of-type(even) {
+        background-color: rgba(0, 123, 255, 0.1) !important;
+    }
 </style>
 
             <!-- Main Content -->
@@ -490,11 +511,14 @@ $(document).ready(function() {
                "<'row mt-3'<'col-sm-5'i><'col-sm-7 d-flex justify-content-end'p>>",
         "order": [[7, "desc"]], 
         "pageLength": 10,
+        "lengthMenu": [[10, 25, 50, 100, 500, -1], [10, 25, 50, 100, 500, "All"]],
         "responsive": false,
         "scrollX": true,
         "language": {
             "search": "_INPUT_",
-            "searchPlaceholder": "Search..."
+            "searchPlaceholder": "Search...",
+            "emptyTable": "No admin accounts found in the database",
+            "zeroRecords": "No matching admin accounts found"
         },
         "columnDefs": [
             { "orderable": false, "targets": 0 } // Disable sorting on checkbox column
@@ -505,10 +529,39 @@ $(document).ready(function() {
             // Add search icon
             $('#adminsTable_filter').addClass('d-flex align-items-center');
             $('#adminsTable_filter label').append('<i class="fas fa-search ml-2"></i>');
-            // Fix pa"ination"buttons styling & spaci"g
+            // Fix pagination buttons styling & spacing
             $('.dataTables_paginate .paginate_button').addClass('btn btn-sm btn-outline-primary mx-1');
+        },
+        "drawCallback": function() {
+            // Update row selection visuals after table redraw
+            updateAdminRowSelectionVisuals();
         }
     });
+
+    // Add a confirmation dialog when "All" option is selected
+    $('#adminsTable').on('length.dt', function ( e, settings, len ) {
+        if (len === -1) {
+            Swal.fire({
+                title: 'Display All Entries?',
+                text: "Are you sure you want to display all entries? This may cause performance issues.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, display all!'
+            }).then((result) => {
+                if (result.dismiss === Swal.DismissReason.cancel) {
+                    // If the user cancels, reset the page length to the previous value
+                    table.page.len(settings._iDisplayLength).draw();
+                }
+            });
+        }
+    });
+
+    // Force adjusting column widths after initialization
+    setTimeout(function() {
+        table.columns.adjust();
+    }, 100);
 
     // Add window resize handler
     $(window).on('resize', function () {

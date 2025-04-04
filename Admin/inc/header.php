@@ -99,14 +99,6 @@
                 </a>
             </li>
 
-            <!-- Nav Item - Library Users -->
-            <li class="nav-item">
-                <a class="nav-link" href="manage_library_users.php">
-                    <i class="fas fa-users fa-fw"></i>
-                    <span>Library Users</span>
-                </a>
-            </li>
-
             <!-- Divider -->
             <hr class="sidebar-divider">
 
