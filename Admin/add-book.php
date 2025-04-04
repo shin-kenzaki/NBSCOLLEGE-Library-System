@@ -247,57 +247,6 @@ $accession_error = '';
                 <?php unset($_SESSION['success_message']); ?>
                 <?php endif; ?>
 
-                <!-- Instructions Card - Collapsible on mobile -->
-                <div class="card shadow mb-4">
-                    <div class="card-header py-3" id="instructionsHeader" style="cursor: pointer;" onclick="toggleInstructions()">
-                        <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-info-circle mr-2"></i>Instructions <i class="fas fa-chevron-down float-right" id="instructionsToggle"></i></h6>
-                    </div>
-                    <div class="card-body" id="instructionsBody">
-                        <div class="alert alert-info">
-                            <strong>Note:</strong> There are two ways to add books to the library system:
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="card mb-3">
-                                    <div class="card-header bg-primary text-white">
-                                        <h6 class="m-0 font-weight-bold">Option 1: Advanced Form (Current)</h6>
-                                    </div>
-                                    <div class="card-body">
-                                        <p>This advanced form allows you to add detailed book information all at once with full control over all fields.</p>
-                                        <p><strong>Best for:</strong> Librarians and staff who are familiar with cataloging and need to input comprehensive details.</p>
-                                        <ul class="mb-0">
-                                            <li>Complete bibliographic details</li>
-                                            <li>Multiple accession numbers</li>
-                                            <li>Full cataloging information</li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="card mb-3">
-                                    <div class="card-header bg-success text-white">
-                                        <h6 class="m-0 font-weight-bold">Option 2: Step-by-Step Form</h6>
-                                    </div>
-                                    <div class="card-body">
-                                        <p>The step-by-step form breaks down the process into simpler guided stages.</p>
-                                        <p><strong>Best for:</strong> New staff members or those who prefer a more guided approach.</p>
-                                        <ul class="mb-0">
-                                            <li>Simplified interface</li>
-                                            <li>Guided process with explanations</li>
-                                            <li>Basic required fields only</li>
-                                        </ul>
-                                        <div class="mt-3">
-                                            <a href="step-by-step-add-book.php" class="btn btn-success btn-sm">
-                                                <i class="fas fa-tasks"></i> Switch to Step-by-Step Form
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Progress Bar -->
                 <div class="progress mb-4">
                     <div class="progress-bar" role="progressbar" style="width: 0%" id="formProgressBar"
