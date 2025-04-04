@@ -1,52 +1,46 @@
 <?php
+session_start();
 require_once '../db.php';
 
-// Return recent library exits (status = 0 for exit)
-$response = [
-    'success' => false,
-    'exits' => []
-];
+header('Content-Type: application/json');
 
 try {
-    // Get the 10 most recent exits with status 0 (exit)
-    // For each exit, find the most recent entry time for the same student
-    $sql = "SELECT lv.id, lv.student_number as student_id, lv.time as exit_time, 
-            (SELECT MAX(time) FROM library_visits 
-             WHERE student_number = lv.student_number AND status = 1 AND time < lv.time) as entry_time,
-            plu.firstname, plu.lastname, plu.course, plu.year 
-            FROM library_visits lv
-            JOIN physical_login_users plu ON lv.student_number = plu.student_number
-            WHERE lv.status = 0
-            ORDER BY lv.time DESC
-            LIMIT 10";
-            
+    // Join with user table to get names
+    $sql = "SELECT v1.student_number, v1.time as exit_time, v2.time as entry_time, 
+            u.firstname, u.lastname
+            FROM library_visits v1
+            JOIN users u ON v1.student_number = u.school_id
+            LEFT JOIN (
+                SELECT student_number, MAX(time) as time
+                FROM library_visits
+                WHERE status = 1
+                GROUP BY student_number
+            ) v2 ON v1.student_number = v2.student_number
+            WHERE v1.status = 0
+            ORDER BY v1.time DESC LIMIT 10";
+    
     $result = $conn->query($sql);
     
-    if ($result && $result->num_rows > 0) {
-        $exits = [];
+    if ($result) {
+        $exits = array();
         
         while ($row = $result->fetch_assoc()) {
-            $exits[] = [
-                'id' => $row['id'],
-                'student_id' => $row['student_id'],
+            $exits[] = array(
+                'student_id' => $row['student_number'],
                 'firstname' => $row['firstname'],
                 'lastname' => $row['lastname'],
-                'course' => $row['course'],
-                'year' => $row['year'],
                 'exit_time' => $row['exit_time'],
                 'entry_time' => $row['entry_time']
-            ];
+            );
         }
         
-        $response['success'] = true;
-        $response['exits'] = $exits;
+        echo json_encode(array('success' => true, 'exits' => $exits));
+    } else {
+        echo json_encode(array('success' => false, 'message' => 'Database query failed'));
     }
 } catch (Exception $e) {
-    $response['error'] = $e->getMessage();
+    echo json_encode(array('success' => false, 'message' => 'Error: ' . $e->getMessage()));
 }
 
-// Send JSON response
-header('Content-Type: application/json');
-echo json_encode($response);
-
 $conn->close();
+?>

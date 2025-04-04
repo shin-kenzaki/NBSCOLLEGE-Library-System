@@ -1,49 +1,40 @@
 <?php
+session_start();
 require_once '../db.php';
 
-// Return recent library entries (status = 1 for entrance)
-$response = [
-    'success' => false,
-    'entries' => []
-];
+header('Content-Type: application/json');
 
 try {
-    // Get the 10 most recent entries with status 1 (entrance)
-    $sql = "SELECT lv.id, lv.student_number as student_id, lv.time as entry_time, 
-            lv.purpose, plu.firstname, plu.lastname, plu.course, plu.year 
-            FROM library_visits lv
-            JOIN physical_login_users plu ON lv.student_number = plu.student_number
-            WHERE lv.status = 1
-            ORDER BY lv.time DESC
-            LIMIT 10";
-            
+    // Join with user table to get names
+    $sql = "SELECT v.student_number, v.time as entry_time, v.purpose, 
+            u.firstname, u.lastname
+            FROM library_visits v
+            JOIN users u ON v.student_number = u.school_id
+            WHERE v.status = 1
+            ORDER BY v.time DESC LIMIT 10";
+    
     $result = $conn->query($sql);
     
-    if ($result && $result->num_rows > 0) {
-        $entries = [];
+    if ($result) {
+        $entries = array();
         
         while ($row = $result->fetch_assoc()) {
-            $entries[] = [
-                'id' => $row['id'],
-                'student_id' => $row['student_id'],
+            $entries[] = array(
+                'student_id' => $row['student_number'],
                 'firstname' => $row['firstname'],
                 'lastname' => $row['lastname'],
-                'course' => $row['course'],
-                'year' => $row['year'],
                 'entry_time' => $row['entry_time'],
                 'purpose' => $row['purpose']
-            ];
+            );
         }
         
-        $response['success'] = true;
-        $response['entries'] = $entries;
+        echo json_encode(array('success' => true, 'entries' => $entries));
+    } else {
+        echo json_encode(array('success' => false, 'message' => 'Database query failed'));
     }
 } catch (Exception $e) {
-    $response['error'] = $e->getMessage();
+    echo json_encode(array('success' => false, 'message' => 'Error: ' . $e->getMessage()));
 }
 
-// Send JSON response
-header('Content-Type: application/json');
-echo json_encode($response);
-
 $conn->close();
+?>

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 03, 2025 at 12:02 PM
+-- Generation Time: Apr 04, 2025 at 09:01 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -49,8 +49,7 @@ CREATE TABLE `admins` (
 --
 
 INSERT INTO `admins` (`id`, `employee_id`, `firstname`, `middle_init`, `lastname`, `email`, `password`, `image`, `role`, `date_added`, `status`, `last_update`, `reset_token`, `reset_expires`) VALUES
-(1, 210078, 'Kenneth Laurence', 'P.', 'Bonaagua', 'kbonaagua2021@student.nbscollege.edu.ph', '$2y$10$Nsh4wEnGVUrGzCAoXGWZ7OEwgf.TRIr5o8evwXpBoqDWd48GYurbO', '../Images/Profile/default-avatar.jpg', 'Admin', '2025-02-15', '1', '2025-03-26', NULL, NULL),
-(56, 210028, 'Cayce', '', 'Evangelista', 'cevangelista2021@student.nbscollege.edu.ph', '$2y$10$rvWq3J4KVVfKArg2keeA5OHEjwg9EQQ5U9w2.irMsPDSiKoo7H1w.', '/upload/nbs-login.jpg', 'Admin', '2025-03-21', '1', NULL, NULL, NULL);
+(1, 210078, 'Kenneth', '', 'Bonaagua', 'kbonaagua2021@student.nbscollege.edu.ph', '$2y$10$VXeCCITlHnIEA5e98NZQdu8D.gUlAQWk8yF21IK8lxYn12zC/grq6', '../Images/Profile/default-avatar.jpg', 'Admin', '2025-04-04', '1', '2025-04-04', NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -92,15 +91,6 @@ CREATE TABLE `books` (
   `last_update` date DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `books`
---
-
-INSERT INTO `books` (`id`, `accession`, `title`, `preferred_title`, `parallel_title`, `subject_category`, `subject_detail`, `summary`, `contents`, `front_image`, `back_image`, `dimension`, `series`, `volume`, `edition`, `copy_number`, `total_pages`, `supplementary_contents`, `ISBN`, `content_type`, `media_type`, `carrier_type`, `call_number`, `URL`, `language`, `shelf_location`, `entered_by`, `date_added`, `status`, `updated_by`, `last_update`) VALUES
-(89, 12, 'wsdawsadw', '', '', 'Corporate', '', '', '', NULL, NULL, '', '', '1', '', 1, 'pages', '', '', 'Text', 'Print', 'Book', 'TR M45.23 L56 2001 vol1 c1', '', 'English', 'TR', 1, '2025-04-03', 'Available', 1, '2025-04-03'),
-(90, 13, 'wsdawsadw', '', '', 'Corporate', '', '', '', NULL, NULL, '', '', '2', '', 1, 'pages', '', '', 'Text', 'Print', 'Book', 'TR M45.23 L56 2001 vol2 c2', '', 'English', 'TR', 1, '2025-04-03', 'Available', 1, '2025-04-03'),
-(91, 14, 'wsdawsadw', '', '', 'Corporate', '', '', '', NULL, NULL, '', '', '3', '', 1, 'pages', '', '', 'Text', 'Print', 'Book', 'TR M45.23 L56 2001 vol3 c3', '', 'English', 'TR', 1, '2025-04-03', 'Available', 1, '2025-04-03');
-
 -- --------------------------------------------------------
 
 --
@@ -122,16 +112,6 @@ CREATE TABLE `borrowings` (
   `reminder_sent` tinyint(4) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `borrowings`
---
-
-INSERT INTO `borrowings` (`id`, `user_id`, `book_id`, `status`, `issue_date`, `issued_by`, `due_date`, `return_date`, `recieved_by`, `report_date`, `replacement_date`, `reminder_sent`) VALUES
-(1, 31, 34, 'Returned', '2025-03-31', 1, '2025-04-07', '2025-04-01', 1, NULL, NULL, 0),
-(2, 31, 35, 'Returned', '2025-03-31', 1, '2025-04-07', '2025-04-01', 1, NULL, NULL, 0),
-(3, 31, 34, 'Returned', '2025-04-03', 1, '2025-04-10', '2025-04-03', 1, NULL, NULL, NULL),
-(4, 31, 34, 'Returned', '2025-04-03', 1, '2025-04-10', '2025-04-03', 1, NULL, NULL, 0);
-
 -- --------------------------------------------------------
 
 --
@@ -146,16 +126,6 @@ CREATE TABLE `cart` (
   `status` tinyint(1) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `cart`
---
-
-INSERT INTO `cart` (`id`, `book_id`, `user_id`, `date`, `status`) VALUES
-(1, 34, 31, '2025-03-31 07:55:44', 0),
-(2, 34, 31, '2025-03-31 09:35:29', 0),
-(3, 34, 31, '2025-03-31 09:38:42', 0),
-(4, 34, 31, '2025-03-31 09:39:02', 0);
-
 -- --------------------------------------------------------
 
 --
@@ -168,55 +138,6 @@ CREATE TABLE `contributors` (
   `writer_id` int(225) NOT NULL,
   `role` varchar(100) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `contributors`
---
-
-INSERT INTO `contributors` (`id`, `book_id`, `writer_id`, `role`) VALUES
-(684, 37, 11, 'Author'),
-(687, 38, 11, 'Author'),
-(690, 39, 11, 'Author'),
-(693, 40, 11, 'Author'),
-(696, 41, 11, 'Author'),
-(699, 42, 11, 'Author'),
-(714, 43, 11, 'Author'),
-(717, 44, 11, 'Author'),
-(720, 45, 11, 'Author'),
-(723, 46, 11, 'Author'),
-(726, 47, 11, 'Author'),
-(729, 48, 11, 'Author'),
-(732, 49, 11, 'Author'),
-(735, 50, 11, 'Author'),
-(738, 51, 11, 'Author'),
-(741, 52, 11, 'Author'),
-(744, 53, 11, 'Author'),
-(795, 54, 11, 'Author'),
-(798, 55, 11, 'Author'),
-(801, 56, 11, 'Author'),
-(804, 57, 11, 'Author'),
-(807, 58, 11, 'Author'),
-(813, 64, 11, 'Author'),
-(816, 65, 11, 'Author'),
-(819, 66, 11, 'Author'),
-(822, 67, 11, 'Author'),
-(825, 68, 11, 'Author'),
-(831, 59, 11, 'Author'),
-(834, 60, 11, 'Author'),
-(837, 61, 11, 'Author'),
-(840, 62, 11, 'Author'),
-(843, 63, 11, 'Author'),
-(879, 74, 11, 'Author'),
-(882, 75, 11, 'Author'),
-(885, 76, 11, 'Author'),
-(888, 77, 11, 'Author'),
-(891, 78, 11, 'Author'),
-(906, 79, 11, 'Author'),
-(909, 80, 11, 'Author'),
-(912, 81, 11, 'Author'),
-(939, 89, 10, 'Author'),
-(945, 90, 10, 'Author'),
-(946, 91, 10, 'Author');
 
 -- --------------------------------------------------------
 
@@ -231,7 +152,8 @@ CREATE TABLE `fines` (
   `amount` decimal(65,2) DEFAULT NULL,
   `status` varchar(100) DEFAULT NULL,
   `date` date DEFAULT NULL,
-  `payment_date` date DEFAULT NULL
+  `payment_date` date DEFAULT NULL,
+  `reminder_sent` tinyint(1) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -247,6 +169,18 @@ CREATE TABLE `library_visits` (
   `status` binary(1) DEFAULT NULL,
   `purpose` varchar(50) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `library_visits`
+--
+
+INSERT INTO `library_visits` (`id`, `student_number`, `time`, `status`, `purpose`) VALUES
+(1, 210078, '2025-04-04 06:35:52.000000', 0x31, 'Study'),
+(2, 210078, '2025-04-04 06:36:11.000000', 0x30, 'Exit'),
+(3, 210078, '2025-04-04 06:47:08.000000', 0x31, 'Study'),
+(4, 210078, '2025-04-04 06:49:12.000000', 0x30, 'Exit'),
+(5, 210078, '2025-04-04 06:49:39.000000', 0x31, 'Study'),
+(6, 210078, '2025-04-04 06:50:04.000000', 0x30, 'Exit');
 
 -- --------------------------------------------------------
 
@@ -268,160 +202,6 @@ CREATE TABLE `messages` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `physical_login_users`
---
-
-CREATE TABLE `physical_login_users` (
-  `id` int(11) NOT NULL,
-  `student_number` int(11) NOT NULL,
-  `course` varchar(100) NOT NULL,
-  `year` varchar(50) NOT NULL,
-  `firstname` varchar(100) NOT NULL,
-  `middle_init` varchar(100) NOT NULL,
-  `lastname` varchar(100) NOT NULL,
-  `gender` varchar(50) NOT NULL,
-  `usertype` varchar(50) NOT NULL DEFAULT 'Student'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `physical_login_users`
---
-
-INSERT INTO `physical_login_users` (`id`, `student_number`, `course`, `year`, `firstname`, `middle_init`, `lastname`, `gender`) VALUES
-(521, 230016, 'Accountancy', '1st', 'MARC ED', '', 'EBRADO', 'Male'),
-(522, 230033, 'Accountancy', '1st', 'STEPHANIE', '', 'ESPEJON', 'Female'),
-(523, 230030, 'Accountancy', '1st', 'GIRLIE GAIL', '', 'GALLARDO', 'Female'),
-(524, 230019, 'Accountancy', '1st', 'JESSA', '', 'MADANLO', 'Female'),
-(525, 230003, 'Accountancy', '1st', 'VINCELYN', '', 'MOZOL', 'Female'),
-(526, 230037, 'Accountancy', '1st', 'REGINE', '', 'OCAMPO', 'Female'),
-(527, 230044, 'Accountancy', '1st', 'MONIQUE', '', 'PACAMARRA', 'Female'),
-(528, 220054, 'Accountancy', '1st', 'CHEEZER JANE', '', 'POWAO', 'Female'),
-(529, 230027, 'Accountancy', '1st', 'JOHN RENZ', '', 'REJANO', 'Female'),
-(530, 230009, 'Accountancy', '1st', 'RHOCA', '', 'TINAY', 'Female'),
-(531, 230005, 'Accountancy', '1st', 'JOSE CARLOS', '', 'VILLANUEVA', 'Male'),
-(532, 210027, 'Accountancy', '2nd', 'RANNIE', '', 'ASIS', 'Male'),
-(533, 220055, 'Accountancy', '2nd', 'KAREN MAE', '', 'BALICTAR', 'Female'),
-(534, 220021, 'Accountancy', '2nd', 'JAMES LHARS', '', 'BARRIENTOS', 'Male'),
-(535, 220047, 'Accountancy', '2nd', 'NOEMI', '', 'LAURENTE', 'Female'),
-(536, 210061, 'Accountancy', '2nd', 'ANGELA CLAIRE', '', 'PANAHON', 'Female'),
-(537, 220007, 'Accountancy', '2nd', 'MA. KATRINA', '', 'SANTOS', 'Female'),
-(538, 210037, 'Accountancy', '2nd', 'LEIRA', '', 'SINAGUINAN', 'Female'),
-(539, 210014, 'Accountancy', '3rd', 'ANGELINE', '', 'ACEBUCHE', 'Female'),
-(540, 210044, 'Accountancy', '3rd', 'MAY ANN', '', 'BAYOD', 'Female'),
-(541, 210033, 'Accountancy', '3rd', 'PATRICK DOMINIC', '', 'CORRE', 'Male'),
-(542, 220024, 'Accountancy', '3rd', 'JOHN AARON PAUL', '', 'GACHO', 'Male'),
-(543, 220012, 'Accountancy', '3rd', 'ALLIANA MARIEL', '', 'GONZALES', 'Female'),
-(544, 210050, 'Accountancy', '3rd', 'ANGELI', '', 'QUINTO', 'Female'),
-(545, 210070, 'Accountancy', '3rd', 'MARIA SHEKINAH ELIZABETH', '', 'SAN JUAN', 'Female'),
-(546, 210060, 'Accountancy', '3rd', 'LYNLEN', '', 'SINGCO', 'Female'),
-(547, 210022, 'Accountancy', '3rd', 'ROSHIELA MAY', '', 'SOLDEVILLA', 'Female'),
-(548, 210031, 'Accountancy', '3rd', 'JAY FOARD', '', 'TRAJE', 'Male'),
-(549, 210058, 'Accountancy', '3rd', 'AIKA MARIE', '', 'YBAÑEZ', 'Female'),
-(550, 200043, 'Accountancy', '4th', 'JHEDALYN', '', 'DACQUEL', 'Female'),
-(551, 200039, 'Accountancy', '4th', 'JOYCE ANN', '', 'MERAS', 'Female'),
-(552, 200019, 'Accountancy', '4th', 'ELVERT-ACE', '', 'NERI', 'Male'),
-(553, 230032, 'Accounting Information System', '1st', 'ALEXZA', '', 'IGNACIO', 'Female'),
-(554, 220018, 'Accounting Information System', '2nd', 'JERALD', '', 'BALAO', 'Male'),
-(555, 210016, 'Accounting Information System', '2nd', 'CRIS ALFRED', '', 'PANLUBASAN', 'Male'),
-(556, 190026, 'Accounting Information System', '2nd', 'FRANCES MARGARETT', '', 'PEDOCHE', 'Female'),
-(557, 210049, 'Accounting Information System', '3rd', 'RICHELLE MAE', '', 'CADORNA', 'Female'),
-(558, 210038, 'Accounting Information System', '3rd', 'MARIA ROSALINDA', '', 'GALLO', 'Female'),
-(559, 210056, 'Accounting Information System', '3rd', 'JANE AUSTIN', '', 'LANSANG', 'Female'),
-(560, 190034, 'Accounting Information System', '4th', 'JELLIANE', '', 'ALARCON', 'Female'),
-(561, 200013, 'Accounting Information System', '4th', 'RIZA JEAN', '', 'ELLERAN', 'Female'),
-(562, 190088, 'Accounting Information System', '4th', 'JEREMIE', '', 'GIGANTE', 'Male'),
-(563, 200024, 'Accounting Information System', '4th', 'JOSEPH IVAN', '', 'GREGORIO', 'Male'),
-(564, 200032, 'Accounting Information System', '4th', 'KINJI', '', 'LABAY', 'Male'),
-(565, 200065, 'Accounting Information System', '4th', 'CHELSEA CHARMILANE', '', 'MULDONG', 'Female'),
-(566, 190004, 'Accounting Information System', '4th', 'GWYNETH VEAH', '', 'OLIVER', 'Female'),
-(567, 200042, 'Accounting Information System', '4th', 'DANIELA SHANE', '', 'PONTIMAR', 'Female'),
-(568, 180004, 'Accounting Information System', '4th', 'IRICE DANIKKA', '', 'YALUNG', 'Female'),
-(569, 230020, 'Computer Science', '1st', 'EMMANUEL', '', 'ABEJO', 'Male'),
-(570, 230046, 'Computer Science', '1st', 'RHYZEN', '', 'BUMANLAG', 'Male'),
-(571, 220056, 'Computer Science', '1st', 'MARY ANN', '', 'CEDILLO', 'Female'),
-(572, 230007, 'Computer Science', '1st', 'RHOD LENARD', '', 'DELAS NIEVES', 'Male'),
-(573, 230022, 'Computer Science', '1st', 'KATE ANDREI', '', 'DOSAL', 'Female'),
-(574, 230021, 'Computer Science', '1st', 'JAVI AEREM', '', 'FAVIA', 'Male'),
-(575, 230004, 'Computer Science', '1st', 'RENARD KEN', '', 'HAPIL', 'Male'),
-(576, 230012, 'Computer Science', '1st', 'DANDIE', '', 'LAQUINTA', 'Male'),
-(577, 230028, 'Computer Science', '1st', 'JHON KENNETH', '', 'LIMATOC', 'Male'),
-(578, 230010, 'Computer Science', '1st', 'GRACE ANNE', '', 'LOGRONIO', 'Female'),
-(579, 230045, 'Computer Science', '1st', 'PAOLO', '', 'MALICSE', 'Male'),
-(580, 230039, 'Computer Science', '1st', 'FRANCIS ANGELO', '', 'ORILLANEDA', 'Male'),
-(581, 230015, 'Computer Science', '1st', 'MICHAEL LORENZ', '', 'TAN', 'Male'),
-(582, 220050, 'Computer Science', '2nd', 'ARMAN BERNARD', '', 'CABANG', 'Male'),
-(583, 220057, 'Computer Science', '2nd', 'YZRAH', '', 'GASPADO', 'Female'),
-(584, 220017, 'Computer Science', '2nd', 'BRIAN CHRISTIAN', '', 'HEBRON', 'Female'),
-(585, 220048, 'Computer Science', '2nd', 'AJLEIN', '', 'MONTERO', 'Male'),
-(586, 230014, 'Computer Science', '2nd', 'JAY FRANKLIN', '', 'ROLLO', 'Male'),
-(587, 210079, 'Computer Science', '3rd', 'CARLOS MIGUEL', '', 'AUTOR', 'Male'),
-(588, 210078, 'Computer Science', '3rd', 'KENNETH LAURENCE', '', 'BONAAGUA', 'Male'),
-(589, 220001, 'Computer Science', '3rd', 'JOANNA CRIS', '', 'ESCANILLA', 'Female'),
-(590, 210028, 'Computer Science', '3rd', 'CAYCE', '', 'EVANGELISTA', 'Male'),
-(591, 210065, 'Computer Science', '3rd', 'JENEPIR', '', 'JABILLO', 'Female'),
-(592, 220003, 'Computer Science', '3rd', 'JOSEPH', '', 'SIMANGCA', 'Male'),
-(593, 180012, 'Computer Science', '4th', 'KARA COLUMBA', '', 'RABANAL', 'Female'),
-(594, 200067, 'Computer Science', '4th', 'AZZEL IVAN', '', 'WEE', 'Male'),
-(595, 200026, 'Computer Science', '4th', 'JERALD', '', 'YSAAC', 'Male'),
-(596, 230034, 'Entrepreneurship', '1st', 'ALDRIN', '', 'BOJILADOR', 'Male'),
-(597, 230043, 'Entrepreneurship', '1st', 'JOAN MAE', '', 'CAINGIN', 'Female'),
-(598, 230023, 'Entrepreneurship', '1st', 'SEAN YVES', '', 'DE GUZMAN', 'Male'),
-(599, 230011, 'Entrepreneurship', '1st', 'AARON CARL', '', 'DIÑO', 'Male'),
-(600, 230013, 'Entrepreneurship', '1st', 'NORAMIE', '', 'USMAN', 'Female'),
-(601, 220025, 'Entrepreneurship', '2nd', 'PATRICK JAMES', '', 'DE QUIROZ', 'Male'),
-(602, 210024, 'Entrepreneurship', '3rd', 'APRIL NICOLE', '', 'CAMPOS', 'Female'),
-(603, 210057, 'Entrepreneurship', '3rd', 'SYRA', '', 'LANSANG', 'Female'),
-(604, 210012, 'Entrepreneurship', '3rd', 'LIEZELLE', '', 'SABLAWON', 'Female'),
-(605, 210059, 'Entrepreneurship', '3rd', 'LARAMAE', '', 'SANTOS', 'Female'),
-(606, 210008, 'Entrepreneurship', '3rd', 'CHARMAINE', '', 'VILLARMIA', 'Female'),
-(607, 220036, 'Entrepreneurship', '3rd', 'JOHN MATTHEW', '', 'VILLARUBIA', 'Male'),
-(608, 200028, 'Entrepreneurship', '4th', 'AUBREY', '', 'DULAG', 'Female'),
-(609, 180036, 'Entrepreneurship', '4th', 'WILHELM ELIJAH', '', 'FERRER', 'Male'),
-(610, 200048, 'Entrepreneurship', '4th', 'ADRIAN', '', 'MANDAWE', 'Male'),
-(611, 210029, 'Entrepreneurship', '4th', 'JULIA CAITLIN', '', 'PIAMONTE', 'Female'),
-(612, 220039, 'Entrepreneurship', '4th', 'JERAH MANUEL', '', 'SARABIA', 'Female'),
-(613, 200029, 'Entrepreneurship', '4th', 'JIM LUIS', '', 'VILLACILLO', 'Male'),
-(614, 220004, 'Tourism Management', '1st', 'MAXELL JAMES', '', 'ABUTIN', 'Male'),
-(615, 230036, 'Tourism Management', '1st', 'CASSANDRA', '', 'AOANAN', 'Female'),
-(616, 230031, 'Tourism Management', '1st', 'JUDE MARTIN', '', 'BALLADOS', 'Female'),
-(617, 230026, 'Tourism Management', '1st', 'JENNY ROSE', '', 'COLIS', 'Female'),
-(618, 230035, 'Tourism Management', '1st', 'JAKE', '', 'COMIA', 'Male'),
-(619, 230029, 'Tourism Management', '1st', 'MATILDA ABIGAEL', '', 'DALISAY', 'Female'),
-(620, 230018, 'Tourism Management', '1st', 'JOANNE MAY', '', 'DELA CRUZ', 'Female'),
-(621, 230038, 'Tourism Management', '1st', 'RACHELLE MAE', '', 'EBIAS', 'Female'),
-(622, 230041, 'Tourism Management', '1st', 'COLLINE FIONA', '', 'GUASCH', 'Female'),
-(623, 230008, 'Tourism Management', '1st', 'PRINCESS JUVY', '', 'HIBAYA', 'Female'),
-(624, 230040, 'Tourism Management', '1st', 'ARVIC JOHN', '', 'LIM', 'Male'),
-(625, 230017, 'Tourism Management', '1st', 'GUIA', '', 'MAHOMITANO', 'Female'),
-(626, 230002, 'Tourism Management', '1st', 'JUDITH', '', 'MANTILLA', 'Female'),
-(627, 230024, 'Tourism Management', '1st', 'BRENT ALLEN', '', 'PIDUCA', 'Male'),
-(628, 220045, 'Tourism Management', '1st', 'LARREI CHRUSZLE', '', 'PINEDA', 'Female'),
-(629, 230006, 'Tourism Management', '1st', 'ROSEMARIE', '', 'PUENLEONA', 'Female'),
-(630, 220035, 'Tourism Management', '1st', 'DIANA MAE', '', 'SALCEDO', 'Female'),
-(631, 230042, 'Tourism Management', '1st', 'JASTINE CLARK', '', 'SAMILLANO', 'Male'),
-(632, 230025, 'Tourism Management', '1st', 'JEAN WRANCES', '', 'TALBANOS', 'Female'),
-(633, 210018, 'Tourism Management', '2nd', 'MICHA ANJELLA', '', 'ABUTIN', 'Female'),
-(634, 200010, 'Tourism Management', '2nd', 'FRANCES JAZMIN', '', 'AMORA', 'Female'),
-(635, 210062, 'Tourism Management', '2nd', 'HANNAH GRACE', '', 'TERANA', 'Female'),
-(636, 220009, 'Tourism Management', '2nd', 'VERA FE FAYE', '', 'UY', 'Female'),
-(637, 220030, 'Tourism Management', '3rd', 'CARLOS MIGUEL', '', 'CAMACHO', 'Male'),
-(638, 220026, 'Tourism Management', '3rd', 'ARTURO MIGUEL', '', 'CRUZ', 'Male'),
-(639, 190025, 'Tourism Management', '3rd', 'CARLA JOYCE', '', 'LEDESMA', 'Female'),
-(640, 180011, 'Tourism Management', '3rd', 'JOHN JERRICHO', '', 'PORCIUNCULA', 'Male'),
-(641, 220022, 'Tourism Management', '3rd', 'MARTINNE CHRISTIAN', '', 'ROSARIO', 'Male'),
-(642, 220029, 'Tourism Management', '4th', 'MA. ELOISA', '', 'ACID', 'Female'),
-(643, 200047, 'Tourism Management', '4th', 'ISAIAH DANIEL', '', 'DECEPIDA', 'Male'),
-(644, 200052, 'Tourism Management', '4th', 'LARA MAE', '', 'DUCAY', 'Female'),
-(645, 200049, 'Tourism Management', '4th', 'CRISTEA GHIEN', '', 'GALICIA', 'Female'),
-(646, 200055, 'Tourism Management', '4th', 'MA. MELODY', '', 'MERCADEJAS', 'Female'),
-(647, 200016, 'Tourism Management', '4th', 'LOVELY ROSE', '', 'MONTOYA', 'Female'),
-(648, 180033, 'Tourism Management', '4th', 'CHLOIE', '', 'ONG', 'Female'),
-(649, 200054, 'Tourism Management', '4th', 'SIGRID COLYNE NAOMI', '', 'PAZ', 'Female'),
-(650, 200068, 'Tourism Management', '4th', 'IRISH MAE', '', 'RAPAL', 'Female');
-
--- --------------------------------------------------------
-
---
 -- Table structure for table `publications`
 --
 
@@ -431,55 +211,6 @@ CREATE TABLE `publications` (
   `publisher_id` int(225) DEFAULT NULL,
   `publish_date` year(4) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `publications`
---
-
-INSERT INTO `publications` (`id`, `book_id`, `publisher_id`, `publish_date`) VALUES
-(113, 37, 2, '2025'),
-(114, 38, 2, '2025'),
-(115, 39, 2, '2025'),
-(116, 40, 2, '2025'),
-(117, 41, 2, '2025'),
-(118, 42, 2, '2025'),
-(119, 43, 2, '2025'),
-(120, 44, 2, '2025'),
-(121, 45, 2, '2025'),
-(122, 46, 2, '2025'),
-(123, 47, 2, '2025'),
-(124, 48, 2, '2025'),
-(125, 49, 2, '2025'),
-(126, 50, 2, '2025'),
-(127, 51, 2, '2025'),
-(128, 52, 2, '2025'),
-(129, 53, 2, '2025'),
-(145, 54, 2, '2025'),
-(146, 55, 2, '2025'),
-(147, 56, 2, '2025'),
-(148, 57, 2, '2025'),
-(149, 58, 2, '2025'),
-(150, 64, 2, '2025'),
-(151, 65, 2, '2025'),
-(152, 66, 2, '2025'),
-(153, 67, 2, '2025'),
-(154, 68, 2, '2025'),
-(155, 59, 2, '2025'),
-(156, 60, 2, '2025'),
-(157, 61, 2, '2025'),
-(158, 62, 2, '2025'),
-(159, 63, 2, '2025'),
-(170, 74, 2, '2025'),
-(171, 75, 2, '2025'),
-(172, 76, 2, '2025'),
-(173, 77, 2, '2025'),
-(174, 78, 2, '2025'),
-(178, 79, 2, '2025'),
-(179, 80, 2, '2025'),
-(180, 81, 2, '2025'),
-(188, 89, 8, '2001'),
-(189, 90, 8, '2001'),
-(190, 91, 8, '2001');
 
 -- --------------------------------------------------------
 
@@ -492,17 +223,6 @@ CREATE TABLE `publishers` (
   `publisher` varchar(100) NOT NULL,
   `place` varchar(100) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `publishers`
---
-
-INSERT INTO `publishers` (`id`, `publisher`, `place`) VALUES
-(2, 'Arts Council of Cebu Foundation Inc.', 'Cebu, Ph'),
-(3, 'Business & Arts Inc.', 'Manila, Ph'),
-(6, 'Anvil Publishing Inc.', 'Bohol, Ph'),
-(7, 'Icon Press Inc', 'Manila, Ph'),
-(8, 'Studio 5 Publishing', 'Manila, Ph');
 
 -- --------------------------------------------------------
 
@@ -526,16 +246,6 @@ CREATE TABLE `reservations` (
   `status` varchar(100) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `reservations`
---
-
-INSERT INTO `reservations` (`id`, `user_id`, `book_id`, `reserve_date`, `ready_date`, `ready_by`, `issue_date`, `issued_by`, `cancel_date`, `cancelled_by`, `cancelled_by_role`, `recieved_date`, `status`) VALUES
-(1, 31, 34, '2025-03-31 01:56:20', NULL, NULL, NULL, NULL, '2025-03-31 07:56:30', 31, 'User', NULL, 'Cancelled'),
-(2, 31, 34, '2025-03-31 01:57:24', NULL, NULL, NULL, NULL, '2025-03-31 09:35:23', 31, 'User', NULL, 'Cancelled'),
-(3, 31, 34, '2025-03-31 04:18:38', NULL, NULL, NULL, NULL, '2025-04-03 04:09:30', 1, 'Admin', NULL, 'Cancelled'),
-(4, 31, 34, '2025-04-02 22:18:27', '2025-04-03 04:19:16', 1, '2025-04-03 04:19:24', 1, NULL, NULL, NULL, '2025-04-03 04:19:24', 'Received');
-
 -- --------------------------------------------------------
 
 --
@@ -556,25 +266,9 @@ CREATE TABLE `updates` (
 --
 
 INSERT INTO `updates` (`id`, `user_id`, `role`, `title`, `message`, `update`) VALUES
-(1, 1, 'Admin', 'Admin Added New Book', 'Admin Kenneth Laurence Bonaagua added \"The Colors of Lucban\" with 9 copies', '2025-03-30 22:07:33'),
-(2, 1, 'Admin', 'Admin Added New Book', 'Admin Kenneth Laurence Bonaagua added \"asdwasd\" with 3 copies', '2025-03-30 22:48:37'),
-(3, 1, 'Admin', 'Admin Added New Book', 'Admin Kenneth Laurence Bonaagua added \"sadwas\" with 3 copies', '2025-03-30 22:49:42'),
-(4, 1, 'Admin', 'Admin Added New Book', 'Admin Kenneth Laurence Bonaagua added \"wsdaw\" with 3 copies', '2025-03-30 22:51:27'),
-(5, 1, 'Admin', 'Admin Added New Book', 'Admin Kenneth Laurence Bonaagua added \"Colors of Lucban\" with 3 copies', '2025-03-30 22:53:25'),
-(6, 1, 'Admin', 'Admin Added New Book', 'Admin Kenneth Laurence Bonaagua added \"gasddawrssdw\" with 3 copies', '2025-03-30 23:07:05'),
-(7, 1, 'Admin', 'Admin Added New Book', 'Admin Kenneth Laurence Bonaagua added \"sadwasd\" with 3 copies', '2025-03-30 23:19:53'),
-(8, 1, 'Admin', 'Admin Added New Book', 'Admin Kenneth Laurence Bonaagua added \"daswasd\" with 3 copies', '2025-03-30 23:24:12'),
-(9, 210078, 'Admin', 'Admin Logged In', 'Admin Kenneth Laurence Bonaagua Logged In as Active', '2025-03-31 06:40:15'),
-(10, 210078, 'Student', 'User Logged In', 'Student Kenneth Laurence Bonaagua Logged In as Active', '2025-03-31 07:55:00'),
-(11, 210078, 'Student', 'User Logged In', 'Student Kenneth Laurence Bonaagua Logged In as Active', '2025-03-31 10:18:27'),
-(12, 210078, 'Student', 'User Logged In', 'Student Kenneth Laurence Bonaagua Logged In as Active', '2025-03-31 10:53:48'),
-(13, 210078, 'Admin', 'Admin Logged In', 'Admin Kenneth Laurence Bonaagua Logged In as Active', '2025-04-01 06:09:14'),
-(14, 210078, 'Admin', 'Admin Logged In', 'Admin Kenneth Laurence Bonaagua Logged In as Active', '2025-04-02 04:28:43'),
-(15, 210078, 'Admin', 'Admin Logged In', 'Admin Kenneth Laurence Bonaagua Logged In as Active', '2025-04-02 05:24:21'),
-(16, 210078, 'Admin', 'Admin Logged In', 'Admin Kenneth Laurence Bonaagua Logged In as Active', '2025-04-03 01:22:34'),
-(17, 210078, 'Student', 'User Logged In', 'Student Kenneth Laurence Bonaagua Logged In as Active', '2025-04-03 04:18:18'),
-(18, 1, 'Admin', 'Admin Added New Book', 'Admin Kenneth Laurence Bonaagua added \"wsdawsadw\" with 3 copies', '2025-04-02 23:59:58'),
-(19, 210078, 'Student', 'User Logged In', 'Student Kenneth Laurence Bonaagua Logged In as Active', '2025-04-03 10:02:12');
+(1, 210078, 'Admin', 'Admin Kenneth Laurence Bonaagua Registered an Admin', 'Admin Kenneth Laurence Bonaagua Registered Kenneth Bonaagua as Admin', '2025-04-04 05:33:41'),
+(2, 210078, 'Admin', 'Admin Logged In', 'Admin Kenneth Bonaagua Logged In as Active', '2025-04-04 05:34:19'),
+(3, 210078, 'Admin', 'Admin Logged In', 'Admin Kenneth Bonaagua Logged In as Active', '2025-04-04 06:21:34');
 
 -- --------------------------------------------------------
 
@@ -609,7 +303,136 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `school_id`, `firstname`, `middle_init`, `lastname`, `email`, `password`, `contact_no`, `user_image`, `department`, `usertype`, `address`, `id_type`, `id_image`, `date_added`, `status`, `last_update`, `reset_token`, `reset_expires`) VALUES
-(31, 210078, 'Kenneth Laurence', NULL, 'Bonaagua', 'kbonaagua2021@student.nbscollege.edu.ph', '$2y$10$/Mp6RZAsEWMWNzTCNM.MLeF8e1dgWY2elORlDaJ3o57bB.zqrBJuu', '', '../Images/Profile/default-avatar.jpg', '', 'Student', '', '', '/upload/default-id.png', '2025-03-18', '1', '2025-04-03', '', '2025-04-03 17:44:46');
+(1, 230016, 'MARC ED', '', 'EBRADO', 'mebrado2023@student.nbscollege.edu.ph', '$2y$10$WvCl/dB3v6kOaEzRwHDAHusaJktt1RdwyvLQepVyc6u.YuzblidOy', '', '../Images/Profile/default-avatar.jpg', 'Accountancy', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:44'),
+(2, 230033, 'STEPHANIE', '', 'ESPEJON', 'sespejon2023@student.nbscollege.edu.ph', '$2y$10$mC/H7DNrY/4LafqYrX6hye8U87zsSnj2t8NtutiQ8E44zcRiPHTXe', '', '../Images/Profile/default-avatar.jpg', 'Accountancy', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:44'),
+(3, 230030, 'GIRLIE GAIL', '', 'GALLARDO', 'ggallardo2023@student.nbscollege.edu.ph', '$2y$10$6weHb3LlNHrsXLfIzwdkB.XlME.1JUBQsOCpTTC1ePFnvslK0R5WK', '', '../Images/Profile/default-avatar.jpg', 'Accountancy', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:44'),
+(4, 230019, 'JESSA', '', 'MADANLO', 'jmadanlo2023@student.nbscollege.edu.ph', '$2y$10$nBJBxUANxSkrZgsOjUqktOIqlWAW3A.s.a8./RJzpDZYm.3aELlEW', '', '../Images/Profile/default-avatar.jpg', 'Accountancy', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:44'),
+(5, 230003, 'VINCELYN', '', 'MOZOL', 'vmozol2023@student.nbscollege.edu.ph', '$2y$10$SfM8orqCHWQJa2fGg..6IeEds.L1vuqNFo1AWq1NP3x4L7SNyeNHC', '', '../Images/Profile/default-avatar.jpg', 'Accountancy', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:44'),
+(6, 230037, 'REGINE', '', 'OCAMPO', 'rocampo2023@student.nbscollege.edu.ph', '$2y$10$X.5tjGnuINrmjznvaWN4fOTYFTJSHE9gJ3H87bs7NbGUnoOG9DgAK', '', '../Images/Profile/default-avatar.jpg', 'Accountancy', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:44'),
+(7, 230044, 'MONIQUE', '', 'PACAMARRA', 'mpacamarra2023@student.nbscollege.edu.ph', '$2y$10$iLdICyEACwNgmEAUeoHSVe5JnAGFmlOldDEsAZM72LIbMhqJ1bcbG', '', '../Images/Profile/default-avatar.jpg', 'Accountancy', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:44'),
+(8, 220054, 'CHEEZER JANE', '', 'POWAO', 'cpowao2022@student.nbscollege.edu.ph', '$2y$10$6T36sgNWFpFvHUTDd0oQwOLohRpu38f6jCLBHX6j9fq3GJtYzCMze', '', '../Images/Profile/default-avatar.jpg', 'Accountancy', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:45'),
+(9, 230027, 'JOHN RENZ', '', 'REJANO', 'jrejano2023@student.nbscollege.edu.ph', '$2y$10$KHLqalqAMHmzVDDJ.EhcZ.QTyFM3I.mj2rcujsC6Ju7NiaWba2NwS', '', '../Images/Profile/default-avatar.jpg', 'Accountancy', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:45'),
+(10, 230009, 'RHOCA', '', 'TINAY', 'rtinay2023@student.nbscollege.edu.ph', '$2y$10$nUztQXPDu2zQyGvLCH2OeeuLI1AvZQpUCDsx6mNQjzGd3FoL22uvS', '', '../Images/Profile/default-avatar.jpg', 'Accountancy', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:45'),
+(11, 230005, 'JOSE CARLOS', '', 'VILLANUEVA', 'jvillanueva2023@student.nbscollege.edu.ph', '$2y$10$XohRKpuoAdecOz5aB/wgUOT8NXNWf1E1EZ2ae3t6DxDw45.u38HnG', '', '../Images/Profile/default-avatar.jpg', 'Accountancy', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:45'),
+(12, 210027, 'RANNIE', '', 'ASIS', 'rasis2021@student.nbscollege.edu.ph', '$2y$10$ILn3roHTG1hJM5QPw9p/ye6rcnc5ahEeshZ/sNcYM6Zscwmu7Q19i', '', '../Images/Profile/default-avatar.jpg', 'Accountancy', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:45'),
+(13, 220055, 'KAREN MAE', '', 'BALICTAR', 'kbalictar2022@student.nbscollege.edu.ph', '$2y$10$Qo1y6EelIYijBZraTgUDJ.lckmdpmVawldlnCatsFmcU/8aTHHBb6', '', '../Images/Profile/default-avatar.jpg', 'Accountancy', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:45'),
+(14, 220021, 'JAMES LHARS', '', 'BARRIENTOS', 'jbarrientos2022@student.nbscollege.edu.ph', '$2y$10$MJ/kH4xEhM/p0tHJelAKN.0rBMvpQAwyXVEu0ikAw9.TIzqN7sUde', '', '../Images/Profile/default-avatar.jpg', 'Accountancy', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:45'),
+(15, 220047, 'NOEMI', '', 'LAURENTE', 'nlaurente2022@student.nbscollege.edu.ph', '$2y$10$Csfmje6S2cfWETwbbiScPez9jIHu3U8IXA1R7P.oXdqC.PZMxkyGW', '', '../Images/Profile/default-avatar.jpg', 'Accountancy', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:45'),
+(16, 210061, 'ANGELA CLAIRE', '', 'PANAHON', 'apanahon2021@student.nbscollege.edu.ph', '$2y$10$hWRfZwTqCHgHC3FrVgHbsu7TUoi749EkXVS0pZOvhOrn6f6EMhBUO', '', '../Images/Profile/default-avatar.jpg', 'Accountancy', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:45'),
+(17, 220007, 'MA. KATRINA', '', 'SANTOS', 'msantos2022@student.nbscollege.edu.ph', '$2y$10$uoDz8E/lU4BAfO.zyvSpSuwcnHMU8D8tW5pCZm1z7Scvv/l1pCihi', '', '../Images/Profile/default-avatar.jpg', 'Accountancy', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:46'),
+(18, 210037, 'LEIRA', '', 'SINAGUINAN', 'lsinaguinan2021@student.nbscollege.edu.ph', '$2y$10$cPNPBdVf8Q/G7X/4ogKsZOsFVAjSQIDhetwDWM/6lovxqjlAM6gma', '', '../Images/Profile/default-avatar.jpg', 'Accountancy', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:46'),
+(19, 210014, 'ANGELINE', '', 'ACEBUCHE', 'aacebuche2021@student.nbscollege.edu.ph', '$2y$10$zxCy36/kF0uayYvrstUCZed/9wDIryaUut4qeUe9AK.IbAJRF5ezG', '', '../Images/Profile/default-avatar.jpg', 'Accountancy', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:46'),
+(20, 210044, 'MAY ANN', '', 'BAYOD', 'mbayod2021@student.nbscollege.edu.ph', '$2y$10$p/90NzRGTFh47Hettcrfc.9.vG0IPG/PwK68YgKZMYUjzDgJd/Rwu', '', '../Images/Profile/default-avatar.jpg', 'Accountancy', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:46'),
+(21, 210033, 'PATRICK DOMINIC', '', 'CORRE', 'pcorre2021@student.nbscollege.edu.ph', '$2y$10$mJcp7bnfuuC1FIRcEI6Z4O1E3A52dW9fyFjo7I7L9jVwU0aZumuEy', '', '../Images/Profile/default-avatar.jpg', 'Accountancy', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:46'),
+(22, 220024, 'JOHN AARON PAUL', '', 'GACHO', 'jgacho2022@student.nbscollege.edu.ph', '$2y$10$O80Fp.Gn2Z8VLXY4/7VxY.d8/KnJUTT6n2K7Xh6eiO4qXB2RkuPse', '', '../Images/Profile/default-avatar.jpg', 'Accountancy', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:46'),
+(23, 220012, 'ALLIANA MARIEL', '', 'GONZALES', 'agonzales2022@student.nbscollege.edu.ph', '$2y$10$w1IvTbltCVBAlmx/QxfKwuE9q.AzfVf.eqiBRUaIauo9lm2w3jNZm', '', '../Images/Profile/default-avatar.jpg', 'Accountancy', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:46'),
+(24, 210050, 'ANGELI', '', 'QUINTO', 'aquinto2021@student.nbscollege.edu.ph', '$2y$10$CxBh52bNd7XRAf8lFhxRQuYFEV0qe2eHZMzBi8MsCsfZshQk3Rky2', '', '../Images/Profile/default-avatar.jpg', 'Accountancy', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:46'),
+(25, 210070, 'MARIA SHEKINAH ELIZABETH', '', 'SAN JUAN', 'msanjuan2021@student.nbscollege.edu.ph', '$2y$10$hkpegBdk3eNzovPoPGHdLe/nMCgLKKQbYxWavL.IcY4D8Kl5BZLCC', '', '../Images/Profile/default-avatar.jpg', 'Accountancy', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:46'),
+(26, 210060, 'LYNLEN', '', 'SINGCO', 'lsingco2021@student.nbscollege.edu.ph', '$2y$10$/65jS78V2rKAoituZH2dw.WpkDTXmokL6o0WQoWOQGN4neetWSNya', '', '../Images/Profile/default-avatar.jpg', 'Accountancy', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:46'),
+(27, 210022, 'ROSHIELA MAY', '', 'SOLDEVILLA', 'rsoldevilla2021@student.nbscollege.edu.ph', '$2y$10$P7m2zY1T3nHGtiqSqgVlh./.jdghyvDPpHkNDUflfrQDmgOsrw7L.', '', '../Images/Profile/default-avatar.jpg', 'Accountancy', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:47'),
+(28, 210031, 'JAY FOARD', '', 'TRAJE', 'jtraje2021@student.nbscollege.edu.ph', '$2y$10$JKFVOCwTRQW6e2/FLVSGcOUgEtXxX2Z3H7FO0/T90iSs1y2Svz6Gu', '', '../Images/Profile/default-avatar.jpg', 'Accountancy', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:47'),
+(29, 210058, 'AIKA MARIE', '', 'YBAÑEZ', 'aybaÑez2021@student.nbscollege.edu.ph', '$2y$10$D/lyVejL07laglsKWrR42ub0dcL6fIaYY7DRAE5M0OL9j2Htrc9fi', '', '../Images/Profile/default-avatar.jpg', 'Accountancy', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:47'),
+(30, 200043, 'JHEDALYN', '', 'DACQUEL', 'jdacquel2020@student.nbscollege.edu.ph', '$2y$10$MktbSUaZEnwwsBjdoZVzYe1yClyRFfSPmnlEmgqonEmyRGZpsCn9K', '', '../Images/Profile/default-avatar.jpg', 'Accountancy', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:47'),
+(31, 200039, 'JOYCE ANN', '', 'MERAS', 'jmeras2020@student.nbscollege.edu.ph', '$2y$10$Uy1zZMJdkIeTfPNXxWGlR.PqYC/9U388/v4MV0ErPwgUTrA.XwVai', '', '../Images/Profile/default-avatar.jpg', 'Accountancy', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:47'),
+(32, 200019, 'ELVERT-ACE', '', 'NERI', 'eneri2020@student.nbscollege.edu.ph', '$2y$10$OF9G/CVybeL1Y.BqU5LO2.bvRT/hHXkgmdrTGrJqIow99/p5shSeu', '', '../Images/Profile/default-avatar.jpg', 'Accountancy', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:47'),
+(33, 230032, 'ALEXZA', '', 'IGNACIO', 'aignacio2023@student.nbscollege.edu.ph', '$2y$10$HCtA6/5vhVZSpmAPdzweJ.2JobXgD4nV/72TeisC7n/P6Ri5tTfRa', '', '../Images/Profile/default-avatar.jpg', 'Accounting Information System', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:47'),
+(34, 220018, 'JERALD', '', 'BALAO', 'jbalao2022@student.nbscollege.edu.ph', '$2y$10$pkwQnbx5SQsK1xbKaSnJUeWbpbGvN0ouE3EdL4dCvjvVmy1hZg8K.', '', '../Images/Profile/default-avatar.jpg', 'Accounting Information System', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:47'),
+(35, 210016, 'CRIS ALFRED', '', 'PANLUBASAN', 'cpanlubasan2021@student.nbscollege.edu.ph', '$2y$10$FfyP99OL2UPlOH4cBZDI1.eSLfw/ebwspKG3ObVv.B/V2DqHPZMH2', '', '../Images/Profile/default-avatar.jpg', 'Accounting Information System', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:47'),
+(36, 190026, 'FRANCES MARGARETT', '', 'PEDOCHE', 'fpedoche2019@student.nbscollege.edu.ph', '$2y$10$ngTa/FNnF11vfoLrmQbLA.r213XBy7UrhZDmmcv23LYJvxkEhWAAu', '', '../Images/Profile/default-avatar.jpg', 'Accounting Information System', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:48'),
+(37, 210049, 'RICHELLE MAE', '', 'CADORNA', 'rcadorna2021@student.nbscollege.edu.ph', '$2y$10$uMJesDhf1Mh5pJ4vzo/meuvGi1fORS6hkcz6xt94UJwkDHqw.zaG2', '', '../Images/Profile/default-avatar.jpg', 'Accounting Information System', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:48'),
+(38, 210038, 'MARIA ROSALINDA', '', 'GALLO', 'mgallo2021@student.nbscollege.edu.ph', '$2y$10$d1Fb5Y0KHsY2UIbo2K0ZB.qp9G6mePO.pM3vhVTmUc0LsfHOX5pXG', '', '../Images/Profile/default-avatar.jpg', 'Accounting Information System', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:48'),
+(39, 210056, 'JANE AUSTIN', '', 'LANSANG', 'jlansang2021@student.nbscollege.edu.ph', '$2y$10$dLtAZrxuMC1y8mBXgjj1h./9yiqXosOQbgesVId.cR..lD/Ri9O2y', '', '../Images/Profile/default-avatar.jpg', 'Accounting Information System', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:48'),
+(40, 190034, 'JELLIANE', '', 'ALARCON', 'jalarcon2019@student.nbscollege.edu.ph', '$2y$10$3r2wBNBPxGNK4OgJprh8VOcRMUTcsNhL9k7k4uihjFK3SGXH8VVdG', '', '../Images/Profile/default-avatar.jpg', 'Accounting Information System', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:48'),
+(41, 200013, 'RIZA JEAN', '', 'ELLERAN', 'relleran2020@student.nbscollege.edu.ph', '$2y$10$ehEEasE8DsWWfNLidgkNG.SNGGuaW.scxqPzlCZIf/6YnT0iwJUP6', '', '../Images/Profile/default-avatar.jpg', 'Accounting Information System', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:48'),
+(42, 190088, 'JEREMIE', '', 'GIGANTE', 'jgigante2019@student.nbscollege.edu.ph', '$2y$10$vMpZKHmOuorA9UDRTKTDyu4Fn7QtY7XMNrJZ2.rVemXN4wPbGAZoq', '', '../Images/Profile/default-avatar.jpg', 'Accounting Information System', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:48'),
+(43, 200024, 'JOSEPH IVAN', '', 'GREGORIO', 'jgregorio2020@student.nbscollege.edu.ph', '$2y$10$fuRO594O09VTbaK5n/JU9ujtXwwqVg1DdegU5/W/uOVaLIFzRby6C', '', '../Images/Profile/default-avatar.jpg', 'Accounting Information System', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:48'),
+(44, 200032, 'KINJI', '', 'LABAY', 'klabay2020@student.nbscollege.edu.ph', '$2y$10$MKA2uBXHcDpPuZJYGsvGH.BBVWq2V/UiHTyApfw/JfaedTyHUjkCy', '', '../Images/Profile/default-avatar.jpg', 'Accounting Information System', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:48'),
+(45, 200065, 'CHELSEA CHARMILANE', '', 'MULDONG', 'cmuldong2020@student.nbscollege.edu.ph', '$2y$10$5agIZCNqHKaJdPtlag41ref2DtD1Uk3wFm2d2NfzKKYNhW3CDd6fu', '', '../Images/Profile/default-avatar.jpg', 'Accounting Information System', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:49'),
+(46, 190004, 'GWYNETH VEAH', '', 'OLIVER', 'goliver2019@student.nbscollege.edu.ph', '$2y$10$EBxwVRn.h.uYvNUet3WFV./7PHJS6cMtMzV23Gc3h5EJzijsZ5BXe', '', '../Images/Profile/default-avatar.jpg', 'Accounting Information System', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:49'),
+(47, 200042, 'DANIELA SHANE', '', 'PONTIMAR', 'dpontimar2020@student.nbscollege.edu.ph', '$2y$10$kyIpKlGmtujkGQVvrQQ.7u8eOUUTwtZrX0l4l75JClcUmSqIyXmV6', '', '../Images/Profile/default-avatar.jpg', 'Accounting Information System', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:49'),
+(48, 180004, 'IRICE DANIKKA', '', 'YALUNG', 'iyalung2018@student.nbscollege.edu.ph', '$2y$10$X0z/vhGCqfbMEEHE1l8p/uBbGWV0uhXZXcWcpMB0JfWX2qoJ4JVyu', '', '../Images/Profile/default-avatar.jpg', 'Accounting Information System', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:49'),
+(49, 230020, 'EMMANUEL', '', 'ABEJO', 'eabejo2023@student.nbscollege.edu.ph', '$2y$10$Rbqr.tDjBbhh0FYmv6bypux78.aeGwsfh6pM6LqIt83Ws2o70C046', '', '../Images/Profile/default-avatar.jpg', 'Computer Science', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:49'),
+(50, 230046, 'RHYZEN', '', 'BUMANLAG', 'rbumanlag2023@student.nbscollege.edu.ph', '$2y$10$OHqgTd/.tFDPrQ4/K4GEU.wUcU3QxM5/upfeF3kFx9J8pkiDrJsC.', '', '../Images/Profile/default-avatar.jpg', 'Computer Science', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:49'),
+(51, 220056, 'MARY ANN', '', 'CEDILLO', 'mcedillo2022@student.nbscollege.edu.ph', '$2y$10$i0RdDYDdUmQ63AG2S32fqOwszfNQMpeZUIBktW/9rF7H.jCc3Z2s6', '', '../Images/Profile/default-avatar.jpg', 'Computer Science', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:49'),
+(52, 230007, 'RHOD LENARD', '', 'DELAS NIEVES', 'rdelasnieves2023@student.nbscollege.edu.ph', '$2y$10$iS7e6HmsLon4kh.WZhUua.MuzbYSqIsKtnI1RpyPIe9QhjnbSBerS', '', '../Images/Profile/default-avatar.jpg', 'Computer Science', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:49'),
+(53, 230022, 'KATE ANDREI', '', 'DOSAL', 'kdosal2023@student.nbscollege.edu.ph', '$2y$10$8Rv/rBOU5f16ofKAgKGSjucRIFzEOzdKY3wOQ47D8Wvl9qH54GmRC', '', '../Images/Profile/default-avatar.jpg', 'Computer Science', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:49'),
+(54, 230021, 'JAVI AEREM', '', 'FAVIA', 'jfavia2023@student.nbscollege.edu.ph', '$2y$10$iz00reFImopfFEKsimBDJ.DCRwikeCLsNNprj8Ile9DqI32lfalsS', '', '../Images/Profile/default-avatar.jpg', 'Computer Science', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:50'),
+(55, 230004, 'RENARD KEN', '', 'HAPIL', 'rhapil2023@student.nbscollege.edu.ph', '$2y$10$xVpgzGeYOul06mu3m8Wzd.vVhphxY688s8eIW0ZiMzndFWag63Ucy', '', '../Images/Profile/default-avatar.jpg', 'Computer Science', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:50'),
+(56, 230012, 'DANDIE', '', 'LAQUINTA', 'dlaquinta2023@student.nbscollege.edu.ph', '$2y$10$bSt2spqzPYWJjmuZ9GKwOuK6bbdW7GheX..JwNLlFr5hD3XvuCbc2', '', '../Images/Profile/default-avatar.jpg', 'Computer Science', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:50'),
+(57, 230028, 'JHON KENNETH', '', 'LIMATOC', 'jlimatoc2023@student.nbscollege.edu.ph', '$2y$10$0IBoOVFXsst8X6HWzS5H5eBMIpStJ2u/irJdCxSNcyUFTtwDhsBOq', '', '../Images/Profile/default-avatar.jpg', 'Computer Science', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:50'),
+(58, 230010, 'GRACE ANNE', '', 'LOGRONIO', 'glogronio2023@student.nbscollege.edu.ph', '$2y$10$Di5pCxfsPvFFqqIZ3mquq.Qfa0i04BzkUG90NRl/aIFK5d236LjKS', '', '../Images/Profile/default-avatar.jpg', 'Computer Science', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:50'),
+(59, 230045, 'PAOLO', '', 'MALICSE', 'pmalicse2023@student.nbscollege.edu.ph', '$2y$10$26k5Ys7Kels9EXBYbFwo6ehGju/UldxUlCjXyhPv7.dQZZq78e/Gi', '', '../Images/Profile/default-avatar.jpg', 'Computer Science', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:50'),
+(60, 230039, 'FRANCIS ANGELO', '', 'ORILLANEDA', 'forillaneda2023@student.nbscollege.edu.ph', '$2y$10$1HS3SBCct.BKdh9GDT.m8eEllWkoNMQdQFcM1lT20EvalFkNVkQYy', '', '../Images/Profile/default-avatar.jpg', 'Computer Science', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:50'),
+(61, 230015, 'MICHAEL LORENZ', '', 'TAN', 'mtan2023@student.nbscollege.edu.ph', '$2y$10$qZO.ihD0lVbUYAxdgTBjQe6ANVTzNtfJJFMGpmmbY7P4yeCv3z2CK', '', '../Images/Profile/default-avatar.jpg', 'Computer Science', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:50'),
+(62, 220050, 'ARMAN BERNARD', '', 'CABANG', 'acabang2022@student.nbscollege.edu.ph', '$2y$10$oNfjCf/RLbaPbaXMk5W.wemWBgs2DNLDN5KZxd7gY1OK4uHqz.0QW', '', '../Images/Profile/default-avatar.jpg', 'Computer Science', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:50'),
+(63, 220057, 'YZRAH', '', 'GASPADO', 'ygaspado2022@student.nbscollege.edu.ph', '$2y$10$esqgCkJeCk787KJWPHshQuNOeZ0mZz8VO.nYvwKv0k6PxkHaEn1La', '', '../Images/Profile/default-avatar.jpg', 'Computer Science', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:51'),
+(64, 220017, 'BRIAN CHRISTIAN', '', 'HEBRON', 'bhebron2022@student.nbscollege.edu.ph', '$2y$10$yAfzaVgTjw7ni0Yw50XRlOWM9hI5CCE8SYIpYwddWUDjWW3AX7Iau', '', '../Images/Profile/default-avatar.jpg', 'Computer Science', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:51'),
+(65, 220048, 'AJLEIN', '', 'MONTERO', 'amontero2022@student.nbscollege.edu.ph', '$2y$10$ucowy2lUMRpS1GmLuWMiUu/Ey2QdnGN1s8kpdqTjoMxXN.JMITv96', '', '../Images/Profile/default-avatar.jpg', 'Computer Science', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:51'),
+(66, 230014, 'JAY FRANKLIN', '', 'ROLLO', 'jrollo2023@student.nbscollege.edu.ph', '$2y$10$SLm2Y25pKlKOrpnnZbqiiuF88xOWiH5QUrH8utIPsvmZd/ObirY4K', '', '../Images/Profile/default-avatar.jpg', 'Computer Science', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:51'),
+(67, 210079, 'CARLOS MIGUEL', '', 'AUTOR', 'cautor2021@student.nbscollege.edu.ph', '$2y$10$iDbSxvZ7kyqCVUNzc9M4SO4yom5Em8zEBYicYj0Ivva29Rx5n.c5K', '', '../Images/Profile/default-avatar.jpg', 'Computer Science', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:51'),
+(68, 210078, 'KENNETH LAURENCE', '', 'BONAAGUA', 'kbonaagua2021@student.nbscollege.edu.ph', '$2y$10$auhNHnL/Nn3uviEd7ITod.zRphqnwuX/0TgCwkh3Ue9iPSG5K3XY2', '', '../Images/Profile/default-avatar.jpg', 'Computer Science', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:51'),
+(69, 220001, 'JOANNA CRIS', '', 'ESCANILLA', 'jescanilla2022@student.nbscollege.edu.ph', '$2y$10$t5VvqxxAOSSl/LR83804U.9WeRbh4D6G4R99JvmNJ9qRmYOhGHUPa', '', '../Images/Profile/default-avatar.jpg', 'Computer Science', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:51'),
+(70, 210028, 'CAYCE', '', 'EVANGELISTA', 'cevangelista2021@student.nbscollege.edu.ph', '$2y$10$yLh1Rn41DdLj9j.WNlITEOLRR8oAth4iMP7u3/JGInjTD74rh7iCe', '', '../Images/Profile/default-avatar.jpg', 'Computer Science', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:51'),
+(71, 210065, 'JENEPIR', '', 'JABILLO', 'jjabillo2021@student.nbscollege.edu.ph', '$2y$10$n8vWVkUxCJ2Jnc3rEnel8eSfOL6Sg/2X2wHFHFxwnBYTAmqVoTiN.', '', '../Images/Profile/default-avatar.jpg', 'Computer Science', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:51'),
+(72, 220003, 'JOSEPH', '', 'SIMANGCA', 'jsimangca2022@student.nbscollege.edu.ph', '$2y$10$QTaVcBrH8TjVtnAF3nhGauLGVy1kZmyzL9yt7rvuPIKrQX9h0u6LO', '', '../Images/Profile/default-avatar.jpg', 'Computer Science', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:52'),
+(73, 180012, 'KARA COLUMBA', '', 'RABANAL', 'krabanal2018@student.nbscollege.edu.ph', '$2y$10$xE/eTGMKYJaIukzhsrBtYe59AkuXNei75wUkyzbL1IZPmljbirBl2', '', '../Images/Profile/default-avatar.jpg', 'Computer Science', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:52'),
+(74, 200067, 'AZZEL IVAN', '', 'WEE', 'awee2020@student.nbscollege.edu.ph', '$2y$10$5OtlyiFMp1fjNYs633m3tuz99OSbsdfuPxeQoNQNHKP8s/1u.pYNC', '', '../Images/Profile/default-avatar.jpg', 'Computer Science', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:52'),
+(75, 200026, 'JERALD', '', 'YSAAC', 'jysaac2020@student.nbscollege.edu.ph', '$2y$10$.mGWuoOGiOnNDdz7eOBTjeuaStpdUzvhxkhqqdhCUtcPWclP2Uy6O', '', '../Images/Profile/default-avatar.jpg', 'Computer Science', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:52'),
+(76, 230034, 'ALDRIN', '', 'BOJILADOR', 'abojilador2023@student.nbscollege.edu.ph', '$2y$10$T5LEFJfEaQVmdoMmNle.GeBfkc3DuOSlt8oTNhde9LiJSxe5dveSG', '', '../Images/Profile/default-avatar.jpg', 'Entrepreneurship', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:52'),
+(77, 230043, 'JOAN MAE', '', 'CAINGIN', 'jcaingin2023@student.nbscollege.edu.ph', '$2y$10$Aye627co6Hes0l.SzHrd/.wwlfICe12.QPm4Mhoc6IsrQq9.uXPOm', '', '../Images/Profile/default-avatar.jpg', 'Entrepreneurship', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:52'),
+(78, 230023, 'SEAN YVES', '', 'DE GUZMAN', 'sdeguzman2023@student.nbscollege.edu.ph', '$2y$10$DwieYH2QU3h9ZEkJDw0uYeUfexOWS9SEtMQLg/M9YUmA1Cie07ewq', '', '../Images/Profile/default-avatar.jpg', 'Entrepreneurship', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:52'),
+(79, 230011, 'AARON CARL', '', 'DIÑO', 'adiÑo2023@student.nbscollege.edu.ph', '$2y$10$zszwZ4SYE0vdMRXavSWoI.AmAuGKny1SqE3uNbYggTa.A2IXtmQpy', '', '../Images/Profile/default-avatar.jpg', 'Entrepreneurship', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:52'),
+(80, 230013, 'NORAMIE', '', 'USMAN', 'nusman2023@student.nbscollege.edu.ph', '$2y$10$9lAmAQ/yc9mfPmMVEsgAQu9g1Tobcoran68.iQSYgpvruxjdZZx/6', '', '../Images/Profile/default-avatar.jpg', 'Entrepreneurship', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:52'),
+(81, 220025, 'PATRICK JAMES', '', 'DE QUIROZ', 'pdequiroz2022@student.nbscollege.edu.ph', '$2y$10$QRxA3UWAIK7nsxwMy1TOPu3qUgvmSxOf.Sp7JPCbDom4v7gDHtZ2i', '', '../Images/Profile/default-avatar.jpg', 'Entrepreneurship', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:52'),
+(82, 210024, 'APRIL NICOLE', '', 'CAMPOS', 'acampos2021@student.nbscollege.edu.ph', '$2y$10$JbXTl43VAPT35mAD3wuhde2Uo/q5qLEmzx7OWM.lF/ragFuOIaIi6', '', '../Images/Profile/default-avatar.jpg', 'Entrepreneurship', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:53'),
+(83, 210057, 'SYRA', '', 'LANSANG', 'slansang2021@student.nbscollege.edu.ph', '$2y$10$HUGV/1TgDhNRnq0k2b9KsOHad/qErzaqfGbrwlwyaxN4f3zMGwmJ6', '', '../Images/Profile/default-avatar.jpg', 'Entrepreneurship', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:53'),
+(84, 210012, 'LIEZELLE', '', 'SABLAWON', 'lsablawon2021@student.nbscollege.edu.ph', '$2y$10$cHVdeylE5l9nq.2ecEwT6uGhfaVM9nVBqlaTXoibSjZ/4Cyjvzb/C', '', '../Images/Profile/default-avatar.jpg', 'Entrepreneurship', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:53'),
+(85, 210059, 'LARAMAE', '', 'SANTOS', 'lsantos2021@student.nbscollege.edu.ph', '$2y$10$zaMUc70SYwYSjauPdsOKO.SVGA2z4.ifiss3dh2wMLGgel5TcVHHG', '', '../Images/Profile/default-avatar.jpg', 'Entrepreneurship', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:53'),
+(86, 210008, 'CHARMAINE', '', 'VILLARMIA', 'cvillarmia2021@student.nbscollege.edu.ph', '$2y$10$tcFG7FSTma24KazUJoDp0OjEwQ3qgcYyzvAH3/sxvxKesTPiu1HjO', '', '../Images/Profile/default-avatar.jpg', 'Entrepreneurship', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:53'),
+(87, 220036, 'JOHN MATTHEW', '', 'VILLARUBIA', 'jvillarubia2022@student.nbscollege.edu.ph', '$2y$10$NCcvI366SttoBdjpTd1AR.KIaIkMjmj8KVuMpTVsHbLL114wAlCfe', '', '../Images/Profile/default-avatar.jpg', 'Entrepreneurship', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:53'),
+(88, 200028, 'AUBREY', '', 'DULAG', 'adulag2020@student.nbscollege.edu.ph', '$2y$10$vVHvQ13adz9aDb26N0/gpuHEOL.zpI9bykgV5580BnNPnWmUxr2Te', '', '../Images/Profile/default-avatar.jpg', 'Entrepreneurship', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:53'),
+(89, 180036, 'WILHELM ELIJAH', '', 'FERRER', 'wferrer2018@student.nbscollege.edu.ph', '$2y$10$XZ0ovL4soMqOyvWxOVNsKOBhZ07vpWR/Yc85giPMMFdbB2quSuXQS', '', '../Images/Profile/default-avatar.jpg', 'Entrepreneurship', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:53'),
+(90, 200048, 'ADRIAN', '', 'MANDAWE', 'amandawe2020@student.nbscollege.edu.ph', '$2y$10$RgKZvHtrPURy9Pw03e98ieqXidCNgEyjTkx1BGRhxXTTQP22mfGzq', '', '../Images/Profile/default-avatar.jpg', 'Entrepreneurship', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:54'),
+(91, 210029, 'JULIA CAITLIN', '', 'PIAMONTE', 'jpiamonte2021@student.nbscollege.edu.ph', '$2y$10$qjnFBW1XA8bvAkf/hEkeJ.9nS8vYz1UhjkF6FANgNoR6mZn4k.X7u', '', '../Images/Profile/default-avatar.jpg', 'Entrepreneurship', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:54'),
+(92, 220039, 'JERAH MANUEL', '', 'SARABIA', 'jsarabia2022@student.nbscollege.edu.ph', '$2y$10$CJYKPdDcpEDq4jJpzwmu1.1j.wiglx6Y7IqAvB5/nqiR/a0zCEoXC', '', '../Images/Profile/default-avatar.jpg', 'Entrepreneurship', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:54'),
+(93, 200029, 'JIM LUIS', '', 'VILLACILLO', 'jvillacillo2020@student.nbscollege.edu.ph', '$2y$10$QJdOg9Qf.7j8k1ENrdYPNeec8i2vcCU23MwdW4g4dyR2kN7tix8YK', '', '../Images/Profile/default-avatar.jpg', 'Entrepreneurship', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:54'),
+(94, 220004, 'MAXELL JAMES', '', 'ABUTIN', 'mabutin2022@student.nbscollege.edu.ph', '$2y$10$b3Fw.3vfEcL9laAt8Vx.8uxYzPiAUgoNvRG99fsq7BgFOHtjadejq', '', '../Images/Profile/default-avatar.jpg', 'Tourism Management', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:54'),
+(95, 230036, 'CASSANDRA', '', 'AOANAN', 'caoanan2023@student.nbscollege.edu.ph', '$2y$10$l7TX5FSQUedVy3y5TBzHveudFGYxhzfpCuHu1Z3ucqVxTLnQ2CoO.', '', '../Images/Profile/default-avatar.jpg', 'Tourism Management', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:54'),
+(96, 230031, 'JUDE MARTIN', '', 'BALLADOS', 'jballados2023@student.nbscollege.edu.ph', '$2y$10$nh9aSxK7waxST/uNtyj26ev/.AzCPcMtP.zoo32XyMqHHiaw8RWs.', '', '../Images/Profile/default-avatar.jpg', 'Tourism Management', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:54'),
+(97, 230026, 'JENNY ROSE', '', 'COLIS', 'jcolis2023@student.nbscollege.edu.ph', '$2y$10$HklZmhbHfqWKsGByYizi1Oyi28O18M4gma3Eju6XLC4xAFC5ks6HO', '', '../Images/Profile/default-avatar.jpg', 'Tourism Management', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:54'),
+(98, 230035, 'JAKE', '', 'COMIA', 'jcomia2023@student.nbscollege.edu.ph', '$2y$10$oHcRpAhr3shjeObCK3NzhOI80eKjT2LT.l.ziuVnjJREEBidcmRtm', '', '../Images/Profile/default-avatar.jpg', 'Tourism Management', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:54'),
+(99, 230029, 'MATILDA ABIGAEL', '', 'DALISAY', 'mdalisay2023@student.nbscollege.edu.ph', '$2y$10$MtOSBPGnlHoS0ZxU8SWQc.1/BHIdU0qEAJvEvK8OypwXC5rEyX9WW', '', '../Images/Profile/default-avatar.jpg', 'Tourism Management', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:55'),
+(100, 230018, 'JOANNE MAY', '', 'DELA CRUZ', 'jdelacruz2023@student.nbscollege.edu.ph', '$2y$10$uMxmOlK1yH94zU9QnQaN.OCTbwjKnbX8iiQxpPmtuUo8vK5alZ5ZG', '', '../Images/Profile/default-avatar.jpg', 'Tourism Management', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:55'),
+(101, 230038, 'RACHELLE MAE', '', 'EBIAS', 'rebias2023@student.nbscollege.edu.ph', '$2y$10$9iu8PYIYfr0t7bpPaHjll.LYHjhQLfevA/dae7ecIfP13ZUpWkJm6', '', '../Images/Profile/default-avatar.jpg', 'Tourism Management', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:55'),
+(102, 230041, 'COLLINE FIONA', '', 'GUASCH', 'cguasch2023@student.nbscollege.edu.ph', '$2y$10$cB/YWNKwBOtLgNsbxjzlUOPcZVgtW/IdyjQmSvLJiW5RL3QoyPEjC', '', '../Images/Profile/default-avatar.jpg', 'Tourism Management', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:55'),
+(103, 230008, 'PRINCESS JUVY', '', 'HIBAYA', 'phibaya2023@student.nbscollege.edu.ph', '$2y$10$QngX9Az5CxqDtglGTv.D/eKd6aeIrIkHoMB9lQnUWnC1dzWQbpzB2', '', '../Images/Profile/default-avatar.jpg', 'Tourism Management', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:55'),
+(104, 230040, 'ARVIC JOHN', '', 'LIM', 'alim2023@student.nbscollege.edu.ph', '$2y$10$w/kk5eG9dreFsFHtYPift.5Rsavgrw2XxfQEKruYWxIimPWgKHw.O', '', '../Images/Profile/default-avatar.jpg', 'Tourism Management', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:55'),
+(105, 230017, 'GUIA', '', 'MAHOMITANO', 'gmahomitano2023@student.nbscollege.edu.ph', '$2y$10$C/iwp1XObByTXhqNKSvrTe9m3uZ/IDViCXyHe9yNnDd.1xcRmyqIK', '', '../Images/Profile/default-avatar.jpg', 'Tourism Management', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:55'),
+(106, 230002, 'JUDITH', '', 'MANTILLA', 'jmantilla2023@student.nbscollege.edu.ph', '$2y$10$z7CHzzkTP1ZuD7WML.x6y.LMW3ZNGIjcgGsYcqJJtj5uf4AM1hCbm', '', '../Images/Profile/default-avatar.jpg', 'Tourism Management', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:55'),
+(107, 230024, 'BRENT ALLEN', '', 'PIDUCA', 'bpiduca2023@student.nbscollege.edu.ph', '$2y$10$3g.qqU53VPuY44XDa9NZjuiIr6SeBSD1Zl4KgqMv.VsD86dSec3wa', '', '../Images/Profile/default-avatar.jpg', 'Tourism Management', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:55'),
+(108, 220045, 'LARREI CHRUSZLE', '', 'PINEDA', 'lpineda2022@student.nbscollege.edu.ph', '$2y$10$o2sl5x/n9Gp4mVM3wY4T/eQ403HNSZyPtfGgKAAaQKYi5m4y8o5yy', '', '../Images/Profile/default-avatar.jpg', 'Tourism Management', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:56'),
+(109, 230006, 'ROSEMARIE', '', 'PUENLEONA', 'rpuenleona2023@student.nbscollege.edu.ph', '$2y$10$xDOQC0zo2CsJSsjCftNzdu.O6TG1LCS3F0A6cGVeso9Sv7rdIjb9u', '', '../Images/Profile/default-avatar.jpg', 'Tourism Management', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:56'),
+(110, 220035, 'DIANA MAE', '', 'SALCEDO', 'dsalcedo2022@student.nbscollege.edu.ph', '$2y$10$eM.K0xQbEvktWd.akdBsmeGgE.RNTiB6919OOPdhWRgXuy.0LujNG', '', '../Images/Profile/default-avatar.jpg', 'Tourism Management', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:56'),
+(111, 230042, 'JASTINE CLARK', '', 'SAMILLANO', 'jsamillano2023@student.nbscollege.edu.ph', '$2y$10$8VSf95EOD7bC.FlStoPIJeRG5acu8yAc2tWKc4GWeuFTF.JRhVt8e', '', '../Images/Profile/default-avatar.jpg', 'Tourism Management', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:56'),
+(112, 230025, 'JEAN WRANCES', '', 'TALBANOS', 'jtalbanos2023@student.nbscollege.edu.ph', '$2y$10$gEtp95HfAJnz/jC/S2GJxOzREMV68SPCo/VuL78BrF/OvFsH9nxUW', '', '../Images/Profile/default-avatar.jpg', 'Tourism Management', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:56'),
+(113, 210018, 'MICHA ANJELLA', '', 'ABUTIN', 'mabutin2021@student.nbscollege.edu.ph', '$2y$10$.oKhS33eYQuT3sUOM2sjG.A/G7u6KAP2B.v1PGWU20GLNmL.BYd92', '', '../Images/Profile/default-avatar.jpg', 'Tourism Management', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:56'),
+(114, 200010, 'FRANCES JAZMIN', '', 'AMORA', 'famora2020@student.nbscollege.edu.ph', '$2y$10$dCnHubngRv9rtwCk4lWLr.ccya5KAOoFnklHrgdUW0CKWWrbd.52e', '', '../Images/Profile/default-avatar.jpg', 'Tourism Management', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:56'),
+(115, 210062, 'HANNAH GRACE', '', 'TERANA', 'hterana2021@student.nbscollege.edu.ph', '$2y$10$lh7lx4/.9sJ/iKof7RutbunMFVLwrxMMlKDViOZ8M4pZc4Xj4rlRW', '', '../Images/Profile/default-avatar.jpg', 'Tourism Management', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:56'),
+(116, 220009, 'VERA FE FAYE', '', 'UY', 'vuy2022@student.nbscollege.edu.ph', '$2y$10$ejpiV5S4Uz5wMLcuMl2U1OVFhqUEhhq7lm85Q2fMF8GDMdhzruVAS', '', '../Images/Profile/default-avatar.jpg', 'Tourism Management', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:56'),
+(117, 220030, 'CARLOS MIGUEL', '', 'CAMACHO', 'ccamacho2022@student.nbscollege.edu.ph', '$2y$10$GZyj5zifQQlQvCu2wZKx6uaSGJNjH.uVsPFoUnIoz1aVuwKpYVyJ.', '', '../Images/Profile/default-avatar.jpg', 'Tourism Management', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:57'),
+(118, 220026, 'ARTURO MIGUEL', '', 'CRUZ', 'acruz2022@student.nbscollege.edu.ph', '$2y$10$4EqJZ.vkqISvkIMbC2GvsuYvhn//svAORQ1CYtsS5KYkJ.EY00cVu', '', '../Images/Profile/default-avatar.jpg', 'Tourism Management', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:57'),
+(119, 190025, 'CARLA JOYCE', '', 'LEDESMA', 'cledesma2019@student.nbscollege.edu.ph', '$2y$10$tQh8BfjeoSK27IfsTN2DueFsf1vXDUE/z0jM35ZF5uAei5B68UDuu', '', '../Images/Profile/default-avatar.jpg', 'Tourism Management', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:57'),
+(120, 180011, 'JOHN JERRICHO', '', 'PORCIUNCULA', 'jporciuncula2018@student.nbscollege.edu.ph', '$2y$10$D0/ZMgyP.bBEhMFJb0n39.WfONAMw326gK8O8mAqR4b2G6vY0f472', '', '../Images/Profile/default-avatar.jpg', 'Tourism Management', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:57'),
+(121, 220022, 'MARTINNE CHRISTIAN', '', 'ROSARIO', 'mrosario2022@student.nbscollege.edu.ph', '$2y$10$jqGk5/lqXveTwnXcZxWiPu2F7s2wG2Pgf4mUzoDH1DucH6UAM.AVS', '', '../Images/Profile/default-avatar.jpg', 'Tourism Management', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:57'),
+(122, 220029, 'MA. ELOISA', '', 'ACID', 'macid2022@student.nbscollege.edu.ph', '$2y$10$hqlzwVe9dCVyhCK1F/1u0uv.sWHnWSdCHozqjt91aPCg8tmm0Sp6.', '', '../Images/Profile/default-avatar.jpg', 'Tourism Management', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:57'),
+(123, 200047, 'ISAIAH DANIEL', '', 'DECEPIDA', 'idecepida2020@student.nbscollege.edu.ph', '$2y$10$VFygK6QiNKHszegKeuX9J.WB7wqJko1Kt8OnVooZlQ35rOmvahfO6', '', '../Images/Profile/default-avatar.jpg', 'Tourism Management', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:57'),
+(124, 200052, 'LARA MAE', '', 'DUCAY', 'lducay2020@student.nbscollege.edu.ph', '$2y$10$.DTfEFiwzUgtCxIe3J8chuVtqjuNtTD4B/Cz42e13Z8kEsJvUcJja', '', '../Images/Profile/default-avatar.jpg', 'Tourism Management', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:57'),
+(125, 200049, 'CRISTEA GHIEN', '', 'GALICIA', 'cgalicia2020@student.nbscollege.edu.ph', '$2y$10$J7x1eKGkPUIASB/d2ui2u.VZHUWm0g5rKZdhDPQmRAh46Sm3bzmOq', '', '../Images/Profile/default-avatar.jpg', 'Tourism Management', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:58'),
+(126, 200055, 'MA. MELODY', '', 'MERCADEJAS', 'mmercadejas2020@student.nbscollege.edu.ph', '$2y$10$f7BxTqV6AzdWFf4le57tp.Po59Vy4ckv4IodwZORz3xLRQTbXaUN.', '', '../Images/Profile/default-avatar.jpg', 'Tourism Management', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:58'),
+(127, 200016, 'LOVELY ROSE', '', 'MONTOYA', 'lmontoya2020@student.nbscollege.edu.ph', '$2y$10$EM9Pr/QqRHQRvQ6BwAHWYeQ8QnZUzDjoDmAwDzuGtb8bf0Fe/7CoW', '', '../Images/Profile/default-avatar.jpg', 'Tourism Management', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:58'),
+(128, 180033, 'CHLOIE', '', 'ONG', 'cong2018@student.nbscollege.edu.ph', '$2y$10$PMHhYPU2f3OyBKykqxvJ1O2V2UQ2IMLAHiBXLLMx60W1WlNmowqQ2', '', '../Images/Profile/default-avatar.jpg', 'Tourism Management', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:58'),
+(129, 200054, 'SIGRID COLYNE NAOMI', '', 'PAZ', 'spaz2020@student.nbscollege.edu.ph', '$2y$10$Ts0dulJu9tFKX7zhMpjVNuZpA5um0IsGPDJMAzectEq6X46C5tH0u', '', '../Images/Profile/default-avatar.jpg', 'Tourism Management', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:58'),
+(130, 200068, 'IRISH MAE', '', 'RAPAL', 'irapal2020@student.nbscollege.edu.ph', '$2y$10$6X5/UsE0lnA53KsRMA.Jru4IAYsvO1pp/zVumDSblqfIlCkfSrhva', '', '../Images/Profile/default-avatar.jpg', 'Tourism Management', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-04 14:21:58');
 
 -- --------------------------------------------------------
 
@@ -623,20 +446,6 @@ CREATE TABLE `writers` (
   `middle_init` varchar(100) DEFAULT NULL,
   `lastname` varchar(100) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `writers`
---
-
-INSERT INTO `writers` (`id`, `firstname`, `middle_init`, `lastname`) VALUES
-(8, 'Paulo', '', 'Alcazaren'),
-(9, 'Jeremy', '', 'Barns'),
-(10, 'Marjorie', '', 'Evasco'),
-(11, 'Alya', 'B', 'Honasan'),
-(12, 'Corazon', 'Pineda', 'Kabayao'),
-(13, 'Manuel', 'L', 'Quezon III'),
-(14, 'Francisco', 'S', 'Tatad'),
-(22, 'E. Billy', '', 'Mondoñedo');
 
 --
 -- Indexes for dumped tables
@@ -693,12 +502,6 @@ ALTER TABLE `messages`
   ADD PRIMARY KEY (`id`);
 
 --
--- Indexes for table `physical_login_users`
---
-ALTER TABLE `physical_login_users`
-  ADD PRIMARY KEY (`id`);
-
---
 -- Indexes for table `publications`
 --
 ALTER TABLE `publications`
@@ -743,31 +546,31 @@ ALTER TABLE `writers`
 -- AUTO_INCREMENT for table `admins`
 --
 ALTER TABLE `admins`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=57;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `books`
 --
 ALTER TABLE `books`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=92;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `borrowings`
 --
 ALTER TABLE `borrowings`
-  MODIFY `id` int(225) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(225) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `cart`
 --
 ALTER TABLE `cart`
-  MODIFY `id` int(100) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(100) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `contributors`
 --
 ALTER TABLE `contributors`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=947;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `fines`
@@ -779,7 +582,7 @@ ALTER TABLE `fines`
 -- AUTO_INCREMENT for table `library_visits`
 --
 ALTER TABLE `library_visits`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `messages`
@@ -788,46 +591,40 @@ ALTER TABLE `messages`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT for table `physical_login_users`
---
-ALTER TABLE `physical_login_users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=651;
-
---
 -- AUTO_INCREMENT for table `publications`
 --
 ALTER TABLE `publications`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=191;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `publishers`
 --
 ALTER TABLE `publishers`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `reservations`
 --
 ALTER TABLE `reservations`
-  MODIFY `id` int(225) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(225) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `updates`
 --
 ALTER TABLE `updates`
-  MODIFY `id` int(225) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+  MODIFY `id` int(225) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=131;
 
 --
 -- AUTO_INCREMENT for table `writers`
 --
 ALTER TABLE `writers`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=36;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

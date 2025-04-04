@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $status = "error";
     } else {
         // Check if user exists in the database
-        $sql = "SELECT * FROM physical_login_users WHERE student_number = ?";
+        $sql = "SELECT * FROM users WHERE school_id = ?";
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("i", $student_id);
         $stmt->execute();

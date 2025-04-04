@@ -212,7 +212,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     
                                     <div class="text-center mt-3">
                                         <a href="library_entrance.php" class="btn btn-block library-entrance-btn">
-                                            <i class="fas fa-door-open mr-2"></i>Library Entrance Login
+                                            <i class="fas fa-door-open mr-2"></i>Library Access System
                                         </a>
                                     </div>
                                     
