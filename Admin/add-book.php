@@ -240,7 +240,6 @@ $accession_error = '';
                 <!-- Add Success Message Display -->
                 <?php if (isset($_SESSION['success_message'])): ?>
                 <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
-                    <i class="fas fa-check-circle me-2"></i>
                     <?php echo $_SESSION['success_message']; ?>
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>

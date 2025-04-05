@@ -63,6 +63,10 @@ if (isset($_POST['submit'])) {
     $total_copies_added = 0;
     $book_titles = [];
     
+    // Initialize counter for successful insertions and store book title
+    $successful_inserts = 0;
+    $book_title = mysqli_real_escape_string($conn, $_POST['title']);
+    
     // Process the form if validation passes
     try {
         // Start a transaction if supported
@@ -193,6 +197,8 @@ if (isset($_POST['submit'])) {
                     if (!mysqli_query($conn, $insert_book_query)) {
                         throw new Exception("Error inserting book: " . mysqli_error($conn));
                     }
+                    
+                    $successful_inserts++; // Increment the counter for successful insertions
                     
                     $book_id = mysqli_insert_id($conn);
                     
@@ -383,7 +389,11 @@ if (isset($_POST['submit'])) {
         
         mysqli_query($conn, $insert_update_query);
         
-        $_SESSION['success_message'] = "Book(s) added successfully!";
+        $_SESSION['success_message'] = "Book(s) added successfully! Title: " . implode(', ', $book_titles) . " | Total Copies: $total_copies_added";
+        
+        // Store book title and count in session for display on book_list.php
+        $_SESSION['added_book_title'] = $book_title;
+        $_SESSION['added_book_copies'] = $successful_inserts;
         
         // Set a session flag to trigger form reset on the next page load
         $_SESSION['reset_book_form'] = true;

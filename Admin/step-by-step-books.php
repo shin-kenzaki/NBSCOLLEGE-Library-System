@@ -47,8 +47,14 @@ if (isset($_POST['proceed_to_add'])) {
         $_SESSION['book_shortcut']['steps_completed']['title'] = true;
         $_SESSION['book_shortcut']['book_title'] = $_POST['new_title'];
         
-        // Always redirect to the form page when proceeding with a new title
-        header("Location: step-by-step-add-book-form.php");
+        // Check the referrer to determine where to redirect
+        if ($_SESSION['return_to_form']) {
+            // User came from the form, so send them back there
+            header("Location: step-by-step-add-book-form.php");
+        } else {
+            // User came from the progress page, so send them back there
+            header("Location: step-by-step-add-book.php");
+        }
         exit();
     }
 }
@@ -93,6 +99,19 @@ $booksResult = $conn->query($booksQuery);
                     <p><strong>Step 3:</strong> Check if the book title already exists in the system. You can copy an existing title or enter a new one.</p>
                 </div>
 
+                <div class="alert alert-info">
+                    <p><strong>Instructions:</strong> Check if your book title already exists in the system or add a new book title.</p>
+                    <hr>
+                    <p><strong>How to use this page:</strong></p>
+                    <ul>
+                        <li><strong>Search:</strong> Use the search box to check if your book title already exists.</li>
+                        <li><strong>Copy existing title:</strong> If your book already exists, click the "Copy Title" button.</li>
+                        <li><strong>Enter new title:</strong> If your book doesn't exist, enter the title in the form above.</li>
+                        <li><strong>Next steps:</strong> After entering or copying a title, click "Save Book Title" to continue.</li>
+                    </ul>
+                    <p>After selecting a title, you'll be taken to a form where you can complete all the book details before saving.</p>
+                </div>
+
                 <!-- New Title Form -->
                 <div class="card mb-4">
                     <div class="card-header">
@@ -100,13 +119,19 @@ $booksResult = $conn->query($booksQuery);
                     </div>
                     <div class="card-body">
                         <form method="POST" action="step-by-step-books.php">
-                            <div class="form-group">
-                                <label for="new_title">Book Title:</label>
-                                <input type="text" class="form-control" id="new_title" name="new_title" value="<?php echo htmlspecialchars($_SESSION['book_shortcut']['book_title']); ?>" required>
+                            <div class="row align-items-end">
+                                <div class="col-md-8 mb-3 mb-md-0">
+                                    <div class="form-group mb-0">
+                                        <label for="new_title">Book Title:</label>
+                                        <input type="text" class="form-control" id="new_title" name="new_title" value="<?php echo htmlspecialchars($_SESSION['book_shortcut']['book_title']); ?>" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <button type="submit" name="proceed_to_add" class="btn btn-primary w-100">
+                                        <i class="fas fa-save"></i> Save Book Title
+                                    </button>
+                                </div>
                             </div>
-                            <button type="submit" name="proceed_to_add" class="btn btn-success">
-                                <i class="fas fa-plus"></i> Proceed to Add Book
-                            </button>
                         </form>
                     </div>
                 </div>
@@ -272,7 +297,7 @@ $(document).on('click', '.copy-title', function() {
                 timer: 1500,
                 showConfirmButton: false
             }).then(() => {
-                // Redirect based on where we came from
+                // Check where to redirect based on the return_to_form value
                 const returnToForm = <?php echo json_encode($_SESSION['return_to_form']); ?>;
                 window.location.href = returnToForm ? 'step-by-step-add-book-form.php' : 'step-by-step-add-book.php';
             });

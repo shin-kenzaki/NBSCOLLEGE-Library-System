@@ -115,11 +115,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['num_copies']) && isse
     exit();
 }
 
-// Check for success message
+// Check for success message and book details
 $successMessage = '';
+$addedBookTitle = '';
+$addedBookCopies = 0;
+
 if (isset($_SESSION['success_message'])) {
     $successMessage = $_SESSION['success_message'];
     unset($_SESSION['success_message']);
+    
+    // Get added book details if available
+    if (isset($_SESSION['added_book_title']) && isset($_SESSION['added_book_copies'])) {
+        $addedBookTitle = $_SESSION['added_book_title'];
+        $addedBookCopies = intval($_SESSION['added_book_copies']);
+        unset($_SESSION['added_book_title']);
+        unset($_SESSION['added_book_copies']);
+    }
 }
 
 // Initialize search query
@@ -194,10 +205,24 @@ $result = $stmt->get_result();
     </style>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            var successMessage = "<?php echo $successMessage; ?>";
-            if (successMessage) {
-                alert(successMessage);
-            }
+            // Display success message with book details if available
+            <?php if ($successMessage && $addedBookTitle && $addedBookCopies > 0): ?>
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success!',
+                    html: '<strong><?php echo htmlspecialchars($addedBookTitle); ?></strong><br>' +
+                          'Successfully added <?php echo $addedBookCopies; ?> copy/copies.',
+                    confirmButtonColor: '#3085d6'
+                });
+            <?php elseif ($successMessage): ?>
+                // Fallback to simple success message
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success!',
+                    text: '<?php echo $successMessage; ?>',
+                    confirmButtonColor: '#3085d6'
+                });
+            <?php endif; ?>
         });
     </script>
     <style>
@@ -480,7 +505,7 @@ $result = $stmt->get_result();
                 // Get the row data
                 let row = $(this);
                 let idRangeCell = row.find('td:eq(0)'); // First column (0-indexed) - ID Range
-                let accessionRangeCell = row.find('td:eq(0)'); // Second column (1-indexed) - Accession Range
+                let accessionRangeCell = row.find('td:eq(1)'); // Second column (1-indexed) - Accession Range
                 let titleCell = row.find('td:eq(1)'); // Third column (2-indexed) - Title
                 
                 // Extract the data

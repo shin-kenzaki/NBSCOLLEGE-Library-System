@@ -212,7 +212,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         if ($transactionSupported) {
             mysqli_commit($conn);
         }
-        $_SESSION['success_message'] = "Successfully added all " . $success_count . " books!";
+        
+        // Store book information in session for success message
+        $_SESSION['success_message'] = "Successfully added all books!";
+        $_SESSION['added_book_title'] = $title;
+        $_SESSION['added_book_copies'] = $success_count;
         
         // Clear the book shortcut session data
         unset($_SESSION['book_shortcut']);
@@ -287,8 +291,13 @@ $accession_error = '';
                   onkeydown="return event.key != 'Enter';">
                 <div class="container-fluid d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3">
                     <h1 class="h3 mb-2 text-gray-800">Add Book</h1>
-                    <!-- Fix: Change button type to submit -->
-                    <button type="submit" name="submit" class="btn btn-success mt-2 mt-md-0">Add Book</button>
+                    <div>
+                        <a href="step-by-step-add-book.php" class="btn btn-secondary mr-2">
+                            <i class="fas fa-arrow-left"></i> Back to Progress Form
+                        </a>
+                        <!-- Fix: Change button type to submit -->
+                        <button type="submit" name="submit" class="btn btn-success">Add Book</button>
+                    </div>
                 </div>
 
                 <!-- Display Shortcut Information -->
@@ -345,7 +354,7 @@ $accession_error = '';
                                             <?php foreach ($writer_info as $writer): ?>
                                                 <li>
                                                     <span class="badge badge-<?php echo ($writer['role'] == 'Author' ? 'primary' : ($writer['role'] == 'Co-Author' ? 'info' : 'secondary')); ?>">
-                                                        <?php echo $writer['role']; ?>
+                                                        <?php echo htmlspecialchars($writer['role']); ?>
                                                     </span>
                                                     <?php echo htmlspecialchars($writer['name']); ?>
                                                 </li>
@@ -634,7 +643,7 @@ $accession_error = '';
                                                 <div class="row">
                                                     <div class="col-md-8">
                                                         <div class="form-group">
-                                                            <label>Accession (Copy 1)</label>
+                                                            <label>Accession Group 1</label>
                                                             <input type="text" class="form-control accession-input" name="accession[]" 
                                                                 placeholder="e.g., 2023-0001 (will auto-increment based on copies)" required>
                                                             <small class="text-muted">If you enter 2023-0001 and set 3 copies, it will create: 2023-0001, 2023-0002, 2023-0003</small>
@@ -992,57 +1001,65 @@ function updateISBNFields() {
         const rowDiv = document.createElement('div');
         rowDiv.className = 'row';
         
-        // Create ISBN input first (moved to the beginning)
+        // Create ISBN input cell
         const isbnDiv = document.createElement('div');
         isbnDiv.className = 'col-md-3';
-        
+        const isbnLabel = document.createElement('small');
+        isbnLabel.className = 'd-block';
+        isbnLabel.textContent = 'ISBN';
         const isbnInput = document.createElement('input');
         isbnInput.type = 'text';
         isbnInput.className = 'form-control';
         isbnInput.name = 'isbn[]';
         isbnInput.placeholder = 'ISBN';
-        
+        isbnDiv.appendChild(isbnLabel);
         isbnDiv.appendChild(isbnInput);
         rowDiv.appendChild(isbnDiv);
         
-        // Create Series input
+        // Create Series input cell
         const seriesDiv = document.createElement('div');
         seriesDiv.className = 'col-md-3';
-        
+        const seriesLabel = document.createElement('small');
+        seriesLabel.className = 'd-block';
+        seriesLabel.textContent = 'Series';
         const seriesInput = document.createElement('input');
         seriesInput.type = 'text';
         seriesInput.className = 'form-control';
         seriesInput.name = 'series[]';
         seriesInput.placeholder = 'Series';
-        
+        seriesDiv.appendChild(seriesLabel);
         seriesDiv.appendChild(seriesInput);
-        rowDiv.appendChild(seriesInput);
+        rowDiv.appendChild(seriesDiv);
 
-        // Create Volume input
+        // Create Volume input cell
         const volumeDiv = document.createElement('div');
         volumeDiv.className = 'col-md-3';
-        
+        const volumeLabel = document.createElement('small');
+        volumeLabel.className = 'd-block';
+        volumeLabel.textContent = 'Volume';
         const volumeInput = document.createElement('input');
         volumeInput.type = 'text';
         volumeInput.className = 'form-control';
         volumeInput.name = 'volume[]';
         volumeInput.placeholder = 'Volume';
-        
+        volumeDiv.appendChild(volumeLabel);
         volumeDiv.appendChild(volumeInput);
-        rowDiv.appendChild(volumeInput);
+        rowDiv.appendChild(volumeDiv);
 
-        // Create Edition input
+        // Create Edition input cell
         const editionDiv = document.createElement('div');
         editionDiv.className = 'col-md-3';
-        
+        const editionLabel = document.createElement('small');
+        editionLabel.className = 'd-block';
+        editionLabel.textContent = 'Edition';
         const editionInput = document.createElement('input');
         editionInput.type = 'text';
         editionInput.className = 'form-control';
         editionInput.name = 'edition[]';
         editionInput.placeholder = 'Edition';
-        
+        editionDiv.appendChild(editionLabel);
         editionDiv.appendChild(editionInput);
-        rowDiv.appendChild(editionInput);
+        rowDiv.appendChild(editionDiv);
         
         groupDiv.appendChild(rowDiv);
         detailsForAccessionGroupContainer.appendChild(groupDiv);
@@ -1134,7 +1151,7 @@ document.addEventListener('click', function(e) {
             <div class="row">
                 <div class="col-md-8">
                     <div class="form-group">
-                        <label>Accession (Copy ${groupCount})</label>
+                        <label>Accession Group ${groupCount}</label>
                         <input type="text" class="form-control accession-input" name="accession[]" 
                             placeholder="e.g., 2023-0001" required>
                         <small class="text-muted">Format: YYYY-NNNN</small>

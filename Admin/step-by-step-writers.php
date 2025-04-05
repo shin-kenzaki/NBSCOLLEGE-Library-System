@@ -225,8 +225,11 @@ include 'inc/header.php';
 <div id="content">
     <div class="container-fluid">
         <div class="card shadow mb-4">
-            <div class="card-header py-3">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
                 <h6 class="m-0 font-weight-bold text-primary">Select Writers for New Book</h6>
+                <button type="button" id="saveSelections" class="btn btn-primary btn-sm">
+                    <i class="fas fa-save"></i> Save Selected Writers
+                </button>
             </div>
             <div class="card-body">
                 <div class="mb-3">
@@ -235,9 +238,6 @@ include 'inc/header.php';
                     </a>
                     <button class="btn btn-success btn-sm ml-2" data-toggle="modal" data-target="#addWriterModal">
                         <i class="fas fa-plus"></i> Add New Writer
-                    </button>
-                    <button type="button" id="saveSelections" class="btn btn-primary btn-sm ml-2">
-                        <i class="fas fa-save"></i> Save Selected Writers
                     </button>
                     <button type="button" id="deleteSelected" class="btn btn-danger btn-sm ml-2">
                         <i class="fas fa-trash"></i> Delete Selected Writers
@@ -264,7 +264,7 @@ include 'inc/header.php';
                         <table class="table table-bordered" id="writersTable" width="100%" cellspacing="0">
                             <thead>
                                 <tr>
-                                    <th class="text-center checkbox-cell" width="50px"><input type="checkbox" id="selectAll"></th>
+                                    <th class="text-center checkbox-cell" width="50px">Select</th>
                                     <th>First Name</th>
                                     <th>Middle Initial</th>
                                     <th>Last Name</th>
@@ -394,16 +394,7 @@ $(document).ready(function() {
         writersTable.search($('#writerSearch').val()).draw();
     }
     
-    // Select/Deselect all writers
-    $('#selectAll').change(function() {
-        $('.writer-checkbox').prop('checked', $(this).prop('checked'));
-    });
-    
-    // Update select all checkbox when individual checkboxes change
-    $(document).on('change', '.writer-checkbox', function() {
-        var allChecked = $('.writer-checkbox:checked').length === $('.writer-checkbox').length;
-        $('#selectAll').prop('checked', allChecked);
-    });
+    // Remove select/unselect all functionality
     
     // Role select change handler - automatically check the checkbox when role is selected
     $('.role-select').change(function() {
@@ -614,9 +605,6 @@ $(document).ready(function() {
             $('input[name="selected_writers[]"][value="<?php echo $selected['id']; ?>"]').prop('checked', true);
             $('select[name="writer_roles[<?php echo $selected['id']; ?>]"]').val('<?php echo $selected['role']; ?>');
         <?php endforeach; ?>
-        // Update select all checkbox state
-        var allChecked = $('.writer-checkbox:checked').length === $('.writer-checkbox').length;
-        $('#selectAll').prop('checked', allChecked);
     <?php endif; ?>
 });
 

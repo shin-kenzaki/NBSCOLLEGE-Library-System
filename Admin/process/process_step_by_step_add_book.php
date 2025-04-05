@@ -50,9 +50,14 @@ if (isset($_POST['submit'])) {
             mysqli_begin_transaction($conn);
         }
         
+        // Initialize counter for successful insertions
+        $successful_inserts = 0;
+        $book_title = '';
+        
         // Process each accession group
         if (isset($_POST['accession']) && is_array($_POST['accession'])) {
             $author_id = intval($_POST['author'][0]);
+            $book_title = mysqli_real_escape_string($conn, $_POST['title']);
             
             for ($i = 0; $i < count($_POST['accession']); $i++) {
                 $base_accession = $_POST['accession'][$i];
@@ -136,6 +141,9 @@ if (isset($_POST['submit'])) {
                     if (!mysqli_query($conn, $insert_book_query)) {
                         throw new Exception("Error inserting book: " . mysqli_error($conn));
                     }
+                    
+                    // Increment successful inserts counter
+                    $successful_inserts++;
                     
                     $book_id = mysqli_insert_id($conn);
                     
@@ -255,9 +263,13 @@ if (isset($_POST['submit'])) {
             mysqli_commit($conn);
         }
         
-        $_SESSION['success_message'] = "Book(s) added successfully!";
+        // Store book title and count in session for display on book_list.php
+        $_SESSION['success_message'] = "Book added successfully!";
+        $_SESSION['added_book_title'] = $book_title;
+        $_SESSION['added_book_copies'] = $successful_inserts;
+        
         // Change redirect to book_list.php
-        header("Location: ../Admin/book_list.php");
+        header("Location: ../book_list.php");
         exit();
         
     } catch (Exception $e) {

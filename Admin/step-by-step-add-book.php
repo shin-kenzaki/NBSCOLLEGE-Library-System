@@ -133,10 +133,22 @@ include 'inc/header.php';
                             </form>
                         <?php endif; ?>
                         
+                        <?php if ($current_step == 3 && $_SESSION['book_shortcut']['steps_completed']['title']): ?>
+                            <a href="step-by-step-add-book-form.php" class="btn btn-success mr-2 mb-2 mb-sm-0">
+                                <i class="fas fa-pencil-alt"></i> Fill Book Details
+                            </a>
+                        <?php endif; ?>
+                        
                         <?php if ($current_step < 3): ?>
                             <form method="post" class="d-inline">
                                 <input type="hidden" name="step" value="<?php echo $current_step + 1; ?>">
-                                <button type="submit" class="btn btn-primary" <?php echo !$_SESSION['book_shortcut']['steps_completed']['writer'] && $current_step == 1 ? 'disabled' : ''; ?>>
+                                <button type="submit" class="btn btn-primary" 
+                                    <?php 
+                                    // Disable the button if writer isn't selected in step 1
+                                    echo (!$_SESSION['book_shortcut']['steps_completed']['writer'] && $current_step == 1) ? 'disabled' : ''; 
+                                    // Disable the button if publisher isn't selected in step 2
+                                    echo (!$_SESSION['book_shortcut']['steps_completed']['publisher'] && $current_step == 2) ? 'disabled' : '';
+                                    ?>>
                                     Next Step
                                 </button>
                             </form>

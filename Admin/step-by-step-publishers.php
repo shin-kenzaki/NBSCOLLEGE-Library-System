@@ -267,8 +267,11 @@ $searchQuery = isset($_GET['search']) ? $conn->real_escape_string($_GET['search'
 <div id="content">
     <div class="container-fluid">
         <div class="card shadow mb-4">
-            <div class="card-header py-3">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
                 <h6 class="m-0 font-weight-bold text-primary">Select Publisher for New Book</h6>
+                <button type="button" id="saveSelections" class="btn btn-primary btn-sm">
+                    <i class="fas fa-save"></i> Save Selected Publisher
+                </button>
             </div>
             <div class="card-body">
                 <div class="mb-3">
@@ -278,9 +281,6 @@ $searchQuery = isset($_GET['search']) ? $conn->real_escape_string($_GET['search'
                     <button class="btn btn-success btn-sm ml-2" data-toggle="modal" data-target="#addPublisherModal">
                         <i class="fas fa-plus"></i> Add New Publisher
                     </button>
-                    <button type="button" id="saveSelections" class="btn btn-primary btn-sm ml-2">
-                        <i class="fas fa-save"></i> Save Selected Publisher
-                    </button>
                     <button type="button" id="deleteSelected" class="btn btn-danger btn-sm ml-2">
                         <i class="fas fa-trash"></i> Delete Selected Publishers
                     </button>
@@ -288,6 +288,13 @@ $searchQuery = isset($_GET['search']) ? $conn->real_escape_string($_GET['search'
 
                 <div class="alert alert-info">
                     <p><strong>Instructions:</strong> Select a publisher and set the publication year. You can either use the selected publisher immediately or save the selection for later.</p>
+                    <hr>
+                    <p><strong>Selection Options:</strong></p>
+                    <ul>
+                        <li><strong>Checkboxes (first column):</strong> Use these to select multiple publishers for deletion.</li>
+                        <li><strong>Radio Buttons (second column):</strong> Use these to select a single publisher for your book.</li>
+                    </ul>
+                    <p>After selecting a publisher with the radio button, click the "Save Selected Publisher" button at the top right.</p>
                 </div>
 
                 <!-- Replace search form with real-time search input -->
@@ -306,7 +313,7 @@ $searchQuery = isset($_GET['search']) ? $conn->real_escape_string($_GET['search'
                         <table class="table table-bordered" id="publishersTable" width="100%" cellspacing="0">
                             <thead>
                                 <tr>
-                                    <th class="text-center checkbox-cell" width="50px"><input type="checkbox" id="selectAll"></th>
+                                    <th class="text-center checkbox-cell" width="50px">Select</th>
                                     <th class="text-center radio-cell" width="50px">Select</th>
                                     <th class="text-center">Publisher</th>
                                     <th class="text-center">Place</th>
@@ -339,7 +346,7 @@ $searchQuery = isset($_GET['search']) ? $conn->real_escape_string($_GET['search'
                                             </td>
                                         </tr>";
                                     }
-                                                                }
+                                }
                                 ?>
                             </tbody>
                         </table>
@@ -442,26 +449,6 @@ $(document).ready(function() {
         $('#selectPublisherForm').submit();
     });
 
-    // Remove the handler to automatically save when year is changed
-    // $('input[name^="publish_year"]').change(function() {
-    //     if ($('input[name="publisher_id"]:checked').length) {
-    //         $('#saveSelections').click();
-    //     }
-    // });
-
-    // Add this to your existing JavaScript block
-
-    // Select/Deselect all publishers
-    $('#selectAll').change(function() {
-        $('.publisher-checkbox').prop('checked', $(this).prop('checked'));
-    });
-    
-    // Update select all checkbox when individual checkboxes change
-    $(document).on('change', '.publisher-checkbox', function() {
-        var allChecked = $('.publisher-checkbox:checked').length === $('.publisher-checkbox').length;
-        $('#selectAll').prop('checked', allChecked);
-    });
-    
     // Delete selected publishers button handler
     $('#deleteSelected').click(function() {
         var selectedCount = $('.publisher-checkbox:checked').length;
