@@ -36,19 +36,19 @@ foreach ($past7Days as $day) {
     $result = mysqli_query($conn, $sql);
     $row = mysqli_fetch_assoc($result);
     $activeBorrowings[] = $row['count'];
-    
+
     // Returned borrowings on this day
     $sql = "SELECT COUNT(*) AS count FROM borrowings WHERE DATE(return_date) = '$day' AND status = 'Returned'";
     $result = mysqli_query($conn, $sql);
     $row = mysqli_fetch_assoc($result);
     $returnedBorrowings[] = $row['count'];
-    
+
     // Damaged borrowings on this day
     $sql = "SELECT COUNT(*) AS count FROM borrowings WHERE DATE(report_date) = '$day' AND status = 'Damaged'";
     $result = mysqli_query($conn, $sql);
     $row = mysqli_fetch_assoc($result);
     $damagedBorrowings[] = $row['count'];
-    
+
     // Lost borrowings on this day
     $sql = "SELECT COUNT(*) AS count FROM borrowings WHERE DATE(report_date) = '$day' AND status = 'Lost'";
     $result = mysqli_query($conn, $sql);
@@ -88,23 +88,23 @@ if ($dateEnd) {
 }
 
 if ($userFilter) {
-    $whereClause .= $whereClause ? " AND (u.firstname LIKE '%$userFilter%' OR u.lastname LIKE '%$userFilter%' OR u.school_id LIKE '%$userFilter%')" : 
+    $whereClause .= $whereClause ? " AND (u.firstname LIKE '%$userFilter%' OR u.lastname LIKE '%$userFilter%' OR u.school_id LIKE '%$userFilter%')" :
                                    "WHERE (u.firstname LIKE '%$userFilter%' OR u.lastname LIKE '%$userFilter%' OR u.school_id LIKE '%$userFilter%')";
     $filterParams[] = "buser=" . urlencode($userFilter);
 }
 
 if ($bookFilter) {
-    $whereClause .= $whereClause ? " AND (bk.title LIKE '%$bookFilter%' OR bk.accession LIKE '%$bookFilter%')" : 
+    $whereClause .= $whereClause ? " AND (bk.title LIKE '%$bookFilter%' OR bk.accession LIKE '%$bookFilter%')" :
                                    "WHERE (bk.title LIKE '%$bookFilter%' OR bk.accession LIKE '%$bookFilter%')";
     $filterParams[] = "bbook=" . urlencode($bookFilter);
 }
 
 // Count total borrowings for pagination with filters
-$countSql = "SELECT COUNT(*) as total FROM borrowings b 
+$countSql = "SELECT COUNT(*) as total FROM borrowings b
              LEFT JOIN users u ON b.user_id = u.id
              LEFT JOIN books bk ON b.book_id = bk.id
              $whereClause";
-             
+
 $countResult = mysqli_query($conn, $countSql);
 $totalRecords = mysqli_fetch_assoc($countResult)['total'];
 $totalPages = ceil($totalRecords / $recordsPerPage);
@@ -113,9 +113,9 @@ $totalPages = ceil($totalRecords / $recordsPerPage);
 $filterQueryString = $filterParams ? "&" . implode("&", $filterParams) : "";
 
 // Get recent borrowings with user and book details
-$borrowingsSql = "SELECT b.id, b.status, b.issue_date, b.due_date, b.return_date, b.report_date, 
+$borrowingsSql = "SELECT b.id, b.status, b.issue_date, b.due_date, b.return_date, b.report_date,
                   u.school_id, u.firstname as user_firstname, u.lastname as user_lastname, u.usertype,
-                  bk.accession, bk.title, 
+                  bk.accession, bk.title,
                   a.firstname as admin_firstname, a.lastname as admin_lastname, a.role as admin_role
                   FROM borrowings b
                   LEFT JOIN users u ON b.user_id = u.id
@@ -146,19 +146,19 @@ foreach ($past7Days as $day) {
     $result = mysqli_query($conn, $sql);
     $row = mysqli_fetch_assoc($result);
     $pendingReservations[] = $row['count'];
-    
+
     // Ready reservations made on this day
     $sql = "SELECT COUNT(*) AS count FROM reservations WHERE DATE(ready_date) = '$day' AND status = 'Ready'";
     $result = mysqli_query($conn, $sql);
     $row = mysqli_fetch_assoc($result);
     $readyReservations[] = $row['count'];
-    
+
      // Recieved reservations made on this day
     $sql = "SELECT COUNT(*) AS count FROM reservations WHERE DATE(recieved_date) = '$day' AND status = 'Recieved'";
     $result = mysqli_query($conn, $sql);
     $row = mysqli_fetch_assoc($result);
     $recievedReservations[] = $row['count'];
-    
+
     // Cancelled reservations made on this day
     $sql = "SELECT COUNT(*) AS count FROM reservations WHERE DATE(cancel_date) = '$day' AND status = 'Cancelled'";
     $result = mysqli_query($conn, $sql);
@@ -200,13 +200,13 @@ foreach ($past7Days as $day) {
     $result = mysqli_query($conn, $sql);
     $row = mysqli_fetch_assoc($result);
     $encoderCounts[] = $row['count'];
-    
+
     // Student users added on this day
     $sql = "SELECT COUNT(*) AS count FROM users WHERE date_added = '$day' AND usertype = 'Student'";
     $result = mysqli_query($conn, $sql);
     $row = mysqli_fetch_assoc($result);
     $studentCounts[] = $row['count'];
-    
+
     // Faculty users added on this day
     $sql = "SELECT COUNT(*) AS count FROM users WHERE date_added = '$day' AND usertype = 'Faculty'";
     $result = mysqli_query($conn, $sql);
@@ -250,7 +250,7 @@ foreach ($past7Days as $day) {
     $result = mysqli_query($conn, $sql);
     $row = mysqli_fetch_assoc($result);
     $paidFines[] = $row['count'];
-    
+
     // Unpaid fines added on this day
     $sql = "SELECT COUNT(*) AS count FROM fines WHERE DATE(date) = '$day' AND status = 'Unpaid'";
     $result = mysqli_query($conn, $sql);
@@ -338,23 +338,23 @@ if ($rdateEnd) {
 }
 
 if ($ruserFilter) {
-    $rwhereClause .= $rwhereClause ? " AND (u.firstname LIKE '%$ruserFilter%' OR u.lastname LIKE '%$ruserFilter%' OR u.school_id LIKE '%$ruserFilter%')" : 
+    $rwhereClause .= $rwhereClause ? " AND (u.firstname LIKE '%$ruserFilter%' OR u.lastname LIKE '%$ruserFilter%' OR u.school_id LIKE '%$ruserFilter%')" :
                                    "WHERE (u.firstname LIKE '%$ruserFilter%' OR u.lastname LIKE '%$ruserFilter%' OR u.school_id LIKE '%$ruserFilter%')";
     $rfilterParams[] = "ruser=" . urlencode($ruserFilter);
 }
 
 if ($rbookFilter) {
-    $rwhereClause .= $rwhereClause ? " AND (bk.title LIKE '%$rbookFilter%' OR bk.accession LIKE '%$rbookFilter%')" : 
+    $rwhereClause .= $rwhereClause ? " AND (bk.title LIKE '%$rbookFilter%' OR bk.accession LIKE '%$rbookFilter%')" :
                                    "WHERE (bk.title LIKE '%$rbookFilter%' OR bk.accession LIKE '%$rbookFilter%')";
     $rfilterParams[] = "rbook=" . urlencode($rbookFilter);
 }
 
 // Count total reservations for pagination with filters
-$rcountSql = "SELECT COUNT(*) as total FROM reservations r 
+$rcountSql = "SELECT COUNT(*) as total FROM reservations r
              LEFT JOIN users u ON r.user_id = u.id
              LEFT JOIN books bk ON r.book_id = bk.id
              $rwhereClause";
-             
+
 $rcountResult = mysqli_query($conn, $rcountSql);
 $rtotalRecords = mysqli_fetch_assoc($rcountResult)['total'];
 $rtotalPages = ceil($rtotalRecords / $rrecordsPerPage);
@@ -365,7 +365,7 @@ $rfilterQueryString = $rfilterParams ? "&" . implode("&", $rfilterParams) : "";
 // Get recent reservations with user and book details
 $reservationsSql = "SELECT r.id, r.status, r.reserve_date, r.ready_date, r.recieved_date, r.cancel_date,
                   u.school_id, u.firstname as user_firstname, u.lastname as user_lastname, u.usertype,
-                  bk.accession, bk.title, 
+                  bk.accession, bk.title,
                   a1.firstname as ready_admin_firstname, a1.lastname as ready_admin_lastname, a1.role as ready_admin_role,
                   a2.firstname as issued_admin_firstname, a2.lastname as issued_admin_lastname, a2.role as issued_admin_role
                   FROM reservations r
@@ -385,6 +385,137 @@ $rstatuses = [];
 while ($row = mysqli_fetch_assoc($rstatusesResult)) {
     $rstatuses[] = $row['status'];
 }
+
+// Fetch recent library visits for the table with pagination and filtering
+$vpage = isset($_GET['vpage']) ? intval($_GET['vpage']) : 1;
+$vrecordsPerPage = 10;
+$voffset = ($vpage - 1) * $vrecordsPerPage;
+
+// Get filter parameters for library visits
+$vstatusFilter = isset($_GET['vstatus']) ? $_GET['vstatus'] : '';
+$vpurposeFilter = isset($_GET['vpurpose']) ? $_GET['vpurpose'] : '';
+
+// Build the SQL WHERE clause for filtering library visits
+$vwhereClause = "";
+$vfilterParams = [];
+
+if ($vstatusFilter !== '') {
+    $vwhereClause .= $vwhereClause ? " AND lv.status = '$vstatusFilter'" : "WHERE lv.status = '$vstatusFilter'";
+    $vfilterParams[] = "vstatus=$vstatusFilter";
+}
+
+if ($vpurposeFilter) {
+    $vwhereClause .= $vwhereClause ? " AND lv.purpose = '$vpurposeFilter'" : "WHERE lv.purpose = '$vpurposeFilter'";
+    $vfilterParams[] = "vpurpose=" . urlencode($vpurposeFilter);
+}
+
+// Count total library visits for pagination with filters
+$vcountSql = "SELECT COUNT(*) as total FROM library_visits lv
+              LEFT JOIN users u ON lv.student_number = u.school_id
+              $vwhereClause";
+
+$vcountResult = mysqli_query($conn, $vcountSql);
+$vtotalRecords = mysqli_fetch_assoc($vcountResult)['total'];
+$vtotalPages = ceil($vtotalRecords / $vrecordsPerPage);
+
+// Create pagination URL parameter string for library visits
+$vfilterQueryString = $vfilterParams ? "&" . implode("&", $vfilterParams) : "";
+
+// Get library visits with user details
+$visitsSql = "
+    SELECT
+        lv.id,
+        lv.student_number,
+        lv.time AS time_entry,
+        lv.purpose,
+        lv.status,
+        u.department,
+        u.firstname,
+        u.lastname,
+        (
+            SELECT time
+            FROM library_visits
+            WHERE student_number = lv.student_number
+              AND status = '0'
+              AND time > lv.time
+            ORDER BY time ASC
+            LIMIT 1
+        ) AS time_exit,
+        SEC_TO_TIME(
+            TIMESTAMPDIFF(SECOND,
+                lv.time,
+                (
+                    SELECT time
+                    FROM library_visits
+                    WHERE student_number = lv.student_number
+                      AND status = '0'
+                      AND time > lv.time
+                    ORDER BY time ASC
+                    LIMIT 1
+                )
+            )
+        ) AS duration
+    FROM library_visits lv
+    LEFT JOIN users u ON lv.student_number = u.school_id
+    WHERE lv.status = '1'
+    ORDER BY lv.time DESC
+    LIMIT $voffset, $vrecordsPerPage";
+
+$visitsResult = mysqli_query($conn, $visitsSql);
+
+// Get distinct purposes for filter dropdown
+$purposesSql = "SELECT DISTINCT purpose FROM library_visits ORDER BY purpose";
+$purposesResult = mysqli_query($conn, $purposesSql);
+$purposes = [];
+while ($row = mysqli_fetch_assoc($purposesResult)) {
+    $purposes[] = $row['purpose'];
+}
+
+// Prepare data for the line graph
+$graphDataSql = "
+    SELECT
+        DATE(lv.time) AS visit_date,
+        u.department AS course,
+        COUNT(*) AS visit_count
+    FROM library_visits lv
+    LEFT JOIN users u ON lv.student_number = u.school_id
+    WHERE lv.status = '1'
+      AND lv.time >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+    GROUP BY visit_date, course
+    ORDER BY visit_date ASC, course ASC";
+
+$graphDataResult = mysqli_query($conn, $graphDataSql);
+
+// Prepare data for the graph
+$graphData = [];
+while ($row = mysqli_fetch_assoc($graphDataResult)) {
+    $visitDate = $row['visit_date'];
+    $course = $row['course'];
+    $visitCount = $row['visit_count'];
+
+    if (!isset($graphData[$visitDate])) {
+        $graphData[$visitDate] = [];
+    }
+    $graphData[$visitDate][$course] = $visitCount;
+}
+
+// Generate the last 7 days as labels
+$last7Days = [];
+for ($i = 6; $i >= 0; $i--) {
+    $date = date('Y-m-d', strtotime("-$i days"));
+    $last7Days[] = $date;
+}
+
+// Ensure all dates and courses are represented in the graph data
+foreach ($last7Days as $date) {
+    if (!isset($graphData[$date])) {
+        $graphData[$date] = []; // Initialize empty data for missing dates
+    }
+}
+
+// Convert graph data to JSON for JavaScript
+$graphDataJSON = json_encode($graphData);
+$last7DaysJSON = json_encode($last7Days);
 
 include 'inc/header.php';
 ?>
@@ -409,6 +540,9 @@ include 'inc/header.php';
             </li>
             <li class="nav-item">
                 <a class="nav-link" id="fines-tab" data-toggle="tab" href="#fines" role="tab" aria-controls="fines" aria-selected="false">Fines</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="library-visits-tab" data-toggle="tab" href="#library-visits" role="tab" aria-controls="library-visits" aria-selected="false">Library Visits</a>
             </li>
         </ul>
 
@@ -441,28 +575,28 @@ include 'inc/header.php';
                                 <div class="col-md-2">
                                     <div class="form-group">
                                         <label for="bdate_start">From Date</label>
-                                        <input type="date" class="form-control form-control-sm" id="bdate_start" 
+                                        <input type="date" class="form-control form-control-sm" id="bdate_start"
                                             name="bdate_start" value="<?= $dateStart ?>">
                                     </div>
                                 </div>
                                 <div class="col-md-2">
                                     <div class="form-group">
                                         <label for="bdate_end">To Date</label>
-                                        <input type="date" class="form-control form-control-sm" id="bdate_end" 
+                                        <input type="date" class="form-control form-control-sm" id="bdate_end"
                                             name="bdate_end" value="<?= $dateEnd ?>">
                                     </div>
                                 </div>
                                 <div class="col-md-2">
                                     <div class="form-group">
                                         <label for="buser">Borrower</label>
-                                        <input type="text" class="form-control form-control-sm" id="buser" 
+                                        <input type="text" class="form-control form-control-sm" id="buser"
                                             name="buser" placeholder="Name or ID" value="<?= htmlspecialchars($userFilter) ?>">
                                     </div>
                                 </div>
                                 <div class="col-md-2">
                                     <div class="form-group">
                                         <label for="bbook">Book</label>
-                                        <input type="text" class="form-control form-control-sm" id="bbook" 
+                                        <input type="text" class="form-control form-control-sm" id="bbook"
                                             name="bbook" placeholder="Title or Accession" value="<?= htmlspecialchars($bookFilter) ?>">
                                     </div>
                                 </div>
@@ -480,7 +614,7 @@ include 'inc/header.php';
                         </form>
                     </div>
                 </div>
-                
+
                 <!-- Borrowings Table -->
                 <div class="card shadow mt-4">
                     <div class="card-header py-3 d-flex justify-content-between align-items-center">
@@ -491,14 +625,14 @@ include 'inc/header.php';
                             </button>
                         </div>
                     </div>
-                    
+
                     <div class="card-body">
                         <!-- Results summary -->
                         <div id="filterSummary" class="mb-3 <?= empty($filterParams) ? 'd-none' : '' ?>">
-                            <span class="text-primary font-weight-bold">Filter applied:</span> 
+                            <span class="text-primary font-weight-bold">Filter applied:</span>
                             Showing <span id="totalResults"><?= $totalRecords ?></span> result<span id="pluralSuffix"><?= $totalRecords != 1 ? 's' : '' ?></span>
                         </div>
-                    
+
                         <div class="table-responsive" id="borrowingsTableContainer">
                             <!-- Table content will be loaded here -->
                             <table class="table table-bordered table-striped" id="borrowingsTable" width="100%" cellspacing="0">
@@ -565,7 +699,7 @@ include 'inc/header.php';
                                 </tbody>
                             </table>
                         </div>
-                        
+
                         <!-- Pagination with filters -->
                         <div id="paginationContainer">
                             <?php if ($totalPages > 1): ?>
@@ -574,13 +708,13 @@ include 'inc/header.php';
                                     <li class="page-item <?= ($page <= 1) ? 'disabled' : '' ?>">
                                         <a class="page-link pagination-link" href="#" data-page="<?= $page-1 ?>" tabindex="-1">Previous</a>
                                     </li>
-                                    
+
                                     <?php for($i = 1; $i <= $totalPages; $i++): ?>
                                         <li class="page-item <?= ($page == $i) ? 'active' : '' ?>">
                                             <a class="page-link pagination-link" href="#" data-page="<?= $i ?>"><?= $i ?></a>
                                         </li>
                                     <?php endfor; ?>
-                                    
+
                                     <li class="page-item <?= ($page >= $totalPages) ? 'disabled' : '' ?>">
                                         <a class="page-link pagination-link" href="#" data-page="<?= $page+1 ?>">Next</a>
                                     </li>
@@ -635,28 +769,28 @@ include 'inc/header.php';
                                 <div class="col-md-2">
                                     <div class="form-group">
                                         <label for="rdate_start">From Date</label>
-                                        <input type="date" class="form-control form-control-sm" id="rdate_start" 
+                                        <input type="date" class="form-control form-control-sm" id="rdate_start"
                                             name="rdate_start" value="<?= $rdateStart ?>">
                                     </div>
                                 </div>
                                 <div class="col-md-2">
                                     <div class="form-group">
                                         <label for="rdate_end">To Date</label>
-                                        <input type="date" class="form-control form-control-sm" id="rdate_end" 
+                                        <input type="date" class="form-control form-control-sm" id="rdate_end"
                                             name="rdate_end" value="<?= $rdateEnd ?>">
                                     </div>
                                 </div>
                                 <div class="col-md-2">
                                     <div class="form-group">
                                         <label for="ruser">User</label>
-                                        <input type="text" class="form-control form-control-sm" id="ruser" 
+                                        <input type="text" class="form-control form-control-sm" id="ruser"
                                             name="ruser" placeholder="Name or ID" value="<?= htmlspecialchars($ruserFilter) ?>">
                                     </div>
                                 </div>
                                 <div class="col-md-2">
                                     <div class="form-group">
                                         <label for="rbook">Book</label>
-                                        <input type="text" class="form-control form-control-sm" id="rbook" 
+                                        <input type="text" class="form-control form-control-sm" id="rbook"
                                             name="rbook" placeholder="Title or Accession" value="<?= htmlspecialchars($rbookFilter) ?>">
                                     </div>
                                 </div>
@@ -674,7 +808,7 @@ include 'inc/header.php';
                         </form>
                     </div>
                 </div>
-                
+
                 <!-- Reservations Table -->
                 <div class="card shadow mt-4">
                     <div class="card-header py-3 d-flex justify-content-between align-items-center">
@@ -685,14 +819,14 @@ include 'inc/header.php';
                             </button>
                         </div>
                     </div>
-                    
+
                     <div class="card-body">
                         <!-- Results summary -->
                         <div id="rfilterSummary" class="mb-3 <?= empty($rfilterParams) ? 'd-none' : '' ?>">
-                            <span class="text-primary font-weight-bold">Filter applied:</span> 
+                            <span class="text-primary font-weight-bold">Filter applied:</span>
                             Showing <span id="rtotalResults"><?= $rtotalRecords ?></span> result<span id="rpluralSuffix"><?= $rtotalRecords != 1 ? 's' : '' ?></span>
                         </div>
-                    
+
                         <div class="table-responsive" id="reservationsTableContainer">
                             <!-- Table content will be loaded here -->
                             <table class="table table-bordered table-striped" id="reservationsTable" width="100%" cellspacing="0">
@@ -746,7 +880,7 @@ include 'inc/header.php';
                                                 <td><?= date('M d, Y', strtotime($row['reserve_date'])) ?></td>
                                                 <td><?= $row['ready_date'] ? date('M d, Y', strtotime($row['ready_date'])) : '-' ?></td>
                                                 <td><?= $row['recieved_date'] ? date('M d, Y', strtotime($row['recieved_date'])) : '-' ?></td>
-                                                <td><?= $row['ready_date'] ? htmlspecialchars($row['ready_admin_firstname'] . ' ' . $row['ready_admin_lastname']) . 
+                                                <td><?= $row['ready_date'] ? htmlspecialchars($row['ready_admin_firstname'] . ' ' . $row['ready_admin_lastname']) .
                                                     '<br><small class="text-muted">(' . $row['ready_admin_role'] . ')</small>' : '-' ?></td>
                                             </tr>
                                         <?php endwhile; ?>
@@ -758,7 +892,7 @@ include 'inc/header.php';
                                 </tbody>
                             </table>
                         </div>
-                        
+
                         <!-- Pagination with filters -->
                         <div id="rpaginationContainer">
                             <?php if ($rtotalPages > 1): ?>
@@ -767,13 +901,13 @@ include 'inc/header.php';
                                     <li class="page-item <?= ($rpage <= 1) ? 'disabled' : '' ?>">
                                         <a class="page-link rpagination-link" href="#" data-page="<?= $rpage-1 ?>" tabindex="-1">Previous</a>
                                     </li>
-                                    
+
                                     <?php for($i = 1; $i <= $rtotalPages; $i++): ?>
                                         <li class="page-item <?= ($rpage == $i) ? 'active' : '' ?>">
                                             <a class="page-link rpagination-link" href="#" data-page="<?= $i ?>"><?= $i ?></a>
                                         </li>
                                     <?php endfor; ?>
-                                    
+
                                     <li class="page-item <?= ($rpage >= $rtotalPages) ? 'disabled' : '' ?>">
                                         <a class="page-link rpagination-link" href="#" data-page="<?= $rpage+1 ?>">Next</a>
                                     </li>
@@ -831,21 +965,21 @@ include 'inc/header.php';
                                 <div class="col-md-2">
                                     <div class="form-group">
                                         <label for="udate_start">From Date</label>
-                                        <input type="date" class="form-control form-control-sm" id="udate_start" 
+                                        <input type="date" class="form-control form-control-sm" id="udate_start"
                                             name="udate_start" value="">
                                     </div>
                                 </div>
                                 <div class="col-md-2">
                                     <div class="form-group">
                                         <label for="udate_end">To Date</label>
-                                        <input type="date" class="form-control form-control-sm" id="udate_end" 
+                                        <input type="date" class="form-control form-control-sm" id="udate_end"
                                             name="udate_end" value="">
                                     </div>
                                 </div>
                                 <div class="col-md-2">
                                     <div class="form-group">
                                         <label for="usearch">Search</label>
-                                        <input type="text" class="form-control form-control-sm" id="usearch" 
+                                        <input type="text" class="form-control form-control-sm" id="usearch"
                                             name="usearch" placeholder="Name or ID" value="">
                                     </div>
                                 </div>
@@ -873,7 +1007,7 @@ include 'inc/header.php';
                         </form>
                     </div>
                 </div>
-                
+
                 <!-- Users Table -->
                 <div class="card shadow mt-4">
                     <div class="card-header py-3 d-flex justify-content-between align-items-center">
@@ -884,14 +1018,14 @@ include 'inc/header.php';
                             </button>
                         </div>
                     </div>
-                    
+
                     <div class="card-body">
                         <!-- Results summary -->
                         <div id="ufilterSummary" class="mb-3 d-none">
-                            <span class="text-primary font-weight-bold">Filter applied:</span> 
+                            <span class="text-primary font-weight-bold">Filter applied:</span>
                             Showing <span id="utotalResults">0</span> result<span id="upluralSuffix">s</span>
                         </div>
-                    
+
                         <div class="table-responsive" id="usersTableContainer">
                             <!-- Table content will be loaded here -->
                             <div class="text-center my-4">
@@ -899,7 +1033,7 @@ include 'inc/header.php';
                                 <p class="mt-2">Loading users data...</p>
                             </div>
                         </div>
-                        
+
                         <!-- Pagination container -->
                         <div id="upaginationContainer"></div>
                     </div>
@@ -949,28 +1083,28 @@ include 'inc/header.php';
                                 <div class="col-md-2">
                                     <div class="form-group">
                                         <label for="bookdate_start">From Date</label>
-                                        <input type="date" class="form-control form-control-sm" id="bookdate_start" 
+                                        <input type="date" class="form-control form-control-sm" id="bookdate_start"
                                             name="bookdate_start" value="">
                                     </div>
                                 </div>
                                 <div class="col-md-2">
                                     <div class="form-group">
                                         <label for="bookdate_end">To Date</label>
-                                        <input type="date" class="form-control form-control-sm" id="bookdate_end" 
+                                        <input type="date" class="form-control form-control-sm" id="bookdate_end"
                                             name="bookdate_end" value="">
                                     </div>
                                 </div>
                                 <div class="col-md-2">
                                     <div class="form-group">
                                         <label for="booktitle">Title/Accession</label>
-                                        <input type="text" class="form-control form-control-sm" id="booktitle" 
+                                        <input type="text" class="form-control form-control-sm" id="booktitle"
                                             name="booktitle" placeholder="Title or Accession" value="">
                                     </div>
                                 </div>
                                 <div class="col-md-2">
                                     <div class="form-group">
                                         <label for="booklocation">Location</label>
-                                        <input type="text" class="form-control form-control-sm" id="booklocation" 
+                                        <input type="text" class="form-control form-control-sm" id="booklocation"
                                             name="booklocation" placeholder="Shelf location" value="">
                                     </div>
                                 </div>
@@ -988,7 +1122,7 @@ include 'inc/header.php';
                         </form>
                     </div>
                 </div>
-                
+
                 <!-- Books Table -->
                 <div class="card shadow mt-4">
                     <div class="card-header py-3 d-flex justify-content-between align-items-center">
@@ -999,14 +1133,14 @@ include 'inc/header.php';
                             </button>
                         </div>
                     </div>
-                    
+
                     <div class="card-body">
                         <!-- Results summary -->
                         <div id="bookfilterSummary" class="mb-3 d-none">
-                            <span class="text-primary font-weight-bold">Filter applied:</span> 
+                            <span class="text-primary font-weight-bold">Filter applied:</span>
                             Showing <span id="booktotalResults">0</span> result<span id="bookpluralSuffix">s</span>
                         </div>
-                    
+
                         <div class="table-responsive" id="booksTableContainer">
                             <!-- Table content will be loaded here -->
                             <div class="text-center my-4">
@@ -1014,7 +1148,7 @@ include 'inc/header.php';
                                 <p class="mt-2">Loading books data...</p>
                             </div>
                         </div>
-                        
+
                         <!-- Pagination container -->
                         <div id="bookpaginationContainer"></div>
                     </div>
@@ -1061,21 +1195,21 @@ include 'inc/header.php';
                                 <div class="col-md-2">
                                     <div class="form-group">
                                         <label for="fdate_start">From Date</label>
-                                        <input type="date" class="form-control form-control-sm" id="fdate_start" 
+                                        <input type="date" class="form-control form-control-sm" id="fdate_start"
                                             name="fdate_start" value="">
                                     </div>
                                 </div>
                                 <div class="col-md-2">
                                     <div class="form-group">
                                         <label for="fdate_end">To Date</label>
-                                        <input type="date" class="form-control form-control-sm" id="fdate_end" 
+                                        <input type="date" class="form-control form-control-sm" id="fdate_end"
                                             name="fdate_end" value="">
                                     </div>
                                 </div>
                                 <div class="col-md-2">
                                     <div class="form-group">
                                         <label for="fuser">User</label>
-                                        <input type="text" class="form-control form-control-sm" id="fuser" 
+                                        <input type="text" class="form-control form-control-sm" id="fuser"
                                             name="fuser" placeholder="Name or ID" value="">
                                     </div>
                                 </div>
@@ -1104,7 +1238,7 @@ include 'inc/header.php';
                         </form>
                     </div>
                 </div>
-                
+
                 <!-- Fines Table -->
                 <div class="card shadow mt-4">
                     <div class="card-header py-3 d-flex justify-content-between align-items-center">
@@ -1115,14 +1249,14 @@ include 'inc/header.php';
                             </button>
                         </div>
                     </div>
-                    
+
                     <div class="card-body">
                         <!-- Results summary -->
                         <div id="ffilterSummary" class="mb-3 d-none">
-                            <span class="text-primary font-weight-bold">Filter applied:</span> 
+                            <span class="text-primary font-weight-bold">Filter applied:</span>
                             Showing <span id="ftotalResults">0</span> result<span id="fpluralSuffix">s</span>
                         </div>
-                    
+
                         <div class="table-responsive" id="finesTableContainer">
                             <!-- Table content will be loaded here -->
                             <div class="text-center my-4">
@@ -1130,7 +1264,7 @@ include 'inc/header.php';
                                 <p class="mt-2">Loading fines data...</p>
                             </div>
                         </div>
-                        
+
                         <!-- Pagination container -->
                         <div id="fpaginationContainer"></div>
                     </div>
@@ -1151,6 +1285,134 @@ include 'inc/header.php';
                     </div>
                 </div>
             </div>
+
+            <!-- LIBRARY VISIT REPORT  -->
+
+            <div class="tab-pane fade" id="library-visits" role="tabpanel" aria-labelledby="library-visits-tab">
+        <!-- Library Visits Filter -->
+        <div class="card shadow mt-4">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">Filter Library Visits</h6>
+                <button class="btn btn-sm btn-primary" id="toggleVisitsFilter">
+                    <i class="fas fa-filter"></i> Toggle Filter
+                </button>
+            </div>
+            <div class="card-body d-none" id="visitsFilterForm">
+                <form method="get" action="" class="mb-0" id="visitsFilterFormElement">
+                    <div class="row">
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label for="vstatus">Status</label>
+                                <select class="form-control form-control-sm" id="vstatus" name="vstatus">
+                                    <option value="">All Statuses</option>
+                                    <option value="1">Entry</option>
+                                    <option value="0">Exit</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label for="vdate_start">From Date</label>
+                                <input type="date" class="form-control form-control-sm" id="vdate_start" name="vdate_start">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label for="vdate_end">To Date</label>
+                                <input type="date" class="form-control form-control-sm" id="vdate_end" name="vdate_end">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label for="vuser">User</label>
+                                <input type="text" class="form-control form-control-sm" id="vuser" name="vuser" placeholder="ID or Name">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label for="vpurpose">Purpose</label>
+                                <select class="form-control form-control-sm" id="vpurpose" name="vpurpose">
+                                    <option value="">All Purposes</option>
+                                    <?php foreach ($purposes as $purpose): ?>
+                                        <option value="<?= htmlspecialchars($purpose) ?>"><?= htmlspecialchars($purpose) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group d-flex justify-content-center" style="margin-top: 2rem">
+                                <button type="button" id="applyVisitsFilters" class="btn btn-primary btn-sm mr-2">
+                                    <i class="fas fa-filter"></i> Apply
+                                </button>
+                                <button type="button" id="resetVisitsFilters" class="btn btn-secondary btn-sm">
+                                    <i class="fas fa-undo"></i> Reset
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Library Visits Table -->
+            <div class="card shadow mt-4">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+        <h6 class="m-0 font-weight-bold text-primary">Library Visits</h6>
+    </div>
+    <div class="card-body">
+    <div class="table-responsive" id="visitsTableContainer">
+    <table class="table table-bordered table-striped" id="visitsTable" width="100%" cellspacing="0">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Student Number</th>
+                <th>Course/Department</th>
+                <th>Time Entry</th>
+                <th>Time Exit</th>
+                <th>Duration</th>
+                <th>Purpose</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php if (mysqli_num_rows($visitsResult) > 0): ?>
+                <?php while ($row = mysqli_fetch_assoc($visitsResult)): ?>
+                    <tr>
+                        <td><?= $row['id'] ?></td>
+                        <td><?= htmlspecialchars($row['student_number']) ?></td>
+                        <td><?= htmlspecialchars($row['department']) ?></td>
+                        <td><?= date('M d, Y h:i A', strtotime($row['time_entry'])) ?></td>
+                        <td>
+                            <?= $row['time_exit'] ? date('M d, Y h:i A', strtotime($row['time_exit'])) : '-' ?>
+                        </td>
+                        <td>
+                            <?= $row['duration'] ? $row['duration'] : '-' ?>
+                        </td>
+                        <td><?= htmlspecialchars($row['purpose']) ?></td>
+                    </tr>
+                <?php endwhile; ?>
+            <?php else: ?>
+                <tr>
+                    <td colspan="7" class="text-center">No library visit records found</td>
+                </tr>
+            <?php endif; ?>
+        </tbody>
+    </table>
+</div>
+    </div>
+</div>
+
+            <!-- Library Visits Line Graph -->
+            <div class="card shadow mt-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">Library Visits Report - Last 7 Days</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-area" style="height: 300px;">
+                        <canvas id="visitsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+                    <!-- End of Library Visits Report -->
         </div>
     </div>
 </div>
@@ -1159,14 +1421,14 @@ include 'inc/header.php';
 // Updated Line chart configuration function for multiple datasets
 function createMultiLineChart(canvasId, labels, datasets, title) {
     var ctx = document.getElementById(canvasId).getContext('2d');
-    
+
     // Chart colors - fixed colors for borrowings
     const colors = {
         active: 'rgba(78, 115, 223, 1)',      // Primary (blue)
         returned: 'rgba(28, 200, 138, 1)',    // Success (green)
         damaged: 'rgba(246, 194, 62, 1)',     // Warning (yellow)
         lost: 'rgba(231, 74, 59, 1)',         // Danger (red)
-        
+
         // Colors for other charts
         total: 'rgba(78, 115, 223, 1)',
         pending: 'rgba(246, 194, 62, 1)',
@@ -1189,10 +1451,10 @@ function createMultiLineChart(canvasId, labels, datasets, title) {
         staff: 'rgba(153, 102, 255, 1)',
         visitor: 'rgba(255, 159, 64, 1)'
     };
-    
+
     // Create chart datasets array
     const chartDatasets = [];
-    
+
     // Special handling for borrowings chart to ensure correct colors
     if (canvasId === 'borrowingsChart') {
         // Add datasets in specific order with specific colors
@@ -1264,14 +1526,14 @@ function createMultiLineChart(canvasId, labels, datasets, title) {
         for (const [key, data] of Object.entries(datasets)) {
             // Capitalize first letter of key for label
             const label = key.charAt(0).toUpperCase() + key.slice(1);
-            
+
             // Get color, use predefined if available or default to blue
             const color = colors[key] || 'rgba(78, 115, 223, 1)';
-            
+
             chartDatasets.push(createDataset(label, data, color));
         }
     }
-    
+
     function createDataset(label, data, color) {
         return {
             label: label,
@@ -1290,7 +1552,7 @@ function createMultiLineChart(canvasId, labels, datasets, title) {
             fill: false
         };
     }
-    
+
     return new Chart(ctx, {
         type: 'line',
         data: {
@@ -1378,20 +1640,20 @@ document.addEventListener('DOMContentLoaded', function() {
     createMultiLineChart('usersChart', chartLabels, usersData, 'New Users Registration - Last 7 Days');
     createMultiLineChart('booksChart', chartLabels, booksData, 'Book Additions - Last 7 Days');
     createMultiLineChart('finesChart', chartLabels, finesData, 'Fines Activity - Last 7 Days');
-    
+
     // Load all tables on initial page load
     loadBorrowingsTable();
     loadReservationsTable();
     loadUsersTable();
     loadBooksTable();
     loadFinesTable();
-    
+
     // Toggle filter form visibility
     document.getElementById('toggleBorrowingsFilter').addEventListener('click', function() {
         const filterForm = document.getElementById('borrowingsFilterForm');
         filterForm.classList.toggle('d-none');
     });
-    
+
     // Export borrowings table to Excel
     document.getElementById('exportBorrowingsTable').addEventListener('click', function() {
         const statusFilter = document.getElementById('bstatus').value;
@@ -1399,7 +1661,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const dateEnd = document.getElementById('bdate_end').value;
         const userFilter = document.getElementById('buser').value;
         const bookFilter = document.getElementById('bbook').value;
-        
+
         // Build query string with current filters
         let params = new URLSearchParams();
         if (statusFilter) params.append('status', statusFilter);
@@ -1407,10 +1669,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (dateEnd) params.append('date_end', dateEnd);
         if (userFilter) params.append('user', userFilter);
         if (bookFilter) params.append('book', bookFilter);
-        
+
         // Create export URL with filters
         const exportUrl = 'fetch_borrowings_export.php?' + params.toString();
-        
+
         // Navigate to the export URL (will download the file)
         window.location.href = exportUrl;
     });
@@ -1422,10 +1684,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const dateEnd = document.getElementById('bdate_end').value;
         const userFilter = document.getElementById('buser').value;
         const bookFilter = document.getElementById('bbook').value;
-        
+
         // Show loading indicator
         document.getElementById('borrowingsTableContainer').innerHTML = '<div class="text-center my-4"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2">Loading...</p></div>';
-        
+
         // Build query string
         let params = new URLSearchParams();
         params.append('bpage', page);
@@ -1435,11 +1697,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (userFilter) params.append('buser', userFilter);
         if (bookFilter) params.append('bbook', bookFilter);
         params.append('ajax', 'true'); // Indicate this is an AJAX request
-        
+
         // Update URL with filters (without reloading page)
         let newUrl = window.location.pathname + '?' + params.toString() + '#borrowings';
         window.history.pushState({path: newUrl}, '', newUrl);
-        
+
         // Fetch table data
         fetch('fetch_borrowings_table.php?' + params.toString())
             .then(response => response.json())
@@ -1447,7 +1709,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Update table and pagination
                 document.getElementById('borrowingsTableContainer').innerHTML = data.tableHtml;
                 document.getElementById('paginationContainer').innerHTML = data.paginationHtml;
-                
+
                 // Update filter summary
                 if (statusFilter || dateStart || dateEnd || userFilter || bookFilter) {
                     document.getElementById('filterSummary').classList.remove('d-none');
@@ -1456,7 +1718,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     document.getElementById('filterSummary').classList.add('d-none');
                 }
-                
+
                 // Rebind pagination events
                 rebindPaginationEvents();
             })
@@ -1465,12 +1727,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('borrowingsTableContainer').innerHTML = '<div class="alert alert-danger">Error loading table data. Please try again.</div>';
             });
     }
-    
+
     // Apply filters button click
     document.getElementById('applyFilters').addEventListener('click', function() {
         loadBorrowingsTable(1); // Reset to first page when applying new filters
     });
-    
+
     // Reset filters button click
     document.getElementById('resetFilters').addEventListener('click', function() {
         // Clear all filter values
@@ -1479,11 +1741,11 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('bdate_end').value = '';
         document.getElementById('buser').value = '';
         document.getElementById('bbook').value = '';
-        
+
         // Load table with reset filters
         loadBorrowingsTable(1);
     });
-    
+
     // Function to rebind pagination events after table reload
     function rebindPaginationEvents() {
         document.querySelectorAll('.pagination-link').forEach(link => {
@@ -1496,7 +1758,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
-    
+
     // Initial binding of pagination events
     rebindPaginationEvents();
 
@@ -1505,7 +1767,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const filterForm = document.getElementById('reservationsFilterForm');
         filterForm.classList.toggle('d-none');
     });
-    
+
     // Export reservations table to Excel
     document.getElementById('exportReservationsTable').addEventListener('click', function() {
         const statusFilter = document.getElementById('rstatus').value;
@@ -1513,7 +1775,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const dateEnd = document.getElementById('rdate_end').value;
         const userFilter = document.getElementById('ruser').value;
         const bookFilter = document.getElementById('rbook').value;
-        
+
         // Build query string with current filters
         let params = new URLSearchParams();
         if (statusFilter) params.append('status', statusFilter);
@@ -1521,10 +1783,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (dateEnd) params.append('date_end', dateEnd);
         if (userFilter) params.append('user', userFilter);
         if (bookFilter) params.append('book', bookFilter);
-        
+
         // Create export URL with filters
         const exportUrl = 'fetch_reservations_export.php?' + params.toString();
-        
+
         // Navigate to the export URL (will download the file)
         window.location.href = exportUrl;
     });
@@ -1536,10 +1798,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const dateEnd = document.getElementById('rdate_end').value;
         const userFilter = document.getElementById('ruser').value;
         const bookFilter = document.getElementById('rbook').value;
-        
+
         // Show loading indicator
         document.getElementById('reservationsTableContainer').innerHTML = '<div class="text-center my-4"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2">Loading...</p></div>';
-        
+
         // Build query string
         let params = new URLSearchParams();
         params.append('rpage', page);
@@ -1549,11 +1811,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (userFilter) params.append('ruser', userFilter);
         if (bookFilter) params.append('rbook', bookFilter);
         params.append('ajax', 'true'); // Indicate this is an AJAX request
-        
+
         // Update URL with filters (without reloading page)
         let newUrl = window.location.pathname + '?' + params.toString() + '#reservations';
         window.history.pushState({path: newUrl}, '', newUrl);
-        
+
         // Fetch table data
         fetch('fetch_reservations_table.php?' + params.toString())
             .then(response => response.json())
@@ -1561,7 +1823,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Update table and pagination
                 document.getElementById('reservationsTableContainer').innerHTML = data.tableHtml;
                 document.getElementById('rpaginationContainer').innerHTML = data.paginationHtml;
-                
+
                 // Update filter summary
                 if (statusFilter || dateStart || dateEnd || userFilter || bookFilter) {
                     document.getElementById('rfilterSummary').classList.remove('d-none');
@@ -1570,7 +1832,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     document.getElementById('rfilterSummary').classList.add('d-none');
                 }
-                
+
                 // Rebind pagination events
                 rebindReservationsPaginationEvents();
             })
@@ -1579,12 +1841,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('reservationsTableContainer').innerHTML = '<div class="alert alert-danger">Error loading table data. Please try again.</div>';
             });
     }
-    
+
     // Apply filters button click
     document.getElementById('applyReservationsFilters').addEventListener('click', function() {
         loadReservationsTable(1); // Reset to first page when applying new filters
     });
-    
+
     // Reset filters button click
     document.getElementById('resetReservationsFilters').addEventListener('click', function() {
         // Clear all filter values
@@ -1593,11 +1855,11 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('rdate_end').value = '';
         document.getElementById('ruser').value = '';
         document.getElementById('rbook').value = '';
-        
+
         // Load table with reset filters
         loadReservationsTable(1);
     });
-    
+
     // Function to rebind pagination events after table reload
     function rebindReservationsPaginationEvents() {
         document.querySelectorAll('.rpagination-link').forEach(link => {
@@ -1610,7 +1872,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
-    
+
     // Initial binding of pagination events
     rebindReservationsPaginationEvents();
 
@@ -1619,7 +1881,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const filterForm = document.getElementById('usersFilterForm');
         filterForm.classList.toggle('d-none');
     });
-    
+
     // Export users table to Excel
     document.getElementById('exportUsersTable').addEventListener('click', function() {
         const roleFilter = document.getElementById('urole').value;
@@ -1627,7 +1889,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const dateEnd = document.getElementById('udate_end').value;
         const searchFilter = document.getElementById('usearch').value;
         const statusFilter = document.getElementById('ustatus').value;
-        
+
         // Build query string with current filters
         let params = new URLSearchParams();
         if (roleFilter) params.append('role', roleFilter);
@@ -1635,10 +1897,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (dateEnd) params.append('date_end', dateEnd);
         if (searchFilter) params.append('search', searchFilter);
         if (statusFilter !== '') params.append('status', statusFilter);
-        
+
         // Create export URL with filters
         const exportUrl = 'fetch_users_export.php?' + params.toString();
-        
+
         // Navigate to the export URL (will download the file)
         window.location.href = exportUrl;
     });
@@ -1650,10 +1912,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const dateEnd = document.getElementById('udate_end').value;
         const searchFilter = document.getElementById('usearch').value;
         const statusFilter = document.getElementById('ustatus').value;
-        
+
         // Show loading indicator
         document.getElementById('usersTableContainer').innerHTML = '<div class="text-center my-4"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2">Loading...</p></div>';
-        
+
         // Build query string
         let params = new URLSearchParams();
         params.append('upage', page);
@@ -1663,11 +1925,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (searchFilter) params.append('usearch', searchFilter);
         if (statusFilter) params.append('ustatus', statusFilter);
         params.append('ajax', 'true'); // Indicate this is an AJAX request
-        
+
         // Update URL with filters (without reloading page)
         let newUrl = window.location.pathname + '?' + params.toString() + '#users';
         window.history.pushState({path: newUrl}, '', newUrl);
-        
+
         // Fetch table data
         fetch('fetch_users_table.php?' + params.toString())
             .then(response => response.json())
@@ -1675,7 +1937,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Update table and pagination
                 document.getElementById('usersTableContainer').innerHTML = data.tableHtml;
                 document.getElementById('upaginationContainer').innerHTML = data.paginationHtml;
-                
+
                 // Update filter summary
                 if (roleFilter || dateStart || dateEnd || searchFilter || statusFilter) {
                     document.getElementById('ufilterSummary').classList.remove('d-none');
@@ -1684,7 +1946,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     document.getElementById('ufilterSummary').classList.add('d-none');
                 }
-                
+
                 // Rebind pagination events
                 rebindUsersPaginationEvents();
             })
@@ -1693,12 +1955,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('usersTableContainer').innerHTML = '<div class="alert alert-danger">Error loading table data. Please try again.</div>';
             });
     }
-    
+
     // Apply filters button click
     document.getElementById('applyUsersFilters').addEventListener('click', function() {
         loadUsersTable(1); // Reset to first page when applying new filters
     });
-    
+
     // Reset filters button click
     document.getElementById('resetUsersFilters').addEventListener('click', function() {
         // Clear all filter values
@@ -1707,11 +1969,11 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('udate_end').value = '';
         document.getElementById('usearch').value = '';
         document.getElementById('ustatus').value = '';
-        
+
         // Load table with reset filters
         loadUsersTable(1);
     });
-    
+
     // Function to rebind pagination events after table reload
     function rebindUsersPaginationEvents() {
         document.querySelectorAll('.upagination-link').forEach(link => {
@@ -1724,7 +1986,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
-    
+
     // Initial binding of pagination events
     rebindUsersPaginationEvents();
 
@@ -1733,7 +1995,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const filterForm = document.getElementById('booksFilterForm');
         filterForm.classList.toggle('d-none');
     });
-    
+
     // Export books table to Excel
     document.getElementById('exportBooksTable').addEventListener('click', function() {
         const statusFilter = document.getElementById('bookstatus').value;
@@ -1741,7 +2003,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const dateEnd = document.getElementById('bookdate_end').value;
         const titleFilter = document.getElementById('booktitle').value;
         const locationFilter = document.getElementById('booklocation').value;
-        
+
         // Build query string with current filters
         let params = new URLSearchParams();
         if (statusFilter) params.append('status', statusFilter);
@@ -1749,10 +2011,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (dateEnd) params.append('date_end', dateEnd);
         if (titleFilter) params.append('title', titleFilter);
         if (locationFilter) params.append('location', locationFilter);
-        
+
         // Create export URL with filters
         const exportUrl = 'fetch_books_export.php?' + params.toString();
-        
+
         // Navigate to the export URL (will download the file)
         window.location.href = exportUrl;
     });
@@ -1764,10 +2026,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const dateEnd = document.getElementById('bookdate_end').value;
         const titleFilter = document.getElementById('booktitle').value;
         const locationFilter = document.getElementById('booklocation').value;
-        
+
         // Show loading indicator
         document.getElementById('booksTableContainer').innerHTML = '<div class="text-center my-4"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2">Loading...</p></div>';
-        
+
         // Build query string
         let params = new URLSearchParams();
         params.append('page', page);
@@ -1777,11 +2039,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (titleFilter) params.append('title', titleFilter);
         if (locationFilter) params.append('location', locationFilter);
         params.append('ajax', 'true'); // Indicate this is an AJAX request
-        
+
         // Update URL with filters (without reloading page)
         let newUrl = window.location.pathname + '?' + params.toString() + '#books';
         window.history.pushState({path: newUrl}, '', newUrl);
-        
+
         // Fetch table data
         fetch('fetch_books_table.php?' + params.toString())
             .then(response => response.json())
@@ -1789,7 +2051,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Update table and pagination
                 document.getElementById('booksTableContainer').innerHTML = data.tableHtml;
                 document.getElementById('bookpaginationContainer').innerHTML = data.paginationHtml;
-                
+
                 // Update filter summary
                 if (statusFilter || dateStart || dateEnd || titleFilter || locationFilter) {
                     document.getElementById('bookfilterSummary').classList.remove('d-none');
@@ -1798,7 +2060,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     document.getElementById('bookfilterSummary').classList.add('d-none');
                 }
-                
+
                 // Rebind pagination events
                 rebindBooksPaginationEvents();
             })
@@ -1807,12 +2069,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('booksTableContainer').innerHTML = '<div class="alert alert-danger">Error loading table data. Please try again.</div>';
             });
     }
-    
+
     // Apply filters button click
     document.getElementById('applyBooksFilters').addEventListener('click', function() {
         loadBooksTable(1); // Reset to first page when applying new filters
     });
-    
+
     // Reset filters button click
     document.getElementById('resetBooksFilters').addEventListener('click', function() {
         // Clear all filter values
@@ -1821,11 +2083,11 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('bookdate_end').value = '';
         document.getElementById('booktitle').value = '';
         document.getElementById('booklocation').value = '';
-        
+
         // Load table with reset filters
         loadBooksTable(1);
     });
-    
+
     // Function to rebind pagination events after table reload
     function rebindBooksPaginationEvents() {
         document.querySelectorAll('.bookpagination-link').forEach(link => {
@@ -1844,7 +2106,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const filterForm = document.getElementById('finesFilterForm');
         filterForm.classList.toggle('d-none');
     });
-    
+
     // Export fines table to Excel
     document.getElementById('exportFinesTable').addEventListener('click', function() {
         const statusFilter = document.getElementById('fstatus').value;
@@ -1852,7 +2114,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const dateEnd = document.getElementById('fdate_end').value;
         const userFilter = document.getElementById('fuser').value;
         const typeFilter = document.getElementById('ftype').value;
-        
+
         // Build query string with current filters
         let params = new URLSearchParams();
         if (statusFilter) params.append('status', statusFilter);
@@ -1860,10 +2122,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (dateEnd) params.append('date_end', dateEnd);
         if (userFilter) params.append('user', userFilter);
         if (typeFilter) params.append('type', typeFilter);
-        
+
         // Create export URL with filters
         const exportUrl = 'fetch_fines_export.php?' + params.toString();
-        
+
         // Navigate to the export URL (will download the file)
         window.location.href = exportUrl;
     });
@@ -1875,10 +2137,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const dateEnd = document.getElementById('fdate_end').value;
         const userFilter = document.getElementById('fuser').value;
         const typeFilter = document.getElementById('ftype').value;
-        
+
         // Show loading indicator
         document.getElementById('finesTableContainer').innerHTML = '<div class="text-center my-4"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2">Loading...</p></div>';
-        
+
         // Build query string
         let params = new URLSearchParams();
         params.append('fpage', page);
@@ -1888,11 +2150,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (userFilter) params.append('fuser', userFilter);
         if (typeFilter) params.append('ftype', typeFilter);
         params.append('ajax', 'true');
-        
+
         // Update URL with filters (without reloading page)
         let newUrl = window.location.pathname + '?' + params.toString() + '#fines';
         window.history.pushState({path: newUrl}, '', newUrl);
-        
+
         // Fetch table data
         fetch('fetch_fines_table.php?' + params.toString())
             .then(response => response.json())
@@ -1900,7 +2162,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Update table and pagination
                 document.getElementById('finesTableContainer').innerHTML = data.tableHtml;
                 document.getElementById('fpaginationContainer').innerHTML = data.paginationHtml;
-                
+
                 // Update filter summary
                 if (statusFilter || dateStart || dateEnd || userFilter || typeFilter) {
                     document.getElementById('ffilterSummary').classList.remove('d-none');
@@ -1909,7 +2171,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     document.getElementById('ffilterSummary').classList.add('d-none');
                 }
-                
+
                 // Rebind pagination events
                 rebindFinesPaginationEvents();
             })
@@ -1918,12 +2180,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('finesTableContainer').innerHTML = '<div class="alert alert-danger">Error loading table data. Please try again.</div>';
             });
     }
-    
+
     // Apply filters button click
     document.getElementById('applyFinesFilters').addEventListener('click', function() {
         loadFinesTable(1); // Reset to first page when applying new filters
     });
-    
+
     // Reset filters button click
     document.getElementById('resetFinesFilters').addEventListener('click', function() {
         // Clear all filter values
@@ -1932,11 +2194,11 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('fdate_end').value = '';
         document.getElementById('fuser').value = '';
         document.getElementById('ftype').value = '';
-        
+
         // Load table with reset filters
         loadFinesTable(1);
     });
-    
+
     // Function to rebind pagination events after table reload
     function rebindFinesPaginationEvents() {
         document.querySelectorAll('.fpagination-link').forEach(link => {
@@ -1963,15 +2225,15 @@ function exportTableToExcel(tableID, filename = '') {
     var dataType = 'application/vnd.ms-excel';
     var tableSelect = document.getElementById(tableID);
     var tableHTML = tableSelect.outerHTML.replace(/ /g, '%20');
-    
+
     // Specify file name
     filename = filename ? filename + '.xls' : 'excel_data.xls';
-    
+
     // Create download link element
     downloadLink = document.createElement("a");
-    
+
     document.body.appendChild(downloadLink);
-    
+
     if(navigator.msSaveOrOpenBlob) {
         var blob = new Blob(['\ufeff', tableHTML], {
             type: dataType
@@ -1980,14 +2242,218 @@ function exportTableToExcel(tableID, filename = '') {
     } else {
         // Create a link to the file
         downloadLink.href = 'data:' + dataType + ', ' + tableHTML;
-    
+
         // Setting the file name
         downloadLink.download = filename;
-        
+
         // Triggering the function
         downloadLink.click();
     }
 }
+
+// SCRIPT FOR LIBRARY VISITS
+// Data for the line graph
+var visitsGraphData = <?= $graphDataJSON ?>;
+
+// Prepare datasets for the graph
+var labels = <?= $last7DaysJSON ?>; // Dates as labels
+
+// Predefined courses and their colors
+const predefinedCourses = {
+    "Entrepreneurship": "rgba(54, 185, 204, 1)", // Cyan
+    "Tourism Management": "rgba(231, 74, 59, 1)", // Red
+    "Accountancy": "rgba(78, 115, 223, 1)", // Blue
+    "Accounting Information System": "rgba(28, 200, 138, 1)", // Green
+    "Computer Science": "rgba(246, 194, 62, 1)" // Yellow
+};
+
+// Prepare datasets for the graph
+var datasets = [];
+
+// Initialize datasets for all predefined courses
+Object.keys(predefinedCourses).forEach(course => {
+    const color = predefinedCourses[course];
+    datasets.push({
+        label: course,
+        data: labels.map(date => visitsGraphData[date]?.[course] || 0), // Fill missing dates with 0
+        backgroundColor: color.replace("1)", "0.1)"), // Transparent background
+        borderColor: color, // Solid border color
+        borderWidth: 2,
+        pointRadius: 3,
+        pointBackgroundColor: color,
+        pointBorderColor: color,
+        pointHoverRadius: 5,
+        pointHoverBackgroundColor: color,
+        pointHitRadius: 10,
+        pointBorderWidth: 2,
+        tension: 0.3,
+        fill: false
+    });
+});
+
+// Create the Library Visits chart
+var ctx = document.getElementById('visitsChart').getContext('2d');
+new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: labels.map(date => new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })), // Format dates
+        datasets: datasets // Predefined courses
+    },
+    options: {
+        maintainAspectRatio: false,
+        scales: {
+            x: {
+                title: { display: true, text: 'Date' },
+                ticks: { autoSkip: false } // Ensure all dates are displayed
+            },
+            y: {
+                title: { display: true, text: 'Visit Count' },
+                beginAtZero: true
+            }
+        },
+        plugins: {
+            legend: {
+                display: true,
+                position: 'top'
+            },
+            tooltip: {
+                backgroundColor: "rgba(255, 255, 255, 1)", // White background
+                titleFontColor: "#333", // Dark title text
+                bodyFontColor: "#333", // Dark body text
+                borderColor: "#ddd", // Light gray border
+                borderWidth: 1,
+                displayColors: true, // Show dataset color indicators
+                callbacks: {
+                    label: function(context) {
+                        return `${context.dataset.label}: ${context.raw}`;
+                    }
+                }
+            },
+            title: {
+                display: true,
+                text: 'Library Visits Report - Last 7 Days', // Add the title here
+                font: {
+                    size: 16 // Adjust font size if needed
+                },
+                padding: {
+                    top: 10,
+                    bottom: 10
+                }
+            }
+        }
+    }
+});
+
+
+// Initial binding of events
+document.addEventListener('DOMContentLoaded', function() {
+    // Load library visits table on page load
+    loadVisitsTable();
+
+    // Apply filters button click
+    document.getElementById('applyVisitsFilters').addEventListener('click', function() {
+        loadVisitsTable(1); // Reset to first page when applying new filters
+    });
+
+    // Reset filters button click
+    document.getElementById('resetVisitsFilters').addEventListener('click', function() {
+        // Clear all filter values
+        document.getElementById('vpurpose').value = '';
+        document.getElementById('vstatus').value = '';
+
+        // Load table with reset filters
+        loadVisitsTable(1);
+    });
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+    // Toggle filter form visibility
+    document.getElementById('toggleVisitsFilter').addEventListener('click', function () {
+        const filterForm = document.getElementById('visitsFilterForm');
+        filterForm.classList.toggle('d-none');
+    });
+
+    // Apply filters button click
+    document.getElementById('applyVisitsFilters').addEventListener('click', function () {
+        loadVisitsTable(1); // Reset to the first page when applying new filters
+    });
+
+    // Reset filters button click
+    document.getElementById('resetVisitsFilters').addEventListener('click', function () {
+        // Clear all filter values
+        document.getElementById('vstatus').value = '';
+        document.getElementById('vdate_start').value = '';
+        document.getElementById('vdate_end').value = '';
+        document.getElementById('vuser').value = '';
+        document.getElementById('vpurpose').value = '';
+
+        // Reload the table with reset filters
+        loadVisitsTable(1);
+    });
+
+    // AJAX function to load library visits table data
+    function loadVisitsTable(page = 1) {
+        const statusFilter = document.getElementById('vstatus').value;
+        const dateStart = document.getElementById('vdate_start').value;
+        const dateEnd = document.getElementById('vdate_end').value;
+        const userFilter = document.getElementById('vuser').value;
+        const purposeFilter = document.getElementById('vpurpose').value;
+
+        // Show loading indicator
+        document.getElementById('visitsTableContainer').innerHTML = '<div class="text-center my-4"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2">Loading...</p></div>';
+
+        // Build query string
+        let params = new URLSearchParams();
+        params.append('vpage', page);
+        if (statusFilter) params.append('vstatus', statusFilter);
+        if (dateStart) params.append('vdate_start', dateStart);
+        if (dateEnd) params.append('vdate_end', dateEnd);
+        if (userFilter) params.append('vuser', userFilter);
+        if (purposeFilter) params.append('vpurpose', purposeFilter);
+        params.append('ajax', 'true'); // Indicate this is an AJAX request
+
+        // Update URL with filters (without reloading page)
+        let newUrl = window.location.pathname + '?' + params.toString() + '#library-visits';
+        window.history.pushState({ path: newUrl }, '', newUrl);
+
+        // Fetch table data
+        fetch(window.location.href)
+            .then(response => response.text())
+            .then(html => {
+                // Parse the response and update the table
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const tableHtml = doc.querySelector('#visitsTableContainer').innerHTML;
+                document.getElementById('visitsTableContainer').innerHTML = tableHtml;
+
+                // Rebind pagination events
+                rebindVisitsPaginationEvents();
+            })
+            .catch(error => {
+                console.error('Error loading table:', error);
+                document.getElementById('visitsTableContainer').innerHTML = '<div class="alert alert-danger">Error loading table data. Please try again.</div>';
+            });
+    }
+
+    // Function to rebind pagination events after table reload
+    function rebindVisitsPaginationEvents() {
+        document.querySelectorAll('.vpagination-link').forEach(link => {
+            link.addEventListener('click', function (e) {
+                e.preventDefault();
+                const page = this.getAttribute('data-page');
+                if (!this.parentNode.classList.contains('disabled')) {
+                    loadVisitsTable(page);
+                }
+            });
+        });
+    }
+
+    // Initial load of the library visits table
+    loadVisitsTable();
+});
+
+
+
 </script>
 
 <?php
