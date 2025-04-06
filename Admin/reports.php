@@ -391,28 +391,62 @@ $vpage = isset($_GET['vpage']) ? intval($_GET['vpage']) : 1;
 $vrecordsPerPage = 10;
 $voffset = ($vpage - 1) * $vrecordsPerPage;
 
-// Get filter parameters for library visits
+// Get filter parameters from GET
 $vstatusFilter = isset($_GET['vstatus']) ? $_GET['vstatus'] : '';
 $vpurposeFilter = isset($_GET['vpurpose']) ? $_GET['vpurpose'] : '';
+$vdateStart = isset($_GET['vdate_start']) ? $_GET['vdate_start'] : '';
+$vdateEnd = isset($_GET['vdate_end']) ? $_GET['vdate_end'] : '';
+$vuserFilter = isset($_GET['vuser']) ? trim($_GET['vuser']) : '';
+$vcourseFilter = isset($_GET['vcourse']) ? $_GET['vcourse'] : '';
 
-// Build the SQL WHERE clause for filtering library visits
-$vwhereClause = "";
-$vfilterParams = [];
 
-if ($vstatusFilter !== '') {
-    $vwhereClause .= $vwhereClause ? " AND lv.status = '$vstatusFilter'" : "WHERE lv.status = '$vstatusFilter'";
-    $vfilterParams[] = "vstatus=$vstatusFilter";
+$vfilterParams = []; // For tracking filters for URL
+
+// Start building WHERE clause
+$vwhereClause = "WHERE 1=1";
+// Exclude records with purpose 'Exit'
+$vwhereClause .= " AND lv.purpose != 'Exit'";
+
+
+
+
+
+
+$vcourseFilter = isset($_GET['vcourse']) ? trim($_GET['vcourse']) : '';
+if ($vcourseFilter !== '') {
+    $vwhereClause .= " AND u.department = '" . mysqli_real_escape_string($conn, $vcourseFilter) . "'";
+    $vfilterParams[] = "vcourse=" . urlencode($vcourseFilter);
 }
 
-if ($vpurposeFilter) {
-    $vwhereClause .= $vwhereClause ? " AND lv.purpose = '$vpurposeFilter'" : "WHERE lv.purpose = '$vpurposeFilter'";
+
+if ($vpurposeFilter !== '') {
+    $vwhereClause .= " AND lv.purpose = '" . mysqli_real_escape_string($conn, $vpurposeFilter) . "'";
     $vfilterParams[] = "vpurpose=" . urlencode($vpurposeFilter);
 }
+
+if ($vdateStart !== '') {
+    $vwhereClause .= " AND DATE(lv.time) >= '" . mysqli_real_escape_string($conn, $vdateStart) . "'";
+    $vfilterParams[] = "vdate_start=$vdateStart";
+}
+
+if ($vdateEnd !== '') {
+    $vwhereClause .= " AND DATE(lv.time) <= '" . mysqli_real_escape_string($conn, $vdateEnd) . "'";
+    $vfilterParams[] = "vdate_end=$vdateEnd";
+}
+
+if ($vuserFilter !== '') {
+    $vwhereClause .= " AND (lv.student_number LIKE '%" . mysqli_real_escape_string($conn, $vuserFilter) . "%'
+                       OR CONCAT(u.firstname, ' ', u.lastname) LIKE '%" . mysqli_real_escape_string($conn, $vuserFilter) . "%')";
+    $vfilterParams[] = "vuser=" . urlencode($vuserFilter);
+}
+
+
 
 // Count total library visits for pagination with filters
 $vcountSql = "SELECT COUNT(*) as total FROM library_visits lv
               LEFT JOIN users u ON lv.student_number = u.school_id
               $vwhereClause";
+
 
 $vcountResult = mysqli_query($conn, $vcountSql);
 $vtotalRecords = mysqli_fetch_assoc($vcountResult)['total'];
@@ -457,14 +491,16 @@ $visitsSql = "
         ) AS duration
     FROM library_visits lv
     LEFT JOIN users u ON lv.student_number = u.school_id
-    WHERE lv.status = '1'
+    $vwhereClause
     ORDER BY lv.time DESC
     LIMIT $voffset, $vrecordsPerPage";
+
 
 $visitsResult = mysqli_query($conn, $visitsSql);
 
 // Get distinct purposes for filter dropdown
-$purposesSql = "SELECT DISTINCT purpose FROM library_visits ORDER BY purpose";
+$purposesSql = "SELECT DISTINCT purpose FROM library_visits WHERE status = '1' ORDER BY purpose";
+
 $purposesResult = mysqli_query($conn, $purposesSql);
 $purposes = [];
 while ($row = mysqli_fetch_assoc($purposesResult)) {
@@ -472,32 +508,49 @@ while ($row = mysqli_fetch_assoc($purposesResult)) {
 }
 
 // Prepare data for the line graph
+// SQL Query to include purposes as well
 $graphDataSql = "
     SELECT
         DATE(lv.time) AS visit_date,
         u.department AS course,
+        lv.purpose AS purpose,
         COUNT(*) AS visit_count
     FROM library_visits lv
     LEFT JOIN users u ON lv.student_number = u.school_id
     WHERE lv.status = '1'
       AND lv.time >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
-    GROUP BY visit_date, course
-    ORDER BY visit_date ASC, course ASC";
+    GROUP BY visit_date, course, purpose
+    ORDER BY visit_date ASC, course ASC, purpose ASC";
 
+
+// Execute the query and check if it worked
 $graphDataResult = mysqli_query($conn, $graphDataSql);
 
-// Prepare data for the graph
+// Check if the query was successful
+if (!$graphDataResult) {
+    // If there is an error in the query execution
+    die('Error executing query: ' . mysqli_error($conn));
+}
+
+// Prepare the data for the graph
 $graphData = [];
 while ($row = mysqli_fetch_assoc($graphDataResult)) {
     $visitDate = $row['visit_date'];
     $course = $row['course'];
+    $purpose = $row['purpose'];
     $visitCount = $row['visit_count'];
 
     if (!isset($graphData[$visitDate])) {
         $graphData[$visitDate] = [];
     }
-    $graphData[$visitDate][$course] = $visitCount;
+    // Make sure both course and purpose data are included
+    $graphData[$visitDate][$course] = isset($graphData[$visitDate][$course]) ? $graphData[$visitDate][$course] + $visitCount : $visitCount;
+    $graphData[$visitDate][$purpose] = isset($graphData[$visitDate][$purpose]) ? $graphData[$visitDate][$purpose] + $visitCount : $visitCount;
 }
+
+
+
+
 
 // Generate the last 7 days as labels
 $last7Days = [];
@@ -1291,72 +1344,97 @@ include 'inc/header.php';
             <div class="tab-pane fade" id="library-visits" role="tabpanel" aria-labelledby="library-visits-tab">
         <!-- Library Visits Filter -->
         <div class="card shadow mt-4">
-            <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                <h6 class="m-0 font-weight-bold text-primary">Filter Library Visits</h6>
-                <button class="btn btn-sm btn-primary" id="toggleVisitsFilter">
-                    <i class="fas fa-filter"></i> Toggle Filter
-                </button>
-            </div>
-            <div class="card-body d-none" id="visitsFilterForm">
-                <form method="get" action="" class="mb-0" id="visitsFilterFormElement">
-                    <div class="row">
-                        <div class="col-md-2">
-                            <div class="form-group">
-                                <label for="vstatus">Status</label>
-                                <select class="form-control form-control-sm" id="vstatus" name="vstatus">
-                                    <option value="">All Statuses</option>
-                                    <option value="1">Entry</option>
-                                    <option value="0">Exit</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-2">
-                            <div class="form-group">
-                                <label for="vdate_start">From Date</label>
-                                <input type="date" class="form-control form-control-sm" id="vdate_start" name="vdate_start">
-                            </div>
-                        </div>
-                        <div class="col-md-2">
-                            <div class="form-group">
-                                <label for="vdate_end">To Date</label>
-                                <input type="date" class="form-control form-control-sm" id="vdate_end" name="vdate_end">
-                            </div>
-                        </div>
-                        <div class="col-md-2">
-                            <div class="form-group">
-                                <label for="vuser">User</label>
-                                <input type="text" class="form-control form-control-sm" id="vuser" name="vuser" placeholder="ID or Name">
-                            </div>
-                        </div>
-                        <div class="col-md-2">
-                            <div class="form-group">
-                                <label for="vpurpose">Purpose</label>
-                                <select class="form-control form-control-sm" id="vpurpose" name="vpurpose">
-                                    <option value="">All Purposes</option>
-                                    <?php foreach ($purposes as $purpose): ?>
-                                        <option value="<?= htmlspecialchars($purpose) ?>"><?= htmlspecialchars($purpose) ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-2">
-                            <div class="form-group d-flex justify-content-center" style="margin-top: 2rem">
-                                <button type="button" id="applyVisitsFilters" class="btn btn-primary btn-sm mr-2">
-                                    <i class="fas fa-filter"></i> Apply
-                                </button>
-                                <button type="button" id="resetVisitsFilters" class="btn btn-secondary btn-sm">
-                                    <i class="fas fa-undo"></i> Reset
-                                </button>
-                            </div>
-                        </div>
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+        <h6 class="m-0 font-weight-bold text-primary">Filter Library Visits</h6>
+        <button class="btn btn-sm btn-primary" id="toggleVisitsFilter">
+            <i class="fas fa-filter"></i> Toggle Filter
+        </button>
+    </div>
+    <div class="card-body d-none" id="visitsFilterForm">
+        <form method="get" action="" class="mb-0" id="visitsFilterFormElement">
+            <div class="row">
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label for="vcourse">Course</label>
+                        <select class="form-control form-control-sm" id="vcourse" name="vcourse">
+                            <option value="">All Courses</option>
+                            <?php
+                            $courseResult = mysqli_query($conn, "SELECT DISTINCT department FROM users WHERE department IS NOT NULL ORDER BY department");
+                            while ($row = mysqli_fetch_assoc($courseResult)) {
+                                echo '<option value="' . htmlspecialchars($row['department']) . '">' . htmlspecialchars($row['department']) . '</option>';
+                            }
+                            ?>
+                        </select>
                     </div>
-                </form>
+                </div>
+
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label for="vdate_start">From Date</label>
+                        <input type="date" class="form-control form-control-sm" id="vdate_start" name="vdate_start">
+                    </div>
+                </div>
+
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label for="vdate_end">To Date</label>
+                        <input type="date" class="form-control form-control-sm" id="vdate_end" name="vdate_end">
+                    </div>
+                </div>
+
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label for="vuser">User</label>
+                        <input type="text" class="form-control form-control-sm" id="vuser" name="vuser" placeholder="ID or Name">
+                    </div>
+                </div>
+
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label for="vpurpose">Purpose</label>
+                        <select class="form-control form-control-sm" id="vpurpose" name="vpurpose">
+                        <option value="">All Purposes</option>
+                        <option value="Study">Study</option>
+                        <option value="Access WiFi">Access WiFi</option>
+                        <option value="Borrow/Return Books">Borrow/Return Books</option>
+                        <option value="Clearance">Clearance</option>
+                        <option value="Group Meeting/Discussion">Group Meeting/Discussion</option>
+                        <option value="Online Class">Online Class</option>
+                        <option value="Past Time/Rest">Past Time/Rest</option>
+                        <option value="Read Books">Read Books</option>
+                        <option value="Review">Review</option>
+                        <option value="Seatwork">Seatwork</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Apply + Reset buttons aligned in same row -->
+                <div class="col-md-2 align-self-end">
+    <div class="form-group d-flex justify-content-center">
+        <button type="button" id="applyVisitsFilters" class="btn btn-primary btn-sm mr-2">
+            <i class="fas fa-filter"></i> Apply
+        </button>
+        <button type="button" id="resetVisitsFilters" class="btn btn-secondary btn-sm">
+            <i class="fas fa-undo"></i> Reset
+        </button>
+    </div>
+</div>
+
             </div>
+        </form>
+    </div>
+</div>
+
+
 
             <!-- Library Visits Table -->
             <div class="card shadow mt-4">
     <div class="card-header py-3 d-flex justify-content-between align-items-center">
         <h6 class="m-0 font-weight-bold text-primary">Library Visits</h6>
+        <button class="btn btn-success btn-sm" id="exportVisitsExcel">
+    <i class="fas fa-file-excel"></i> Export to Excel
+</button>
+
     </div>
     <div class="card-body">
     <div class="table-responsive" id="visitsTableContainer">
@@ -1365,9 +1443,10 @@ include 'inc/header.php';
             <tr>
                 <th>ID</th>
                 <th>Student Number</th>
+                <th>Name</th>
                 <th>Course/Department</th>
-                <th>Time Entry</th>
-                <th>Time Exit</th>
+                <th>Time In</th>
+                <th>Time Out</th>
                 <th>Duration</th>
                 <th>Purpose</th>
             </tr>
@@ -1378,6 +1457,7 @@ include 'inc/header.php';
                     <tr>
                         <td><?= $row['id'] ?></td>
                         <td><?= htmlspecialchars($row['student_number']) ?></td>
+                        <td><?= htmlspecialchars($row['firstname'] . ' ' . $row['lastname']) ?></td>
                         <td><?= htmlspecialchars($row['department']) ?></td>
                         <td><?= date('M d, Y h:i A', strtotime($row['time_entry'])) ?></td>
                         <td>
@@ -1391,7 +1471,7 @@ include 'inc/header.php';
                 <?php endwhile; ?>
             <?php else: ?>
                 <tr>
-                    <td colspan="7" class="text-center">No library visit records found</td>
+                    <td colspan="" class="text-center">No library visit records found</td>
                 </tr>
             <?php endif; ?>
         </tbody>
@@ -1401,18 +1481,25 @@ include 'inc/header.php';
 </div>
 
             <!-- Library Visits Line Graph -->
-            <div class="card shadow mt-4">
-                <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 font-weight-bold text-primary">Library Visits Report - Last 7 Days</h6>
-                </div>
-                <div class="card-body">
-                    <div class="chart-area" style="height: 300px;">
-                        <canvas id="visitsChart"></canvas>
-                    </div>
-                </div>
-            </div>
+<div class="card shadow mt-4">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+        <h6 class="m-0 font-weight-bold text-primary">Library Visits Report - Last 7 Days</h6>
+        <!-- Dropdown for selecting legend type (Course or Purpose) -->
+        <div class="dropdown-container">
+            <select id="legendSelect" class="form-control form-control-sm">
+                <option value="course">Course</option>
+                <option value="purpose">Purpose</option>
+            </select>
         </div>
-                    <!-- End of Library Visits Report -->
+    </div>
+    <div class="card-body">
+        <div class="chart-area" style="height: 300px;">
+            <canvas id="visitsChart"></canvas>
+        </div>
+    </div>
+</div>
+<!-- End of Library Visits Report -->
+
         </div>
     </div>
 </div>
@@ -1553,6 +1640,8 @@ function createMultiLineChart(canvasId, labels, datasets, title) {
         };
     }
 
+
+
     return new Chart(ctx, {
         type: 'line',
         data: {
@@ -1631,6 +1720,7 @@ var reservationsData = <?= $reservationsJSON ?>;
 var usersData = <?= $usersJSON ?>;
 var booksData = <?= $booksJSON ?>;
 var finesData = <?= $finesJSON ?>;
+
 
 // Create charts when document is loaded
 document.addEventListener('DOMContentLoaded', function() {
@@ -2252,207 +2342,239 @@ function exportTableToExcel(tableID, filename = '') {
 }
 
 // SCRIPT FOR LIBRARY VISITS
-// Data for the line graph
-var visitsGraphData = <?= $graphDataJSON ?>;
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize your chart data and labels here
+    var visitsGraphData = <?= $graphDataJSON ?>; // Data coming from PHP
+    var labels = <?= $last7DaysJSON ?>; // Date labels
 
-// Prepare datasets for the graph
-var labels = <?= $last7DaysJSON ?>; // Dates as labels
+    const predefinedCourses = {
+        "Entrepreneurship": "rgba(54, 185, 204, 1)", // Cyan
+        "Tourism Management": "rgba(231, 74, 59, 1)", // Red
+        "Accountancy": "rgba(78, 115, 223, 1)", // Blue
+        "Accounting Information System": "rgba(28, 200, 138, 1)", // Green
+        "Computer Science": "rgba(246, 194, 62, 1)" // Yellow
+    };
 
-// Predefined courses and their colors
-const predefinedCourses = {
-    "Entrepreneurship": "rgba(54, 185, 204, 1)", // Cyan
-    "Tourism Management": "rgba(231, 74, 59, 1)", // Red
-    "Accountancy": "rgba(78, 115, 223, 1)", // Blue
-    "Accounting Information System": "rgba(28, 200, 138, 1)", // Green
-    "Computer Science": "rgba(246, 194, 62, 1)" // Yellow
-};
+    const predefinedPurposes = {
+        "Study": "rgba(78, 115, 223, 1)",
+        "Access Wifi": "rgba(231, 74, 59, 1)",
+        "Borrow/Return Books": "rgba(28, 200, 138, 1)",
+        "Clearance": "rgba(54, 185, 204, 1)",
+        "Group Meeting/Discussion": "rgba(246, 194, 62, 1)",
+        "Online Class": "rgba(153, 102, 255, 1)",
+        "PastTime/Rest": "rgba(255, 159, 64, 1)",
+        "Read Books": "rgba(78, 115, 223, 1)",
+        "Review": "rgba(231, 74, 59, 1)",
+        "Seatwork": "rgba(28, 200, 138, 1)"
+    };
 
-// Prepare datasets for the graph
-var datasets = [];
+    // Initial legend type (set to 'course' by default)
+    let currentLegendType = 'course';
 
-// Initialize datasets for all predefined courses
-Object.keys(predefinedCourses).forEach(course => {
-    const color = predefinedCourses[course];
-    datasets.push({
-        label: course,
-        data: labels.map(date => visitsGraphData[date]?.[course] || 0), // Fill missing dates with 0
-        backgroundColor: color.replace("1)", "0.1)"), // Transparent background
-        borderColor: color, // Solid border color
-        borderWidth: 2,
-        pointRadius: 3,
-        pointBackgroundColor: color,
-        pointBorderColor: color,
-        pointHoverRadius: 5,
-        pointHoverBackgroundColor: color,
-        pointHitRadius: 10,
-        pointBorderWidth: 2,
-        tension: 0.3,
-        fill: false
+    // Function to create the chart
+    function createChart(legendType) {
+        var datasets = [];
+        var data = (legendType === 'course') ? predefinedCourses : predefinedPurposes;
+
+        Object.keys(data).forEach(label => {
+            datasets.push({
+                label: label,
+                data: labels.map(date => Math.round(visitsGraphData[date]?.[label] || 0)),
+                backgroundColor: data[label].replace("1)", "0.1)"),
+                borderColor: data[label],
+                borderWidth: 2,
+                pointRadius: 3,
+                pointBackgroundColor: data[label],
+                pointBorderColor: data[label],
+                pointHoverRadius: 5,
+                pointHoverBackgroundColor: data[label],
+                pointHitRadius: 10,
+                pointBorderWidth: 2,
+                fill: false,
+                tension: 0.3
+            });
+        });
+
+        var ctx = document.getElementById('visitsChart').getContext('2d');
+        return new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels.map(date => new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })),
+                datasets: datasets
+            },
+            options: {
+                maintainAspectRatio: false,
+                layout: {
+                    padding: {
+                        left: 10,
+                        right: 25,
+                        top: 25,
+                        bottom: 0
+                    }
+                },
+                scales: {
+                    xAxes: [{
+                        time: { unit: 'day' },
+                        gridLines: { display: false, drawBorder: false },
+                        ticks: { maxTicksLimit: 7 }
+                    }],
+                    yAxes: [{
+                        ticks: { beginAtZero: true, precision: 0, min: 0 },
+                        gridLines: { color: "rgba(234, 236, 244, 1)", zeroLineColor: "rgba(234, 236, 244, 1)", drawBorder: false, borderDash: [2], zeroLineBorderDash: [2] }
+                    }]
+                },
+                legend: { display: true, position: 'top' },
+                title: { display: true, text: 'Library Visits Report - Last 7 Days' },
+                tooltips: {
+                    backgroundColor: "rgb(255,255,255)",
+                    bodyFontColor: "#858796",
+                    titleMarginBottom: 10,
+                    titleFontColor: '#6e707e',
+                    titleFontSize: 14,
+                    borderColor: '#dddfeb',
+                    borderWidth: 1,
+                    xPadding: 15,
+                    yPadding: 15,
+                    displayColors: true,
+                    intersect: false,
+                    mode: 'index',
+                    caretPadding: 10
+                }
+            }
+        });
+    }
+
+    // Initialize the chart with the default legend type ('course')
+    let chart = createChart(currentLegendType);
+
+    // Event listener to switch legend type when dropdown value changes
+    document.getElementById('legendSelect').addEventListener('change', function(event) {
+        currentLegendType = event.target.value;
+        chart.destroy(); // Destroy the old chart
+        chart = createChart(currentLegendType); // Re-create the chart with the new legend type
     });
 });
 
-// Create the Library Visits chart
-var ctx = document.getElementById('visitsChart').getContext('2d');
-new Chart(ctx, {
-    type: 'line',
-    data: {
-        labels: labels.map(date => new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })), // Format dates
-        datasets: datasets // Predefined courses
-    },
-    options: {
-        maintainAspectRatio: false,
-        scales: {
-            x: {
-                title: { display: true, text: 'Date' },
-                ticks: { autoSkip: false } // Ensure all dates are displayed
-            },
-            y: {
-                title: { display: true, text: 'Visit Count' },
-                beginAtZero: true
-            }
-        },
-        plugins: {
-            legend: {
-                display: true,
-                position: 'top'
-            },
-            tooltip: {
-                backgroundColor: "rgba(255, 255, 255, 1)", // White background
-                titleFontColor: "#333", // Dark title text
-                bodyFontColor: "#333", // Dark body text
-                borderColor: "#ddd", // Light gray border
-                borderWidth: 1,
-                displayColors: true, // Show dataset color indicators
-                callbacks: {
-                    label: function(context) {
-                        return `${context.dataset.label}: ${context.raw}`;
-                    }
-                }
-            },
-            title: {
-                display: true,
-                text: 'Library Visits Report - Last 7 Days', // Add the title here
-                font: {
-                    size: 16 // Adjust font size if needed
-                },
-                padding: {
-                    top: 10,
-                    bottom: 10
-                }
-            }
-        }
-    }
-});
 
 
-// Initial binding of events
-document.addEventListener('DOMContentLoaded', function() {
+
+
+document.addEventListener('DOMContentLoaded', function () {
     // Load library visits table on page load
     loadVisitsTable();
 
     // Apply filters button click
-    document.getElementById('applyVisitsFilters').addEventListener('click', function() {
-        loadVisitsTable(1); // Reset to first page when applying new filters
+    document.getElementById('applyVisitsFilters').addEventListener('click', function (e) {
+        e.preventDefault();  // Prevent the form from submitting traditionally
+        loadVisitsTable(1);  // Reset to first page when applying new filters
     });
 
     // Reset filters button click
-    document.getElementById('resetVisitsFilters').addEventListener('click', function() {
-        // Clear all filter values
-        document.getElementById('vpurpose').value = '';
-        document.getElementById('vstatus').value = '';
+   // Reset filters button click
+document.getElementById('resetVisitsFilters').addEventListener('click', function (e) {
+    e.preventDefault();  // Prevent the form from submitting traditionally
 
-        // Load table with reset filters
-        loadVisitsTable(1);
-    });
+    // Clear all filter values (UPDATED: removed vstatus, added vcourse)
+    const vcourse = document.getElementById('vcourse');
+    if (vcourse) vcourse.value = '';
+
+    document.getElementById('vdate_start').value = '';
+    document.getElementById('vdate_end').value = '';
+    document.getElementById('vuser').value = '';
+    document.getElementById('vpurpose').value = '';
+
+    // Load table with reset filters
+    loadVisitsTable(1);
 });
 
-document.addEventListener('DOMContentLoaded', function () {
+
     // Toggle filter form visibility
     document.getElementById('toggleVisitsFilter').addEventListener('click', function () {
         const filterForm = document.getElementById('visitsFilterForm');
         filterForm.classList.toggle('d-none');
     });
-
-    // Apply filters button click
-    document.getElementById('applyVisitsFilters').addEventListener('click', function () {
-        loadVisitsTable(1); // Reset to the first page when applying new filters
-    });
-
-    // Reset filters button click
-    document.getElementById('resetVisitsFilters').addEventListener('click', function () {
-        // Clear all filter values
-        document.getElementById('vstatus').value = '';
-        document.getElementById('vdate_start').value = '';
-        document.getElementById('vdate_end').value = '';
-        document.getElementById('vuser').value = '';
-        document.getElementById('vpurpose').value = '';
-
-        // Reload the table with reset filters
-        loadVisitsTable(1);
-    });
-
-    // AJAX function to load library visits table data
-    function loadVisitsTable(page = 1) {
-        const statusFilter = document.getElementById('vstatus').value;
-        const dateStart = document.getElementById('vdate_start').value;
-        const dateEnd = document.getElementById('vdate_end').value;
-        const userFilter = document.getElementById('vuser').value;
-        const purposeFilter = document.getElementById('vpurpose').value;
-
-        // Show loading indicator
-        document.getElementById('visitsTableContainer').innerHTML = '<div class="text-center my-4"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2">Loading...</p></div>';
-
-        // Build query string
-        let params = new URLSearchParams();
-        params.append('vpage', page);
-        if (statusFilter) params.append('vstatus', statusFilter);
-        if (dateStart) params.append('vdate_start', dateStart);
-        if (dateEnd) params.append('vdate_end', dateEnd);
-        if (userFilter) params.append('vuser', userFilter);
-        if (purposeFilter) params.append('vpurpose', purposeFilter);
-        params.append('ajax', 'true'); // Indicate this is an AJAX request
-
-        // Update URL with filters (without reloading page)
-        let newUrl = window.location.pathname + '?' + params.toString() + '#library-visits';
-        window.history.pushState({ path: newUrl }, '', newUrl);
-
-        // Fetch table data
-        fetch(window.location.href)
-            .then(response => response.text())
-            .then(html => {
-                // Parse the response and update the table
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-                const tableHtml = doc.querySelector('#visitsTableContainer').innerHTML;
-                document.getElementById('visitsTableContainer').innerHTML = tableHtml;
-
-                // Rebind pagination events
-                rebindVisitsPaginationEvents();
-            })
-            .catch(error => {
-                console.error('Error loading table:', error);
-                document.getElementById('visitsTableContainer').innerHTML = '<div class="alert alert-danger">Error loading table data. Please try again.</div>';
-            });
-    }
-
-    // Function to rebind pagination events after table reload
-    function rebindVisitsPaginationEvents() {
-        document.querySelectorAll('.vpagination-link').forEach(link => {
-            link.addEventListener('click', function (e) {
-                e.preventDefault();
-                const page = this.getAttribute('data-page');
-                if (!this.parentNode.classList.contains('disabled')) {
-                    loadVisitsTable(page);
-                }
-            });
-        });
-    }
-
-    // Initial load of the library visits table
-    loadVisitsTable();
 });
 
+function loadVisitsTable(page = 1) {
+    const dateStart = document.getElementById('vdate_start').value;
+    const dateEnd = document.getElementById('vdate_end').value;
+    const userFilter = document.getElementById('vuser').value;
+    const purposeFilter = document.getElementById('vpurpose').value;
+    const courseFilter = document.getElementById('vcourse')?.value || '';
 
+
+    // Show loading indicator
+    document.getElementById('visitsTableContainer').innerHTML = `
+        <div class="text-center my-4">
+            <i class="fas fa-spinner fa-spin fa-2x"></i>
+            <p class="mt-2">Loading...</p>
+        </div>`;
+
+    // Build query string
+    let params = new URLSearchParams();
+    params.append('vpage', page);
+    if (courseFilter) params.append('vcourse', courseFilter);
+    if (dateStart) params.append('vdate_start', dateStart);
+    if (dateEnd) params.append('vdate_end', dateEnd);
+    if (userFilter) params.append('vuser', userFilter);
+    if (purposeFilter) params.append('vpurpose', purposeFilter);
+    params.append('ajax', 'true'); // Indicate this is an AJAX request
+
+    // Build the new URL
+    let newUrl = window.location.pathname + '?' + params.toString() + '#library-visits';
+
+    // Push the updated URL to browser history
+    window.history.pushState({ path: newUrl }, '', newUrl);
+
+    // Use the updated URL for fetching
+    fetch(newUrl)
+        .then(response => response.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const tableHtml = doc.querySelector('#visitsTableContainer').innerHTML;
+            document.getElementById('visitsTableContainer').innerHTML = tableHtml;
+            rebindVisitsPaginationEvents();
+        })
+        .catch(error => {
+            console.error('Error loading table:', error);
+            document.getElementById('visitsTableContainer').innerHTML = `
+                <div class="alert alert-danger">
+                    Error loading table data. Please try again.
+                </div>`;
+        });
+}
+
+// Function to rebind pagination events after table reload
+function rebindVisitsPaginationEvents() {
+    document.querySelectorAll('.vpagination-link').forEach(link => {
+        link.addEventListener('click', function (e) {
+            e.preventDefault();
+            const page = this.getAttribute('data-page');
+            if (!this.parentNode.classList.contains('disabled')) {
+                loadVisitsTable(page);
+            }
+        });
+    });
+}
+
+
+document.getElementById('exportVisitsExcel').addEventListener('click', function () {
+    const course = document.getElementById('vcourse').value;
+    const purpose = document.getElementById('vpurpose').value;
+    const user = document.getElementById('vuser').value;
+    const dateStart = document.getElementById('vdate_start').value;
+    const dateEnd = document.getElementById('vdate_end').value;
+
+    const params = new URLSearchParams();
+    if (course) params.append('vcourse', course);
+    if (purpose) params.append('vpurpose', purpose);
+    if (user) params.append('vuser', user);
+    if (dateStart) params.append('vdate_start', dateStart);
+    if (dateEnd) params.append('vdate_end', dateEnd);
+
+    window.location.href = 'export_library_visits_excel.php?' + params.toString();
+});
 
 </script>
 
