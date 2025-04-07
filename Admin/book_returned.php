@@ -23,7 +23,7 @@ $conn->begin_transaction();
 
 try {
     // Get borrowing information
-    $getBorrowingQuery = "SELECT b.id as borrow_id, b.user_id, bk.title 
+    $getBorrowingQuery = "SELECT b.id as borrow_id, b.user_id, bk.title, bk.shelf_location, b.due_date 
                         FROM borrowings b 
                         JOIN books bk ON b.book_id = bk.id 
                         WHERE b.book_id = ? AND (b.status = 'Active' OR b.status = 'Overdue') 
@@ -42,6 +42,26 @@ try {
     $borrowId = $borrowing['borrow_id'];
     $userId = $borrowing['user_id'];
     $bookTitle = $borrowing['title'];
+    $shelfLocation = $borrowing['shelf_location'];
+    $dueDate = $borrowing['due_date'];
+
+    // Calculate fines if overdue
+    $fineAmount = 0;
+    if (strtotime($currentDate) > strtotime($dueDate)) {
+        $daysOverdue = (strtotime($currentDate) - strtotime($dueDate)) / (60 * 60 * 24);
+        if (in_array($shelfLocation, ['REF', 'RES'])) {
+            $fineAmount = $daysOverdue * 30; // 30 pesos per day
+        } else {
+            $fineAmount = $daysOverdue * 5; // 5 pesos per day
+        }
+
+        // Insert fine into fines table
+        $insertFineQuery = "INSERT INTO fines (borrowing_id, type, amount, status, date) 
+                            VALUES (?, 'Overdue', ?, 'Unpaid', ?)";
+        $stmt = $conn->prepare($insertFineQuery);
+        $stmt->bind_param("ids", $borrowId, $fineAmount, $currentDate);
+        $stmt->execute();
+    }
 
     // Update borrowing record
     $updateBorrowingQuery = "UPDATE borrowings 
@@ -59,9 +79,6 @@ try {
     $stmt->bind_param("i", $bookId);
     $stmt->execute();
     
-    // Note: No longer updating user's borrowed_books and returned_books counters
-    // as these columns have been removed from the users table
-
     // Commit transaction
     $conn->commit();
     
