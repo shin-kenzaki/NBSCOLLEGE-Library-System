@@ -676,6 +676,9 @@ include 'inc/header.php';
                             <button class="btn btn-sm btn-success" id="exportBorrowingsTable">
                                 <i class="fas fa-file-excel"></i> Export to Excel
                             </button>
+                            <a href="fetch_borrowings_export.php?export_type=pdf" class="btn btn-danger btn-sm">
+                                <i class="fas fa-file-pdf"></i> Export Borrowings as PDF
+                            </a>
                         </div>
                     </div>
 
@@ -870,6 +873,9 @@ include 'inc/header.php';
                             <button class="btn btn-sm btn-success" id="exportReservationsTable">
                                 <i class="fas fa-file-excel"></i> Export to Excel
                             </button>
+                            <a href="fetch_reservations_export.php?export_type=pdf" class="btn btn-danger btn-sm">
+                                <i class="fas fa-file-pdf"></i> Export Reservations as PDF
+                            </a>
                         </div>
                     </div>
 
@@ -1069,6 +1075,9 @@ include 'inc/header.php';
                             <button class="btn btn-sm btn-success" id="exportUsersTable">
                                 <i class="fas fa-file-excel"></i> Export to Excel
                             </button>
+                            <a href="fetch_users_export.php?export_type=pdf" class="btn btn-danger btn-sm">
+                                <i class="fas fa-file-pdf"></i> Export Users as PDF
+                            </a>
                         </div>
                     </div>
 
@@ -1184,6 +1193,9 @@ include 'inc/header.php';
                             <button class="btn btn-sm btn-success" id="exportBooksTable">
                                 <i class="fas fa-file-excel"></i> Export to Excel
                             </button>
+                            <a href="fetch_books_export.php?export_type=pdf" class="btn btn-danger btn-sm">
+                                <i class="fas fa-file-pdf"></i> Export Books as PDF
+                            </a>
                         </div>
                     </div>
 
@@ -1300,6 +1312,9 @@ include 'inc/header.php';
                             <button class="btn btn-sm btn-success" id="exportFinesTable">
                                 <i class="fas fa-file-excel"></i> Export to Excel
                             </button>
+                            <a href="fetch_fines_export.php?export_type=pdf" class="btn btn-danger btn-sm">
+                                <i class="fas fa-file-pdf"></i> Export Fines as PDF
+                            </a>
                         </div>
                     </div>
 
@@ -1434,7 +1449,9 @@ include 'inc/header.php';
         <button class="btn btn-success btn-sm" id="exportVisitsExcel">
     <i class="fas fa-file-excel"></i> Export to Excel
 </button>
-
+        <a href="fetch_library_visits_export.php?export_type=pdf" class="btn btn-danger btn-sm">
+            <i class="fas fa-file-pdf"></i> Export Library Visits as PDF
+        </a>
     </div>
     <div class="card-body">
     <div class="table-responsive" id="visitsTableContainer">
@@ -1471,7 +1488,7 @@ include 'inc/header.php';
                 <?php endwhile; ?>
             <?php else: ?>
                 <tr>
-                    <td colspan="" class="text-center">No library visit records found</td>
+                    <td colspan="8" class="text-center">No library visit records found</td>
                 </tr>
             <?php endif; ?>
         </tbody>

@@ -697,6 +697,9 @@ function generateStrongPassword($length = 12) {
                     <button type="button" class="export-btn" onclick="exportToExcel()">
                         <i class="fas fa-file-excel"></i> Export to Excel
                     </button>
+                    <button type="button" class="export-btn" onclick="exportToPDF()">
+                        <i class="fas fa-file-pdf"></i> Export to PDF
+                    </button>
                     <button type="button" class="export-btn" onclick="copyAllPasswords()">
                         <i class="fas fa-copy"></i> Copy All
                     </button>
@@ -800,6 +803,10 @@ function generateStrongPassword($length = 12) {
     <!-- Add SheetJS (for Excel export) -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     
+    <!-- Add jsPDF for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    
     <script>
         function copyPassword(password) {
             const tempInput = document.createElement('input');
@@ -844,6 +851,149 @@ function generateStrongPassword($length = 12) {
             const table = document.getElementById('users-password-table');
             const wb = XLSX.utils.table_to_book(table, { sheet: "Imported Users" });
             XLSX.writeFile(wb, 'imported_users_' + new Date().toISOString().slice(0,10) + '.xlsx');
+            
+            showToast('Exported to Excel successfully');
+        }
+        
+        function exportToPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('landscape');
+            
+            // Set document properties
+            doc.setProperties({
+                title: 'Imported Users - NBSC Library System',
+                subject: 'User Credentials',
+                author: 'NBSC Library System',
+                creator: 'NBSC Library System'
+            });
+            
+            // Get page dimensions
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+            const marginLeft = 10;
+            const marginRight = 10;
+            const availableWidth = pageWidth - marginLeft - marginRight;
+            
+            // Draw a colored header background for the entire width of the page
+            doc.setFillColor(78, 115, 223);
+            doc.rect(0, 0, pageWidth, 20, 'F');
+            
+            // Add title across full width of the page with proper styling
+            doc.setFontSize(18);
+            doc.setFont(undefined, 'bold');
+            doc.setTextColor(255, 255, 255); // White text on blue background
+            doc.text('NBSC Library - Imported Users', pageWidth / 2, 14, { 
+                align: 'center'
+            });
+            
+            // Add date and info text
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(0, 0, 0);
+            doc.text('Generated on ' + new Date().toLocaleString(), pageWidth / 2, 25, { align: 'center' });
+            doc.setTextColor(255, 0, 0);
+            doc.text('IMPORTANT: Store these credentials in a secure location.', pageWidth / 2, 30, { align: 'center' });
+            doc.setTextColor(0, 0, 0);
+            
+            // Create data for table
+            const table = document.getElementById('users-password-table');
+            const tableData = [];
+            
+            // Get headers
+            const headers = [];
+            table.querySelectorAll('thead th').forEach((th, index) => {
+                // Skip the 'Action' column (last column)
+                if (index < 6) {
+                    headers.push(th.textContent.trim());
+                }
+            });
+            
+            // Get rows
+            table.querySelectorAll('tbody tr').forEach(tr => {
+                const row = [];
+                tr.querySelectorAll('td').forEach((td, index) => {
+                    // Skip the 'Action' column (last column)
+                    if (index < 6) {
+                        // For password column (index 5), get the text from the span
+                        if (index === 5) {
+                            const passwordField = td.querySelector('.password-field');
+                            if (passwordField) {
+                                row.push(passwordField.textContent.trim());
+                            } else {
+                                row.push('');
+                            }
+                        } else {
+                            row.push(td.textContent.trim());
+                        }
+                    }
+                });
+                tableData.push(row);
+            });
+            
+            // Calculate proportional column widths that use the full page width
+            // Set column width proportions (total should be 1)
+            const colProportions = [0.08, 0.22, 0.30, 0.15, 0.10, 0.15];
+            const colWidths = {};
+            
+            colProportions.forEach((proportion, index) => {
+                colWidths[index] = availableWidth * proportion;
+            });
+            
+            // Add table to the PDF using autoTable plugin
+            doc.autoTable({
+                head: [headers],
+                body: tableData,
+                startY: 35, // Increased to make room for the header
+                theme: 'striped',
+                margin: { left: marginLeft, right: marginRight },
+                styles: {
+                    fontSize: 8,
+                    cellPadding: 2,
+                    overflow: 'linebreak',
+                    halign: 'left'
+                },
+                headStyles: {
+                    fillColor: [78, 115, 223],
+                    textColor: 255,
+                    fontStyle: 'bold'
+                },
+                columnStyles: {
+                    0: { cellWidth: colWidths[0] }, // ID
+                    1: { cellWidth: colWidths[1] }, // Name
+                    2: { cellWidth: colWidths[2] }, // Email
+                    3: { cellWidth: colWidths[3] }, // Department
+                    4: { cellWidth: colWidths[4] }, // User Type
+                    5: { cellWidth: colWidths[5] }  // Password
+                },
+                alternateRowStyles: {
+                    fillColor: [240, 240, 240]
+                }
+            });
+            
+            // Add footer note
+            const pageCount = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.setTextColor(100);
+                doc.text(
+                    'Page ' + i + ' of ' + pageCount,
+                    doc.internal.pageSize.getWidth() / 2,
+                    doc.internal.pageSize.getHeight() - 10,
+                    { align: 'center' }
+                );
+                doc.text(
+                    'Confidential - For authorized personnel only',
+                    doc.internal.pageSize.getWidth() / 2,
+                    doc.internal.pageSize.getHeight() - 5,
+                    { align: 'center' }
+                );
+            }
+            
+            // Save the PDF
+            doc.save('imported_users_' + new Date().toISOString().slice(0,10) + '.pdf');
+            
+            showToast('Exported to PDF successfully');
         }
         
         function copyAllPasswords() {

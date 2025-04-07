@@ -952,64 +952,148 @@ $(document).ready(function() {
     
     // Function to export table to PDF
     function exportTableToPDF() {
-        // Define PDF document
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF('landscape');
         
-        // Clone the table to modify it without affecting the original
-        const table = $('#usersTable').clone();
-        
-        // Remove the checkbox column
-        table.find('th:first-child, td:first-child').remove();
-        
-        // Extract data for the PDF
-        let headers = [];
-        table.find('thead th').each(function() {
-            headers.push($(this).text().trim());
+        // Set document properties
+        doc.setProperties({
+            title: 'Users List - NBSC Library System',
+            subject: 'Library Users',
+            author: 'NBSC Library System',
+            creator: 'NBSC Library System'
         });
         
-        let data = [];
-        table.find('tbody tr').each(function() {
-            let row = [];
-            $(this).find('td').each(function() {
-                row.push($(this).text().trim());
-            });
-            data.push(row);
-        });
+        // Get page dimensions
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const marginLeft = 10;
+        const marginRight = 10;
+        const availableWidth = pageWidth - marginLeft - marginRight;
         
-        // Add title to the PDF
+        // Draw a colored header background for the entire width of the page
+        doc.setFillColor(78, 115, 223);
+        doc.rect(0, 0, pageWidth, 20, 'F');
+        
+        // Add title with proper styling
         doc.setFontSize(18);
-        doc.text('NBSC Library - Users List', 14, 15);
-        doc.setFontSize(10);
-        doc.text('Generated on ' + new Date().toLocaleString(), 14, 22);
+        doc.setFont(undefined, 'bold');
+        doc.setTextColor(255, 255, 255); // White text on blue background
+        doc.text('NBSC Library - Users List', pageWidth / 2, 14, { 
+            align: 'center'
+        });
         
-        // Add table to the PDF
-        doc.autoTable({
-            head: [headers],
-            body: data,
-            startY: 25,
-            styles: {
-                fontSize: 8,
-                cellPadding: 2,
-                overflow: 'linebreak'
-            },
-            columnStyles: {
-                0: { cellWidth: 15 }, // ID column
-                1: { cellWidth: 20 }, // Physical ID column
-                2: { cellWidth: 40 }, // Name column
-                3: { cellWidth: 45 }  // Email column
+        // Add date text
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'normal');
+        doc.setTextColor(0, 0, 0);
+        doc.text('Generated on ' + new Date().toLocaleString(), pageWidth / 2, 25, { align: 'center' });
+        
+        // Get table data
+        let tableData = [];
+        let headers = [];
+        
+        // Collect headers (excluding Select and ID columns)
+        $('#usersTable thead th').each(function(i) {
+            // Skip the Select checkbox column (i=0) and the ID column (i=1)
+            if (i !== 0 && i !== 1 && $(this).text() !== 'Actions') {
+                headers.push($(this).text());
             }
         });
         
-        // Save PDF file
-        doc.save('users_list_' + new Date().toISOString().slice(0,10) + '.pdf');
-        
-        Swal.fire({
-            title: 'Success!',
-            text: 'Users list exported to PDF',
-            icon: 'success',
-            confirmButtonText: 'OK'
+        // Get table data from DataTable API
+        const dataTable = $('#usersTable').DataTable();
+        dataTable.rows({ search: 'applied' }).every(function() {
+            const rowData = this.data();
+            let row = [];
+            
+            // Loop through each cell, starting from column 2 (Physical ID Number)
+            // Skip column 0 (checkbox) and column 1 (ID)
+            for (let i = 2; i < rowData.length; i++) {
+                // Clean the HTML to get just the text content
+                let cellContent = $('<div>').html(rowData[i]).text().trim();
+                
+                // For Status column, extract the status text
+                if (headers[i-2] === 'Status') {
+                    const statusMatch = rowData[i].match(/<span class="[^"]*">([^<]+)<\/span>/);
+                    if (statusMatch && statusMatch[1]) {
+                        cellContent = statusMatch[1].trim();
+                    }
+                }
+                
+                row.push(cellContent);
+            }
+            tableData.push(row);
         });
+        
+        // Calculate proportional column widths for full page width
+        const colCount = headers.length;
+        const colWidths = {};
+        
+        // Set appropriate column widths based on content type
+        for (let i = 0; i < colCount; i++) {
+            // Adjust column proportions based on content type
+            if (headers[i] === 'Physical ID Number') {
+                colWidths[i] = availableWidth * 0.08;
+            } else if (headers[i] === 'Name' || headers[i] === 'Email') {
+                colWidths[i] = availableWidth * 0.22;
+            } else if (headers[i].includes('Borrowing') || headers[i].includes('Returned') || 
+                       headers[i].includes('Damaged') || headers[i].includes('Lost')) {
+                colWidths[i] = availableWidth * 0.07;
+            } else if (headers[i] === 'Status') {
+                colWidths[i] = availableWidth * 0.08;
+            } else if (headers[i].includes('Date')) {
+                colWidths[i] = availableWidth * 0.12;
+            } else {
+                colWidths[i] = availableWidth * 0.10;
+            }
+        }
+        
+        // Add table to PDF
+        doc.autoTable({
+            head: [headers],
+            body: tableData,
+            startY: 35,
+            theme: 'striped',
+            margin: { left: marginLeft, right: marginRight },
+            styles: {
+                fontSize: 8,
+                cellPadding: 2,
+                overflow: 'linebreak',
+                halign: 'left'
+            },
+            headStyles: {
+                fillColor: [78, 115, 223],
+                textColor: 255,
+                fontStyle: 'bold'
+            },
+            columnStyles: colWidths,
+            alternateRowStyles: {
+                fillColor: [240, 240, 240]
+            }
+        });
+        
+        // Add footer with page numbers
+        const pageCount = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFontSize(8);
+            doc.setTextColor(100);
+            doc.text(
+                'Page ' + i + ' of ' + pageCount,
+                doc.internal.pageSize.getWidth() / 2,
+                doc.internal.pageSize.getHeight() - 10,
+                { align: 'center' }
+            );
+            doc.text(
+                'NBSC Library System - Generated on ' + new Date().toISOString().slice(0,10),
+                doc.internal.pageSize.getWidth() / 2,
+                doc.internal.pageSize.getHeight() - 5,
+                { align: 'center' }
+            );
+        }
+        
+        // Save the PDF file
+        doc.save('users_list_' + new Date().toISOString().slice(0,10) + '.pdf');
     }
 });
 
