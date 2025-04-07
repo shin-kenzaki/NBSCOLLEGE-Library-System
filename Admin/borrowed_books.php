@@ -127,6 +127,7 @@ while($row = $shelfResult->fetch_assoc()) {
 
 // NOTIFICATION LOGIC
 // 🟢 Email Reminder Query (Due Date Reminders)
+// 🟢 Email Reminder Query (Due Date Reminders)
 $emailQuery = "
     SELECT u.id AS user_id, u.email, u.firstname, u.lastname,
            GROUP_CONCAT(bk.title SEPARATOR '|') AS book_titles,
@@ -142,7 +143,7 @@ $emailQuery = "
 ";
 $emailResult = $conn->query($emailQuery);
 
-$emailsSent = false; // Track if any emails were sent
+$emailsSent = false;
 while ($row = $emailResult->fetch_assoc()) {
     $userId = $row['user_id'];
     $email = $row['email'];
@@ -198,7 +199,7 @@ while ($row = $emailResult->fetch_assoc()) {
     }
 }
 
-// 🟢 Email Overdue Notification Query
+// 🟠 Overdue Reminder Logic
 $overdueEmailQuery = "
     SELECT u.id AS user_id, u.email, u.firstname, u.lastname,
            GROUP_CONCAT(bk.title SEPARATOR '|') AS book_titles,
@@ -209,7 +210,7 @@ $overdueEmailQuery = "
     WHERE DATE(b.due_date) < CURDATE()
     AND b.status = 'Overdue'
     AND bk.shelf_location != 'RES'
-    AND b.reminder_sent = 0
+    AND b.reminder_sent = 1
     GROUP BY u.id, b.due_date
 ";
 $overdueEmailResult = $conn->query($overdueEmailQuery);
@@ -258,7 +259,7 @@ while ($row = $overdueEmailResult->fetch_assoc()) {
 
         if ($mail->send()) {
             $updateReminderQuery = "UPDATE borrowings
-                                    SET reminder_sent = 1
+                                    SET reminder_sent = 3
                                     WHERE user_id = '$userId'
                                     AND DATE(due_date) < CURDATE()";
             $conn->query($updateReminderQuery);
@@ -269,12 +270,11 @@ while ($row = $overdueEmailResult->fetch_assoc()) {
     }
 }
 
-// Set session variable if any emails were sent
+// 🟢 Show SweetAlert if any emails were sent
 if ($emailsSent) {
     $_SESSION['emails_sent'] = true;
 }
 
-// Display a single SweetAlert notification if emails were sent
 if (isset($_SESSION['emails_sent']) && $_SESSION['emails_sent']) {
     echo "<script>
         Swal.fire({
@@ -284,7 +284,7 @@ if (isset($_SESSION['emails_sent']) && $_SESSION['emails_sent']) {
             confirmButtonText: 'OK'
         });
     </script>";
-    unset($_SESSION['emails_sent']); // Clear the session variable
+    unset($_SESSION['emails_sent']);
 }
 ?>
 
