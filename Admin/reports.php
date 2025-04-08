@@ -676,8 +676,8 @@ include 'inc/header.php';
                             <button class="btn btn-sm btn-success" id="exportBorrowingsTable">
                                 <i class="fas fa-file-excel"></i> Export to Excel
                             </button>
-                            <a href="fetch_borrowings_export.php?export_type=pdf" class="btn btn-danger btn-sm">
-                                <i class="fas fa-file-pdf"></i> Export Borrowings as PDF
+                            <a href="reports_export_pdf.php?type=borrowings" id="exportBorrowingsPDF" class="btn btn-danger btn-sm">
+                                <i class="fas fa-file-pdf"></i> Export as PDF
                             </a>
                         </div>
                     </div>
@@ -873,8 +873,8 @@ include 'inc/header.php';
                             <button class="btn btn-sm btn-success" id="exportReservationsTable">
                                 <i class="fas fa-file-excel"></i> Export to Excel
                             </button>
-                            <a href="fetch_reservations_export.php?export_type=pdf" class="btn btn-danger btn-sm">
-                                <i class="fas fa-file-pdf"></i> Export Reservations as PDF
+                            <a href="reports_export_pdf.php?type=reservations" id="exportReservationsPDF" class="btn btn-danger btn-sm">
+                                <i class="fas fa-file-pdf"></i> Export as PDF
                             </a>
                         </div>
                     </div>
@@ -1075,8 +1075,8 @@ include 'inc/header.php';
                             <button class="btn btn-sm btn-success" id="exportUsersTable">
                                 <i class="fas fa-file-excel"></i> Export to Excel
                             </button>
-                            <a href="fetch_users_export.php?export_type=pdf" class="btn btn-danger btn-sm">
-                                <i class="fas fa-file-pdf"></i> Export Users as PDF
+                            <a href="reports_export_pdf.php?type=users" id="exportUsersPDF" class="btn btn-danger btn-sm">
+                                <i class="fas fa-file-pdf"></i> Export as PDF
                             </a>
                         </div>
                     </div>
@@ -1193,8 +1193,8 @@ include 'inc/header.php';
                             <button class="btn btn-sm btn-success" id="exportBooksTable">
                                 <i class="fas fa-file-excel"></i> Export to Excel
                             </button>
-                            <a href="fetch_books_export.php?export_type=pdf" class="btn btn-danger btn-sm">
-                                <i class="fas fa-file-pdf"></i> Export Books as PDF
+                            <a href="reports_export_pdf.php?type=books" id="exportBooksPDF" class="btn btn-danger btn-sm">
+                                <i class="fas fa-file-pdf"></i> Export as PDF
                             </a>
                         </div>
                     </div>
@@ -1312,8 +1312,8 @@ include 'inc/header.php';
                             <button class="btn btn-sm btn-success" id="exportFinesTable">
                                 <i class="fas fa-file-excel"></i> Export to Excel
                             </button>
-                            <a href="fetch_fines_export.php?export_type=pdf" class="btn btn-danger btn-sm">
-                                <i class="fas fa-file-pdf"></i> Export Fines as PDF
+                            <a href="reports_export_pdf.php?type=fines" id="exportFinesPDF" class="btn btn-danger btn-sm">
+                                <i class="fas fa-file-pdf"></i> Export as PDF
                             </a>
                         </div>
                     </div>
@@ -1446,12 +1446,14 @@ include 'inc/header.php';
             <div class="card shadow mt-4">
     <div class="card-header py-3 d-flex justify-content-between align-items-center">
         <h6 class="m-0 font-weight-bold text-primary">Library Visits</h6>
-        <button class="btn btn-success btn-sm" id="exportVisitsExcel">
-    <i class="fas fa-file-excel"></i> Export to Excel
-</button>
-        <a href="fetch_library_visits_export.php?export_type=pdf" class="btn btn-danger btn-sm">
-            <i class="fas fa-file-pdf"></i> Export Library Visits as PDF
-        </a>
+        <div>
+            <button class="btn btn-success btn-sm" id="exportVisitsExcel">
+                <i class="fas fa-file-excel"></i> Export to Excel
+            </button>
+            <a href="reports_export_pdf.php?type=library_visits" id="exportVisitsPDF" class="btn btn-danger btn-sm">
+                <i class="fas fa-file-pdf"></i> Export as PDF
+            </a>
+        </div>
     </div>
     <div class="card-body">
     <div class="table-responsive" id="visitsTableContainer">
@@ -2593,6 +2595,140 @@ document.getElementById('exportVisitsExcel').addEventListener('click', function 
     window.location.href = 'export_library_visits_excel.php?' + params.toString();
 });
 
+// Update PDF export links with current filters
+document.addEventListener('DOMContentLoaded', function() {
+    // Borrowings PDF Export
+    document.getElementById('exportBorrowingsPDF').addEventListener('click', function(e) {
+        e.preventDefault();
+        const statusFilter = document.getElementById('bstatus').value;
+        const dateStart = document.getElementById('bdate_start').value;
+        const dateEnd = document.getElementById('bdate_end').value;
+        const userFilter = document.getElementById('buser').value;
+        const bookFilter = document.getElementById('bbook').value;
+
+        // Build query string with current filters
+        let params = new URLSearchParams();
+        params.append('type', 'borrowings');
+        if (statusFilter) params.append('status', statusFilter);
+        if (dateStart) params.append('date_start', dateStart);
+        if (dateEnd) params.append('date_end', dateEnd);
+        if (userFilter) params.append('user', userFilter);
+        if (bookFilter) params.append('book', bookFilter);
+
+        // Navigate to the export URL
+        window.location.href = 'reports_export_pdf.php?' + params.toString();
+    });
+    
+    // Reservations PDF Export
+    document.getElementById('exportReservationsPDF').addEventListener('click', function(e) {
+        e.preventDefault();
+        const statusFilter = document.getElementById('rstatus').value;
+        const dateStart = document.getElementById('rdate_start').value;
+        const dateEnd = document.getElementById('rdate_end').value;
+        const userFilter = document.getElementById('ruser').value;
+        const bookFilter = document.getElementById('rbook').value;
+
+        // Build query string with current filters
+        let params = new URLSearchParams();
+        params.append('type', 'reservations');
+        if (statusFilter) params.append('status', statusFilter);
+        if (dateStart) params.append('date_start', dateStart);
+        if (dateEnd) params.append('date_end', dateEnd);
+        if (userFilter) params.append('user', userFilter);
+        if (bookFilter) params.append('book', bookFilter);
+
+        // Navigate to the export URL
+        window.location.href = 'reports_export_pdf.php?' + params.toString();
+    });
+    
+    // Users PDF Export
+    document.getElementById('exportUsersPDF').addEventListener('click', function(e) {
+        e.preventDefault();
+        const roleFilter = document.getElementById('urole').value;
+        const dateStart = document.getElementById('udate_start').value;
+        const dateEnd = document.getElementById('udate_end').value;
+        const searchFilter = document.getElementById('usearch').value;
+        const statusFilter = document.getElementById('ustatus').value;
+
+        // Build query string with current filters
+        let params = new URLSearchParams();
+        params.append('type', 'users');
+        if (roleFilter) params.append('role', roleFilter);
+        if (dateStart) params.append('date_start', dateStart);
+        if (dateEnd) params.append('date_end', dateEnd);
+        if (searchFilter) params.append('search', searchFilter);
+        if (statusFilter !== '') params.append('status', statusFilter);
+
+        // Navigate to the export URL
+        window.location.href = 'reports_export_pdf.php?' + params.toString();
+    });
+    
+    // Books PDF Export
+    document.getElementById('exportBooksPDF').addEventListener('click', function(e) {
+        e.preventDefault();
+        const statusFilter = document.getElementById('bookstatus').value;
+        const dateStart = document.getElementById('bookdate_start').value;
+        const dateEnd = document.getElementById('bookdate_end').value;
+        const titleFilter = document.getElementById('booktitle').value;
+        const locationFilter = document.getElementById('booklocation').value;
+
+        // Build query string with current filters
+        let params = new URLSearchParams();
+        params.append('type', 'books');
+        if (statusFilter) params.append('status', statusFilter);
+        if (dateStart) params.append('date_start', dateStart);
+        if (dateEnd) params.append('date_end', dateEnd);
+        if (titleFilter) params.append('title', titleFilter);
+        if (locationFilter) params.append('location', locationFilter);
+
+        // Navigate to the export URL
+        window.location.href = 'reports_export_pdf.php?' + params.toString();
+    });
+    
+    // Fines PDF Export
+    document.getElementById('exportFinesPDF').addEventListener('click', function(e) {
+        e.preventDefault();
+        const statusFilter = document.getElementById('fstatus').value;
+        const dateStart = document.getElementById('fdate_start').value;
+        const dateEnd = document.getElementById('fdate_end').value;
+        const userFilter = document.getElementById('fuser').value;
+        const typeFilter = document.getElementById('ftype').value;
+
+        // Build query string with current filters
+        let params = new URLSearchParams();
+        params.append('type', 'fines');
+        if (statusFilter) params.append('status', statusFilter);
+        if (dateStart) params.append('date_start', dateStart);
+        if (dateEnd) params.append('date_end', dateEnd);
+        if (userFilter) params.append('user', userFilter);
+        if (typeFilter) params.append('fine_type', typeFilter); // Changed from 'type' to 'fine_type'
+
+        // Navigate to the export URL
+        window.location.href = 'reports_export_pdf.php?' + params.toString();
+    });
+    
+    // Library Visits PDF Export
+    document.getElementById('exportVisitsPDF').addEventListener('click', function(e) {
+        e.preventDefault();
+        const courseFilter = document.getElementById('vcourse').value;
+        const purposeFilter = document.getElementById('vpurpose').value;
+        const dateStart = document.getElementById('vdate_start').value;
+        const dateEnd = document.getElementById('vdate_end').value;
+        const userFilter = document.getElementById('vuser').value;
+
+        // Build query string with current filters
+        let params = new URLSearchParams();
+        params.append('type', 'library_visits');
+        if (courseFilter) params.append('vcourse', courseFilter);
+        if (purposeFilter) params.append('vpurpose', purposeFilter);
+        if (dateStart) params.append('vdate_start', dateStart);
+        if (dateEnd) params.append('vdate_end', dateEnd);
+        if (userFilter) params.append('vuser', userFilter);
+
+        // Navigate to the export URL
+        window.location.href = 'reports_export_pdf.php?' + params.toString();
+    });
+});
 </script>
 
 <?php
