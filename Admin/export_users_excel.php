@@ -249,50 +249,51 @@ foreach (range('A', 'L') as $column) {
 function generateDescriptiveFilename($roleFilter, $dateStart, $dateEnd, $searchFilter, $statusFilter) {
     $filenameParts = ['users'];
     $currentDate = date('Y-m-d');
-
+    
     // Add role to filename if filtered
     if ($roleFilter) {
-        $filenameParts[] = strtolower($roleFilter);
+        $filenameParts[] = strtolower($roleFilter) . 's';
     }
-
+    
+    // Add status to filename if filtered
+    if ($statusFilter !== '') {
+        $statusText = $statusFilter == '1' ? 'active' : 'inactive';
+        $filenameParts[] = $statusText;
+    }
+    
     // Add search filter info if present
     if (!empty($searchFilter)) {
         // Clean up search filter for filename
         $cleanSearchFilter = preg_replace('/[^a-zA-Z0-9]/', '_', $searchFilter);
         $filenameParts[] = 'search_' . substr($cleanSearchFilter, 0, 20); // Limit length
     }
-
+    
     // Add date range to filename if filtered
     if (!empty($dateStart) && !empty($dateEnd)) {
-        $filenameParts[] = 'period_' . $dateStart . '_to_' . $dateEnd;
+        $filenameParts[] = 'from_' . $dateStart . '_to_' . $dateEnd;
     } elseif (!empty($dateStart)) {
         $filenameParts[] = 'from_' . $dateStart;
     } elseif (!empty($dateEnd)) {
         $filenameParts[] = 'until_' . $dateEnd;
     }
-
-    // Add status info to filename if filtered
-    if ($statusFilter !== '') {
-        $filenameParts[] = $statusFilter === '1' ? 'active' : 'inactive';
-    }
-
+    
     // If no specific filters applied, indicate this is a complete report
     if (count($filenameParts) === 1) {
-        $filenameParts[] = 'all_records';
+        $filenameParts[] = 'all';
     }
-
+    
     // Add date for uniqueness
     $filenameParts[] = date('Y-m-d');
-
+    
     // Join parts with underscores and add extension
     $filename = implode('_', $filenameParts) . '.xlsx';
-
+    
     // Make sure filename isn't too long (max 255 chars is safe for most filesystems)
     if (strlen($filename) > 200) {
         // If too long, use a simplified name
         $filename = 'users_export_' . date('Y-m-d') . '.xlsx';
     }
-
+    
     return $filename;
 }
 

@@ -63,30 +63,41 @@ if (file_exists('tcpdf/tcpdf.php')) {
 // Ensure no output is sent before generating the PDF
 ob_start();
 
-// Create a custom PDF class
+// Update the margin settings to be dynamic based on page number
 class MYPDF extends TCPDF {
     public function Header() {
-        global $title;
-        
-        // Draw a colored header background for the entire width of the page
-        $this->SetFillColor(78, 115, 223); // Blue color matching NBSC theme
-        $this->Rect(0, 0, $this->getPageWidth(), 20, 'F');
-        
-        // Set font for title (white on blue background)
-        $this->SetTextColor(255, 255, 255);
-        $this->SetFont('helvetica', 'B', 18);
-        
-        // Logo
-        $image_file = '../assets/img/logo.png';
-        if (file_exists($image_file)) {
-            $this->Image($image_file, 10, 2, 16, '', 'PNG', '', 'T', false, 300, '', false, false, 0, false, false, false);
+        // Only show header on first page
+        if ($this->PageNo() == 1) {
+            global $title;
+            
+            // Calculate position for centered logo
+            $pageWidth = $this->GetPageWidth() - 40;
+            $imageWidth = 40;
+            $xPos = ($pageWidth - $imageWidth) / 2 + 20;
+            
+            // Logo - use the horizontal NBS logo
+            $image_file = 'inc/img/horizontal-nbs-logo.png';
+            if (file_exists($image_file)) {
+                $this->Image($image_file, $xPos, $this->GetY(), $imageWidth);
+            }
+            
+            // Add some space after logo
+            $this->Ln(20);
+            
+            // Add NBS COLLEGE LIBRARY text
+            $this->SetFont('helvetica', 'B', 12);
+            $this->Cell(0, 5, 'NBS COLLEGE LIBRARY', 0, 1, 'C');
+            
+            // Add report title immediately after
+            $this->SetFont('helvetica', 'B', 14);
+            $this->Cell(0, 10, $title, 0, 1, 'C');
+
+            // Set margin for first page only
+            $this->SetMargins(15, 40, 15);
+        } else {
+            // Set full margins for subsequent pages
+            $this->SetMargins(15, 15, 15);
         }
-        
-        // Title text aligned center
-        $this->Cell(0, 20, 'NBSC Library - ' . $title, 0, false, 'C', 0, '', 0, false, 'M', 'M');
-        
-        // Reset text color for the rest of the document
-        $this->SetTextColor(0, 0, 0);
     }
 
     public function Footer() {
@@ -118,7 +129,7 @@ $pdf->setFooterFont(Array('helvetica', '', 8));
 // Set default monospaced font
 $pdf->SetDefaultMonospacedFont(PDF_FONT_MONOSPACED);
 
-// Set margins
+// Set initial margins - will be adjusted per page in Header()
 $pdf->SetMargins(15, 40, 15);
 $pdf->SetHeaderMargin(10);
 $pdf->SetFooterMargin(10);
@@ -135,7 +146,7 @@ $pdf->AddPage('L', 'A4');
 // Set font
 $pdf->SetFont('helvetica', '', 10);
 
-// Add filter summary section with improved styling
+// Add filter summary section with improved styling (single line format)
 $filterSummary = '<h3 style="color:#4e73df;border-bottom:1px solid #e3e6f0;padding-bottom:5px;">Filter Parameters:</h3>';
 
 // Generate data and add content based on export type
@@ -148,17 +159,19 @@ switch ($exportType) {
         $user = isset($_GET['user']) ? $_GET['user'] : '';
         $book = isset($_GET['book']) ? $_GET['book'] : '';
         
-        // Build filter summary
-        $filterSummary .= "<ul>";
-        if ($status) $filterSummary .= "<li>Status: $status</li>";
-        if ($dateStart) $filterSummary .= "<li>From Date: $dateStart</li>";
-        if ($dateEnd) $filterSummary .= "<li>To Date: $dateEnd</li>";
-        if ($user) $filterSummary .= "<li>Borrower: $user</li>";
-        if ($book) $filterSummary .= "<li>Book: $book</li>";
-        if (!$status && !$dateStart && !$dateEnd && !$user && !$book) {
-            $filterSummary .= "<li>No filters applied</li>";
+        // Build filter summary in a single line
+        $filterParams = [];
+        if ($status) $filterParams[] = "Status: $status";
+        if ($dateStart) $filterParams[] = "From Date: $dateStart";
+        if ($dateEnd) $filterParams[] = "To Date: $dateEnd";
+        if ($user) $filterParams[] = "Borrower: $user";
+        if ($book) $filterParams[] = "Book: $book";
+        
+        if (empty($filterParams)) {
+            $filterSummary .= "<p>No filters applied</p>";
+        } else {
+            $filterSummary .= "<p>" . implode(" | ", $filterParams) . "</p>";
         }
-        $filterSummary .= "</ul>";
         
         // Build WHERE clause based on filters
         $whereClause = "";
@@ -299,17 +312,19 @@ switch ($exportType) {
         $title = isset($_GET['title']) ? $_GET['title'] : '';
         $location = isset($_GET['location']) ? $_GET['location'] : '';
         
-        // Build filter summary
-        $filterSummary .= "<ul>";
-        if ($status) $filterSummary .= "<li>Status: $status</li>";
-        if ($dateStart) $filterSummary .= "<li>From Date: $dateStart</li>";
-        if ($dateEnd) $filterSummary .= "<li>To Date: $dateEnd</li>";
-        if ($title) $filterSummary .= "<li>Title/Accession: $title</li>";
-        if ($location) $filterSummary .= "<li>Location: $location</li>";
-        if (!$status && !$dateStart && !$dateEnd && !$title && !$location) {
-            $filterSummary .= "<li>No filters applied</li>";
+        // Build filter summary in a single line
+        $filterParams = [];
+        if ($status) $filterParams[] = "Status: $status";
+        if ($dateStart) $filterParams[] = "From Date: $dateStart";
+        if ($dateEnd) $filterParams[] = "To Date: $dateEnd";
+        if ($title) $filterParams[] = "Title/Accession: $title";
+        if ($location) $filterParams[] = "Location: $location";
+        
+        if (empty($filterParams)) {
+            $filterSummary .= "<p>No filters applied</p>";
+        } else {
+            $filterSummary .= "<p>" . implode(" | ", $filterParams) . "</p>";
         }
-        $filterSummary .= "</ul>";
         
         // Build WHERE clause based on filters
         $whereClause = "";
@@ -460,17 +475,19 @@ switch ($exportType) {
         $user = isset($_GET['user']) ? $_GET['user'] : '';
         $book = isset($_GET['book']) ? $_GET['book'] : '';
         
-        // Build filter summary
-        $filterSummary .= "<ul>";
-        if ($status) $filterSummary .= "<li>Status: $status</li>";
-        if ($dateStart) $filterSummary .= "<li>From Date: $dateStart</li>";
-        if ($dateEnd) $filterSummary .= "<li>To Date: $dateEnd</li>";
-        if ($user) $filterSummary .= "<li>User: $user</li>";
-        if ($book) $filterSummary .= "<li>Book: $book</li>";
-        if (!$status && !$dateStart && !$dateEnd && !$user && !$book) {
-            $filterSummary .= "<li>No filters applied</li>";
+        // Build filter summary in a single line
+        $filterParams = [];
+        if ($status) $filterParams[] = "Status: $status";
+        if ($dateStart) $filterParams[] = "From Date: $dateStart";
+        if ($dateEnd) $filterParams[] = "To Date: $dateEnd";
+        if ($user) $filterParams[] = "User: $user";
+        if ($book) $filterParams[] = "Book: $book";
+        
+        if (empty($filterParams)) {
+            $filterSummary .= "<p>No filters applied</p>";
+        } else {
+            $filterSummary .= "<p>" . implode(" | ", $filterParams) . "</p>";
         }
-        $filterSummary .= "</ul>";
         
         // Build WHERE clause based on filters
         $whereClause = "";
@@ -613,17 +630,19 @@ switch ($exportType) {
         $search = isset($_GET['search']) ? $_GET['search'] : '';
         $status = isset($_GET['status']) ? $_GET['status'] : '';
         
-        // Build filter summary
-        $filterSummary .= "<ul>";
-        if ($role) $filterSummary .= "<li>User Type: $role</li>";
-        if ($dateStart) $filterSummary .= "<li>From Date: $dateStart</li>";
-        if ($dateEnd) $filterSummary .= "<li>To Date: $dateEnd</li>";
-        if ($search) $filterSummary .= "<li>Search Term: $search</li>";
-        if ($status !== '') $filterSummary .= "<li>Status: " . ($status == '1' ? 'Active' : 'Inactive') . "</li>";
-        if (!$role && !$dateStart && !$dateEnd && !$search && $status === '') {
-            $filterSummary .= "<li>No filters applied</li>";
+        // Build filter summary in a single line
+        $filterParams = [];
+        if ($role) $filterParams[] = "User Type: $role";
+        if ($dateStart) $filterParams[] = "From Date: $dateStart";
+        if ($dateEnd) $filterParams[] = "To Date: $dateEnd";
+        if ($search) $filterParams[] = "Search Term: $search";
+        if ($status !== '') $filterParams[] = "Status: " . ($status == '1' ? 'Active' : 'Inactive');
+        
+        if (empty($filterParams)) {
+            $filterSummary .= "<p>No filters applied</p>";
+        } else {
+            $filterSummary .= "<p>" . implode(" | ", $filterParams) . "</p>";
         }
-        $filterSummary .= "</ul>";
         
         // Determine if we need to query admins, users, or both based on role
         $isAdmin = in_array($role, ['Admin', 'Librarian', 'Assistant', 'Encoder']);
@@ -856,14 +875,14 @@ switch ($exportType) {
                 $rowStyle = $rowCount % 2 === 0 ? 'background-color:#f8f9fc;' : 'background-color:#ffffff;';
                 $rowCount++;
                 
-                $html .= '<tr style="' . $rowStyle . '">
+                $html .= '<tr style="' . $rowStyle . '" nobr="true">
                             <td>' . $row['id'] . '</td>
                             <td>' . $row['school_id'] . '</td>
                             <td>' . htmlspecialchars($row['name']) . '</td>
                             <td>' . htmlspecialchars($row['email']) . '</td>
                             <td>' . $row['usertype'] . '</td>
                             <td>' . htmlspecialchars($row['department']) . '</td>
-                            <td>' . $borrowingStats . '</td>
+                            <td style="page-break-inside: avoid;">' . $borrowingStats . '</td>
                             <td style="' . $statusStyle . '">' . $statusText . '</td>
                             <td>' . date('M d, Y', strtotime($row['date_added'])) . '</td>
                           </tr>';
@@ -3893,17 +3912,19 @@ case 'books':
         $userFilter = isset($_GET['user']) ? $_GET['user'] : '';
         $typeFilter = isset($_GET['fine_type']) ? $_GET['fine_type'] : ''; // Changed from 'type' to 'fine_type'
         
-        // Build filter summary
-        $filterSummary .= "<ul>";
-        if ($statusFilter) $filterSummary .= "<li>Status: $statusFilter</li>";
-        if ($dateStart) $filterSummary .= "<li>From Date: $dateStart</li>";
-        if ($dateEnd) $filterSummary .= "<li>To Date: $dateEnd</li>";
-        if ($userFilter) $filterSummary .= "<li>User: $userFilter</li>";
-        if ($typeFilter) $filterSummary .= "<li>Fine Type: $typeFilter</li>";
-        if (!$statusFilter && !$dateStart && !$dateEnd && !$userFilter && !$typeFilter) {
-            $filterSummary .= "<li>No filters applied</li>";
+        // Build filter summary in a single line
+        $filterParams = [];
+        if ($statusFilter) $filterParams[] = "Status: $statusFilter";
+        if ($dateStart) $filterParams[] = "From Date: $dateStart";
+        if ($dateEnd) $filterParams[] = "To Date: $dateEnd";
+        if ($userFilter) $filterParams[] = "User: $userFilter";
+        if ($typeFilter) $filterParams[] = "Fine Type: $typeFilter";
+        
+        if (empty($filterParams)) {
+            $filterSummary .= "<p>No filters applied</p>";
+        } else {
+            $filterSummary .= "<p>" . implode(" | ", $filterParams) . "</p>";
         }
-        $filterSummary .= "</ul>";
         
         // Build WHERE clause based on filters
         $whereClause = "";
@@ -4014,7 +4035,7 @@ case 'books':
                             <td>' . htmlspecialchars($userName) . '</td>
                             <td>' . htmlspecialchars($bookTitle) . ' (' . htmlspecialchars($row['accession']) . ')</td>
                             <td>' . htmlspecialchars($row['type']) . '</td>
-                            <td style="text-align:right;">₱' . $amount . '</td>
+                            <td style="text-align:right;">PHP ' . $amount . '</td>
                             <td>' . ($row['issue_date'] ? date('M d, Y', strtotime($row['issue_date'])) : 'N/A') . '</td>
                             <td>' . ($row['due_date'] ? date('M d, Y', strtotime($row['due_date'])) : 'N/A') . '</td>
                             <td>' . ($row['return_date'] ? date('M d, Y', strtotime($row['return_date'])) : 'N/A') . '</td>
@@ -4032,9 +4053,9 @@ case 'books':
                 </table>
                 <p style="margin-top:10px;">
                     <strong>Total Records:</strong> ' . $rowCount . '<br>
-                    <strong>Total Fines Amount:</strong> ₱' . number_format($totalFines, 2) . '<br>
-                    <strong>Paid Fines:</strong> ₱' . number_format($paidFines, 2) . '<br>
-                    <strong>Unpaid Fines:</strong> ₱' . number_format($unpaidFines, 2) . '
+                    <strong>Total Fines Amount:</strong> PHP ' . number_format($totalFines, 2) . '<br>
+                    <strong>Paid Fines:</strong> PHP ' . number_format($paidFines, 2) . '<br>
+                    <strong>Unpaid Fines:</strong> PHP ' . number_format($unpaidFines, 2) . '
                 </p>';
         
         // Add table to PDF
@@ -4043,9 +4064,154 @@ case 'books':
         $stmt->close();
         break;
 
-    case 'library_visits':
+        case 'library_visits':
+            // Get filter parameters
+            $status = isset($_GET['vstatus']) ? $_GET['vstatus'] : '';
+            $dateStart = isset($_GET['vdate_start']) ? $_GET['vdate_start'] : '';
+            $dateEnd = isset($_GET['vdate_end']) ? $_GET['vdate_end'] : '';
+            $userFilter = isset($_GET['vuser']) ? $_GET['vuser'] : '';
+            $purposeFilter = isset($_GET['vpurpose']) ? $_GET['vpurpose'] : '';
+            $courseFilter = isset($_GET['vcourse']) ? $_GET['vcourse'] : '';
+        
+            // Build filter summary in a single line
+            $filterParams = [];
+            if ($courseFilter) $filterParams[] = "Course: $courseFilter";
+            if ($purposeFilter) $filterParams[] = "Purpose: $purposeFilter"; 
+            if ($dateStart) $filterParams[] = "From Date: $dateStart";
+            if ($dateEnd) $filterParams[] = "To Date: $dateEnd";
+            if ($userFilter) $filterParams[] = "User: $userFilter";
+        
+            if (empty($filterParams)) {
+                $filterSummary .= "<p>No filters applied</p>";
+            } else {
+                $filterSummary .= "<p>" . implode(" | ", $filterParams) . "</p>";
+            }
+        
+            // Build WHERE clause based on filters
+            $whereClause = "WHERE lv.purpose != 'Exit'"; // Exclude Exit records
+            $params = [];
+        
+            if ($courseFilter) {
+                $whereClause .= " AND u.department = ?";
+                $params[] = $courseFilter;
+            }
+        
+            if ($purposeFilter) {
+                $whereClause .= " AND lv.purpose = ?";
+                $params[] = $purposeFilter;
+            }
+        
+            if ($dateStart) {
+                $whereClause .= " AND DATE(lv.time) >= ?";
+                $params[] = $dateStart;
+            }
+        
+            if ($dateEnd) {
+                $whereClause .= " AND DATE(lv.time) <= ?";
+                $params[] = $dateEnd;
+            }
+        
+            if ($userFilter) {
+                $whereClause .= " AND (lv.student_number LIKE ? OR CONCAT(u.firstname, ' ', u.lastname) LIKE ?)";
+                $userParam = "%$userFilter%";
+                $params[] = $userParam;
+                $params[] = $userParam;
+            }
+        
+            // Query to get library visits with user details
+            $query = "SELECT lv.id, lv.student_number, lv.time AS time_entry, lv.purpose,
+                             u.firstname, u.lastname, u.department,
+                             (SELECT time FROM library_visits 
+                              WHERE student_number = lv.student_number 
+                              AND purpose = 'Exit' 
+                              AND time > lv.time 
+                              ORDER BY time ASC LIMIT 1) AS time_exit
+                      FROM library_visits lv
+                      LEFT JOIN users u ON lv.student_number = u.school_id
+                      $whereClause
+                      ORDER BY lv.time DESC";
+        
+            // Prepare and execute statement
+            $stmt = $conn->prepare($query);
+            
+            if (!empty($params)) {
+                $types = str_repeat("s", count($params));
+                $stmt->bind_param($types, ...$params);
+            }
+            
+            $stmt->execute();
+            $result = $stmt->get_result();
+        
+            // Add filter summary to PDF
+            $pdf->writeHTMLCell(0, 0, '', '', $filterSummary, 0, 1, 0, true, '', true);
+            $pdf->Ln(5);
+        
+            // Set up the table header
+            $html = '<table border="1" cellpadding="5" cellspacing="0" width="100%" style="border-collapse:collapse;">
+                        <thead>
+                            <tr style="background-color:#4e73df;color:white;font-weight:bold;">
+                                <th align="center">ID</th>
+                                <th align="center">Student/Employee ID</th>
+                                <th align="center">Name</th>
+                                <th align="center">Course/Department</th>
+                                <th align="center">Purpose</th>
+                                <th align="center">Time In</th>
+                                <th align="center">Time Out</th>
+                                <th align="center">Duration</th>
+                            </tr>
+                        </thead>
+                        <tbody>';
+        
+            // Fill the table with data
+            $rowCount = 0;
+            if ($result->num_rows > 0) {
+                while ($row = $result->fetch_assoc()) {
+                    // Calculate duration if exit time exists
+                    $duration = '-';
+                    if ($row['time_exit']) {
+                        $timeIn = new DateTime($row['time_entry']);
+                        $timeOut = new DateTime($row['time_exit']);
+                        $interval = $timeIn->diff($timeOut);
+                        $duration = $interval->format('%H:%I:%S');
+                    }
+        
+                    // Add row background alternating colors
+                    $rowStyle = $rowCount % 2 === 0 ? 'background-color:#f8f9fc;' : 'background-color:#ffffff;';
+                    $rowCount++;
+        
+                    $html .= '<tr style="' . $rowStyle . '">
+                                <td>' . $row['id'] . '</td>
+                                <td>' . $row['student_number'] . '</td>
+                                <td>' . htmlspecialchars($row['firstname'] . ' ' . $row['lastname']) . '</td>
+                                <td>' . htmlspecialchars($row['department']) . '</td>
+                                <td>' . $row['purpose'] . '</td>
+                                <td>' . date('M d, Y h:i A', strtotime($row['time_entry'])) . '</td>
+                                <td>' . ($row['time_exit'] ? date('M d, Y h:i A', strtotime($row['time_exit'])) : '-') . '</td>
+                                <td>' . $duration . '</td>
+                             </tr>';
+                }
+            } else {
+                $html .= '<tr><td colspan="8" align="center">No library visit records found</td></tr>';
+            }
+        
+            // Add summary at the end of the table
+            $html .= '</tbody>
+                      <tfoot>
+                          <tr style="background-color:#f8f9fc;">
+                              <td colspan="8" align="right">
+                                  <strong>Total Records: ' . $result->num_rows . '</strong>
+                              </td>
+                          </tr>
+                      </tfoot>
+                   </table>';
+        
+            // Add table to PDF
+            $pdf->writeHTML($html, true, false, false, false, '');
+            
+            $stmt->close();
+        break;
         // Get filter parameters
-   case 'reservations':
+    case 'reservations':
         // Get filter parameters
         $status = isset($_GET['status']) ? $_GET['status'] : '';
         $dateStart = isset($_GET['date_start']) ? $_GET['date_start'] : '';

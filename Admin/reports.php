@@ -1780,7 +1780,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (bookFilter) params.append('book', bookFilter);
 
         // Create export URL with filters
-        const exportUrl = 'fetch_borrowings_export.php?' + params.toString();
+        const exportUrl = 'export_borrowings_excel.php?' + params.toString();
 
         // Navigate to the export URL (will download the file)
         window.location.href = exportUrl;
@@ -1894,7 +1894,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (bookFilter) params.append('book', bookFilter);
 
         // Create export URL with filters
-        const exportUrl = 'fetch_reservations_export.php?' + params.toString();
+        const exportUrl = 'export_reservations_excel.php?' + params.toString();
 
         // Navigate to the export URL (will download the file)
         window.location.href = exportUrl;
@@ -2008,7 +2008,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (statusFilter !== '') params.append('status', statusFilter);
 
         // Create export URL with filters
-        const exportUrl = 'fetch_users_export.php?' + params.toString();
+        const exportUrl = 'export_users_excel.php?' + params.toString();
 
         // Navigate to the export URL (will download the file)
         window.location.href = exportUrl;
@@ -2122,7 +2122,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (locationFilter) params.append('location', locationFilter);
 
         // Create export URL with filters
-        const exportUrl = 'fetch_books_export.php?' + params.toString();
+        const exportUrl = 'export_books_excel.php?' + params.toString();
 
         // Navigate to the export URL (will download the file)
         window.location.href = exportUrl;
@@ -2233,7 +2233,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (typeFilter) params.append('type', typeFilter);
 
         // Create export URL with filters
-        const exportUrl = 'fetch_fines_export.php?' + params.toString();
+        const exportUrl = 'export_fines_excel.php?' + params.toString();
 
         // Navigate to the export URL (will download the file)
         window.location.href = exportUrl;

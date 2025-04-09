@@ -24,17 +24,17 @@ $whereClause = "";
 $filterParams = [];
 
 if ($statusFilter) {
-    $whereClause .= $whereClause ? " AND b.status = '$statusFilter'" : "WHERE b.status = '$statusFilter'";
+    $whereClause .= $whereClause ? " AND r.status = '$statusFilter'" : "WHERE r.status = '$statusFilter'";
     $filterParams[] = "status=$statusFilter";
 }
 
 if ($dateStart) {
-    $whereClause .= $whereClause ? " AND b.issue_date >= '$dateStart'" : "WHERE b.issue_date >= '$dateStart'";
+    $whereClause .= $whereClause ? " AND r.reserve_date >= '$dateStart'" : "WHERE r.reserve_date >= '$dateStart'";
     $filterParams[] = "date_start=$dateStart";
 }
 
 if ($dateEnd) {
-    $whereClause .= $whereClause ? " AND b.issue_date <= '$dateEnd'" : "WHERE b.issue_date <= '$dateEnd'";
+    $whereClause .= $whereClause ? " AND r.reserve_date <= '$dateEnd'" : "WHERE r.reserve_date <= '$dateEnd'";
     $filterParams[] = "date_end=$dateEnd";
 }
 
@@ -50,17 +50,19 @@ if ($bookFilter) {
     $filterParams[] = "book=" . urlencode($bookFilter);
 }
 
-// SQL query to fetch borrowings data with related information
-$sql = "SELECT b.id, b.status, b.issue_date, b.due_date, b.return_date, b.report_date, 
+// SQL query to fetch reservations data with related information
+$sql = "SELECT r.id, r.status, r.reserve_date, r.ready_date, r.recieved_date, r.cancel_date,
         u.school_id, u.firstname as user_firstname, u.lastname as user_lastname, u.usertype,
-        bk.accession, bk.title, 
-        a.firstname as admin_firstname, a.lastname as admin_lastname, a.role as admin_role
-        FROM borrowings b
-        LEFT JOIN users u ON b.user_id = u.id
-        LEFT JOIN books bk ON b.book_id = bk.id
-        LEFT JOIN admins a ON b.issued_by = a.id
+        bk.accession, bk.title,
+        a1.firstname as ready_admin_firstname, a1.lastname as ready_admin_lastname, a1.role as ready_admin_role,
+        a2.firstname as issued_admin_firstname, a2.lastname as issued_admin_lastname, a2.role as issued_admin_role
+        FROM reservations r
+        LEFT JOIN users u ON r.user_id = u.id
+        LEFT JOIN books bk ON r.book_id = bk.id
+        LEFT JOIN admins a1 ON r.ready_by = a1.id
+        LEFT JOIN admins a2 ON r.issued_by = a2.id
         $whereClause
-        ORDER BY b.issue_date DESC";
+        ORDER BY r.reserve_date DESC";
 
 $result = mysqli_query($conn, $sql);
 
@@ -70,17 +72,18 @@ $sheet = $spreadsheet->getActiveSheet();
 
 // Set the column headers
 $sheet->setCellValue('A1', 'ID');
-$sheet->setCellValue('B1', 'Borrower');
+$sheet->setCellValue('B1', 'User Name');
 $sheet->setCellValue('C1', 'School ID');
 $sheet->setCellValue('D1', 'User Type');
 $sheet->setCellValue('E1', 'Book Title');
 $sheet->setCellValue('F1', 'Accession');
 $sheet->setCellValue('G1', 'Status');
-$sheet->setCellValue('H1', 'Issue Date');
-$sheet->setCellValue('I1', 'Due Date');
-$sheet->setCellValue('J1', 'Return Date');
-$sheet->setCellValue('K1', 'Report Date');
-$sheet->setCellValue('L1', 'Issued By');
+$sheet->setCellValue('H1', 'Reserve Date');
+$sheet->setCellValue('I1', 'Ready Date');
+$sheet->setCellValue('J1', 'Recieved Date');
+$sheet->setCellValue('K1', 'Cancel Date');
+$sheet->setCellValue('L1', 'Ready By');
+$sheet->setCellValue('M1', 'Issued By');
 
 // Format the header row
 $headerStyle = [
@@ -99,40 +102,42 @@ $headerStyle = [
         ],
     ],
 ];
-$sheet->getStyle('A1:L1')->applyFromArray($headerStyle);
+$sheet->getStyle('A1:M1')->applyFromArray($headerStyle);
 
 // Add the data rows
 $row = 2;
-while ($borrowing = mysqli_fetch_assoc($result)) {
-    $borrowerName = $borrowing['user_firstname'] . ' ' . $borrowing['user_lastname'];
-    $issuerName = $borrowing['admin_firstname'] . ' ' . $borrowing['admin_lastname'] . ' (' . $borrowing['admin_role'] . ')';
+while ($reservation = mysqli_fetch_assoc($result)) {
+    $userName = $reservation['user_firstname'] . ' ' . $reservation['user_lastname'];
+    $readyBy = $reservation['ready_admin_firstname'] ? $reservation['ready_admin_firstname'] . ' ' . $reservation['ready_admin_lastname'] : 'N/A';
+    $issuedBy = $reservation['issued_admin_firstname'] ? $reservation['issued_admin_firstname'] . ' ' . $reservation['issued_admin_lastname'] : 'N/A';
     
-    $sheet->setCellValue('A' . $row, $borrowing['id']);
-    $sheet->setCellValue('B' . $row, $borrowerName);
-    $sheet->setCellValue('C' . $row, $borrowing['school_id']);
-    $sheet->setCellValue('D' . $row, $borrowing['usertype']);
-    $sheet->setCellValue('E' . $row, $borrowing['title']);
-    $sheet->setCellValue('F' . $row, $borrowing['accession']);
-    $sheet->setCellValue('G' . $row, $borrowing['status']);
-    $sheet->setCellValue('H' . $row, $borrowing['issue_date']);
-    $sheet->setCellValue('I' . $row, $borrowing['due_date']);
-    $sheet->setCellValue('J' . $row, $borrowing['return_date'] ?: 'N/A');
-    $sheet->setCellValue('K' . $row, $borrowing['report_date'] ?: 'N/A');
-    $sheet->setCellValue('L' . $row, $issuerName);
+    $sheet->setCellValue('A' . $row, $reservation['id']);
+    $sheet->setCellValue('B' . $row, $userName);
+    $sheet->setCellValue('C' . $row, $reservation['school_id']);
+    $sheet->setCellValue('D' . $row, $reservation['usertype']);
+    $sheet->setCellValue('E' . $row, $reservation['title']);
+    $sheet->setCellValue('F' . $row, $reservation['accession']);
+    $sheet->setCellValue('G' . $row, $reservation['status']);
+    $sheet->setCellValue('H' . $row, date('Y-m-d', strtotime($reservation['reserve_date'])));
+    $sheet->setCellValue('I' . $row, $reservation['ready_date'] ? date('Y-m-d', strtotime($reservation['ready_date'])) : 'N/A');
+    $sheet->setCellValue('J' . $row, $reservation['recieved_date'] ? date('Y-m-d', strtotime($reservation['recieved_date'])) : 'N/A');
+    $sheet->setCellValue('K' . $row, $reservation['cancel_date'] ? date('Y-m-d', strtotime($reservation['cancel_date'])) : 'N/A');
+    $sheet->setCellValue('L' . $row, $readyBy);
+    $sheet->setCellValue('M' . $row, $issuedBy);
     
     // Style cells with status color
     $statusColor = 'FFFFFF'; // Default white
-    switch ($borrowing['status']) {
-        case 'Active':
-            $statusColor = 'bee5eb'; // Light blue
-            break;
-        case 'Returned':
-            $statusColor = 'c3e6cb'; // Light green
-            break;
-        case 'Damaged':
+    switch ($reservation['status']) {
+        case 'Pending':
             $statusColor = 'ffeeba'; // Light yellow
             break;
-        case 'Lost':
+        case 'Ready':
+            $statusColor = 'bee5eb'; // Light blue
+            break;
+        case 'Recieved':
+            $statusColor = 'c3e6cb'; // Light green
+            break;
+        case 'Cancelled':
             $statusColor = 'f8d7da'; // Light red
             break;
     }
@@ -150,13 +155,13 @@ while ($borrowing = mysqli_fetch_assoc($result)) {
 }
 
 // Auto-size columns
-foreach (range('A', 'L') as $column) {
+foreach (range('A', 'M') as $column) {
     $sheet->getColumnDimension($column)->setAutoSize(true);
 }
 
 // Generate a descriptive filename based on filters
 function generateDescriptiveFilename($statusFilter, $dateStart, $dateEnd, $userFilter, $bookFilter) {
-    $filenameParts = ['borrowings'];
+    $filenameParts = ['reservations'];
     $currentDate = date('Y-m-d');
     
     // Add status to filename if filtered
@@ -171,20 +176,20 @@ function generateDescriptiveFilename($statusFilter, $dateStart, $dateEnd, $userF
         $filenameParts[] = 'by_' . substr($cleanUserFilter, 0, 20); // Limit length
     }
     
-    // Add date range to filename if filtered
-    if (!empty($dateStart) && !empty($dateEnd)) {
-        $filenameParts[] = 'period_' . $dateStart . '_to_' . $dateEnd;
-    } elseif (!empty($dateStart)) {
-        $filenameParts[] = 'from_' . $dateStart;
-    } elseif (!empty($dateEnd)) {
-        $filenameParts[] = 'until_' . $dateEnd;
-    }
-    
     // Add book filter info if present
     if (!empty($bookFilter)) {
         // Clean up book filter for filename
         $cleanBookFilter = preg_replace('/[^a-zA-Z0-9]/', '_', $bookFilter);
         $filenameParts[] = 'book_' . substr($cleanBookFilter, 0, 20); // Limit length
+    }
+    
+    // Add date range to filename if filtered
+    if (!empty($dateStart) && !empty($dateEnd)) {
+        $filenameParts[] = 'from_' . $dateStart . '_to_' . $dateEnd;
+    } elseif (!empty($dateStart)) {
+        $filenameParts[] = 'from_' . $dateStart;
+    } elseif (!empty($dateEnd)) {
+        $filenameParts[] = 'until_' . $dateEnd;
     }
     
     // If no specific filters applied, indicate this is a complete report
@@ -201,7 +206,7 @@ function generateDescriptiveFilename($statusFilter, $dateStart, $dateEnd, $userF
     // Make sure filename isn't too long (max 255 chars is safe for most filesystems)
     if (strlen($filename) > 200) {
         // If too long, use a simplified name
-        $filename = 'borrowings_export_' . date('Y-m-d') . '.xlsx';
+        $filename = 'reservations_export_' . date('Y-m-d') . '.xlsx';
     }
     
     return $filename;
