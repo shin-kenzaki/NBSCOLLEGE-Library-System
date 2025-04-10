@@ -136,11 +136,19 @@ if (isset($_POST['submit'])) {
                     $prefix_pages = isset($_POST['prefix_pages']) ? $_POST['prefix_pages'] : '';
                     $main_pages = isset($_POST['main_pages']) ? $_POST['main_pages'] : '';
                     $total_pages = $prefix_pages . " " . $main_pages; // Combine prefix and main pages
-                    
-                    // Ensure the prefix "pages" is included
-                    if (!empty($total_pages) && strpos($total_pages, 'pages') !== 0) {
-                        $total_pages = 'pages ' . $total_pages;
-                    }
+
+                    // Replace with this new code:
+                    $prefix_pages = isset($_POST['prefix_pages']) ? trim($_POST['prefix_pages']) : '';
+                    $main_pages = isset($_POST['main_pages']) ? trim($_POST['main_pages']) : '';
+                    $total_pages = trim($prefix_pages . " " . $main_pages); // Combine and trim spaces
+
+                    // Remove " pages" or "pages" from the end if present
+                    $total_pages = preg_replace('/ ?pages$/i', '', $total_pages);
+
+                    // Remove the following lines as they're no longer needed:
+                    // if (!empty($total_pages) && strpos($total_pages, 'pages') !== 0) {
+                    //     $total_pages = 'pages ' . $total_pages;
+                    // }
                     $supplementary_contents = isset($_POST['supplementary_content']) ? 
                         mysqli_real_escape_string($conn, implode(', ', $_POST['supplementary_content'])) : '';
                     
@@ -253,25 +261,96 @@ if (isset($_POST['submit'])) {
                     
                     // 5. Insert publication information
                     $publisher_id = 0;
-                    $publisher_name = mysqli_real_escape_string($conn, $_POST['publisher']);
-                    $publish_date = mysqli_real_escape_string($conn, $_POST['publish_date']);
-                    
-                    // Find publisher ID based on name
-                    $publisher_query = "SELECT id FROM publishers WHERE publisher = '$publisher_name'";
-                    $publisher_result = mysqli_query($conn, $publisher_query);
-                    
-                    if ($publisher_result && mysqli_num_rows($publisher_result) > 0) {
-                        $publisher_row = mysqli_fetch_assoc($publisher_result);
-                        $publisher_id = $publisher_row['id'];
+                    $publisher_name = '';
+                    $publish_date = '';
+
+                    // Check if publisher is a numeric ID or a text name
+                    if (isset($_POST['publisher']) && !empty($_POST['publisher'])) {
+                        if (is_array($_POST['publisher'])) {
+                            // Handle array of publishers (one per accession group)
+                            $group_index = min($i, count($_POST['publisher']) - 1); // Use correct index with bounds check
+                            $publisher_value = $_POST['publisher'][$group_index];
+                        } else {
+                            $publisher_value = $_POST['publisher'];
+                        }
+                        
+                        // Clean the publisher value
+                        $publisher_value = mysqli_real_escape_string($conn, $publisher_value);
+                        
+                        // Check if the publisher value is numeric (ID) or text (name)
+                        if (is_numeric($publisher_value)) {
+                            // It's an ID, use it directly
+                            $publisher_id = intval($publisher_value);
+                            
+                            // Get the publisher name for logging
+                            $publisher_name_query = "SELECT publisher FROM publishers WHERE id = '$publisher_id'";
+                            $publisher_name_result = mysqli_query($conn, $publisher_name_query);
+                            if ($publisher_name_result && mysqli_num_rows($publisher_name_result) > 0) {
+                                $publisher_row = mysqli_fetch_assoc($publisher_name_result);
+                                $publisher_name = $publisher_row['publisher'];
+                            } else {
+                                $publisher_name = "Unknown (ID: $publisher_id)";
+                                // Publisher ID not found, which is strange - log it
+                                error_log("Warning: Publisher with ID $publisher_id not found in database");
+                            }
+                        } else {
+                            // It's a name, look it up
+                            $publisher_name = $publisher_value;
+                            $publisher_query = "SELECT id FROM publishers WHERE publisher = '$publisher_name'";
+                            $publisher_result = mysqli_query($conn, $publisher_query);
+                            
+                            if ($publisher_result && mysqli_num_rows($publisher_result) > 0) {
+                                $publisher_row = mysqli_fetch_assoc($publisher_result);
+                                $publisher_id = $publisher_row['id'];
+                            } else {
+                                // Publisher not found, log a warning
+                                error_log("Warning: Publisher '$publisher_name' not found in database");
+                            }
+                        }
                     }
-                    
-                    if ($publisher_id > 0) {
+
+                    // Handle publish date
+                    if (isset($_POST['publish_date'])) {
+                        if (is_array($_POST['publish_date'])) {
+                            $group_index = min($i, count($_POST['publish_date']) - 1);
+                            $publish_date = mysqli_real_escape_string($conn, $_POST['publish_date'][$group_index]);
+                        } else {
+                            $publish_date = mysqli_real_escape_string($conn, $_POST['publish_date']);
+                        }
+                    }
+
+                    // Debug logging to help track issues
+                    error_log("Adding publication: Book ID=$book_id, Publisher ID=$publisher_id, Publisher Name=$publisher_name, Publish Date=$publish_date");
+
+                    // Insert publication info - attempt insertion even with publisher_id = 0
+                    if (empty($publish_date)) {
+                        $insert_publication_query = "INSERT INTO publications (book_id, publisher_id) 
+                            VALUES ('$book_id', '$publisher_id')";
+                    } else {
                         $insert_publication_query = "INSERT INTO publications (book_id, publisher_id, publish_date) 
                             VALUES ('$book_id', '$publisher_id', '$publish_date')";
-                        
+                    }
+
+                    try {
                         if (!mysqli_query($conn, $insert_publication_query)) {
-                            throw new Exception("Error inserting publication info: " . mysqli_error($conn));
+                            $error = mysqli_error($conn);
+                            error_log("Error inserting publication info for book ID $book_id: $error");
+                            
+                            // Check if this is a foreign key constraint error
+                            if (strpos($error, 'foreign key constraint') !== false) {
+                                // Try to add without publisher_id
+                                $fallback_query = "INSERT INTO publications (book_id, publish_date) VALUES ('$book_id', '$publish_date')";
+                                if (!mysqli_query($conn, $fallback_query)) {
+                                    error_log("Failed fallback publication insertion: " . mysqli_error($conn));
+                                } else {
+                                    error_log("Successful fallback publication insertion without publisher ID");
+                                }
+                            }
+                        } else {
+                            error_log("Successfully inserted publication record for book ID $book_id");
                         }
+                    } catch (Exception $e) {
+                        error_log("Exception in publication insertion: " . $e->getMessage());
                     }
                     
                     // 6. Process subject entries - insert for all copies

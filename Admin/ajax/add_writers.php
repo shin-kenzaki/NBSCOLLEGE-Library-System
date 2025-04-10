@@ -8,6 +8,9 @@ if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Lib
     exit();
 }
 
+// Set content type to JSON
+header('Content-Type: application/json');
+
 // Get JSON data from request
 $json_data = file_get_contents('php://input');
 $authors_data = json_decode($json_data, true);
@@ -24,8 +27,15 @@ $error_message = '';
 // Process each author
 foreach ($authors_data as $author) {
     $firstname = mysqli_real_escape_string($conn, $author['firstname']);
-    $middle_init = mysqli_real_escape_string($conn, $author['middle_init']);
+    $middle_init = mysqli_real_escape_string($conn, $author['middle_init'] ?? '');
     $lastname = mysqli_real_escape_string($conn, $author['lastname']);
+    
+    // Format the writer's full name
+    $full_name = $firstname;
+    if (!empty($middle_init)) {
+        $full_name .= ' ' . $middle_init;
+    }
+    $full_name .= ' ' . $lastname;
     
     // Check if author already exists
     $check_query = "SELECT id FROM writers WHERE 
@@ -40,7 +50,7 @@ foreach ($authors_data as $author) {
         $author_id = $row['id'];
         $added_authors[] = [
             'id' => $author_id,
-            'name' => "$firstname $middle_init $lastname",
+            'name' => $full_name,
             'status' => 'existing'
         ];
     } else {
@@ -51,7 +61,7 @@ foreach ($authors_data as $author) {
             $author_id = mysqli_insert_id($conn);
             $added_authors[] = [
                 'id' => $author_id,
-                'name' => "$firstname $middle_init $lastname",
+                'name' => $full_name,
                 'status' => 'new'
             ];
         } else {

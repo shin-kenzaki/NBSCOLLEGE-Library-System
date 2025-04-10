@@ -1,6 +1,9 @@
 <?php
 session_start();
-include '../../db.php';
+require_once '../../db.php';
+
+// Set content type to JSON
+header('Content-Type: application/json');
 
 // Check if the user is logged in and has appropriate permissions
 if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Librarian', 'Assistant', 'Encoder'])) {
@@ -8,68 +11,83 @@ if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Lib
     exit();
 }
 
-// Get JSON data from request
+// Check if request is POST and contains JSON data
 $json_data = file_get_contents('php://input');
-$publishers_data = json_decode($json_data, true);
+$data = json_decode($json_data, true);
 
-if (!$publishers_data || !is_array($publishers_data)) {
-    echo json_encode(['success' => false, 'message' => 'Invalid data format']);
-    exit();
+if (!$data || !is_array($data)) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Invalid data format. Expected JSON array of publishers.'
+    ]);
+    exit;
 }
 
-$added_publishers = [];
-$has_errors = false;
-$error_message = '';
+// Initialize response array
+$response = [
+    'success' => true,
+    'message' => '',
+    'publishers' => []
+];
 
-// Process each publisher
-foreach ($publishers_data as $publisher) {
+// Process each publisher in the array
+foreach ($data as $publisher) {
+    // Validate required fields
+    if (empty($publisher['publisher']) || empty($publisher['place'])) {
+        continue; // Skip entries with missing required fields
+    }
+    
+    // Prepare data for insertion
     $publisher_name = mysqli_real_escape_string($conn, $publisher['publisher']);
     $place = mysqli_real_escape_string($conn, $publisher['place']);
     
     // Check if publisher already exists
-    $check_query = "SELECT id FROM publishers WHERE publisher = '$publisher_name'";
-    $result = mysqli_query($conn, $check_query);
+    $check_query = "SELECT id FROM publishers WHERE publisher = '$publisher_name' AND place = '$place'";
+    $check_result = mysqli_query($conn, $check_query);
     
-    if (mysqli_num_rows($result) > 0) {
-        // Publisher already exists
-        $row = mysqli_fetch_assoc($result);
+    if (mysqli_num_rows($check_result) > 0) {
+        // Publisher already exists, get its ID
+        $row = mysqli_fetch_assoc($check_result);
         $publisher_id = $row['id'];
-        $added_publishers[] = [
+        
+        // Add to response
+        $response['publishers'][] = [
             'id' => $publisher_id,
             'publisher' => $publisher_name,
             'place' => $place,
             'status' => 'existing'
         ];
     } else {
-        // Add new publisher
+        // Insert the new publisher
         $insert_query = "INSERT INTO publishers (publisher, place) 
                         VALUES ('$publisher_name', '$place')";
+                        
         if (mysqli_query($conn, $insert_query)) {
             $publisher_id = mysqli_insert_id($conn);
-            $added_publishers[] = [
+            
+            // Add to response
+            $response['publishers'][] = [
                 'id' => $publisher_id,
                 'publisher' => $publisher_name,
                 'place' => $place,
                 'status' => 'new'
             ];
         } else {
-            $has_errors = true;
-            $error_message .= "Error adding publisher $publisher_name: " . mysqli_error($conn) . "; ";
+            // Log error but continue with other publishers
+            error_log("Error adding publisher: " . mysqli_error($conn));
         }
     }
 }
 
-if ($has_errors) {
-    echo json_encode([
-        'success' => false,
-        'message' => $error_message,
-        'publishers' => $added_publishers // Return any publishers that were successfully added
-    ]);
+// Set success message based on number of publishers added
+$count = count($response['publishers']);
+if ($count > 0) {
+    $response['message'] = "Successfully added $count publisher(s)";
 } else {
-    echo json_encode([
-        'success' => true,
-        'message' => 'All publishers added successfully',
-        'publishers' => $added_publishers
-    ]);
+    $response['success'] = false;
+    $response['message'] = "No publishers were added. Please check your input.";
 }
+
+// Return JSON response
+echo json_encode($response);
 ?>
