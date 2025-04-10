@@ -286,10 +286,9 @@ $result = $stmt->get_result();
     <?php include '../admin/inc/header.php'; ?>
 
     <!-- Main Content -->
-    <div id="content" class="d-flex flex-column min-vh-100">
-        <div class="container-fluid">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3">
+    <div class="container-fluid">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
     <h6 class="m-0 font-weight-bold text-primary">Book List</h6>
     <div class="d-flex align-items-center">
         <span class="mr-2 total-books-display">
@@ -470,16 +469,264 @@ $result = $stmt->get_result();
             <a class="dropdown-item context-add-copies" href="#"><i class="fas fa-plus fa-sm fa-fw mr-2 text-gray-400"></i> Add Copies</a>
         </div>
 
-        <!-- Footer -->
-        <?php include '../Admin/inc/footer.php' ?>
-        <!-- End of Footer -->
+    </div>
+    <!-- End of Main Content -->
 
-        <!-- Scroll to Top Button-->
-        <a class="scroll-to-top rounded" href="#page-top">
-            <i class="fas fa-angle-up"></i>
-        </a>
+    <!-- Footer -->
+    <?php include '../Admin/inc/footer.php' ?>
+    <!-- End of Footer -->
 
-        <script>
+    <!-- Scroll to Top Button-->
+    <a class="scroll-to-top rounded" href="#page-top">
+        <i class="fas fa-angle-up"></i>
+    </a>
+
+    <!-- Add Copies Modal -->
+    <div class="modal fade" id="addCopiesModal" tabindex="-1" aria-labelledby="addCopiesModalLabel" aria-hidden="true">
+        <form action="process-add-copies.php" method="POST">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addCopiesModalLabel">Add More Copies</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Add additional copies of <strong id="copyBookTitle"></strong></p>
+                    <div class="form-group">
+                        <label for="num_copies">Number of copies to add:</label>
+                        <input type="number" class="form-control" id="num_copies" name="num_copies" min="1" value="1" required>
+                    </div>
+                    <input type="hidden" name="book_id" id="copyBookId" value="">
+                    <input type="hidden" name="accession" id="copyBookAccession" value="">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Copies</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Instructions Modal -->
+    <div class="modal fade" id="instructionsModal" tabindex="-1" aria-labelledby="instructionsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="instructionsModalLabel">Book Management Instructions</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Tabs Navigation -->
+                    <ul class="nav nav-tabs" id="instructionTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab" aria-controls="overview" aria-selected="true">Overview</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="add-book-tab" data-bs-toggle="tab" data-bs-target="#add-book" type="button" role="tab" aria-controls="add-book" aria-selected="false">Add Book</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="add-copies-tab" data-bs-toggle="tab" data-bs-target="#add-copies" type="button" role="tab" aria-controls="add-copies" aria-selected="false">Add Copies</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="update-tab" data-bs-toggle="tab" data-bs-target="#update" type="button" role="tab" aria-controls="update" aria-selected="false">Update Books</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="delete-tab" data-bs-toggle="tab" data-bs-target="#delete" type="button" role="tab" aria-controls="delete" aria-selected="false">Delete Books</button>
+                        </li>
+                    </ul>
+                    
+                    <!-- Tabs Content -->
+                    <div class="tab-content mt-3" id="instructionTabsContent">
+                        <!-- Overview Tab -->
+                        <div class="tab-pane fade show active" id="overview" role="tabpanel" aria-labelledby="overview-tab">
+                            <h5>Book Management System</h5>
+                            <p>This system allows you to manage the library's book collection through the following operations:</p>
+                            <ul class="instruction-steps">
+                                <li><strong>Add Book</strong> - Add a new book title to the library collection</li>
+                                <li><strong>Add Copies</strong> - Add multiple copies of an existing book</li>
+                                <li><strong>Update Books</strong> - Modify information for existing books</li>
+                                <li><strong>Delete Books</strong> - Remove specific copies or all copies of a book</li>
+                            </ul>
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i> Select the appropriate tab above for detailed instructions on each operation.
+                            </div>
+                        </div>
+                        
+                        <!-- Add Book Tab -->
+                        <div class="tab-pane fade" id="add-book" role="tabpanel" aria-labelledby="add-book-tab">
+                            <h5>Adding a New Book</h5>
+                            <ol class="instruction-steps">
+                                <li>Click the <span class="badge bg-secondary text-white">Add Book</span> button in the top-right corner of the Book List page.</li>
+                                <li>Complete the form with book details:
+                                    <ul>
+                                        <li><strong>Title Proper</strong> - Enter the main title of the book</li>
+                                        <li><strong>Authors</strong> - Select or add author information</li>
+                                        <li><strong>ISBN</strong> - Enter the ISBN number (if available)</li>
+                                        <li><strong>Publication</strong> - Enter publication details</li>
+                                        <li><strong>Call Number</strong> - System will suggest a call number based on other details</li>
+                                        <li><strong>Subject Information</strong> - Categorize the book</li>
+                                    </ul>
+                                </li>
+                                <li>Click <span class="badge bg-primary text-white">Next</span> to move through the form tabs.</li>
+                                <li>In the Accession section, specify the number of copies and starting accession number.</li>
+                                <li>Click <span class="badge bg-danger text-white">Submit</span> to save the book to the library system.</li>
+                            </ol>
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i> Be careful with accession numbers - they must be unique across the entire library system.
+                            </div>
+                        </div>
+                        
+                        <!-- Add Copies Tab -->
+                        <div class="tab-pane fade" id="add-copies" role="tabpanel" aria-labelledby="add-copies-tab">
+                            <h5>Adding Copies of an Existing Book</h5>
+                            <ol class="instruction-steps">
+                                <li>Locate the book in the Book List for which you want to add copies.</li>
+                                <li>Right-click on the book's row to open the context menu.</li>
+                                <li>Select <strong>Add Copies</strong> from the context menu.</li>
+                                <li>In the modal dialog that appears:
+                                    <ul>
+                                        <li>Confirm the book title is correct</li>
+                                        <li>Enter the number of copies to add</li>
+                                        <li>Review the starting accession number (automatically calculated)</li>
+                                    </ul>
+                                </li>
+                                <li>Click <span class="badge bg-danger text-white">Add Copies</span> to create the additional copies.</li>
+                            </ol>
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i> The system will automatically assign consecutive accession numbers and copy numbers based on existing data.
+                            </div>
+                        </div>
+                        
+                        <!-- Update Tab -->
+                        <div class="tab-pane fade" id="update" role="tabpanel" aria-labelledby="update-tab">
+                            <h5>Updating Existing Books</h5>
+                            <ol class="instruction-steps">
+                                <li>Locate the book in the Book List that you want to update.</li>
+                                <li>Right-click on the book's row to open the context menu.</li>
+                                <li>Select <strong>Update Books</strong> from the context menu.</li>
+                                <li>In the update form:
+                                    <ul>
+                                        <li>Modify any information that needs to be changed</li>
+                                        <li>You can update details for all copies simultaneously</li>
+                                        <li>Individual copy details can be modified separately (status, shelf location, etc.)</li>
+                                    </ul>
+                                </li>
+                                <li>Click <span class="badge bg-danger text-white">Update Books</span> to save your changes.</li>
+                            </ol>
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i> When updating multiple copies, be careful with fields like call numbers and accession numbers which should remain unique.
+                            </div>
+                        </div>
+                        
+                        <!-- Delete Tab -->
+                        <div class="tab-pane fade" id="delete" role="tabpanel" aria-labelledby="delete-tab">
+                            <h5>Deleting Books</h5>
+                            <p><strong>Option 1: Delete a Specific Copy</strong></p>
+                            <ol class="instruction-steps">
+                                <li>Click on a book title to view its details in the OPAC view.</li>
+                                <li>Scroll to the "Holdings Information" table showing all copies.</li>
+                                <li>Locate the specific copy you want to delete.</li>
+                                <li>Click the <span class="badge bg-danger text-white">Delete</span> button for that copy.</li>
+                                <li>Confirm the deletion when prompted.</li>
+                            </ol>
+                            
+                            <p><strong>Option 2: Delete All Copies</strong></p>
+                            <ol class="instruction-steps">
+                                <li>Click on a book title to view its details in the OPAC view.</li>
+                                <li>Click the <span class="badge bg-danger text-white">Delete All Copies</span> button near the top of the page.</li>
+                                <li>Review the confirmation dialog showing the number of copies that will be deleted.</li>
+                                <li>Click <span class="badge bg-danger text-white">Yes, delete all!</span> to confirm.</li>
+                            </ol>
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-triangle"></i> <strong>Warning:</strong> Deleting books is permanent and will also remove all related contributor and publication records. Ensure there are no active borrowings before deletion.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add custom styles for the instructions -->
+    <style>
+        .instruction-steps {
+            padding-left: 1.5rem;
+        }
+        
+        .instruction-steps li {
+            margin-bottom: 0.75rem;
+        }
+        
+        .instruction-steps ul {
+            padding-left: 1.5rem;
+        }
+        
+        .instruction-steps ul li {
+            margin-bottom: 0.5rem;
+        }
+        
+        .badge {
+            font-weight: normal;
+            font-size: 0.85rem;
+            padding: 0.35em 0.65em;
+        }
+        
+        #instructionTabs .nav-link {
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            #instructionTabs {
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+            
+            #instructionTabs .nav-link {
+                padding: 0.5rem 0.75rem;
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+
+    <!-- Script for instruction tabs -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize tabs
+            var instructionTabs = document.querySelectorAll('#instructionTabs button');
+            instructionTabs.forEach(function(tab) {
+                tab.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    
+                    // Remove active class from all tabs
+                    instructionTabs.forEach(function(t) {
+                        t.classList.remove('active');
+                        t.setAttribute('aria-selected', 'false');
+                    });
+                    
+                    // Add active class to clicked tab
+                    this.classList.add('active');
+                    this.setAttribute('aria-selected', 'true');
+                    
+                    // Hide all tab content
+                    document.querySelectorAll('.tab-pane').forEach(function(pane) {
+                        pane.classList.remove('show', 'active');
+                    });
+                    
+                    // Show clicked tab content
+                    var target = document.querySelector(this.getAttribute('data-bs-target'));
+                    if (target) {
+                        target.classList.add('show', 'active');
+                    }
+                });
+            });
+        });
+    </script>
+
+    <script>
         $(document).ready(function () {
             // Keep only the click handler for viewing book details
             $('#dataTable tbody').on('click', 'tr', function(e) {
@@ -586,9 +833,9 @@ $result = $stmt->get_result();
                 $('#copyBookAccession').val(firstAccession);
             });
         });
-        </script>
-        
-        <script>
+    </script>
+    
+    <script>
         $(document).ready(function () {
             var table = $('#dataTable').DataTable({
                 "dom": "<'row mb-3'<'col-sm-6'l><'col-sm-6 d-flex justify-content-end'f>>" +
@@ -637,309 +884,61 @@ $result = $stmt->get_result();
                 table.columns.adjust();
             });
         });
-        </script>
-        <style>
-            /* Add CSS to hide ID range columns but keep them accessible for JavaScript */
-            .hidden-column {
-                display: none;
-            }
-            
-            /* Style for the custom context menu */
-            .custom-context-menu {
-                min-width: 180px;
-                padding: 0.5rem 0;
-                background-color: #fff;
-                border: 1px solid rgba(0,0,0,.15);
-            }
-            
-            .custom-context-menu .dropdown-item {
-                padding: 0.5rem 1rem;
-                color: #3a3b45;
-                font-weight: 400;
-                font-size: 0.85rem;
-            }
-            
-            .custom-context-menu .dropdown-item:hover {
-                background-color: #4e73df;
-                color: white;
-            }
-            
-            .custom-context-menu .dropdown-item:hover i {
-                color: white !important;
-            }
-            
-            /* Add visual cue for right-clickable rows */
-            #dataTable tbody tr {
-                cursor: context-menu;
-            }
-            
-            /* Add selected row styling */
-            #dataTable tbody tr.selected {
-                background-color: rgba(0, 123, 255, 0.1) !important;
-            }
-            
-            /* Override striped table styling for selected rows */
-            #dataTable.table-striped tbody tr.selected:nth-of-type(odd),
-            #dataTable.table-striped tbody tr.selected:nth-of-type(even) {
-                background-color: rgba(0, 123, 255, 0.1) !important;
-            }
-
-            /* Enhance alternating row colors with hover effect preservation */
-            #dataTable.table-striped tbody tr:nth-of-type(odd) {
-                background-color: rgba(0, 0, 0, 0.03);
-            }
-
-            #dataTable.table-striped tbody tr:hover {
-                background-color: rgba(0, 123, 255, 0.05);
-            }
-        </style>
-        
-        <!-- Add Copies Modal -->
-        <div class="modal fade" id="addCopiesModal" tabindex="-1" aria-labelledby="addCopiesModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <form action="process-add-copies.php" method="POST">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="addCopiesModalLabel">Add More Copies</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <p>Add additional copies of <strong id="copyBookTitle"></strong></p>
-                            <div class="form-group">
-                                <label for="num_copies">Number of copies to add:</label>
-                                <input type="number" class="form-control" id="num_copies" name="num_copies" min="1" value="1" required>
-                            </div>
-                            <input type="hidden" name="book_id" id="copyBookId" value="">
-                            <input type="hidden" name="accession" id="copyBookAccession" value="">
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="submit" class="btn btn-primary">Add Copies</button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <!-- Instructions Modal -->
-<div class="modal fade" id="instructionsModal" tabindex="-1" aria-labelledby="instructionsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title" id="instructionsModalLabel">Book Management Instructions</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <!-- Tabs Navigation -->
-                <ul class="nav nav-tabs" id="instructionTabs" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab" aria-controls="overview" aria-selected="true">Overview</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="add-book-tab" data-bs-toggle="tab" data-bs-target="#add-book" type="button" role="tab" aria-controls="add-book" aria-selected="false">Add Book</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="add-copies-tab" data-bs-toggle="tab" data-bs-target="#add-copies" type="button" role="tab" aria-controls="add-copies" aria-selected="false">Add Copies</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="update-tab" data-bs-toggle="tab" data-bs-target="#update" type="button" role="tab" aria-controls="update" aria-selected="false">Update Books</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="delete-tab" data-bs-toggle="tab" data-bs-target="#delete" type="button" role="tab" aria-controls="delete" aria-selected="false">Delete Books</button>
-                    </li>
-                </ul>
-                
-                <!-- Tabs Content -->
-                <div class="tab-content mt-3" id="instructionTabsContent">
-                    <!-- Overview Tab -->
-                    <div class="tab-pane fade show active" id="overview" role="tabpanel" aria-labelledby="overview-tab">
-                        <h5>Book Management System</h5>
-                        <p>This system allows you to manage the library's book collection through the following operations:</p>
-                        <ul class="instruction-steps">
-                            <li><strong>Add Book</strong> - Add a new book title to the library collection</li>
-                            <li><strong>Add Copies</strong> - Add multiple copies of an existing book</li>
-                            <li><strong>Update Books</strong> - Modify information for existing books</li>
-                            <li><strong>Delete Books</strong> - Remove specific copies or all copies of a book</li>
-                        </ul>
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle"></i> Select the appropriate tab above for detailed instructions on each operation.
-                        </div>
-                    </div>
-                    
-                    <!-- Add Book Tab -->
-                    <div class="tab-pane fade" id="add-book" role="tabpanel" aria-labelledby="add-book-tab">
-                        <h5>Adding a New Book</h5>
-                        <ol class="instruction-steps">
-                            <li>Click the <span class="badge bg-secondary text-white">Add Book</span> button in the top-right corner of the Book List page.</li>
-                            <li>Complete the form with book details:
-                                <ul>
-                                    <li><strong>Title Proper</strong> - Enter the main title of the book</li>
-                                    <li><strong>Authors</strong> - Select or add author information</li>
-                                    <li><strong>ISBN</strong> - Enter the ISBN number (if available)</li>
-                                    <li><strong>Publication</strong> - Enter publication details</li>
-                                    <li><strong>Call Number</strong> - System will suggest a call number based on other details</li>
-                                    <li><strong>Subject Information</strong> - Categorize the book</li>
-                                </ul>
-                            </li>
-                            <li>Click <span class="badge bg-primary text-white">Next</span> to move through the form tabs.</li>
-                            <li>In the Accession section, specify the number of copies and starting accession number.</li>
-                            <li>Click <span class="badge bg-danger text-white">Submit</span> to save the book to the library system.</li>
-                        </ol>
-                        <div class="alert alert-warning">
-                            <i class="fas fa-exclamation-triangle"></i> Be careful with accession numbers - they must be unique across the entire library system.
-                        </div>
-                    </div>
-                    
-                    <!-- Add Copies Tab -->
-                    <div class="tab-pane fade" id="add-copies" role="tabpanel" aria-labelledby="add-copies-tab">
-                        <h5>Adding Copies of an Existing Book</h5>
-                        <ol class="instruction-steps">
-                            <li>Locate the book in the Book List for which you want to add copies.</li>
-                            <li>Right-click on the book's row to open the context menu.</li>
-                            <li>Select <strong>Add Copies</strong> from the context menu.</li>
-                            <li>In the modal dialog that appears:
-                                <ul>
-                                    <li>Confirm the book title is correct</li>
-                                    <li>Enter the number of copies to add</li>
-                                    <li>Review the starting accession number (automatically calculated)</li>
-                                </ul>
-                            </li>
-                            <li>Click <span class="badge bg-danger text-white">Add Copies</span> to create the additional copies.</li>
-                        </ol>
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle"></i> The system will automatically assign consecutive accession numbers and copy numbers based on existing data.
-                        </div>
-                    </div>
-                    
-                    <!-- Update Tab -->
-                    <div class="tab-pane fade" id="update" role="tabpanel" aria-labelledby="update-tab">
-                        <h5>Updating Existing Books</h5>
-                        <ol class="instruction-steps">
-                            <li>Locate the book in the Book List that you want to update.</li>
-                            <li>Right-click on the book's row to open the context menu.</li>
-                            <li>Select <strong>Update Books</strong> from the context menu.</li>
-                            <li>In the update form:
-                                <ul>
-                                    <li>Modify any information that needs to be changed</li>
-                                    <li>You can update details for all copies simultaneously</li>
-                                    <li>Individual copy details can be modified separately (status, shelf location, etc.)</li>
-                                </ul>
-                            </li>
-                            <li>Click <span class="badge bg-danger text-white">Update Books</span> to save your changes.</li>
-                        </ol>
-                        <div class="alert alert-warning">
-                            <i class="fas fa-exclamation-triangle"></i> When updating multiple copies, be careful with fields like call numbers and accession numbers which should remain unique.
-                        </div>
-                    </div>
-                    
-                    <!-- Delete Tab -->
-                    <div class="tab-pane fade" id="delete" role="tabpanel" aria-labelledby="delete-tab">
-                        <h5>Deleting Books</h5>
-                        <p><strong>Option 1: Delete a Specific Copy</strong></p>
-                        <ol class="instruction-steps">
-                            <li>Click on a book title to view its details in the OPAC view.</li>
-                            <li>Scroll to the "Holdings Information" table showing all copies.</li>
-                            <li>Locate the specific copy you want to delete.</li>
-                            <li>Click the <span class="badge bg-danger text-white">Delete</span> button for that copy.</li>
-                            <li>Confirm the deletion when prompted.</li>
-                        </ol>
-                        
-                        <p><strong>Option 2: Delete All Copies</strong></p>
-                        <ol class="instruction-steps">
-                            <li>Click on a book title to view its details in the OPAC view.</li>
-                            <li>Click the <span class="badge bg-danger text-white">Delete All Copies</span> button near the top of the page.</li>
-                            <li>Review the confirmation dialog showing the number of copies that will be deleted.</li>
-                            <li>Click <span class="badge bg-danger text-white">Yes, delete all!</span> to confirm.</li>
-                        </ol>
-                        <div class="alert alert-danger">
-                            <i class="fas fa-exclamation-triangle"></i> <strong>Warning:</strong> Deleting books is permanent and will also remove all related contributor and publication records. Ensure there are no active borrowings before deletion.
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer bg-light">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Add custom styles for the instructions -->
-<style>
-    .instruction-steps {
-        padding-left: 1.5rem;
-    }
-    
-    .instruction-steps li {
-        margin-bottom: 0.75rem;
-    }
-    
-    .instruction-steps ul {
-        padding-left: 1.5rem;
-    }
-    
-    .instruction-steps ul li {
-        margin-bottom: 0.5rem;
-    }
-    
-    .badge {
-        font-weight: normal;
-        font-size: 0.85rem;
-        padding: 0.35em 0.65em;
-    }
-    
-    #instructionTabs .nav-link {
-        padding: 0.5rem 1rem;
-        font-size: 0.9rem;
-    }
-    
-    @media (max-width: 768px) {
-        #instructionTabs {
-            flex-wrap: nowrap;
-            overflow-x: auto;
-            white-space: nowrap;
+    </script>
+    <style>
+        /* Add CSS to hide ID range columns but keep them accessible for JavaScript */
+        .hidden-column {
+            display: none;
         }
         
-        #instructionTabs .nav-link {
-            padding: 0.5rem 0.75rem;
-            font-size: 0.8rem;
+        /* Style for the custom context menu */
+        .custom-context-menu {
+            min-width: 180px;
+            padding: 0.5rem 0;
+            background-color: #fff;
+            border: 1px solid rgba(0,0,0,.15);
         }
-    }
-</style>
+        
+        .custom-context-menu .dropdown-item {
+            padding: 0.5rem 1rem;
+            color: #3a3b45;
+            font-weight: 400;
+            font-size: 0.85rem;
+        }
+        
+        .custom-context-menu .dropdown-item:hover {
+            background-color: #4e73df;
+            color: white;
+        }
+        
+        .custom-context-menu .dropdown-item:hover i {
+            color: white !important;
+        }
+        
+        /* Add visual cue for right-clickable rows */
+        #dataTable tbody tr {
+            cursor: context-menu;
+        }
+        
+        /* Add selected row styling */
+        #dataTable tbody tr.selected {
+            background-color: rgba(0, 123, 255, 0.1) !important;
+        }
+        
+        /* Override striped table styling for selected rows */
+        #dataTable.table-striped tbody tr.selected:nth-of-type(odd),
+        #dataTable.table-striped tbody tr.selected:nth-of-type(even) {
+            background-color: rgba(0, 123, 255, 0.1) !important;
+        }
 
-<!-- Script for instruction tabs -->
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Initialize tabs
-        var instructionTabs = document.querySelectorAll('#instructionTabs button');
-        instructionTabs.forEach(function(tab) {
-            tab.addEventListener('click', function(event) {
-                event.preventDefault();
-                
-                // Remove active class from all tabs
-                instructionTabs.forEach(function(t) {
-                    t.classList.remove('active');
-                    t.setAttribute('aria-selected', 'false');
-                });
-                
-                // Add active class to clicked tab
-                this.classList.add('active');
-                this.setAttribute('aria-selected', 'true');
-                
-                // Hide all tab content
-                document.querySelectorAll('.tab-pane').forEach(function(pane) {
-                    pane.classList.remove('show', 'active');
-                });
-                
-                // Show clicked tab content
-                var target = document.querySelector(this.getAttribute('data-bs-target'));
-                if (target) {
-                    target.classList.add('show', 'active');
-                }
-            });
-        });
-    });
-</script>
-    </div>
+        /* Enhance alternating row colors with hover effect preservation */
+        #dataTable.table-striped tbody tr:nth-of-type(odd) {
+            background-color: rgba(0, 0, 0, 0.03);
+        }
+
+        #dataTable.table-striped tbody tr:hover {
+            background-color: rgba(0, 123, 255, 0.05);
+        }
+    </style>
 </body>
 </html>

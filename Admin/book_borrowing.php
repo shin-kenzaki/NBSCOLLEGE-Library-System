@@ -11,7 +11,6 @@ if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Lib
 ?>
 
 <!-- Main Content -->
-<div id="content" class="d-flex flex-column min-vh-100">
     <div class="container-fluid px-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1 class="h3 mb-0 text-gray-800">Book Borrowing</h1>

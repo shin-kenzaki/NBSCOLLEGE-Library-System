@@ -27,11 +27,107 @@
 <link href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bootstrap-4/bootstrap-4.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="css/responsive-fixes.css">
-
+    
+    <style>
+        /* Custom icon colors for sidebar */
+        .icon-dashboard { color: #4e73df; } /* Default blue */
+        .icon-reports { color: #1cc88a; } /* Green */
+        .icon-admin { color: #f6c23e; } /* Yellow/Gold */
+        .icon-book { color: #e74a3b; } /* Red */
+        .icon-borrow { color: #36b9cc; } /* Light blue/cyan */
+        .icon-gray { color: #666769; } /* Gray as requested */
+        
+        /* Active menu item styling */
+        .nav-item.active-page > .nav-link {
+            background-color: rgba(255, 255, 255, 0.15);
+            font-weight: bold;
+        }
+        
+        /* Page indicator styling */
+        #pageIndicator {
+            position: fixed;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(78, 115, 223, 0.9);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 0 0 8px 8px;
+            z-index: 1050;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+            display: none;
+        }
+    </style>
 </head>
 
 <body id="page-top">
-
+    <?php
+    // Get current page filename
+    $currentPage = basename($_SERVER['PHP_SELF']);
+    
+    // Function to get page title based on filename
+    function getPageTitle($filename) {
+        switch($filename) {
+            case 'dashboard.php': return 'Dashboard';
+            case 'reports.php': return 'Reports';
+            case 'admins_list.php': return 'Admin Users';
+            case 'users_list.php': return 'Users';
+            case 'book_list.php': return 'Books List';
+            case 'writers_list.php': return 'Writers List';
+            case 'publisher_list.php': return 'Publisher List';
+            case 'publications_list.php': return 'Publications List';
+            case 'contributors_list.php': return 'Contributors List';
+            case 'book_borrowing.php': return 'Book Borrowing';
+            case 'book_reservations.php': return 'Book Reservations';
+            case 'borrowed_books.php': return 'Borrowed Books';
+            case 'borrowing_history.php': return 'Borrowing History';
+            case 'fines.php': return 'Manage Fines';
+            case 'lost_books.php': return 'Lost Book Records';
+            case 'damaged_books.php': return 'Damaged Book Records';
+            case 'profile.php': return 'Profile';
+            default: return 'Library System';
+        }
+    }
+    
+    $pageTitle = getPageTitle($currentPage);
+    
+    // Role-based access control for pages
+    function checkPageAccess($page, $role) {
+        // Pages accessible to encoders (book management only)
+        $encoder_pages = ['dashboard.php', 'book_list.php', 'writers_list.php', 
+                         'publisher_list.php', 'publications_list.php', 'contributors_list.php'];
+        
+        // Pages accessible to librarians and assistants (everything except admin users)
+        $librarian_pages = array_merge($encoder_pages, [
+            'users_list.php', 'book_borrowing.php', 'book_reservations.php',
+            'borrowed_books.php', 'borrowing_history.php', 'fines.php',
+            'lost_books.php', 'damaged_books.php', 'profile.php', 'messages.php'
+        ]);
+        
+        // Check access based on role
+        if ($role === 'Admin') {
+            return true; // Admins can access all pages
+        } else if (($role === 'Librarian' || $role === 'Assistant') && in_array($page, $librarian_pages)) {
+            return true;
+        } else if ($role === 'Encoder' && in_array($page, $encoder_pages)) {
+            return true;
+        }
+        
+        return false;
+    }
+    
+    // Redirect if user doesn't have access to this page
+    if (!checkPageAccess($currentPage, $_SESSION['role'])) {
+        header('Location: dashboard.php');
+        exit();
+    }
+    ?>
+    
+    <!-- Page Indicator -->
+    <div id="pageIndicator">You are in: <?php echo $pageTitle; ?></div>
+    
     <!-- Page Wrapper -->
     <div id="wrapper">
         <!-- Sidebar -->
@@ -51,145 +147,94 @@
             <hr class="sidebar-divider my-0">
 
             <!-- Nav Item - Dashboard -->
-            <li class="nav-item active">
-                <a class="nav-link" href="<?php 
-                    $base_url = '/Library-System/Admin/';
-                    if ($_SESSION['role'] === 'Admin') {
-                        echo $base_url . 'dashboard.php';
-                    } elseif ($_SESSION['role'] === 'Librarian' || $_SESSION['role'] === 'Assistant') {
-                        echo $base_url . 'dashboard.php';
-                    } elseif ($_SESSION['role'] === 'Encoder') {
-                        echo $base_url . 'dashboard.php';
-                    }
-                ?>">
-                    <i class="fas fa-fw fa-tachometer-alt"></i>
+            <li class="nav-item <?php echo $currentPage == 'dashboard.php' ? 'active-page' : ''; ?>">
+                <a class="nav-link" href="dashboard.php">
+                    <i class="fas fa-fw fa-tachometer-alt icon-dashboard"></i>
                     <span>Dashboard</span></a>
             </li>
+
+            <?php if($_SESSION['role'] === 'Admin'): ?>
+            <!-- Reports menu item - Admin only -->
+            <li class="nav-item <?php echo $currentPage == 'reports.php' ? 'active-page' : ''; ?>">
+                <a class="nav-link" href="reports.php">
+                    <i class="fas fa-chart-bar icon-reports"></i>
+                    <span>Reports</span>
+                </a>
+            </li>
+            <?php endif; ?>
 
             <!-- Divider -->
             <hr class="sidebar-divider">
 
+            <!-- Admin Operation Section -->
+            <?php if($_SESSION['role'] !== 'Encoder'): ?>
             <!-- Heading -->
             <div class="sidebar-heading">
                 Admin Operation
             </div>
 
             <?php if($_SESSION['role'] === 'Admin'): ?>
-            <!-- Full management menu for admin -->
-            
-            <li class="nav-item">
-                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseUsers"
-                    aria-expanded="true" aria-controls="collapseUsers">
-                    <i class="fas fa-users"></i>
-                    <span>User Management</span>
+            <!-- User management items - Admin only -->
+            <li class="nav-item <?php echo $currentPage == 'admins_list.php' ? 'active-page' : ''; ?>">
+                <a class="nav-link" href="admins_list.php">
+                    <i class="fas fa-user-shield icon-admin"></i>
+                    <span>Admin Users</span>
                 </a>
-                <div id="collapseUsers" class="collapse" aria-labelledby="headingUsers" data-parent="#accordionSidebar">
-                    <div class="bg-white py-2 collapse-inner rounded">
-                        <h6 class="collapse-header">Manage Users:</h6>
-                        <a class="collapse-item" href="admins_list.php">Admin Users</a>
-                        <a class="collapse-item" href="users_list.php">Users</a>
-                    </div>
-                </div>
-            </li>
-
-            <li class="nav-item">
-                <a class="nav-link" href="reports.php">
-                    <i class="fas fa-chart-bar"></i>
-                    <span>Reports</span>
-                </a>
-            </li>
-
-            <!-- Divider -->
-            <hr class="sidebar-divider">
-
-            <!-- Heading -->
-            <div class="sidebar-heading">
-                Book Operation
-            </div>
-
-            <li class="nav-item">
-                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseTwo"
-                    aria-expanded="true" aria-controls="collapseTwo">
-                    <i class="fas fa-fw fa-book"></i>
-                    <span>Book Management</span>
-                </a>
-                <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
-                    <div class="bg-white py-2 collapse-inner rounded">
-                        <h6 class="collapse-header">Book Module:</h6>
-                        <a class="collapse-item" href="book_list.php" data-toggle="dropdown">Book List</a>
-                        <a class="collapse-item" href="writers_list.php" data-toggle="dropdown">Writers List</a>
-                        <a class="collapse-item" href="publisher_list.php" data-toggle="dropdown">Publisher List</a>
-                        <a class="collapse-item" href="publications_list.php" data-toggle="dropdown">Publications List</a>
-                        <a class="collapse-item" href="contributors_list.php" data-toggle="dropdown">Contributors List</a>
-                    </div>
-                </div>
-            </li>
-
-            <?php elseif($_SESSION['role'] === 'Librarian' || $_SESSION['role'] === 'Assistant'): ?>
-            <!-- Limited menu for librarian and assistant -->
-            
-            <!-- Add User Management for Librarian and Assistant but without admin access -->
-            <li class="nav-item">
-                <a class="nav-link" href="users_list.php">
-                    <i class="fas fa-users"></i>
-                    <span>User Management</span>
-                </a>
-            </li>
-
-            <!-- Divider -->
-            <hr class="sidebar-divider">
-
-            <!-- Heading -->
-            <div class="sidebar-heading">
-                Book Operation
-            </div>
-
-            <li class="nav-item">
-                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseTwo"
-                    aria-expanded="true" aria-controls="collapseTwo">
-                    <i class="fas fa-fw fa-book"></i>
-                    <span>Book Management</span>
-                </a>
-                <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
-                    <div class="bg-white py-2 collapse-inner rounded">
-                        <h6 class="collapse-header">Book Module:</h6>
-                        <a class="collapse-item" href="add-book.php">Add Book</a>
-                        <a class="collapse-item" href="book_list.php" data-toggle="dropdown">Book List</a>
-                        <a class="collapse-item" href="writers_list.php" data-toggle="dropdown">Writers List</a>
-                        <a class="collapse-item" href="publisher_list.php" data-toggle="dropdown">Publisher List</a>
-                        <a class="collapse-item" href="publications_list.php" data-toggle="dropdown">Publications List</a>
-                        <a class="collapse-item" href="contributors_list.php" data-toggle="dropdown">Contributors List</a>
-                    </div>
-                </div>
-            </li>
-            <?php elseif($_SESSION['role'] === 'Encoder'): ?>
-            <!-- Limited menu for encoder -->
-
-            <!-- Heading -->
-            <div class="sidebar-heading">
-                Book Operation
-            </div>
-
-            <li class="nav-item">
-                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseTwo"
-                    aria-expanded="true" aria-controls="collapseTwo">
-                    <i class="fas fa-fw fa-book"></i>
-                    <span>Book Management</span>
-                </a>
-                <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
-                    <div class="bg-white py-2 collapse-inner rounded">
-                        <h6 class="collapse-header">Book Module:</h6>
-                        <a class="collapse-item" href="add-book.php">Add Book</a>
-                        <a class="collapse-item" href="book_list.php" data-toggle="dropdown">Book List</a>
-                        <a class="collapse-item" href="writers_list.php" data-toggle="dropdown">Writers List</a>
-                        <a class="collapse-item" href="publisher_list.php" data-toggle="dropdown">Publisher List</a>
-                        <a class="collapse-item" href="publications_list.php" data-toggle="dropdown">Publications List</a>
-                        <a class="collapse-item" href="contributors_list.php" data-toggle="dropdown">Contributors List</a>
-                    </div>
-                </div>
             </li>
             <?php endif; ?>
+            
+            <!-- Users management - Admin, Librarian, Assistant -->
+            <li class="nav-item <?php echo $currentPage == 'users_list.php' ? 'active-page' : ''; ?>">
+                <a class="nav-link" href="users_list.php">
+                    <i class="fas fa-users icon-admin"></i>
+                    <span>Users</span>
+                </a>
+            </li>
+            
+            <!-- Divider -->
+            <hr class="sidebar-divider">
+            <?php endif; ?>
 
+            <!-- Book Management Section - Available to all roles -->
+            <!-- Heading -->
+            <div class="sidebar-heading">
+                Book Management
+            </div>
+
+            <!-- Book management items moved directly to sidebar -->
+            <li class="nav-item <?php echo $currentPage == 'book_list.php' ? 'active-page' : ''; ?>">
+                <a class="nav-link" href="book_list.php">
+                    <i class="fas fa-book icon-book"></i>
+                    <span>Books List</span>
+                </a>
+            </li>
+            <li class="nav-item <?php echo $currentPage == 'writers_list.php' ? 'active-page' : ''; ?>">
+                <a class="nav-link" href="writers_list.php">
+                    <i class="fas fa-pen-nib icon-book"></i>
+                    <span>Writers List</span>
+                </a>
+            </li>
+            <li class="nav-item <?php echo $currentPage == 'publisher_list.php' ? 'active-page' : ''; ?>">
+                <a class="nav-link" href="publisher_list.php">
+                    <i class="fas fa-building icon-book"></i>
+                    <span>Publisher List</span>
+                </a>
+            </li>
+            <li class="nav-item <?php echo $currentPage == 'publications_list.php' ? 'active-page' : ''; ?>">
+                <a class="nav-link" href="publications_list.php">
+                    <i class="fas fa-newspaper icon-book"></i>
+                    <span>Publications List</span>
+                </a>
+            </li>
+            <li class="nav-item <?php echo $currentPage == 'contributors_list.php' ? 'active-page' : ''; ?>">
+                <a class="nav-link" href="contributors_list.php">
+                    <i class="fas fa-users icon-book"></i>
+                    <span>Contributors List</span>
+                </a>
+            </li>
+
+            <!-- Borrowing Section - Not for encoders -->
+            <?php if($_SESSION['role'] !== 'Encoder'): ?>
             <!-- Divider -->
             <hr class="sidebar-divider">
 
@@ -198,34 +243,53 @@
                 Borrowing Operation
             </div>
 
-            <!-- Nav Item - Books Menu -->
-            <li class="nav-item">
-                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseBooks"
-                    aria-expanded="true" aria-controls="collapseBooks">
-                    <i class="fas fa-book"></i>
-                    <span>Borrowing Management</span>
+            <!-- Borrowing management items -->
+            <li class="nav-item <?php echo $currentPage == 'book_borrowing.php' ? 'active-page' : ''; ?>">
+                <a class="nav-link" href="book_borrowing.php">
+                    <i class="fas fa-hand-holding-heart icon-borrow"></i>
+                    <span>Book Borrowing</span>
                 </a>
-                <div id="collapseBooks" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
-                    <div class="bg-white py-2 collapse-inner rounded">
-                        <h6 class="collapse-header">Borrowing Management:</h6>
-                        <a class="collapse-item" href="book_borrowing.php">Book Borrowing</a>
-                        <a class="collapse-item" href="book_reservations.php">Book Reservations</a>
-                        <a class="collapse-item" href="borrowed_books.php">Borrowed Books</a>
-                        <a class="collapse-item" href="borrowing_history.php">Borrowing History</a>
-                        <a class="collapse-item" href="fines.php">Manage Fines</a>
-                        <a class="collapse-item" href="lost_books.php">Lost Book Records</a>
-                        <a class="collapse-item" href="damaged_books.php">Damaged Book Records</a>
-                    </div>
-                </div>
             </li>
+            <li class="nav-item <?php echo $currentPage == 'book_reservations.php' ? 'active-page' : ''; ?>">
+                <a class="nav-link" href="book_reservations.php">
+                    <i class="fas fa-bookmark icon-borrow"></i>
+                    <span>Book Reservations</span>
+                </a>
+            </li>
+            <li class="nav-item <?php echo $currentPage == 'borrowed_books.php' ? 'active-page' : ''; ?>">
+                <a class="nav-link" href="borrowed_books.php">
+                    <i class="fas fa-book-reader icon-borrow"></i>
+                    <span>Borrowed Books</span>
+                </a>
+            </li>
+            <li class="nav-item <?php echo $currentPage == 'borrowing_history.php' ? 'active-page' : ''; ?>">
+                <a class="nav-link" href="borrowing_history.php">
+                    <i class="fas fa-history icon-borrow"></i>
+                    <span>Borrowing History</span>
+                </a>
+            </li>
+            <li class="nav-item <?php echo $currentPage == 'fines.php' ? 'active-page' : ''; ?>">
+                <a class="nav-link" href="fines.php">
+                    <i class="fas fa-money-bill-wave icon-borrow"></i>
+                    <span>Manage Fines</span>
+                </a>
+            </li>
+            <li class="nav-item <?php echo $currentPage == 'lost_books.php' ? 'active-page' : ''; ?>">
+                <a class="nav-link" href="lost_books.php">
+                    <i class="fas fa-search icon-borrow"></i>
+                    <span>Lost Book Records</span>
+                </a>
+            </li>
+            <li class="nav-item <?php echo $currentPage == 'damaged_books.php' ? 'active-page' : ''; ?>">
+                <a class="nav-link" href="damaged_books.php">
+                    <i class="fas fa-book-medical icon-borrow"></i>
+                    <span>Damaged Book Records</span>
+                </a>
+            </li>
+            <?php endif; ?>
 
             <!-- Divider -->
             <hr class="sidebar-divider">
-
-            <!-- Sidebar Toggler (Sidebar) -->
-            <div class="text-center d-none d-md-inline">
-                <button class="rounded-circle border-0" id="sidebarToggle"></button>
-            </div>
 
         </ul>
         <!-- End of Sidebar -->
@@ -239,10 +303,7 @@
                 <!-- Topbar -->
                 <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
 
-                    <!-- Sidebar Toggle (Topbar) -->
-                    <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3">
-                        <i class="fa fa-bars"></i>
-                    </button>
+                    <!-- Removed sidebar toggle top button -->
 
                     <!-- Topbar Search -->
                     <form
@@ -361,6 +422,8 @@
                 </nav>
                 <!-- End of Topbar -->
 
+                <!-- Begin Page Content -->
+                <div class="container-fluid">
 
             </div>
             <!-- End of Main Content -->
@@ -375,7 +438,7 @@
 
     <!-- Scroll to Top Button-->
     <a class="scroll-to-top rounded" href="#page-top">
-        <i class="fas fa-angle-up"></i>
+        <i class="fas fa-angle-up"></i> 
     </a>
 
     <!-- Logout Modal-->
@@ -418,7 +481,9 @@
     <script src="inc/assets/DataTables/datatables.min.js"></script>
 
     <script>
+    // Consolidated JavaScript functions
     $(document).ready(function() {
+        // Prevent dropdown menu from closing when clicking on items
         $('.collapse-item').on('click', function(e) {
             e.stopPropagation();
         });
@@ -427,104 +492,52 @@
         $('#collapseTwo .collapse-item').on('click', function(e) {
         });
         
-        // Load sidebar state from localStorage when page loads
-        $(document).ready(function() {
-            // Check if sidebar state is saved in localStorage
-            const sidebarState = localStorage.getItem('sidebarToggled');
-            
-            // If the sidebar was toggled (minimized) previously
-            if (sidebarState === 'true') {
-                $('body').addClass('sidebar-toggled');
-                $('.sidebar').addClass('toggled');
+        // Highlight current page in sidebar
+        setActivePage();
+        
+        // Show page indicator
+        showPageIndicator();
+    });
+    
+    // Function to highlight active page in sidebar
+    function setActivePage() {
+        const currentPage = '<?php echo $currentPage; ?>';
+        const pageTitle = '<?php echo $pageTitle; ?>';
+        
+        // Remove active class from all nav items first
+        $('.nav-item').removeClass('active-page');
+        
+        // Find the link with href matching current page and add active class to its parent
+        $(`.nav-link[href="${currentPage}"]`).closest('.nav-item').addClass('active-page');
+        
+        // Set document title to include the current page
+        document.title = pageTitle + " | NBS College Library";
+        
+        // Update page indicator
+        $('#pageIndicator').text('You are in: ' + pageTitle);
+    }
+    
+    // Function to show page indicator briefly
+    function showPageIndicator() {
+        const indicator = $('#pageIndicator');
+        indicator.fadeIn(300);
+        
+        // Auto-hide after 3 seconds
+        setTimeout(() => {
+            indicator.fadeOut(500);
+        }, 3000);
+        
+        // Show on hover near top of page
+        $(document).on('mousemove', function(e) {
+            if (e.clientY < 30) {
+                indicator.fadeIn(300);
+            } else if (indicator.is(':visible') && e.clientY > 50) {
+                indicator.fadeOut(500);
             }
         });
-        
-        // Save sidebar state when toggle buttons are clicked
-        $('#sidebarToggle, #sidebarToggleTop').on('click', function() {
-            // If sidebar has toggled class after click, it's minimized
-            setTimeout(function() {
-                const isMinimized = $('.sidebar').hasClass('toggled');
-                localStorage.setItem('sidebarToggled', isMinimized);
-            }, 50); // Small delay to ensure classes are updated
-        });
-    });
-    </script>
-
-    <script>
-    // Update unread message count
-    function updateMessageCount() {
-        fetch('ajax/get_unread_count.php')
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('messageCount').textContent = data.count;
-            });
     }
-
-    // Update count every 30 seconds
-    setInterval(updateMessageCount, 30000);
-    updateMessageCount();
-    </script>
-
-    <script>
-    // Update unread message count and message preview
-    function updateMessages() {
-        // Update unread count
-        fetch('ajax/get_unread_count.php')
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('messageCount').textContent = data.count || '';
-            });
-
-        // Update message preview
-        fetch('ajax/get_latest_messages.php')
-            .then(response => response.json())
-            .then(data => {
-                const messagesList = document.getElementById('messagesList');
-                messagesList.innerHTML = '';
-                
-                data.messages.slice(0, 4).forEach(msg => {
-                    const time = new Date(msg.timestamp);
-                    const timeAgo = Math.floor((new Date() - time) / 60000); // minutes
-                    
-                    messagesList.innerHTML += `
-                        <a class="dropdown-item d-flex align-items-center" href="messages.php?user=${msg.sender_id}">
-                            <div class="dropdown-list-image mr-3">
-                                <img class="rounded-circle" src="${msg.sender_image || 'img/undraw_profile.svg'}" alt="...">
-                                <div class="status-indicator ${msg.is_read ? 'bg-success' : 'bg-warning'}"></div>
-                            </div>
-                            <div class="font-weight-bold">
-                                <div class="text-truncate">${msg.message}</div>
-                                <div class="small text-gray-500">${msg.sender_name} · ${timeAgo}m</div>
-                            </div>
-                        </a>
-                    `;
-                });
-            });
-    }
-
-    // Update every 30 seconds
-    setInterval(updateMessages, 30000);
-    updateMessages();
-    </script>
-
-    <script>
-    // Add this to your existing scripts
-    function updateUnreadCount() {
-        fetch('ajax/get_unread_count.php')
-            .then(response => response.json())
-            .then(data => {
-                const badge = document.getElementById('unreadMessageCount');
-                badge.textContent = data.count > 0 ? data.count : '';
-                badge.style.display = data.count > 0 ? 'block' : 'none';
-            });
-    }
-
-    // Update count every 30 seconds
-    setInterval(updateUnreadCount, 30000);
-    updateUnreadCount();
-    </script>
-
-    <script>
+    
+    // Function to update message count
     function updateMessageCount() {
         fetch('ajax/get_unread_count.php')
             .then(response => response.json())
@@ -539,16 +552,9 @@
             })
             .catch(error => console.error('Error updating message count:', error));
     }
-
-    // Update count every 30 seconds
-    setInterval(updateMessageCount, 30000);
-    // Initial update
-    updateMessageCount();
-    </script>
-
-    <script>
+    
+    // Function to update message preview
     function updateMessages() {
-        // Update message preview
         fetch('ajax/get_latest_messages.php')
             .then(response => response.json())
             .then(data => {
@@ -588,14 +594,7 @@
                     </div>`;
             });
     }
-
-    // Update messages every 30 seconds
-    setInterval(updateMessages, 30000);
-    // Initial load
-    updateMessages();
-    </script>
-
-    <script>
+    
     // Function to update reservation alerts
     function updateReservationAlerts() {
         fetch('ajax/get_reservation_alerts.php')
@@ -638,66 +637,15 @@
             });
     }
 
-    // Update reservation alerts every 30 seconds
-    setInterval(updateReservationAlerts, 30000);
-    // Initial load
+    // Initialize all update functions
+    updateMessageCount();
+    updateMessages();
     updateReservationAlerts();
-    </script>
-
-    <script>
-    function updateMessagesAndCounts() {
-        // Update message count
-        fetch('ajax/get_unread_count.php')
-            .then(response => response.json())
-            .then(data => {
-                const messageCountBadge = document.getElementById('messageCount');
-                messageCountBadge.textContent = data.count > 99 ? '99+' : data.count;
-                messageCountBadge.style.display = data.count > 0 ? 'inline' : 'none';
-            })
-            .catch(error => console.error('Error updating message count:', error));
-
-        // Update messages
-        fetch('ajax/get_latest_messages.php')
-            .then(response => response.json())
-            .then(data => {
-                const messagesList = document.getElementById('messagesList');
-                messagesList.innerHTML = ''; // Clear existing messages
-
-                if (!data.messages || data.messages.length === 0) {
-                    messagesList.innerHTML = '<p class="text-center text-gray-500">No new messages</p>';
-                    return;
-                }
-
-                data.messages.forEach(msg => {
-                    const messageLink = `messages.php?user=${msg.sender_id}&role=${msg.sender_role}`;
-                    const messageItem = document.createElement('a');
-                    messageItem.classList.add('dropdown-item', 'd-flex', 'align-items-center');
-                    messageItem.href = messageLink;
-
-                    messageItem.innerHTML = `
-                        <div class="dropdown-list-image mr-3">
-                            <img class="rounded-circle" src="${msg.sender_image}" alt="${msg.sender_name}" style="width: 40px; height: 40px; object-fit: cover;">
-                            <div class="status-indicator ${msg.is_read ? 'bg-success' : 'bg-warning'}"></div>
-                        </div>
-                        <div class="font-weight-bold flex-grow-1">
-                            <div class="text-truncate">${msg.message}</div>
-                            <div class="small text-gray-500">${msg.sender_name} · ${msg.timestamp}</div>
-                        </div>
-                        ${!msg.is_read ? '<div class="ml-2"><span class="badge badge-danger">New</span></div>' : ''}
-                    `;
-                    messagesList.appendChild(messageItem);
-                });
-            })
-            .catch(error => {
-                console.error('Error loading messages:', error);
-                messagesList.innerHTML = '<p class="text-center text-gray-500">Error loading messages</p>';
-            });
-    }
-
-    // Update messages and counts every 30 seconds
-    setInterval(updateMessagesAndCounts, 30000);
-    // Initial load
-    updateMessagesAndCounts();
+    
+    // Set intervals for periodic updates
+    setInterval(updateMessageCount, 30000);
+    setInterval(updateMessages, 30000);
+    setInterval(updateReservationAlerts, 30000);
     </script>
 </body>
 </html>

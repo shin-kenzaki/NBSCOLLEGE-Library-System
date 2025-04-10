@@ -144,7 +144,6 @@ $totalPaidValue = $paidFinesRow['total_paid_value'] ?: 0;
 </style>
 
 <!-- Main Content -->
-<div id="content" class="d-flex flex-column min-vh-100">
     <div class="container-fluid px-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h3 mb-0 text-gray-800">Fines</h1>
@@ -394,14 +393,14 @@ $totalPaidValue = $paidFinesRow['total_paid_value'] ?: 0;
     </div>
 </div>
 
+<?php include('inc/footer.php'); ?>
+
 <!-- Context Menu -->
 <div class="context-menu" style="display: none; position: absolute; z-index: 1000;">
     <ul class="list-group">
         <li class="list-group-item" data-action="mark-paid">Mark as Paid</li>
     </ul>
 </div>
-
-<?php include('inc/footer.php'); ?>
 
 <!-- Add SweetAlert2 CSS and JS -->
 <link href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bootstrap-4/bootstrap-4.css" rel="stylesheet">

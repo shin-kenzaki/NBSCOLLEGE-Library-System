@@ -297,68 +297,75 @@ $result = $conn->query($sql);
 </style>
 
 <!-- Main Content -->
-<div id="content" class="d-flex flex-column min-vh-100">
-    <div class="container-fluid">
-        <div class="card shadow mb-4">
-            <div class="card-header py-3 d-flex flex-wrap align-items-center justify-content-between">
-                <h6 class="m-0 font-weight-bold text-primary">Publishers List</h6>
-                <div class="d-flex align-items-center">
-                    <span class="mr-3 total-publishers-display">
-                        Total Publishers: <?php echo number_format($totalPublishers); ?>
-                    </span>
-                    <button id="returnSelectedBtn" class="btn btn-danger btn-sm mr-2 bulk-delete-btn" disabled>
-                        <i class="fas fa-trash"></i>
-                        <span>Delete Selected</span>
-                        <span class="badge badge-light ml-1">0</span>
-                    </button>
-                    <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#addPublisherModal">Add Publisher</button>
-                    <button type="button" class="btn btn-info btn-sm ml-2" data-toggle="modal" data-target="#instructionsModal">
-                        <i class="fas fa-question-circle"></i> Instructions
-                    </button>
-                </div>
+<div class="container-fluid">
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-wrap align-items-center justify-content-between">
+            <h6 class="m-0 font-weight-bold text-primary">Publishers List</h6>
+            <div class="d-flex align-items-center">
+                <span class="mr-3 total-publishers-display">
+                    Total Publishers: <?php echo number_format($totalPublishers); ?>
+                </span>
+                <button id="returnSelectedBtn" class="btn btn-danger btn-sm mr-2 bulk-delete-btn" disabled>
+                    <i class="fas fa-trash"></i>
+                    <span>Delete Selected</span>
+                    <span class="badge badge-light ml-1">0</span>
+                </button>
+                <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#addPublisherModal">Add Publisher</button>
+                <button type="button" class="btn btn-info btn-sm ml-2" data-toggle="modal" data-target="#instructionsModal">
+                    <i class="fas fa-question-circle"></i> Instructions
+                </button>
             </div>
-            <div class="card-body px-0">
-                <div class="table-responsive px-3">
-                    <!-- Hidden form for bulk actions -->
-                    <form id="bulkActionForm" method="POST" action="publisher_list.php">
-                        <input type="hidden" name="bulk_action" id="bulk_action">
-                        <div id="selected_ids_container"></div>
-                    </form>
-                    
-                    <table class="table table-bordered table-striped" id="dataTable" width="100%" cellspacing="0">
-                        <thead>
-                            <tr>
-                                <th style="text-align: center;">Select</th>
-                                <th class="text-center">ID</th>
-                                <th class="text-center">Publisher</th>
-                                <th class="text-center">Place of Publication</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php
-                            // Check if the query returned any rows
-                            if ($result->num_rows > 0) {
-                                // Loop through the rows and display them in the table
-                                while ($row = $result->fetch_assoc()) {
-                                    echo "<tr>
-                                            <td style='text-align: center;'><input type='checkbox' class='row-checkbox' value='" . $row['id'] . "'></td>
-                                            <td style='text-align: center;'>" . $row['id'] . "</td>
-                                            <td style='text-align: center;'>" . $row['publisher'] . "</td>
-                                            <td style='text-align: center;'>" . $row['place'] . "</td>
-                                          </tr>";
-                                }
+        </div>
+        <div class="card-body px-0">
+            <div class="table-responsive px-3">
+                <!-- Hidden form for bulk actions -->
+                <form id="bulkActionForm" method="POST" action="publisher_list.php">
+                    <input type="hidden" name="bulk_action" id="bulk_action">
+                    <div id="selected_ids_container"></div>
+                </form>
+                
+                <table class="table table-bordered table-striped" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th style="text-align: center;">Select</th>
+                            <th class="text-center">ID</th>
+                            <th class="text-center">Publisher</th>
+                            <th class="text-center">Place of Publication</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php
+                        // Check if the query returned any rows
+                        if ($result->num_rows > 0) {
+                            // Loop through the rows and display them in the table
+                            while ($row = $result->fetch_assoc()) {
+                                echo "<tr>
+                                        <td style='text-align: center;'><input type='checkbox' class='row-checkbox' value='" . $row['id'] . "'></td>
+                                        <td style='text-align: center;'>" . $row['id'] . "</td>
+                                        <td style='text-align: center;'>" . $row['publisher'] . "</td>
+                                        <td style='text-align: center;'>" . $row['place'] . "</td>
+                                        </tr>";
                             }
-                            ?>
-                        </tbody>
-                    </table>
-                </div>
+                        }
+                        ?>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
+</div>
     <!-- /.container-fluid -->
 </div>
 <!-- End of Main Content -->
 
+<!-- Footer -->
+<?php include '../Admin/inc/footer.php' ?>
+<!-- End of Footer -->
+
+<!-- Scroll to Top Button-->
+<a class="scroll-to-top rounded" href="#page-top">
+    <i class="fas fa-angle-up"></i>
+</a>
 <!-- Add Publisher Modal -->
 <div class="modal fade" id="addPublisherModal" tabindex="-1" role="dialog" aria-labelledby="addPublisherModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
@@ -464,15 +471,6 @@ $result = $conn->query($sql);
         <li class="list-group-item context-menu-item" data-action="delete"><i class="fas fa-trash-alt mr-2"></i>Delete Publisher</li>
     </ul>
 </div>
-
-<!-- Footer -->
-<?php include '../Admin/inc/footer.php' ?>
-<!-- End of Footer -->
-
-<!-- Scroll to Top Button-->
-<a class="scroll-to-top rounded" href="#page-top">
-    <i class="fas fa-angle-up"></i>
-</a>
 
 <script>
 $(document).ready(function () {

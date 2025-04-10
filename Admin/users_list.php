@@ -282,7 +282,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
 </div>
-<!-- End of Page Content -->
+<!-- End of container-fluid -->
 
 <!-- Context Menu -->
 <div id="contextMenu" class="dropdown-menu" style="display:none; position:absolute;">
@@ -293,6 +293,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <a class="dropdown-item" href="#" id="disableUser">Disable User</a>
     <a class="dropdown-item" href="#" id="deleteUser">Delete</a>
 </div>
+
+</div>
+<!-- End of Main Content -->
+
+<!-- Footer -->
+<?php include '../Admin/inc/footer.php'; ?>
+<!-- End of Footer -->
+
+</div>
+<!-- End of Content Wrapper -->
+
+</div>
+<!-- End of Page Wrapper -->
 
 <!-- Add User Modal -->
 <div class="modal fade <?php if (isset($formSubmitted)) echo 'show'; ?>" id="addUserModal" 
@@ -1294,5 +1307,3 @@ function copyPassword() {
         border-bottom: none !important;
     }
 </style>
-
-<?php include('../admin/inc/footer.php'); ?>

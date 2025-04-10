@@ -147,7 +147,6 @@ $checkboxStyles = "margin: 0; vertical-align: middle;";
 ?>
 
 <!-- Main Content -->
-<div id="content" class="d-flex flex-column min-vh-100">
     <div class="container-fluid px-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1 class="h3 mb-0 text-gray-800">Book Reservations</h1>

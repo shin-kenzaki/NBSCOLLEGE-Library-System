@@ -8,6 +8,25 @@
 </footer>
 <!-- End of Footer -->
 
+<style>
+/* Ensure the content wrapper takes up minimum full height of viewport */
+#content-wrapper {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Push the footer to the bottom */
+#content {
+    flex: 1 0 auto;
+}
+
+/* Make the footer stick to the bottom */
+.sticky-footer {
+    flex-shrink: 0;
+}
+</style>
+
 <script>
 function updateReservationAlerts() {
     fetch('get_pending_reservations.php')

@@ -84,7 +84,6 @@ while ($row = $result->fetch_assoc()) {
 ?>
 
 <!-- Main Content -->
-<div id="content" class="d-flex flex-column min-vh-100">
     <div class="container-fluid">
         <div class="card shadow mb-4">
             <div class="card-header py-3 d-flex flex-wrap align-items-center justify-content-between">
@@ -133,6 +132,8 @@ while ($row = $result->fetch_assoc()) {
         </div>
     </div>
 </div>
+
+<?php include '../Admin/inc/footer.php'; ?>
 
 <!-- Hidden form for bulk delete -->
 <form id="bulkActionForm" method="POST" action="publications_list.php">
@@ -324,8 +325,6 @@ while ($row = $result->fetch_assoc()) {
     background-color: rgba(0, 123, 255, 0.1) !important;
 }
 </style>
-
-<?php include '../Admin/inc/footer.php'; ?>
 
 <!-- SweetAlert2 CDN -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

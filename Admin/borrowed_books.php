@@ -380,7 +380,6 @@ if (isset($_SESSION['emails_sent']) && $_SESSION['emails_sent']) {
 </style>
 
 <!-- Main Content -->
-<div id="content" class="d-flex flex-column min-vh-100">
     <div class="container-fluid px-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div class="d-flex align-items-center">
@@ -643,6 +642,8 @@ if (isset($_SESSION['emails_sent']) && $_SESSION['emails_sent']) {
     </div>
 </div>
 
+<?php include('inc/footer.php'); ?>
+
 <!-- Due Date Update Modal -->
 <div class="modal fade" id="dueDateModal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
@@ -676,8 +677,6 @@ if (isset($_SESSION['emails_sent']) && $_SESSION['emails_sent']) {
         <li class="list-group-item" data-action="damaged">Mark as Damaged</li>
     </ul>
 </div>
-
-<?php include('inc/footer.php'); ?>
 
 <!-- Add these before the closing </head> tag -->
 <link href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bootstrap-4/bootstrap-4.css" rel="stylesheet">

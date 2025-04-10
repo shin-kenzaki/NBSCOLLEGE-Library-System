@@ -173,7 +173,6 @@ $result = $conn->query($query);
 </style>
 
 <!-- Main Content -->
-<div id="content" class="d-flex flex-column min-vh-100">
     <div class="container-fluid px-4">
         <!-- Page Heading -->
         <h1 class="h3 mb-2 text-gray-800">Borrowing History</h1>

@@ -94,7 +94,6 @@ $totalRecords = $countResult->fetch_assoc()['total'];
 </style>
 
 <!-- Main Content -->
-<div id="content" class="d-flex flex-column min-vh-100">
     <div class="container-fluid px-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1 class="h3 mb-0 text-gray-800">Lost Books</h1>
@@ -218,6 +217,8 @@ $totalRecords = $countResult->fetch_assoc()['total'];
     </div>
 </div>
 
+<?php include('inc/footer.php'); ?>
+
 <!-- Add context menu before footer -->
 <div class="context-menu" style="display: none; position: absolute; z-index: 1000;">
     <ul class="list-group">
@@ -225,8 +226,6 @@ $totalRecords = $countResult->fetch_assoc()['total'];
         <li class="list-group-item" data-action="unreplace">Mark as Not Replaced</li>
     </ul>
 </div>
-
-<?php include('inc/footer.php'); ?>
 
 <!-- Add SweetAlert2 -->
 <link href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bootstrap-4/bootstrap-4.css" rel="stylesheet">
