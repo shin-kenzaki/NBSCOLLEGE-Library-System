@@ -446,14 +446,40 @@ $(document).ready(function() {
                         try {
                             const res = JSON.parse(response);
                             if (res.status === 'success') {
+                                // Format book titles for display
+                                let bookListHtml = '';
+                                if (res.books && res.books.length > 0) {
+                                    bookListHtml = '<ul style="text-align: left; padding-left: 20px;">';
+                                    res.books.forEach(book => {
+                                        bookListHtml += `<li><strong>Accession ${book.accession}</strong>: ${book.title}</li>`;
+                                    });
+                                    bookListHtml += '</ul>';
+                                }
+                                
                                 Swal.fire({
                                     title: 'Success!',
-                                    text: res.message,
+                                    html: `
+                                        <div style="margin-bottom: 15px;">
+                                            <strong>${res.borrower.name}</strong> (ID: ${res.borrower.school_id}) 
+                                            has successfully borrowed the following book(s):
+                                        </div>
+                                        ${bookListHtml}
+                                    `,
                                     icon: 'success',
-                                    showConfirmButton: false,
-                                    timer: 1500
-                                }).then(() => {
-                                    window.location.reload();
+                                    showDenyButton: true,
+                                    confirmButtonText: 'OK',
+                                    denyButtonText: 'Check Issued Books',
+                                    denyButtonColor: '#28a745',
+                                }).then((result) => {
+                                    if (result.isDenied) {
+                                        // Redirect to borrowed books page
+                                        window.location.href = 'borrowed_books.php';
+                                    } else {
+                                        // Stay on the current page but reset the form
+                                        $('#book_id').val('');
+                                        $('#bookSearch').val('');
+                                        updateSelectedBooksPreview();
+                                    }
                                 });
                             } else {
                                 Swal.fire({

@@ -26,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     // Check user type - if student, apply the 3-book limit
-    $user_query = "SELECT usertype FROM users WHERE id = ?";
+    $user_query = "SELECT usertype, firstname, lastname, middle_init, school_id FROM users WHERE id = ?";
     $stmt = $conn->prepare($user_query);
     $stmt->bind_param('i', $user_id);
     $stmt->execute();
@@ -85,12 +85,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $conn->begin_transaction();
     
     try {
+        $borrowed_book_details = []; // Array to store details of borrowed books
+        
         // For each book
         foreach ($book_ids as $book_id) {
             $book_id = intval($book_id);
             
             // Check if book is available
-            $book_query = "SELECT status, shelf_location FROM books WHERE id = ?";
+            $book_query = "SELECT id, title, status, shelf_location, accession FROM books WHERE id = ?";
             $stmt = $conn->prepare($book_query);
             $stmt->bind_param('i', $book_id);
             $stmt->execute();
@@ -100,6 +102,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$book || $book['status'] !== 'Available') {
                 throw new Exception("Book ID $book_id is not available for borrowing");
             }
+            
+            // Store book details
+            $borrowed_book_details[] = $book;
             
             // Determine loan period based on shelf location
             $allowed_days = 7; // Default
@@ -132,10 +137,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // Commit transaction
         $conn->commit();
+
+        // Format borrower's name
+        $borrower_name = $user['firstname'];
+        if (!empty($user['middle_init'])) {
+            $borrower_name .= ' ' . $user['middle_init'] . '.';
+        }
+        $borrower_name .= ' ' . $user['lastname'];
+        
+        // Format book details for display
+        $book_details = array_map(function($book) {
+            return [
+                'title' => $book['title'],
+                'accession' => $book['accession']
+            ];
+        }, $borrowed_book_details);
         
         echo json_encode([
             'status' => 'success', 
-            'message' => count($book_ids) . ' book(s) have been successfully borrowed'
+            'message' => count($book_ids) . ' book(s) have been successfully borrowed',
+            'borrower' => [
+                'name' => $borrower_name,
+                'school_id' => $user['school_id']
+            ],
+            'books' => $book_details
         ]);
         
     } catch (Exception $e) {

@@ -3,17 +3,19 @@ session_start();
 include('../db.php');
 
 // Check if user is logged in and has appropriate role
-if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Librarian', 'Assistant', 'Encoder'])) {
+if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Librarian', 'Assistant'])) {
     echo json_encode(['status' => 'error', 'message' => 'Unauthorized access']);
     exit();
 }
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['accession'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accession'])) {
     $accession = $_POST['accession'];
     
-    // Search for the book with the given accession number
-    $stmt = $conn->prepare("SELECT id, title, accession FROM books WHERE accession = ? AND status = 'Available'");
-    $stmt->bind_param("s", $accession);
+    // Prepare query to find book by accession number
+    $query = "SELECT id, title, accession, shelf_location FROM books 
+              WHERE accession = ? AND status = 'Available'";
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param('s', $accession);
     $stmt->execute();
     $result = $stmt->get_result();
     
@@ -26,16 +28,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['accession'])) {
     } else {
         echo json_encode([
             'status' => 'error',
-            'message' => 'Book not found or not available'
+            'message' => 'No available book found with this accession number'
         ]);
     }
-    
-    $stmt->close();
 } else {
     echo json_encode([
         'status' => 'error',
         'message' => 'Invalid request'
     ]);
 }
-
-$conn->close();
+?>
