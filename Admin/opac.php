@@ -207,7 +207,7 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
         echo "ISBN: " . htmlspecialchars($book['ISBN']) . "\n";
         echo "Language: " . htmlspecialchars($book['language']) . "\n";
         echo "Physical Description: " . htmlspecialchars($book['total_pages']) . " pages, " . htmlspecialchars($book['dimension']) . " cm\n";
-        echo "Publication: " . htmlspecialchars($publications[0]['publisher'] ?? 'N/A') . ", " . htmlspecialchars($publications[0]['publish_date'] ?? 'N/A') . "\n";
+        echo "Publication: " . htmlspecialchars($publications[0]['place'] ?? 'N/A') . "; " . htmlspecialchars($publications[0]['publisher'] ?? 'N/A') . ", " . htmlspecialchars($publications[0]['publish_date'] ?? 'N/A') . "\n";
     } elseif ($exportType === 'marc21') {
         echo "MARC21 Export\n";
         foreach ($marcFields as $field) {
@@ -637,7 +637,7 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                                             <?php 
                                             if (!empty($publications)) {
                                                 $pub = $publications[0];
-                                                echo htmlspecialchars($pub['publisher'] . ' (' . $pub['place'] . '), ' . $pub['publish_date']);
+                                                echo htmlspecialchars($pub['place'] . '; ' . $pub['publisher'] . ', ' . $pub['publish_date']);
                                             } else {
                                                 echo 'Information not available';
                                             }
