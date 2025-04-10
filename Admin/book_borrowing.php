@@ -14,6 +14,14 @@ if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Lib
     <div class="container-fluid px-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1 class="h3 mb-0 text-gray-800">Book Borrowing</h1>
+            <div>
+                <a href="borrowed_books.php" class="btn btn-info mr-2">
+                    <i class="fas fa-list mr-1"></i> View Issued Books
+                </a>
+                <button type="submit" form="borrowingForm" class="btn btn-primary">
+                    <i class="fas fa-check-circle mr-2"></i>Process Borrowing
+                </button>
+            </div>
         </div>
         
         <!-- Instructions Card -->
@@ -24,21 +32,29 @@ if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Lib
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-6">
-                        <h6 class="font-weight-bold">Borrowing Rules:</h6>
-                        <ul class="mb-0">
-                            <li>Students can borrow up to 3 books</li>
-                            <li>Reference (REF) books are for same-day use only</li>
-                            <li>Reserved (RES) books must be returned next day</li>
-                            <li>Regular books can be borrowed for 7 days</li>
+                        <h6 class="font-weight-bold text-primary">Borrowing Rules:</h6>
+                        <ul class="mb-3">
+                            <li><strong>Students:</strong> Maximum of 3 books at a time</li>
+                            <li><strong>Faculty/Staff:</strong> Maximum of 5 books at a time</li>
+                            <li><strong>Regular Books (CIR):</strong> 7-day borrowing period</li>
+                            <li><strong>Reference Books (REF):</strong> Same-day use only (must return by 4:00pm)</li>
+                            <li><strong>Reserved Books (RES):</strong> Next-day return (24-hour period)</li>
+                            <li><strong>Textbooks (TR):</strong> 3-day borrowing period</li>
                         </ul>
+                        <div class="alert alert-warning small py-2">
+                            <i class="fas fa-exclamation-triangle mr-1"></i> Students with overdue books or unpaid fines cannot borrow additional items.
+                        </div>
                     </div>
                     <div class="col-md-6">
-                        <h6 class="font-weight-bold">How to use:</h6>
+                        <h6 class="font-weight-bold text-primary">How to Process a Loan:</h6>
                         <ol class="mb-0">
-                            <li>Search for borrower using ID or name</li>
-                            <li>Scan book barcode or search by title</li>
-                            <li>Verify selected items are correct</li>
-                            <li>Click "Process Borrowing" to complete</li>
+                            <li>Enter borrower's ID number in the "Search Borrower" field or scan their ID card</li>
+                            <li>Verify borrower's information is correct after selection</li>
+                            <li>Scan book barcode or search by title/accession number</li>
+                            <li>Select multiple books as needed (respecting borrower limits)</li>
+                            <li>Verify all information is correct in the preview section</li>
+                            <li>Click "Process Borrowing" to complete the transaction</li>
+                            <li>Print receipt for the borrower if needed</li>
                         </ol>
                     </div>
                 </div>
@@ -49,9 +65,6 @@ if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Lib
         <div class="card shadow">
             <div class="card-header py-3 d-flex justify-content-between align-items-center">
                 <h6 class="m-0 font-weight-bold text-primary">Book Borrowing Form</h6>
-                <button type="submit" form="borrowingForm" class="btn btn-primary">
-                    <i class="fas fa-check-circle mr-2"></i>Process Borrowing
-                </button>
             </div>
             <div class="card-body">
                 <form id="borrowingForm" method="POST" action="process_borrowing.php">
