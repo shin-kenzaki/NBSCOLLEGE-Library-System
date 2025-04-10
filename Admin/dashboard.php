@@ -223,7 +223,7 @@ include '../admin/inc/header.php';
                         }
                         .stats-icon {
                             font-size: 2rem;
-                            opacity: 0.6;
+                            opacity: 0.8; /* Increased opacity for better visibility */
                         }
                         .stats-title {
                             font-size: 0.9rem;
@@ -252,173 +252,290 @@ include '../admin/inc/header.php';
                         .secondary-card {
                             border-left-color: #858796;
                         }
+                        
+                        /* Enhanced styling for dashboard cards and sections */
+                        .section-header {
+                            position: relative;
+                            padding-bottom: 0.5rem;
+                            margin-bottom: 1.5rem;
+                        }
+                        .section-header::after {
+                            content: '';
+                            position: absolute;
+                            left: 0;
+                            bottom: 0;
+                            width: 50px;
+                            height: 3px;
+                            background: #4e73df;
+                        }
+                        .metrics-value {
+                            font-size: 1.75rem;
+                            font-weight: 700;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            width: 70px;
+                            height: 70px;
+                            border-radius: 50%;
+                            color: white;
+                        }
+                        .action-card {
+                            transition: all 0.3s ease;
+                            border-radius: 0.5rem;
+                            overflow: hidden;
+                            border: none;
+                        }
+                        .action-card:hover {
+                            transform: translateY(-5px);
+                            box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.15);
+                        }
+                        .action-card .card-body {
+                            padding: 1.5rem;
+                            position: relative;
+                            z-index: 1;
+                        }
+                        .action-card h5 {
+                            font-size: 1.1rem;
+                            font-weight: 700;
+                        }
+                        .action-card .btn {
+                            border-radius: 50px;
+                            padding: 0.75rem 1.25rem;
+                            transition: all 0.2s;
+                            font-weight: 600;
+                        }
+                        .action-card .btn:hover {
+                            transform: translateY(-2px);
+                            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+                        }
+                        .action-card .action-icon {
+                            font-size: 2.5rem;
+                            position: absolute;
+                            bottom: -10px;
+                            right: 10px;
+                            opacity: 0.1;
+                            transform: rotate(-15deg);
+                            transition: all 0.3s;
+                        }
+                        .action-card:hover .action-icon {
+                            transform: scale(1.2) rotate(0deg);
+                            opacity: 0.15;
+                        }
+                        .border-top-primary { border-top: 4px solid #4e73df; }
+                        .border-top-success { border-top: 4px solid #1cc88a; }
+                        .border-top-info { border-top: 4px solid #36b9cc; }
+                        .border-top-warning { border-top: 4px solid #f6c23e; }
+                        .border-top-danger { border-top: 4px solid #e74a3b; }
+                        .border-top-secondary { border-top: 4px solid #858796; }
                     </style>
 
-                    <!-- Content Row 1 -->
-                    <div class="row">
-
-                        <!-- Active Borrowings Card -->
-                        <div class="col-xl-3 col-md-6 mb-4">
-                            <a href="borrowed_books.php" style="text-decoration: none;">
-                                <div class="card shadow h-100 py-2 stats-card primary-card">
-                                    <div class="card-body">
-                                        <div class="row no-gutters align-items-center">
-                                            <div class="col mr-2">
-                                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1 stats-title">
-                                                    Active Borrowings</div>
-                                                <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number"><?php echo $active_borrowings; ?></div>
-                                            </div>
-                                            <div class="col-auto">
-                                                <i class="fas fa-book fa-2x text-gray-300 stats-icon"></i>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </a>
-                        </div>
-
-                        <!-- Overdue Books Card -->
-                        <div class="col-xl-3 col-md-6 mb-4">
-                            <a href="borrowed_books.php" style="text-decoration: none;">
-                                <div class="card shadow h-100 py-2 stats-card danger-card">
-                                    <div class="card-body">
-                                        <div class="row no-gutters align-items-center">
-                                            <div class="col mr-2">
-                                                <div class="text-xs font-weight-bold text-danger text-uppercase mb-1 stats-title">
-                                                    Overdue Books</div>
-                                                <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number"><?php echo $overdue_books; ?></div>
-                                            </div>
-                                            <div class="col-auto">
-                                                <i class="fas fa-clock fa-2x text-gray-300 stats-icon"></i>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </a>
-                        </div>
-
-                        <!-- Pending Reservations Card -->
-                        <div class="col-xl-3 col-md-6 mb-4">
-                            <a href="book_reservations.php" style="text-decoration: none;">
-                                <div class="card shadow h-100 py-2 stats-card info-card">
-                                    <div class="card-body">
-                                        <div class="row no-gutters align-items-center">
-                                            <div class="col mr-2">
-                                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1 stats-title">
-                                                    Pending Reservations</div>
-                                                <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number"><?php echo $pending_reservations; ?></div>
-                                            </div>
-                                            <div class="col-auto">
-                                                <i class="fas fa-bookmark fa-2x text-gray-300 stats-icon"></i>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </a>
-                        </div>
-
-                        <!-- Pending Fines Card -->
-                        <div class="col-xl-3 col-md-6 mb-4">
-                            <a href="fines.php" style="text-decoration: none;">
-                                <div class="card shadow h-100 py-2 stats-card warning-card">
-                                    <div class="card-body">
-                                        <div class="row no-gutters align-items-center">
-                                            <div class="col mr-2">
-                                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1 stats-title">
-                                                    Pending Fines</div>
-                                                <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number">₱<?php echo number_format($pending_fines, 2); ?></div>
-                                            </div>
-                                            <div class="col-auto">
-                                                <i class="fas fa-money-bill fa-2x text-gray-300 stats-icon"></i>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
-
-                    <!-- Content Row 2 -->
-                    <div class="row">
-
-                        <!-- Paid Fines Card -->
-                        <div class="col-xl-3 col-md-6 mb-4">
-                            <a href="fines.php" style="text-decoration: none;">
-                                <div class="card shadow h-100 py-2 stats-card success-card">
-                                    <div class="card-body">
-                                        <div class="row no-gutters align-items-center">
-                                            <div class="col mr-2">
-                                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1 stats-title">
-                                                    Paid Fines</div>
-                                                <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number">₱<?php echo number_format($paid_fines, 2); ?></div>
-                                            </div>
-                                            <div class="col-auto">
-                                                <i class="fas fa-money-check-alt fa-2x text-gray-300 stats-icon"></i>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </a>
-                        </div>
-
-                        <!-- Add User Shortcut Card -->
-                        <div class="col-xl-3 col-md-6 mb-4">
-                            <a href="users_list.php" style="text-decoration: none;">
-                                <div class="card shadow h-100 py-2 stats-card info-card">
-                                    <div class="card-body">
-                                        <div class="row no-gutters align-items-center">
-                                            <div class="col mr-2">
-                                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1 stats-title">
-                                                    Add User</div>
-                                                <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number">Shortcut</div>
-                                            </div>
-                                            <div class="col-auto">
-                                                <i class="fas fa-user-plus fa-2x text-gray-300 stats-icon"></i>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </a>
-                        </div>
-
-                        <!-- Book Borrowing Shortcut Card -->
-                        <div class="col-xl-3 col-md-6 mb-4">
-                            <a href="book_borrowing.php" style="text-decoration: none;">
-                                <div class="card shadow h-100 py-2 stats-card secondary-card">
-                                    <div class="card-body">
-                                        <div class="row no-gutters align-items-center">
-                                            <div class="col mr-2">
-                                                <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1 stats-title">
-                                                    Borrow a Book</div>
-                                                <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number">Shortcut</div>
-                                            </div>
-                                            <div class="col-auto">
-                                                <i class="fas fa-book-reader fa-2x text-gray-300 stats-icon"></i>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </a>
+                    <!-- Content Row 1 & 2 - Replace with Key Metrics Section -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h4 class="text-gray-800 font-weight-bold section-header">
+                                <i class="fas fa-chart-line mr-2"></i>Key Metrics
+                            </h4>
                         </div>
                         
-                        <!-- Add Book Shortcut Card -->
-                        <div class="col-xl-3 col-md-6 mb-4">
-                            <div class="card shadow h-100 py-2 stats-card primary-card">
+                        <!-- Active Borrowings Card -->
+                        <div class="col-md-4 mb-4">
+                            <div class="card shadow h-100 action-card border-top-primary">
                                 <div class="card-body">
-                                    <div class="row no-gutters align-items-center">
-                                        <div class="col mr-2">
-                                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1 stats-title">
-                                                Add Book</div>
-                                            <div class="h5 mb-0 font-weight-bold text-gray-800 stats-number">Shortcut</div>
-                                            <div class="mt-2">
-                                                <a href="add-book.php" class="btn btn-sm btn-success mr-1"><i class="fas fa-book mr-1"></i> Standard</a>
-                                                <a href="step-by-step-add-book.php" class="btn btn-sm btn-primary"><i class="fas fa-list mr-1"></i> Step-by-Step</a>
-                                            </div>
-                                        </div>
-                                        <div class="col-auto">
-                                            <i class="fas fa-plus fa-2x text-gray-300 stats-icon"></i>
+                                    <div class="d-flex align-items-center justify-content-between mb-3">
+                                        <h5 class="text-primary font-weight-bold mb-0">
+                                            <i class="fas fa-book mr-2"></i>Active Borrowings
+                                        </h5>
+                                        <div class="metrics-value bg-primary">
+                                            <?php echo $active_borrowings; ?>
                                         </div>
                                     </div>
+                                    <p class="text-muted mb-3">Currently borrowed books that have not been returned yet.</p>
+                                    <a href="borrowed_books.php" class="btn btn-primary btn-block">
+                                        <i class="fas fa-search mr-2"></i>View All Borrowings
+                                    </a>
+                                    <i class="fas fa-book-reader action-icon text-primary"></i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Overdue Books Card -->
+                        <div class="col-md-4 mb-4">
+                            <div class="card shadow h-100 action-card border-top-danger">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center justify-content-between mb-3">
+                                        <h5 class="text-danger font-weight-bold mb-0">
+                                            <i class="fas fa-clock mr-2"></i>Overdue Books
+                                        </h5>
+                                        <div class="metrics-value bg-danger">
+                                            <?php echo $overdue_books; ?>
+                                        </div>
+                                    </div>
+                                    <p class="text-muted mb-3">Books that have passed their due date and need attention.</p>
+                                    <a href="borrowed_books.php?status=Overdue" class="btn btn-danger btn-block">
+                                        <i class="fas fa-exclamation-circle mr-2"></i>Manage Overdue Books
+                                    </a>
+                                    <i class="fas fa-calendar-times action-icon text-danger"></i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Pending Reservations Card -->
+                        <div class="col-md-4 mb-4">
+                            <div class="card shadow h-100 action-card border-top-info">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center justify-content-between mb-3">
+                                        <h5 class="text-info font-weight-bold mb-0">
+                                            <i class="fas fa-bookmark mr-2"></i>Pending Reservations
+                                        </h5>
+                                        <div class="metrics-value bg-info">
+                                            <?php echo $pending_reservations; ?>
+                                        </div>
+                                    </div>
+                                    <p class="text-muted mb-3">Book reservations waiting to be processed by staff. </p>
+                                    <a href="book_reservations.php" class="btn btn-info btn-block">
+                                        <i class="fas fa-list-alt mr-2"></i>View Reservations
+                                    </a>
+                                    <i class="fas fa-clipboard-list action-icon text-info"></i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Pending Fines Card -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card shadow h-100 action-card border-top-warning">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center justify-content-between mb-3">
+                                        <h5 class="text-warning font-weight-bold mb-0">
+                                            <i class="fas fa-money-bill mr-2"></i>Pending Fines
+                                        </h5>
+                                        <div class="metrics-value bg-warning" style="width: auto; padding: 0 20px;">
+                                            ₱<?php echo number_format($pending_fines, 2); ?>
+                                        </div>
+                                    </div>
+                                    <p class="text-muted mb-3">Total amount of unpaid fines from overdue, damaged, or lost books.</p>
+                                    <a href="fines.php?status=Unpaid" class="btn btn-warning btn-block">
+                                        <i class="fas fa-file-invoice mr-2"></i>Manage Unpaid Fines
+                                    </a>
+                                    <i class="fas fa-hand-holding-usd action-icon text-warning"></i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Paid Fines Card -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card shadow h-100 action-card border-top-success">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center justify-content-between mb-3">
+                                        <h5 class="text-success font-weight-bold mb-0">
+                                            <i class="fas fa-money-check-alt mr-2"></i>Paid Fines
+                                        </h5>
+                                        <div class="metrics-value bg-success" style="width: auto; padding: 0 20px;">
+                                            ₱<?php echo number_format($paid_fines, 2); ?>
+                                        </div>
+                                    </div>
+                                    <p class="text-muted mb-3">Total amount of collected fines that have been settled.</p>
+                                    <a href="fines.php?status=Paid" class="btn btn-success btn-block">
+                                        <i class="fas fa-history mr-2"></i>View Payment History
+                                    </a>
+                                    <i class="fas fa-coins action-icon text-success"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Quick Actions Section -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h4 class="text-gray-800 font-weight-bold section-header">
+                                <i class="fas fa-bolt mr-2"></i>Quick Actions
+                            </h4>
+                        </div>
+                        
+                        <!-- Add User Option -->
+                        <div class="col-md-4">
+                            <div class="card shadow h-100 action-card border-top-info">
+                                <div class="card-body">
+                                    <h5 class="text-info font-weight-bold mb-4">
+                                        <i class="fas fa-user-plus mr-2"></i>Add User
+                                    </h5>
+                                    <p class="text-muted mb-4">Register new students, faculty members, or library staff with access to the system.</p>
+                                    <a href="users_list.php" class="btn btn-info btn-lg btn-block">
+                                        <i class="fas fa-arrow-right mr-2"></i>Manage Users
+                                    </a>
+                                    <i class="fas fa-users action-icon text-info"></i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Borrow Book Option -->
+                        <div class="col-md-4">
+                            <div class="card shadow h-100 action-card border-top-secondary">
+                                <div class="card-body">
+                                    <h5 class="text-secondary font-weight-bold mb-4">
+                                        <i class="fas fa-book-reader mr-2"></i>Borrow a Book
+                                    </h5>
+                                    <p class="text-muted mb-4">Process book borrowings for students and faculty with barcode scanning and due date selection.</p>
+                                    <a href="book_borrowing.php" class="btn btn-secondary btn-lg btn-block">
+                                        <i class="fas fa-arrow-right mr-2"></i>Start Borrowing
+                                    </a>
+                                    <i class="fas fa-exchange-alt action-icon text-secondary"></i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Return Book Option -->
+                        <div class="col-md-4">
+                            <div class="card shadow h-100 action-card border-top-warning">
+                                <div class="card-body">
+                                    <h5 class="text-warning font-weight-bold mb-4">
+                                        <i class="fas fa-undo-alt mr-2"></i>Return Books
+                                    </h5>
+                                    <p class="text-muted mb-4">Process book returns, check for damages, and calculate fines for overdue materials.</p>
+                                    <a href="borrowed_books.php" class="btn btn-warning btn-lg btn-block">
+                                        <i class="fas fa-arrow-right mr-2"></i>Process Returns
+                                    </a>
+                                    <i class="fas fa-sign-in-alt action-icon text-warning"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Add Book Shortcuts Row -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h4 class="text-primary font-weight-bold section-header">
+                                <i class="fas fa-plus-circle mr-2"></i>Add New Book
+                            </h4>
+                        </div>
+                        
+                        <!-- Standard Form Option -->
+                        <div class="col-md-6">
+                            <div class="card shadow h-100 action-card border-top-success">
+                                <div class="card-body">
+                                    <h5 class="text-success font-weight-bold mb-4">
+                                        <i class="fas fa-book mr-2"></i>Standard Form
+                                    </h5>
+                                    <p class="text-muted mb-4">Quick single-page form for adding books efficiently. Best for experienced users who need to add books rapidly.</p>
+                                    <a href="add-book.php" class="btn btn-success btn-lg btn-block">
+                                        <i class="fas fa-arrow-right mr-2"></i>Use Standard Form
+                                    </a>
+                                    <i class="fas fa-file-alt action-icon text-success"></i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Step-by-Step Option -->
+                        <div class="col-md-6">
+                            <div class="card shadow h-100 action-card border-top-primary">
+                                <div class="card-body">
+                                    <h5 class="text-primary font-weight-bold mb-4">
+                                        <i class="fas fa-list-ol mr-2"></i>Step-by-Step Guide
+                                    </h5>
+                                    <p class="text-muted mb-4">Guided multi-step process that walks you through adding books with detailed instructions at each stage.</p>
+                                    <a href="step-by-step-add-book.php" class="btn btn-primary btn-lg btn-block">
+                                        <i class="fas fa-arrow-right mr-2"></i>Use Step-by-Step
+                                    </a>
+                                    <i class="fas fa-tasks action-icon text-primary"></i>
                                 </div>
                             </div>
                         </div>
