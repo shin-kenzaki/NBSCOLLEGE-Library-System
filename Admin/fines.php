@@ -60,7 +60,7 @@ if ($typeFilter) {
 
 // Fetch fines with related information
 $query = "SELECT f.id, f.type, f.amount, f.status, f.date, f.payment_date,
-          f.reminder_sent, -- Include reminder_sent column
+          f.reminder_sent, f.invoice_sale, -- Include invoice_sale column
           b.issue_date, b.due_date, b.return_date,
           bk.title AS book_title,
           CONCAT(u.firstname, ' ', u.lastname) AS borrower_name,
@@ -267,6 +267,7 @@ $totalPaidValue = $paidFinesRow['total_paid_value'] ?: 0;
                                 <th class="text-center">Return Date</th>
                                 <th class="text-center">Status</th>
                                 <th class="text-center">Payment Date</th>
+                                <th class="text-center">Invoice/OR</th>
                                 <th class="text-center">Reminder</th>
                             </tr>
                         </thead>
@@ -303,6 +304,9 @@ $totalPaidValue = $paidFinesRow['total_paid_value'] ?: 0;
                                             ? date('Y-m-d', strtotime($row['payment_date']))
                                             : '-';
                                         ?>
+                                    </td>
+                                    <td class="text-center">
+                                        <?php echo ($row['invoice_sale'] !== null) ? htmlspecialchars($row['invoice_sale']) : '-'; ?>
                                     </td>
                                     <td class="text-center">
                                         <?php echo ($row['reminder_sent'] == 1) ? '<span class="badge badge-success">Reminder Sent</span>' : '<span class="badge badge-warning">Not Reminded</span>'; ?>
@@ -625,31 +629,55 @@ $(document).ready(function() {
             url = 'mark_fine_unpaid.php';
         }
 
-        // Sweet Alert confirmation
-        Swal.fire({
-            title: 'Confirm Payment',
-            html: `
-                <div class="text-left">
-                    <p class="mb-2"><strong>Borrower:</strong> ${borrower}</p>
-                    <p class="mb-2"><strong>Amount:</strong> ₱${parseFloat(amount).toLocaleString('en-PH', {minimumFractionDigits: 2})}</p>
-                    <p class="mt-3">Are you sure you want to mark this fine as ${action === 'mark-paid' ? 'paid' : 'unpaid'}?</p>
-                </div>
-            `,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: `<i class="fas fa-check"></i> Yes, Mark as ${action === 'mark-paid' ? 'Paid' : 'Unpaid'}`,
-            cancelButtonText: '<i class="fas fa-times"></i> Cancel',
-            confirmButtonColor: '#28a745',
-            cancelButtonColor: '#dc3545',
-            allowOutsideClick: false,
-            allowEscapeKey: false,
-            showLoaderOnConfirm: true,
-            customClass: {
-                confirmButton: 'btn btn-success',
-                cancelButton: 'btn btn-danger'
-            },
-            preConfirm: () => {
-                return fetch(`${url}?id=${fineId}`)
+        if (action === 'mark-paid') {
+            // Sweet Alert confirmation with added fields
+            Swal.fire({
+                title: 'Confirm Payment',
+                html: `
+                    <div class="text-left">
+                        <p class="mb-2"><strong>Borrower:</strong> ${borrower}</p>
+                        <p class="mb-2"><strong>Amount:</strong> ₱${parseFloat(amount).toLocaleString('en-PH', {minimumFractionDigits: 2})}</p>
+                        
+                        <div class="form-group mt-3">
+                            <label for="payment_date" class="float-left"><strong>Payment Date:</strong></label>
+                            <input type="date" id="payment_date" class="form-control" value="${new Date().toISOString().split('T')[0]}">
+                        </div>
+                        
+                        <div class="form-group mt-3">
+                            <label for="invoice_sale" class="float-left"><strong>Invoice/OR Number:</strong></label>
+                            <input type="text" id="invoice_sale" class="form-control" placeholder="Enter invoice or OR number">
+                        </div>
+                    </div>
+                `,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: `<i class="fas fa-check"></i> Confirm Payment`,
+                cancelButtonText: '<i class="fas fa-times"></i> Cancel',
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#dc3545',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showLoaderOnConfirm: true,
+                customClass: {
+                    confirmButton: 'btn btn-success',
+                    cancelButton: 'btn btn-danger'
+                },
+                preConfirm: () => {
+                    const paymentDate = document.getElementById('payment_date').value;
+                    const invoiceSale = document.getElementById('invoice_sale').value;
+                    
+                    if (!paymentDate) {
+                        Swal.showValidationMessage('Payment date is required');
+                        return false;
+                    }
+                    
+                    return fetch(`${url}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `fine_id=${fineId}&payment_date=${paymentDate}&invoice_sale=${invoiceSale}`
+                    })
                     .then(response => response.json())
                     .then(data => {
                         if (data.status === 'error') {
@@ -660,20 +688,71 @@ $(document).ready(function() {
                     .catch(error => {
                         Swal.showValidationMessage(`Error: ${error.message}`);
                     });
-            }
-        }).then((result) => {
-            if (result.isConfirmed) {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Payment Recorded!',
-                    text: `The fine has been successfully marked as ${action === 'mark-paid' ? 'paid' : 'unpaid'}.`,
-                    confirmButtonColor: '#28a745',
-                    confirmButtonText: 'OK'
-                }).then(() => {
-                    window.location.reload();
-                });
-            }
-        });
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Payment Recorded!',
+                        text: `The fine has been successfully marked as paid.`,
+                        confirmButtonColor: '#28a745',
+                        confirmButtonText: 'OK'
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                }
+            });
+        } else if (action === 'mark-unpaid') {
+            // Keep the existing code for mark-unpaid
+            Swal.fire({
+                title: 'Confirm Action',
+                html: `
+                    <div class="text-left">
+                        <p class="mb-2"><strong>Borrower:</strong> ${borrower}</p>
+                        <p class="mb-2"><strong>Amount:</strong> ₱${parseFloat(amount).toLocaleString('en-PH', {minimumFractionDigits: 2})}</p>
+                        <p class="mt-3">Are you sure you want to mark this fine as unpaid?</p>
+                    </div>
+                `,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: `<i class="fas fa-check"></i> Yes, Mark as Unpaid`,
+                cancelButtonText: '<i class="fas fa-times"></i> Cancel',
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#dc3545',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showLoaderOnConfirm: true,
+                customClass: {
+                    confirmButton: 'btn btn-success',
+                    cancelButton: 'btn btn-danger'
+                },
+                preConfirm: () => {
+                    return fetch(`${url}?id=${fineId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'error') {
+                                throw new Error(data.message);
+                            }
+                            return data;
+                        })
+                        .catch(error => {
+                            Swal.showValidationMessage(`Error: ${error.message}`);
+                        });
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Status Updated!',
+                        text: `The fine has been successfully marked as unpaid.`,
+                        confirmButtonColor: '#28a745',
+                        confirmButtonText: 'OK'
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                }
+            });
+        }
 
         contextMenu.hide();
     });
