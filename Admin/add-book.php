@@ -4081,22 +4081,27 @@ document.addEventListener("DOMContentLoaded", function() {
             html: `
                 <div id="sweetAlertPublisherContainer">
                     <div class="publisher-entry row mb-3">
+                        <!-- Switched the order of these two fields -->
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label>Publisher Name</label>
-                                <input type="text" class="form-control publisher-name" required>
+                                <label for="place">Publication Place</label>
+                                <input type="text" class="form-control" name="place" placeholder="Enter publication place">
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label>Place of Publication</label>
-                                <input type="text" class="form-control publisher-place" required>
+                                <label for="publisher">Publisher Name</label>
+                                <input type="text" class="form-control" name="publisher" placeholder="Enter publisher name">
                             </div>
                         </div>
                     </div>
-                    <button type="button" id="swalAddPublisherEntry" class="btn btn-info btn-sm">
-                        <i class="fas fa-plus"></i> Add Another Publisher
-                    </button>
+                    <div class="row">
+                        <div class="col-12 d-flex justify-content-center">
+                            <button type="button" id="addPublisherEntryBtn" class="btn btn-sm btn-primary mr-2">
+                                <i class="fas fa-plus mr-1"></i> Add Another Publisher
+                            </button>
+                        </div>
+                    </div>
                 </div>
             `,
             showCancelButton: true,
@@ -4104,127 +4109,92 @@ document.addEventListener("DOMContentLoaded", function() {
             cancelButtonText: 'Cancel',
             width: '800px',
             didOpen: () => {
-                // Add another publisher entry when clicking the add button
-                document.getElementById('swalAddPublisherEntry').addEventListener('click', function() {
+                // Initialize event handler for adding new publisher entries
+                document.getElementById('addPublisherEntryBtn').addEventListener('click', function() {
                     const container = document.getElementById('sweetAlertPublisherContainer');
                     const newEntry = document.createElement('div');
                     newEntry.className = 'publisher-entry row mb-3';
                     newEntry.innerHTML = `
+                        <!-- Keep consistent with the swapped order above -->
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label>Publisher Name</label>
-                                <input type="text" class="form-control publisher-name" required>
+                                <label for="place">Publication Place</label>
+                                <input type="text" class="form-control" name="place" placeholder="Enter publication place">
                             </div>
                         </div>
-                        <div class="col-md-5">
+                        <div class="col-md-6">
                             <div class="form-group">
-                                <label>Place of Publication</label>
-                                <input type="text" class="form-control publisher-place" required>
+                                <label for="publisher">Publisher Name</label>
+                                <input type="text" class="form-control" name="publisher" placeholder="Enter publisher name">
                             </div>
                         </div>
-                        <div class="col-md-1 remove-btn-container">
-                            <button type="button" class="btn btn-danger btn-sm remove-publisher-entry">
-                                <i class="fas fa-times"></i>
+                        <div class="col-md-12 text-right">
+                            <button type="button" class="btn btn-sm btn-danger remove-publisher-entry">
+                                <i class="fas fa-times"></i> Remove
                             </button>
                         </div>
                     `;
-                    container.insertBefore(newEntry, document.getElementById('swalAddPublisherEntry'));
+                    container.appendChild(newEntry);
                     
-                    // Add remove functionality
-                    newEntry.querySelector('.remove-publisher-entry').addEventListener('click', function() {
-                        newEntry.remove();
-                    });
+                    // Add event listener to the new remove button
+                    const removeBtn = newEntry.querySelector('.remove-publisher-entry');
+                    if (removeBtn) {
+                        removeBtn.addEventListener('click', function() {
+                            this.closest('.publisher-entry').remove();
+                        });
+                    }
                 });
             }
         }).then((result) => {
+            // Handle form submission
             if (result.isConfirmed) {
-                // Collect data from all publisher entries
-                const publisherEntries = document.querySelectorAll('#sweetAlertPublisherContainer .publisher-entry');
-                const publishersData = [];
-                let hasErrors = false;
-                
-                publisherEntries.forEach(entry => {
-                    const publisher = entry.querySelector('.publisher-name').value.trim();
-                    const place = entry.querySelector('.publisher-place').value.trim();
+                const publishers = [];
+                document.querySelectorAll('#sweetAlertPublisherContainer .publisher-entry').forEach(entry => {
+                    const place = entry.querySelector('input[name="place"]').value.trim();
+                    const publisher = entry.querySelector('input[name="publisher"]').value.trim();
                     
-                    if (!publisher || !place) {
-                        hasErrors = true;
-                        return;
+                    if (place && publisher) {
+                        publishers.push({ place, publisher });
                     }
-                    
-                    publishersData.push({
-                        publisher: publisher,
-                        place: place
-                    });
                 });
                 
-                if (hasErrors) {
-                    Swal.fire('Error', 'Publisher name and place are required for all publishers.', 'error');
-                    return;
-                }
-                
-                if (publishersData.length === 0) {
-                    Swal.fire('Error', 'Please add at least one publisher.', 'error');
-                    return;
-                }
-                
-                // AJAX request to save all publishers
-                const xhr = new XMLHttpRequest();
-                xhr.open('POST', 'ajax/add_publishers.php', true);
-                xhr.setRequestHeader('Content-Type', 'application/json');
-                xhr.onload = function() {
-                    if (this.status === 200) {
-                        try {
-                            const response = JSON.parse(this.responseText);
+                if (publishers.length > 0) {
+                    // Send AJAX request to save publishers
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('POST', 'ajax/add_publishers.php', true);
+                    xhr.setRequestHeader('Content-Type', 'application/json');
+                    xhr.onload = function() {
+                        if (xhr.status === 200) {
+                            const response = JSON.parse(xhr.responseText);
                             if (response.success) {
-                                // Add all new publishers to the select options
-                                const publisherSelect = document.getElementById('publisher');
-                                
+                                // Refresh the publishers dropdown
+                                const publisherSelect = document.querySelector('select[name="publisher"]');
                                 if (publisherSelect) {
                                     response.publishers.forEach(pub => {
-                                        // Check if this publisher is already in the dropdown
-                                        let exists = false;
-                                        for (let i = 0; i < publisherSelect.options.length; i++) {
-                                            if (publisherSelect.options[i].value === pub.id.toString()) {
-
-                                                exists = true;
-                                                break;
-                                            }
-                                        }
-                                        
-                                        if (!exists) {
-                                            const newOption = document.createElement('option');
-                                            newOption.value = pub.id;
-                                            newOption.textContent = `${pub.publisher} (${pub.place})`;
-                                            publisherSelect.appendChild(newOption);
-                                        }
+                                        const option = document.createElement('option');
+                                        option.value = pub.id;
+                                        option.textContent = `${pub.publisher} (${pub.place})`;
+                                        publisherSelect.appendChild(option);
                                     });
                                     
-                                    // Select the first new publisher in the dropdown if none is selected
-                                    if (!publisherSelect.value && response.publishers.length > 0) {
-                                        publisherSelect.value = response.publishers[0].id;
-                                        // Manually trigger change event
-                                        const event = new Event('change');
-                                        publisherSelect.dispatchEvent(event);
+                                    // Select the last added publisher
+                                    if (response.publishers.length > 0) {
+                                        publisherSelect.value = response.publishers[response.publishers.length - 1].id;
                                     }
                                 }
                                 
-                                Swal.fire(
-                                    'Success',
-                                    `Successfully added ${response.publishers.length} publisher(s)!`,
-                                    'success'
-                                );
+                                Swal.fire('Success', 'Publishers added successfully', 'success');
                             } else {
                                 Swal.fire('Error', response.message || 'Failed to add publishers', 'error');
                             }
-                        } catch (e) {
-                            Swal.fire('Error', 'Error processing response: ' + e.message, 'error');
+                        } else {
+                            Swal.fire('Error', 'Server error occurred', 'error');
                         }
-                    } else {
-                        Swal.fire('Error', 'Server error while adding publishers', 'error');
-                    }
-                };
-                xhr.send(JSON.stringify(publishersData));
+                    };
+                    xhr.send(JSON.stringify(publishers));
+                } else {
+                    Swal.fire('Error', 'Please enter at least one publisher with place', 'error');
+                }
             }
         });
     };
@@ -4464,27 +4434,27 @@ function showAddPublisherDialog() {
         html: `
             <div id="sweetAlertPublisherContainer">
                 <div class="publisher-entry row mb-3">
+                    <!-- Switched the order of these two fields -->
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label>Publisher Name</label>
-                            <input type="text" class="form-control publisher-name" required>
+                            <label for="place">Publication Place</label>
+                            <input type="text" class="form-control" name="place" placeholder="Enter publication place">
                         </div>
                     </div>
-                    <div class="col-md-5">
+                    <div class="col-md-6">
                         <div class="form-group">
-                            <label>Place of Publication</label>
-                            <input type="text" class="form-control publisher-place" required>
+                            <label for="publisher">Publisher Name</label>
+                            <input type="text" class="form-control" name="publisher" placeholder="Enter publisher name">
                         </div>
                     </div>
-                    <div class="col-md-1 remove-btn-container">
-                        <button type="button" class="btn btn-danger btn-sm remove-publisher-entry">
-                            <i class="fas fa-times"></i>
+                </div>
+                <div class="row">
+                    <div class="col-12 d-flex justify-content-center">
+                        <button type="button" id="addPublisherEntryBtn" class="btn btn-sm btn-primary mr-2">
+                            <i class="fas fa-plus mr-1"></i> Add Another Publisher
                         </button>
                     </div>
                 </div>
-                <button type="button" id="swalAddPublisherEntry" class="btn btn-info btn-sm">
-                    <i class="fas fa-plus"></i> Add Another Publisher
-                </button>
             </div>
         `,
         showCancelButton: true,
@@ -4492,31 +4462,92 @@ function showAddPublisherDialog() {
         cancelButtonText: 'Cancel',
         width: '800px',
         didOpen: () => {
-            document.getElementById('swalAddPublisherEntry').addEventListener('click', function() {
+            // Initialize event handler for adding new publisher entries
+            document.getElementById('addPublisherEntryBtn').addEventListener('click', function() {
                 const container = document.getElementById('sweetAlertPublisherContainer');
                 const newEntry = document.createElement('div');
                 newEntry.className = 'publisher-entry row mb-3';
                 newEntry.innerHTML = `
+                    <!-- Keep consistent with the swapped order above -->
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label>Publisher Name</label>
-                            <input type="text" class="form-control publisher-name" required>
+                            <label for="place">Publication Place</label>
+                            <input type="text" class="form-control" name="place" placeholder="Enter publication place">
                         </div>
                     </div>
-                    <div class="col-md-5">
+                    <div class="col-md-6">
                         <div class="form-group">
-                            <label>Place of Publication</label>
-                            <input type="text" class="form-control publisher-place" required>
+                            <label for="publisher">Publisher Name</label>
+                            <input type="text" class="form-control" name="publisher" placeholder="Enter publisher name">
                         </div>
                     </div>
-                    <div class="col-md-1 remove-btn-container">
-                        <button type="button" class="btn btn-danger btn-sm remove-publisher-entry">
-                            <i class="fas fa-times"></i>
+                    <div class="col-md-12 text-right">
+                        <button type="button" class="btn btn-sm btn-danger remove-publisher-entry">
+                            <i class="fas fa-times"></i> Remove
                         </button>
                     </div>
                 `;
-                container.insertBefore(newEntry, document.getElementById('swalAddPublisherEntry'));
+                container.appendChild(newEntry);
+                
+                // Add event listener to the new remove button
+                const removeBtn = newEntry.querySelector('.remove-publisher-entry');
+                if (removeBtn) {
+                    removeBtn.addEventListener('click', function() {
+                        this.closest('.publisher-entry').remove();
+                    });
+                }
             });
+        }
+    }).then((result) => {
+        // Handle form submission
+        if (result.isConfirmed) {
+            const publishers = [];
+            document.querySelectorAll('#sweetAlertPublisherContainer .publisher-entry').forEach(entry => {
+                const place = entry.querySelector('input[name="place"]').value.trim();
+                const publisher = entry.querySelector('input[name="publisher"]').value.trim();
+                
+                if (place && publisher) {
+                    publishers.push({ place, publisher });
+                }
+            });
+            
+            if (publishers.length > 0) {
+                // Send AJAX request to save publishers
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', 'ajax/add_publishers.php', true);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        const response = JSON.parse(xhr.responseText);
+                        if (response.success) {
+                            // Refresh the publishers dropdown
+                            const publisherSelect = document.querySelector('select[name="publisher"]');
+                            if (publisherSelect) {
+                                response.publishers.forEach(pub => {
+                                    const option = document.createElement('option');
+                                    option.value = pub.id;
+                                    option.textContent = `${pub.publisher} (${pub.place})`;
+                                    publisherSelect.appendChild(option);
+                                });
+                                
+                                // Select the last added publisher
+                                if (response.publishers.length > 0) {
+                                    publisherSelect.value = response.publishers[response.publishers.length - 1].id;
+                                }
+                            }
+                            
+                            Swal.fire('Success', 'Publishers added successfully', 'success');
+                        } else {
+                            Swal.fire('Error', response.message || 'Failed to add publishers', 'error');
+                        }
+                    } else {
+                        Swal.fire('Error', 'Server error occurred', 'error');
+                    }
+                };
+                xhr.send(JSON.stringify(publishers));
+            } else {
+                Swal.fire('Error', 'Please enter at least one publisher with place', 'error');
+            }
         }
     });
 }
