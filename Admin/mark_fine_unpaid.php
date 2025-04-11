@@ -3,51 +3,58 @@ session_start();
 
 // Check if the user is logged in and has the appropriate admin role
 if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Librarian', 'Assistant', 'Encoder'])) {
-    echo json_encode(['status' => 'error', 'message' => 'Unauthorized access']);
+    header("Location: index.php");
     exit();
 }
 
-include '../db.php';
+include('../db.php');
 
-if (isset($_GET['id'])) {
-    $fineId = intval($_GET['id']);
-    
+try {
+    // Check if the request is POST
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        throw new Exception("Invalid request method");
+    }
+
+    // Check if fine_ids are provided
+    if (!isset($_POST['fine_ids'])) {
+        throw new Exception("Fine IDs are required");
+    }
+
+    // Decode the fine_ids JSON string
+    $fineIds = json_decode($_POST['fine_ids'], true);
+    if (!is_array($fineIds) || empty($fineIds)) {
+        throw new Exception("Invalid or empty Fine IDs");
+    }
+
     // Start transaction
     $conn->begin_transaction();
-    
-    try {
-        // Update fine status and reset payment_date and invoice_sale to NULL
-        $sql = "UPDATE fines SET status = 'Unpaid', payment_date = NULL, invoice_sale = NULL WHERE id = ?";
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("i", $fineId);
-        
-        if ($stmt->execute()) {
-            if ($stmt->affected_rows > 0) {
-                $conn->commit();
-                echo json_encode([
-                    'status' => 'success', 
-                    'message' => 'Fine marked as unpaid successfully'
-                ]);
-            } else {
-                throw new Exception("No changes were made. Fine may not exist or is already unpaid.");
-            }
-        } else {
-            throw new Exception("Database error occurred: " . $conn->error);
-        }
-    } catch (Exception $e) {
-        $conn->rollback();
+
+    // Update all selected fines as unpaid
+    $updateQuery = "UPDATE fines
+                    SET status = 'Unpaid',
+                        payment_date = NULL,
+                        invoice_sale = NULL
+                    WHERE id IN (" . implode(',', array_map('intval', $fineIds)) . ") AND status = 'Paid'";
+    $stmt = $conn->prepare($updateQuery);
+
+    if ($stmt->execute()) {
+        $conn->commit();
         echo json_encode([
-            'status' => 'error', 
-            'message' => $e->getMessage()
+            'status' => 'success',
+            'message' => 'Selected fines have been marked as unpaid successfully'
         ]);
-    } finally {
-        $stmt->close();
-        $conn->close();
+    } else {
+        throw new Exception("Failed to update fine statuses");
     }
-} else {
+} catch (Exception $e) {
+    if (isset($conn)) $conn->rollback();
+    http_response_code(400);
     echo json_encode([
-        'status' => 'error', 
-        'message' => 'Invalid request: Fine ID is required'
+        'status' => 'error',
+        'message' => $e->getMessage()
     ]);
+} finally {
+    if (isset($stmt)) $stmt->close();
+    if (isset($conn)) $conn->close();
 }
 ?>
