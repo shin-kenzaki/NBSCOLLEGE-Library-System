@@ -148,6 +148,7 @@ $query = "SELECT
     series,
     volume,
     edition,
+    part,
     COUNT(*) as total_copies
     FROM books ";
 
@@ -160,7 +161,7 @@ if (!empty($searchQuery)) {
     $stmt = $conn->prepare($query);
 }
 
-$query .= " GROUP BY title, ISBN, series, volume, edition ORDER BY title";
+$query .= " GROUP BY title, ISBN, series, volume, edition, part ORDER BY title";
 $stmt->execute();
 $result = $stmt->get_result();
 ?>
@@ -315,6 +316,7 @@ $result = $stmt->get_result();
                                     <th style="text-align: center">Series</th>
                                     <th style="text-align: center">Volume</th>
                                     <th style="text-align: center">Edition</th>
+                                    <th style="text-align: center">Part</th>
                                     <th style="text-align: center">Total Copies</th>
                                 </tr>
                             </thead>
@@ -331,6 +333,7 @@ $result = $stmt->get_result();
             series,
             volume,
             edition,
+            part,
             COUNT(*) as total_copies
             FROM books ";
         
@@ -338,7 +341,7 @@ $result = $stmt->get_result();
             $query .= " WHERE title LIKE '%$searchQuery%' ";
         }
         
-        $query .= " GROUP BY title, ISBN, series, volume, edition ORDER BY title";
+        $query .= " GROUP BY title, ISBN, series, volume, edition, part ORDER BY title";
         
         $result = $conn->query($query);
 
@@ -395,6 +398,7 @@ $result = $stmt->get_result();
                 <td style='text-align: center'>" . ($row['series'] ?: 'N/A') . "</td>
                 <td style='text-align: center'>" . ($row['volume'] ?: 'N/A') . "</td>
                 <td style='text-align: center'>" . ($row['edition'] ?: 'N/A') . "</td>
+                <td style='text-align: center'>" . ($row['part'] ?: 'N/A') . "</td>
                 <td style='text-align: center'>{$row['total_copies']}</td>
             </tr>";
         }

@@ -94,6 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $copies_for_this_accession = (int)$number_of_copies_array[$i];
             $current_series = mysqli_real_escape_string($conn, $_POST['series'][$i]);
             $current_volume = mysqli_real_escape_string($conn, $_POST['volume'][$i]);
+            $current_part = mysqli_real_escape_string($conn, $_POST['part'][$i]); // Add part field
             $current_edition = mysqli_real_escape_string($conn, $_POST['edition'][$i]);
             $current_isbn = isset($_POST['isbn'][$i]) ? mysqli_real_escape_string($conn, $_POST['isbn'][$i]) : '';
             
@@ -149,7 +150,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     accession, title, preferred_title, parallel_title, 
                     subject_category, subject_detail,
                     summary, contents, front_image, back_image, 
-                    dimension, series, volume, edition, 
+                    dimension, series, volume, part, edition, 
                     copy_number, total_pages, supplementary_contents, ISBN, content_type, 
                     media_type, carrier_type, call_number, URL, 
                     language, shelf_location, entered_by, date_added, 
@@ -158,7 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     '$current_accession', '$title', '$preferred_title', '$parallel_title',
                     '$subject_category', '$subject_detail',
                     '$summary', '$contents', '$front_image', '$back_image',
-                    '$dimension', '$current_series', '$current_volume', '$current_edition',
+                    '$dimension', '$current_series', '$current_volume', '$current_part', '$current_edition',
                     $copy_number, '$total_pages', '$supplementary_contents', '$current_isbn', '$content_type',
                     '$media_type', '$carrier_type', '$formatted_call_number', '$url',
                     '$language', '$current_shelf_location', '$entered_by', '$date_added',
@@ -1003,7 +1004,7 @@ function updateISBNFields() {
         
         // Create ISBN input cell
         const isbnDiv = document.createElement('div');
-        isbnDiv.className = 'col-md-3';
+        isbnDiv.className = 'col-md-2';
         const isbnLabel = document.createElement('small');
         isbnLabel.className = 'd-block';
         isbnLabel.textContent = 'ISBN';
@@ -1018,7 +1019,7 @@ function updateISBNFields() {
         
         // Create Series input cell
         const seriesDiv = document.createElement('div');
-        seriesDiv.className = 'col-md-3';
+        seriesDiv.className = 'col-md-2';
         const seriesLabel = document.createElement('small');
         seriesLabel.className = 'd-block';
         seriesLabel.textContent = 'Series';
@@ -1033,7 +1034,7 @@ function updateISBNFields() {
 
         // Create Volume input cell
         const volumeDiv = document.createElement('div');
-        volumeDiv.className = 'col-md-3';
+        volumeDiv.className = 'col-md-2';
         const volumeLabel = document.createElement('small');
         volumeLabel.className = 'd-block';
         volumeLabel.textContent = 'Volume';
@@ -1046,9 +1047,24 @@ function updateISBNFields() {
         volumeDiv.appendChild(volumeInput);
         rowDiv.appendChild(volumeDiv);
 
+        // Create Part input cell - NEW
+        const partDiv = document.createElement('div');
+        partDiv.className = 'col-md-2';
+        const partLabel = document.createElement('small');
+        partLabel.className = 'd-block';
+        partLabel.textContent = 'Part';
+        const partInput = document.createElement('input');
+        partInput.type = 'text';
+        partInput.className = 'form-control';
+        partInput.name = 'part[]';
+        partInput.placeholder = 'Part';
+        partDiv.appendChild(partLabel);
+        partDiv.appendChild(partInput);
+        rowDiv.appendChild(partDiv);
+
         // Create Edition input cell
         const editionDiv = document.createElement('div');
-        editionDiv.className = 'col-md-3';
+        editionDiv.className = 'col-md-2';
         const editionLabel = document.createElement('small');
         editionLabel.className = 'd-block';
         editionLabel.textContent = 'Edition';

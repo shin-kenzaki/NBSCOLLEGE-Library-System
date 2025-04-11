@@ -154,6 +154,7 @@ if (isset($_POST['submit'])) {
             // Get individual series, volume, edition values from form inputs for each copy
             $series_value = isset($series[$index]) ? mysqli_real_escape_string($conn, $series[$index]) : '';
             $volume_value = isset($volumes[$index]) ? mysqli_real_escape_string($conn, $volumes[$index]) : '';
+            $part_value = isset($_POST['part'][$index]) ? mysqli_real_escape_string($conn, $_POST['part'][$index]) : ''; // Add this line to get part value
             $edition_value = isset($editions[$index]) ? mysqli_real_escape_string($conn, $editions[$index]) : '';
             
             // Fix: Properly capture copy number value
@@ -196,6 +197,7 @@ if (isset($_POST['submit'])) {
                 dimension = ?,
                 series = ?,
                 volume = ?,
+                part = ?,
                 edition = ?,
                 copy_number = ?,
                 total_pages = ?,
@@ -219,7 +221,7 @@ if (isset($_POST['submit'])) {
             $stmt = $conn->prepare($update_query);
             
             // Bind parameters with copy-specific values including preserved entered_by/date_added
-            $stmt->bind_param("ssssssssssssssssssssssssssssssi", 
+            $stmt->bind_param("sssssssssssssssssssssssssssssssi", 
                 $title, 
                 $preferred_title, 
                 $parallel_title,
@@ -232,6 +234,7 @@ if (isset($_POST['submit'])) {
                 $dimension,
                 $series_value,     // Use individual series value for this copy
                 $volume_value,     // Use individual volume value for this copy
+                $part_value,       // Add part value in binding
                 $edition_value,    // Use individual edition value for this copy
                 $copy_number,      // Include copy_number in binding
                 $total_page,
@@ -1024,6 +1027,7 @@ if ($first_book) {
                                                         <th style="width: 120px; white-space: nowrap;">Series</th>
                                                         <th style="width: 120px; white-space: nowrap;">Volume</th>
                                                         <th style="width: 120px; white-space: nowrap;">Edition</th>
+                                                        <th style="width: 120px; white-space: nowrap;">Part</th>
                                                         <th style="width: 200px; white-space: nowrap;">Status</th>
                                                         <th style="width: 100px; white-space: nowrap;">Actions</th>
                                                     </tr>
@@ -1060,6 +1064,9 @@ if ($first_book) {
                                                             </td>
                                                             <td>
                                                                 <input type="text" class="form-control text-center" name="edition[]" value="<?php echo htmlspecialchars($book['edition']); ?>">
+                                                            </td>
+                                                            <td>
+                                                                <input type="text" class="form-control text-center" name="part[]" value="<?php echo htmlspecialchars($book['part']); ?>">
                                                             </td>
                                                             <td>
                                                                 <select class="form-control text-center" name="statuses[]">

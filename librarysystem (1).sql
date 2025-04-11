@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 10, 2025 at 02:30 PM
+-- Generation Time: Apr 11, 2025 at 07:05 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -72,6 +72,7 @@ CREATE TABLE `books` (
   `dimension` varchar(100) DEFAULT NULL,
   `series` varchar(100) DEFAULT NULL,
   `volume` varchar(100) DEFAULT NULL,
+  `part` varchar(20) DEFAULT NULL,
   `edition` varchar(100) DEFAULT NULL,
   `copy_number` int(225) DEFAULT NULL,
   `total_pages` varchar(100) DEFAULT NULL,
@@ -95,12 +96,32 @@ CREATE TABLE `books` (
 -- Dumping data for table `books`
 --
 
-INSERT INTO `books` (`id`, `accession`, `title`, `preferred_title`, `parallel_title`, `subject_category`, `subject_detail`, `summary`, `contents`, `front_image`, `back_image`, `dimension`, `series`, `volume`, `edition`, `copy_number`, `total_pages`, `supplementary_contents`, `ISBN`, `content_type`, `media_type`, `carrier_type`, `call_number`, `URL`, `language`, `shelf_location`, `entered_by`, `date_added`, `status`, `updated_by`, `last_update`) VALUES
-(1, 256, 'sakjjskahdhaskjhd', '', '', '', '', '', '', NULL, NULL, '', '', '', '', 1, '', '', '', 'Text', 'Print', 'Book', '', '', 'English', 'TR', 1, '2025-04-10', 'Available', NULL, '2025-04-10'),
-(2, 257, 'sakjjskahdhaskjhd', '', '', '', '', '', '', NULL, NULL, '', '', '', '', 2, '', '', '', 'Text', 'Print', 'Book', '', '', 'English', 'TR', 1, '2025-04-10', 'Available', NULL, '2025-04-10'),
-(3, 258, 'sakjjskahdhaskjhd', '', '', '', '', '', '', NULL, NULL, '', '', '', '', 3, '', '', '', 'Text', 'Print', 'Book', '', '', 'English', 'TR', 1, '2025-04-10', 'Available', NULL, '2025-04-10'),
-(4, 3234, 'skjhakshdaksjhda', '', '', '', '', '', '', NULL, NULL, '', '', '', '', 1, '', '', '', 'Text', 'Print', 'Book', '', '', 'English', 'TR', 1, '2025-04-10', 'Available', NULL, '2025-04-10'),
-(5, 3235, 'skjhakshdaksjhda', '', '', '', '', '', '', NULL, NULL, '', '', '', '', 2, '', '', '', 'Text', 'Print', 'Book', '', '', 'English', 'TR', 1, '2025-04-10', 'Available', NULL, '2025-04-10');
+INSERT INTO `books` (`id`, `accession`, `title`, `preferred_title`, `parallel_title`, `subject_category`, `subject_detail`, `summary`, `contents`, `front_image`, `back_image`, `dimension`, `series`, `volume`, `part`, `edition`, `copy_number`, `total_pages`, `supplementary_contents`, `ISBN`, `content_type`, `media_type`, `carrier_type`, `call_number`, `URL`, `language`, `shelf_location`, `entered_by`, `date_added`, `status`, `updated_by`, `last_update`) VALUES
+(1, 265, 'Cebu: Pride of Place', '', '', 'Geographical', '', '', '', NULL, NULL, '', '', '', '1', '1', 1, '', '', '', 'Text', 'Print', 'Book', 'TR 2007 c1', '', 'English', 'TR', 1, '2025-04-11', 'Available', 1, '2025-04-11'),
+(2, 266, 'Cebu: Pride of Place', '', '', 'Geographical', '', '', '', NULL, NULL, '', '', '', '1', '1', 2, '', '', '', 'Text', 'Print', 'Book', 'TR 2007 c2', '', 'English', 'TR', 1, '2025-04-11', 'Borrowed', 1, '2025-04-11'),
+(3, 267, 'Cebu: Pride of Place', '', '', 'Geographical', '', '', '', NULL, NULL, '', '', '', '2', '1', 1, '', '', '', 'Text', 'Print', 'Book', 'TR 2007 c1', '', 'English', 'TR', 1, '2025-04-11', 'Available', 1, '2025-04-11'),
+(4, 268, 'Cebu: Pride of Place', '', '', 'Geographical', '', '', '', NULL, NULL, '', '', '', '2', '1', 2, '', '', '', 'Text', 'Print', 'Book', 'TR 2007 c2', '', 'English', 'TR', 1, '2025-04-11', 'Borrowed', 1, '2025-04-11'),
+(5, 269, 'Cebu: Pride of Place', '', '', 'Geographical', '', '', '', NULL, NULL, '', '', '', '3', '1', 1, '', '', '', 'Text', 'Print', 'Book', 'TR 2007 c1', '', 'English', 'TR', 1, '2025-04-11', 'Available', 1, '2025-04-11'),
+(6, 568, 'Colors of Lucban', '', '', 'Geographical', '', '', '', NULL, NULL, '', '', '', '', '', 1, '', '', '', 'Text', 'Print', 'Book', '', '', 'English', 'TR', 1, '2025-04-11', 'Available', NULL, '2025-04-11'),
+(7, 569, 'Colors of Lucban', '', '', 'Geographical', '', '', '', NULL, NULL, '', '', '', '', '', 2, '', '', '', 'Text', 'Print', 'Book', '', '', 'English', 'TR', 1, '2025-04-11', 'Available', NULL, '2025-04-11'),
+(8, 570, 'Colors of Lucban', '', '', 'Geographical', '', '', '', NULL, NULL, '', '', '', '', '', 3, '', '', '', 'Text', 'Print', 'Book', '', '', 'English', 'TR', 1, '2025-04-11', 'Available', NULL, '2025-04-11'),
+(9, 571, 'Colors of Lucban', '', '', 'Geographical', '', '', '', NULL, NULL, '', '', '', '', '', 4, '', '', '', 'Text', 'Print', 'Book', '', '', 'English', 'TR', 1, '2025-04-11', 'Available', NULL, '2025-04-11'),
+(10, 572, 'Colors of Lucban', '', '', 'Geographical', '', '', '', NULL, NULL, '', '', '', '', '', 5, '', '', '', 'Text', 'Print', 'Book', '', '', 'English', 'TR', 1, '2025-04-11', 'Available', NULL, '2025-04-11'),
+(11, 1658, 'Malacañang Palace', '', '', 'Geographical', '', '', '', NULL, NULL, '', '', '', '', '', 1, '', '', '', 'Text', 'Print', 'Book', '', '', 'English', 'TR', 1, '2025-04-11', 'Available', NULL, '2025-04-11'),
+(12, 1659, 'Malacañang Palace', '', '', 'Geographical', '', '', '', NULL, NULL, '', '', '', '', '', 2, '', '', '', 'Text', 'Print', 'Book', '', '', 'English', 'TR', 1, '2025-04-11', 'Available', NULL, '2025-04-11'),
+(13, 1660, 'Malacañang Palace', '', '', 'Geographical', '', '', '', NULL, NULL, '', '', '', '', '', 3, '', '', '', 'Text', 'Print', 'Book', '', '', 'English', 'TR', 1, '2025-04-11', 'Available', NULL, '2025-04-11'),
+(14, 1661, 'Malacañang Palace', '', '', 'Geographical', '', '', '', NULL, NULL, '', '', '', '', '', 4, '', '', '', 'Text', 'Print', 'Book', '', '', 'English', 'TR', 1, '2025-04-11', 'Available', NULL, '2025-04-11'),
+(15, 1662, 'Malacañang Palace', '', '', 'Geographical', '', '', '', NULL, NULL, '', '', '', '', '', 5, '', '', '', 'Text', 'Print', 'Book', '', '', 'English', 'TR', 1, '2025-04-11', 'Available', NULL, '2025-04-11'),
+(16, 1648, 'The Nation on Fire: The Unmaking of joseph Ejercito Estrada and the Remaking of Democracy in the Phi', '', '', '', '', '', '', NULL, NULL, '', '', '', '', '', 1, '', '', '', 'Text', 'Print', 'Book', '', '', 'English', 'TR', 1, '2025-04-11', 'Available', NULL, '2025-04-11'),
+(17, 1649, 'The Nation on Fire: The Unmaking of joseph Ejercito Estrada and the Remaking of Democracy in the Phi', '', '', '', '', '', '', NULL, NULL, '', '', '', '', '', 2, '', '', '', 'Text', 'Print', 'Book', '', '', 'English', 'TR', 1, '2025-04-11', 'Available', NULL, '2025-04-11'),
+(18, 1650, 'The Nation on Fire: The Unmaking of joseph Ejercito Estrada and the Remaking of Democracy in the Phi', '', '', '', '', '', '', NULL, NULL, '', '', '', '', '', 3, '', '', '', 'Text', 'Print', 'Book', '', '', 'English', 'TR', 1, '2025-04-11', 'Available', NULL, '2025-04-11'),
+(19, 1651, 'The Nation on Fire: The Unmaking of joseph Ejercito Estrada and the Remaking of Democracy in the Phi', '', '', '', '', '', '', NULL, NULL, '', '', '', '', '', 4, '', '', '', 'Text', 'Print', 'Book', '', '', 'English', 'TR', 1, '2025-04-11', 'Available', NULL, '2025-04-11'),
+(20, 1652, 'The Nation on Fire: The Unmaking of joseph Ejercito Estrada and the Remaking of Democracy in the Phi', '', '', '', '', '', '', NULL, NULL, '', '', '', '', '', 5, '', '', '', 'Text', 'Print', 'Book', '', '', 'English', 'TR', 1, '2025-04-11', 'Available', NULL, '2025-04-11'),
+(21, 2658, 'The Bohol We Love: An anthology of memoirs', '', '', 'Geographical', '', '', '', NULL, NULL, '', '', '', '', '', 1, '', '', '', 'Text', 'Print', 'Book', '', '', 'English', 'TR', 1, '2025-04-11', 'Available', NULL, '2025-04-11'),
+(22, 2659, 'The Bohol We Love: An anthology of memoirs', '', '', 'Geographical', '', '', '', NULL, NULL, '', '', '', '', '', 2, '', '', '', 'Text', 'Print', 'Book', '', '', 'English', 'TR', 1, '2025-04-11', 'Available', NULL, '2025-04-11'),
+(23, 2660, 'The Bohol We Love: An anthology of memoirs', '', '', 'Geographical', '', '', '', NULL, NULL, '', '', '', '', '', 3, '', '', '', 'Text', 'Print', 'Book', '', '', 'English', 'TR', 1, '2025-04-11', 'Available', NULL, '2025-04-11'),
+(24, 2661, 'The Bohol We Love: An anthology of memoirs', '', '', 'Geographical', '', '', '', NULL, NULL, '', '', '', '', '', 4, '', '', '', 'Text', 'Print', 'Book', '', '', 'English', 'TR', 1, '2025-04-11', 'Available', NULL, '2025-04-11'),
+(25, 2662, 'The Bohol We Love: An anthology of memoirs', '', '', 'Geographical', '', '', '', NULL, NULL, '', '', '', '', '', 5, '', '', '', 'Text', 'Print', 'Book', '', '', 'English', 'TR', 1, '2025-04-11', 'Available', NULL, '2025-04-11');
 
 -- --------------------------------------------------------
 
@@ -141,7 +162,25 @@ INSERT INTO `borrowings` (`id`, `user_id`, `book_id`, `status`, `issue_date`, `i
 (11, 68, 3, 'Returned', '2025-04-10', 1, '2025-04-17', '2025-04-10', 1, NULL, NULL, 0),
 (12, 68, 5, 'Returned', '2025-04-10', 1, '2025-04-17', '2025-04-10', 1, NULL, NULL, 0),
 (13, 68, 3, 'Returned', '2025-03-03', 1, '2025-03-10', '2025-04-10', 1, NULL, NULL, 0),
-(14, 68, 5, 'Returned', '2025-03-03', 1, '2025-03-10', '2025-04-10', 1, NULL, NULL, 0);
+(14, 68, 5, 'Returned', '2025-03-03', 1, '2025-03-10', '2025-04-10', 1, NULL, NULL, 0),
+(15, 68, 4, 'Returned', '2025-03-11', 1, '2025-03-18', '2025-04-10', 1, NULL, NULL, 0),
+(16, 68, 6, 'Returned', '2025-03-11', 1, '2025-03-18', '2025-04-10', 1, NULL, NULL, 0),
+(17, 68, 6, 'Returned', '2025-04-11', 1, '2025-04-18', '2025-04-11', 1, NULL, NULL, NULL),
+(18, 72, 2, 'Returned', '2025-04-11', 1, '2025-04-18', '2025-04-11', 1, NULL, NULL, NULL),
+(19, 72, 3, 'Returned', '2025-04-11', 1, '2025-04-18', '2025-04-11', 1, NULL, NULL, NULL),
+(20, 69, 22, 'Returned', '2025-04-11', 1, '2025-04-18', '2025-04-11', 1, NULL, NULL, NULL),
+(21, 72, 3, 'Returned', '2025-04-11', 1, '2025-04-18', '2025-04-11', 1, NULL, NULL, NULL),
+(22, 71, 24, 'Returned', '2025-04-11', 1, '2025-04-18', '2025-04-11', 1, NULL, NULL, NULL),
+(23, 70, 24, 'Returned', '2025-04-11', 1, '2025-04-18', '2025-04-11', 1, NULL, NULL, NULL),
+(24, 72, 3, 'Returned', '2025-04-11', 1, '2025-04-18', '2025-04-11', 1, NULL, NULL, NULL),
+(25, 72, 2, 'Returned', '2025-04-11', 1, '2025-04-18', '2025-04-11', 1, NULL, NULL, NULL),
+(26, 72, 2, 'Returned', '2025-04-11', 1, '2025-04-18', '2025-04-11', 1, NULL, NULL, NULL),
+(27, 72, 2, 'Returned', '2025-04-11', 1, '2025-04-18', '2025-04-11', 1, NULL, NULL, NULL),
+(28, 72, 4, 'Returned', '2025-04-11', 1, '2025-04-18', '2025-04-11', 1, NULL, NULL, NULL),
+(29, 72, 4, 'Returned', '2025-04-11', 1, '2025-04-18', '2025-04-11', 1, NULL, NULL, NULL),
+(30, 72, 4, 'Returned', '2025-04-11', 1, '2025-04-18', '2025-04-11', 1, NULL, NULL, NULL),
+(31, 72, 2, 'Active', '2025-04-11', 1, '2025-04-18', NULL, NULL, NULL, NULL, NULL),
+(32, 72, 4, 'Active', '2025-04-11', 1, '2025-04-18', NULL, NULL, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -157,6 +196,34 @@ CREATE TABLE `cart` (
   `status` tinyint(1) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `cart`
+--
+
+INSERT INTO `cart` (`id`, `book_id`, `user_id`, `date`, `status`) VALUES
+(1, 5, 68, '2025-04-10 10:55:14', 0),
+(2, 3, 68, '2025-04-10 11:19:50', 1),
+(3, 3, 72, '2025-04-10 21:53:02', 0),
+(4, 5, 72, '2025-04-10 21:53:05', 0),
+(5, 1, 72, '2025-04-10 21:59:34', 0),
+(6, 1, 72, '2025-04-10 22:03:01', 0),
+(7, 3, 72, '2025-04-10 22:03:05', 0),
+(8, 1, 72, '2025-04-10 22:07:14', 0),
+(9, 3, 72, '2025-04-10 22:07:18', 0),
+(10, 5, 72, '2025-04-10 22:07:20', 0),
+(11, 1, 72, '2025-04-10 22:08:26', 0),
+(12, 2, 72, '2025-04-10 22:12:54', 0),
+(13, 3, 72, '2025-04-10 22:20:39', 0),
+(14, 5, 72, '2025-04-10 22:20:39', 0),
+(15, 1, 72, '2025-04-10 22:21:02', 0),
+(16, 3, 72, '2025-04-10 22:21:04', 0),
+(17, 5, 72, '2025-04-10 22:21:04', 0),
+(21, 1, 72, '2025-04-10 22:25:43', 0),
+(22, 3, 72, '2025-04-10 22:25:43', 0),
+(23, 1, 72, '2025-04-10 22:26:02', 0),
+(24, 3, 72, '2025-04-10 22:26:02', 0),
+(31, 4, 72, '2025-04-10 22:44:17', 0);
+
 -- --------------------------------------------------------
 
 --
@@ -169,6 +236,59 @@ CREATE TABLE `contributors` (
   `writer_id` int(225) NOT NULL,
   `role` varchar(100) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `contributors`
+--
+
+INSERT INTO `contributors` (`id`, `book_id`, `writer_id`, `role`) VALUES
+(7, 7, 3, 'Author'),
+(15, 6, 3, 'Author'),
+(21, 6, 6, 'Author'),
+(22, 7, 6, 'Author'),
+(23, 8, 6, 'Author'),
+(24, 9, 6, 'Author'),
+(25, 10, 6, 'Author'),
+(26, 11, 7, 'Author'),
+(27, 11, 8, 'Author'),
+(28, 11, 9, 'Author'),
+(29, 11, 10, 'Author'),
+(30, 12, 7, 'Author'),
+(31, 12, 8, 'Author'),
+(32, 12, 9, 'Author'),
+(33, 12, 10, 'Author'),
+(34, 13, 7, 'Author'),
+(35, 13, 8, 'Author'),
+(36, 13, 9, 'Author'),
+(37, 13, 10, 'Author'),
+(38, 14, 7, 'Author'),
+(39, 14, 8, 'Author'),
+(40, 14, 9, 'Author'),
+(41, 14, 10, 'Author'),
+(42, 15, 7, 'Author'),
+(43, 15, 8, 'Author'),
+(44, 15, 9, 'Author'),
+(45, 15, 10, 'Author'),
+(46, 16, 11, 'Author'),
+(47, 17, 11, 'Author'),
+(48, 18, 11, 'Author'),
+(49, 19, 11, 'Author'),
+(50, 20, 11, 'Author'),
+(51, 21, 12, 'Author'),
+(52, 22, 12, 'Author'),
+(53, 23, 12, 'Author'),
+(54, 24, 12, 'Author'),
+(55, 25, 12, 'Author'),
+(56, 1, 3, 'Author'),
+(57, 1, 5, 'Author'),
+(58, 2, 3, 'Author'),
+(59, 2, 5, 'Author'),
+(66, 3, 3, 'Author'),
+(67, 3, 5, 'Author'),
+(68, 4, 3, 'Author'),
+(69, 4, 5, 'Author'),
+(70, 5, 3, 'Author'),
+(71, 5, 5, 'Author');
 
 -- --------------------------------------------------------
 
@@ -185,7 +305,7 @@ CREATE TABLE `fines` (
   `date` date DEFAULT NULL,
   `payment_date` date DEFAULT NULL,
   `reminder_sent` tinyint(1) DEFAULT NULL,
-  `invoice_sale` decimal(20,2) DEFAULT NULL
+  `invoice_sale` int(20) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -193,8 +313,10 @@ CREATE TABLE `fines` (
 --
 
 INSERT INTO `fines` (`id`, `borrowing_id`, `type`, `amount`, `status`, `date`, `payment_date`, `reminder_sent`, `invoice_sale`) VALUES
-(1, 13, 'Overdue', 154.79, 'Unpaid', '2025-04-10', NULL, NULL, NULL),
-(2, 14, 'Overdue', 154.79, 'Unpaid', '2025-04-10', NULL, NULL, NULL);
+(1, 13, 'Overdue', 154.79, 'Paid', '2025-04-10', '2025-04-10', NULL, 2147483647),
+(2, 14, 'Overdue', 154.79, 'Paid', '2025-04-10', '2025-04-10', NULL, 2147483647),
+(3, 15, 'Overdue', 114.79, 'Unpaid', '2025-04-10', NULL, NULL, NULL),
+(4, 16, 'Overdue', 114.79, 'Paid', '2025-04-10', '2025-04-10', NULL, 659894554);
 
 -- --------------------------------------------------------
 
@@ -245,11 +367,40 @@ CREATE TABLE `publications` (
 --
 
 INSERT INTO `publications` (`id`, `book_id`, `publisher_id`, `publish_date`) VALUES
-(1, 1, 0, '2025'),
-(2, 2, 0, '2025'),
-(3, 3, 0, '2025'),
-(4, 4, 2, '2000'),
-(5, 5, 2, '2000');
+(3, 3, 4, '2007'),
+(4, 4, 4, '2007'),
+(5, 5, 4, '2007'),
+(6, 6, 3, '2000'),
+(7, 7, 3, '2000'),
+(10, 3, 3, '2025'),
+(11, 4, 3, '2025'),
+(12, 5, 2, '2000'),
+(13, 6, 2, '2000'),
+(14, 1, 4, '2007'),
+(15, 2, 4, '2007'),
+(16, 3, 4, '2007'),
+(17, 4, 4, '2007'),
+(18, 5, 4, '2007'),
+(19, 6, 5, '2010'),
+(20, 7, 5, '2010'),
+(21, 8, 5, '2010'),
+(22, 9, 5, '2010'),
+(23, 10, 5, '2010'),
+(24, 11, 6, '2005'),
+(25, 12, 6, '2005'),
+(26, 13, 6, '2005'),
+(27, 14, 6, '2005'),
+(28, 15, 6, '2005'),
+(29, 16, 7, '2002'),
+(30, 17, 7, '2002'),
+(31, 18, 7, '2002'),
+(32, 19, 7, '2002'),
+(33, 20, 7, '2002'),
+(34, 21, 8, '2017'),
+(35, 22, 8, '2017'),
+(36, 23, 8, '2017'),
+(37, 24, 8, '2017'),
+(38, 25, 8, '2017');
 
 -- --------------------------------------------------------
 
@@ -269,7 +420,13 @@ CREATE TABLE `publishers` (
 
 INSERT INTO `publishers` (`id`, `publisher`, `place`) VALUES
 (1, 'asd', 'sda'),
-(2, 'wasd', 'wasd');
+(2, 'wasd', 'wasd'),
+(3, 'a', 'asd'),
+(4, 'Arts Council of Cebu foundation, Inc.', 'Cebu, Philippines'),
+(5, 'Business & Arts, Inc.', 'Manila, Philippines'),
+(6, 'Studio 5 Publishing', 'Manila, Philippines'),
+(7, 'Icon Press Inc.', 'Manila, Philippines'),
+(8, 'Anvil Publishing, Inc.', 'Mandaluyong, Philippines');
 
 -- --------------------------------------------------------
 
@@ -292,6 +449,70 @@ CREATE TABLE `reservations` (
   `recieved_date` timestamp NULL DEFAULT NULL,
   `status` varchar(100) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `reservations`
+--
+
+INSERT INTO `reservations` (`id`, `user_id`, `book_id`, `reserve_date`, `ready_date`, `ready_by`, `issue_date`, `issued_by`, `cancel_date`, `cancelled_by`, `cancelled_by_role`, `recieved_date`, `status`) VALUES
+(1, 68, 6, '2025-04-10 10:55:25', '2025-04-11 01:53:39', 1, '2025-04-11 01:53:50', 1, NULL, NULL, NULL, '2025-04-11 01:53:50', 'Received'),
+(2, 72, 2, '2025-04-10 20:22:44', '2025-04-11 02:33:08', 1, '2025-04-11 02:33:19', 1, NULL, NULL, NULL, '2025-04-11 02:33:19', 'Received'),
+(3, 72, 3, '2025-04-10 20:37:06', '2025-04-11 02:39:59', 1, '2025-04-11 02:40:05', 1, NULL, NULL, NULL, '2025-04-11 02:40:05', 'Received'),
+(4, 69, 22, '2025-04-10 20:40:27', '2025-04-11 03:04:37', 1, '2025-04-11 03:04:42', 1, NULL, NULL, NULL, '2025-04-11 03:04:42', 'Received'),
+(5, 72, 3, '2025-04-10 21:17:26', '2025-04-11 03:19:39', 1, '2025-04-11 03:19:45', 1, NULL, NULL, NULL, '2025-04-11 03:19:45', 'Received'),
+(6, 71, 24, '2025-04-10 21:19:16', '2025-04-11 03:19:39', 1, '2025-04-11 03:19:45', 1, NULL, NULL, NULL, '2025-04-11 03:19:45', 'Received'),
+(7, 70, 24, '2025-04-10 21:19:24', '2025-04-11 03:19:39', 1, '2025-04-11 03:19:45', 1, NULL, NULL, NULL, '2025-04-11 03:19:45', 'Received'),
+(8, 70, 17, '2025-04-10 21:28:06', '2025-04-11 03:34:56', 1, NULL, NULL, '2025-04-11 03:37:11', 1, 'Admin', NULL, 'Cancelled'),
+(9, 71, 7, '2025-04-10 21:28:24', '2025-04-11 03:34:56', 1, NULL, NULL, '2025-04-11 03:37:18', 1, 'Admin', NULL, 'Cancelled'),
+(10, 72, 1, '2025-04-10 21:37:26', NULL, NULL, NULL, NULL, '2025-04-11 03:52:49', 72, 'User', NULL, 'Cancelled'),
+(11, 72, 3, '2025-04-10 21:38:40', NULL, NULL, NULL, NULL, '2025-04-11 03:52:43', 72, 'User', NULL, 'Cancelled'),
+(12, 72, 3, '2025-04-10 21:52:58', '2025-04-11 03:56:48', 1, '2025-04-11 03:56:53', 1, NULL, NULL, NULL, '2025-04-11 03:56:53', 'Received'),
+(13, 72, 1, '2025-04-10 21:58:01', NULL, NULL, NULL, NULL, '2025-04-11 03:58:05', 72, 'User', NULL, 'Cancelled'),
+(14, 72, 1, '2025-04-10 21:58:15', NULL, NULL, NULL, NULL, '2025-04-11 03:58:20', 72, 'User', NULL, 'Cancelled'),
+(15, 72, 1, '2025-04-10 21:59:10', NULL, NULL, NULL, NULL, '2025-04-11 03:59:31', 72, 'User', NULL, 'Cancelled'),
+(16, 72, 1, '2025-04-10 22:02:45', NULL, NULL, NULL, NULL, '2025-04-11 04:02:58', 72, 'User', NULL, 'Cancelled'),
+(17, 72, 1, '2025-04-10 22:05:16', NULL, NULL, NULL, NULL, '2025-04-11 04:07:03', 72, 'User', NULL, 'Cancelled'),
+(18, 72, 3, '2025-04-10 22:06:55', NULL, NULL, NULL, NULL, '2025-04-11 04:07:03', 72, 'User', NULL, 'Cancelled'),
+(19, 72, 1, '2025-04-10 22:07:28', NULL, NULL, NULL, NULL, '2025-04-11 04:07:53', 72, 'User', NULL, 'Cancelled'),
+(20, 72, 1, '2025-04-10 22:12:48', NULL, NULL, NULL, NULL, '2025-04-11 04:13:43', 72, 'User', NULL, 'Cancelled'),
+(21, 72, 3, '2025-04-10 22:13:07', NULL, NULL, NULL, NULL, '2025-04-11 04:13:43', 72, 'User', NULL, 'Cancelled'),
+(22, 72, 5, '2025-04-10 22:13:07', NULL, NULL, NULL, NULL, '2025-04-11 04:13:43', 72, 'User', NULL, 'Cancelled'),
+(23, 72, 1, '2025-04-10 22:13:51', NULL, NULL, NULL, NULL, '2025-04-11 04:17:04', 72, 'User', NULL, 'Cancelled'),
+(24, 72, 3, '2025-04-10 22:13:51', NULL, NULL, NULL, NULL, '2025-04-11 04:17:04', 72, 'User', NULL, 'Cancelled'),
+(25, 72, 5, '2025-04-10 22:13:51', NULL, NULL, NULL, NULL, '2025-04-11 04:17:04', 72, 'User', NULL, 'Cancelled'),
+(26, 72, 1, '2025-04-10 22:17:13', NULL, NULL, NULL, NULL, '2025-04-11 04:19:30', 72, 'User', NULL, 'Cancelled'),
+(27, 72, 3, '2025-04-10 22:17:13', NULL, NULL, NULL, NULL, '2025-04-11 04:19:30', 72, 'User', NULL, 'Cancelled'),
+(28, 72, 5, '2025-04-10 22:17:13', NULL, NULL, NULL, NULL, '2025-04-11 04:19:30', 72, 'User', NULL, 'Cancelled'),
+(29, 72, 1, '2025-04-10 22:19:35', NULL, NULL, NULL, NULL, '2025-04-11 04:20:31', 72, 'User', NULL, 'Cancelled'),
+(30, 72, 3, '2025-04-10 22:19:35', NULL, NULL, NULL, NULL, '2025-04-11 04:20:31', 72, 'User', NULL, 'Cancelled'),
+(31, 72, 5, '2025-04-10 22:19:35', NULL, NULL, NULL, NULL, '2025-04-11 04:20:31', 72, 'User', NULL, 'Cancelled'),
+(32, 72, 1, '2025-04-10 22:23:45', NULL, NULL, NULL, NULL, '2025-04-11 04:24:00', 72, 'User', NULL, 'Cancelled'),
+(33, 72, 3, '2025-04-10 22:23:45', NULL, NULL, NULL, NULL, '2025-04-11 04:24:00', 72, 'User', NULL, 'Cancelled'),
+(34, 72, 5, '2025-04-10 22:23:45', NULL, NULL, NULL, NULL, '2025-04-11 04:24:00', 72, 'User', NULL, 'Cancelled'),
+(35, 72, 1, '2025-04-10 22:28:00', NULL, NULL, NULL, NULL, '2025-04-11 04:39:23', 72, 'User', NULL, 'Cancelled'),
+(36, 72, 3, '2025-04-10 22:28:00', NULL, NULL, NULL, NULL, '2025-04-11 04:39:23', 72, 'User', NULL, 'Cancelled'),
+(37, 72, 2, '2025-04-10 22:37:32', NULL, NULL, NULL, NULL, '2025-04-11 04:39:23', 72, 'User', NULL, 'Cancelled'),
+(38, 72, 4, '2025-04-10 22:39:37', NULL, NULL, NULL, NULL, '2025-04-11 04:39:49', 72, 'User', NULL, 'Cancelled'),
+(39, 72, 1, '2025-04-10 22:39:37', NULL, NULL, NULL, NULL, '2025-04-11 04:40:14', 72, 'User', NULL, 'Cancelled'),
+(40, 72, 5, '2025-04-10 22:39:37', NULL, NULL, NULL, NULL, '2025-04-11 04:44:52', 72, 'User', NULL, 'Cancelled'),
+(41, 72, 2, '2025-04-10 22:40:03', NULL, NULL, NULL, NULL, '2025-04-11 04:40:29', 72, 'User', NULL, 'Cancelled'),
+(42, 72, 3, '2025-04-10 22:40:19', NULL, NULL, NULL, NULL, '2025-04-11 04:44:52', 72, 'User', NULL, 'Cancelled'),
+(43, 72, 4, '2025-04-10 22:40:46', NULL, NULL, NULL, NULL, '2025-04-11 04:44:13', 72, 'User', NULL, 'Cancelled'),
+(44, 72, 1, '2025-04-10 22:45:00', NULL, NULL, NULL, NULL, '2025-04-11 04:46:03', 72, 'User', NULL, 'Cancelled'),
+(45, 72, 3, '2025-04-10 22:45:00', NULL, NULL, NULL, NULL, '2025-04-11 04:45:52', 72, 'User', NULL, 'Cancelled'),
+(46, 72, 5, '2025-04-10 22:45:00', NULL, NULL, NULL, NULL, '2025-04-11 04:45:37', 72, 'User', NULL, 'Cancelled'),
+(47, 72, 4, '2025-04-10 22:45:57', NULL, NULL, NULL, NULL, '2025-04-11 04:46:28', 72, 'User', NULL, 'Cancelled'),
+(48, 72, 2, '2025-04-10 22:46:08', NULL, NULL, NULL, NULL, '2025-04-11 04:46:28', 72, 'User', NULL, 'Cancelled'),
+(49, 72, 2, '2025-04-10 22:46:56', '2025-04-11 04:52:19', 1, '2025-04-11 04:52:23', 1, NULL, NULL, NULL, '2025-04-11 04:52:23', 'Received'),
+(50, 72, 2, '2025-04-10 22:46:56', '2025-04-11 04:52:19', 1, '2025-04-11 04:52:23', 1, NULL, NULL, NULL, '2025-04-11 04:52:23', 'Received'),
+(51, 72, 2, '2025-04-10 22:46:56', '2025-04-11 04:52:19', 1, '2025-04-11 04:52:23', 1, NULL, NULL, NULL, '2025-04-11 04:52:23', 'Received'),
+(52, 72, 4, '2025-04-10 22:52:38', '2025-04-11 04:52:54', 1, '2025-04-11 04:52:58', 1, NULL, NULL, NULL, '2025-04-11 04:52:58', 'Received'),
+(53, 72, 4, '2025-04-10 22:52:38', '2025-04-11 04:52:54', 1, '2025-04-11 04:52:58', 1, NULL, NULL, NULL, '2025-04-11 04:52:58', 'Received'),
+(54, 72, 4, '2025-04-10 22:52:38', '2025-04-11 04:52:54', 1, '2025-04-11 04:52:58', 1, NULL, NULL, NULL, '2025-04-11 04:52:58', 'Received'),
+(55, 72, 2, '2025-04-10 22:53:38', NULL, NULL, NULL, NULL, '2025-04-11 04:54:56', 72, 'User', NULL, 'Cancelled'),
+(56, 72, 4, '2025-04-10 22:53:38', NULL, NULL, NULL, NULL, '2025-04-11 04:54:56', 72, 'User', NULL, 'Cancelled'),
+(57, 72, 2, '2025-04-10 22:55:07', '2025-04-11 04:58:44', 1, '2025-04-11 04:58:51', 1, NULL, NULL, NULL, '2025-04-11 04:58:51', 'Received'),
+(58, 72, 4, '2025-04-10 22:55:07', '2025-04-11 04:58:44', 1, '2025-04-11 04:58:51', 1, NULL, NULL, NULL, '2025-04-11 04:58:51', 'Received');
 
 -- --------------------------------------------------------
 
@@ -316,7 +537,24 @@ INSERT INTO `updates` (`id`, `user_id`, `role`, `title`, `message`, `update`) VA
 (1, 1, 'Admin', 'Admin Added New Book', 'Admin Kenneth Bonaagua added \"sakjjskahdhaskjhd\" with 3 copies', '2025-04-09 22:06:15'),
 (2, 1, 'Admin', 'Admin Added New Book', 'Admin Kenneth Bonaagua added \"skjhakshdaksjhda\" with 2 copies', '2025-04-09 22:09:05'),
 (3, 210078, 'Admin', 'Admin Logged In', 'Admin Kenneth Bonaagua Logged In as Active', '2025-04-10 10:23:44'),
-(4, 210078, 'Admin', 'Admin Logged In', 'Admin Kenneth Bonaagua Logged In as Active', '2025-04-10 10:40:13');
+(4, 210078, 'Admin', 'Admin Logged In', 'Admin Kenneth Bonaagua Logged In as Active', '2025-04-10 10:40:13'),
+(5, 1, 'Admin', 'Admin Added New Book', 'Admin Kenneth Bonaagua added \"sdwasdwasd\" with 2 copies', '2025-04-10 09:40:32'),
+(6, 1, 'Admin', 'Admin Added New Book', 'Admin Kenneth Bonaagua added \"jhasdb\" with 2 copies', '2025-04-10 09:54:26'),
+(7, 210078, 'Student', 'User Logged In', 'Student KENNETH LAURENCE BONAAGUA Logged In as Active', '2025-04-10 16:13:18'),
+(8, 210078, 'Student', 'User Logged In', 'Student KENNETH LAURENCE BONAAGUA Logged In as Active', '2025-04-10 16:53:11'),
+(9, 210079, 'Student', 'User Logged In', 'Student CARLOS MIGUEL AUTOR Logged In as Active', '2025-04-11 02:03:19'),
+(10, 210028, 'Student', 'User Logged In', 'Student CAYCE EVANGELISTA Logged In as Active', '2025-04-11 02:03:39'),
+(11, 210065, 'Student', 'User Logged In', 'Student JENEPIR JABILLO Logged In as Active', '2025-04-11 02:03:58'),
+(12, 200026, 'Student', 'User Logged In', 'Student JERALD YSAAC Logged In as Active', '2025-04-11 02:04:17'),
+(13, 220003, 'Student', 'User Logged In', 'Student JOSEPH SIMANGCA Logged In as Active', '2025-04-11 02:04:36'),
+(14, 220001, 'Student', 'User Logged In', 'Student JOANNA CRIS ESCANILLA Logged In as Active', '2025-04-11 02:04:58'),
+(15, 1, 'Admin', 'Admin Added New Book', 'Admin Kenneth Bonaagua added \"Cebu: Pride of Place\" with 5 copies', '2025-04-10 20:11:14'),
+(16, 1, 'Admin', 'Admin Added New Book', 'Admin Kenneth Bonaagua added \"Colors of Lucban\" with 5 copies', '2025-04-10 20:12:57'),
+(17, 1, 'Admin', 'Admin Added New Book', 'Admin Kenneth Bonaagua added \"Malacañang Palace\" with 5 copies', '2025-04-10 20:16:37'),
+(18, 1, 'Admin', 'Admin Added New Book', 'Admin Kenneth Bonaagua added \"The Nation on Fire: The Unmaking of joseph Ejercito Estrada and the Remaking of Democracy in the Philippines\" with 5 copies', '2025-04-10 20:19:43'),
+(19, 1, 'Admin', 'Admin Added New Book', 'Admin Kenneth Bonaagua added \"The Bohol We Love: An anthology of memoirs\" with 5 copies', '2025-04-10 20:22:24'),
+(20, 210065, 'Student', 'User Logged In', 'Student JENEPIR JABILLO Logged In as Active', '2025-04-11 03:18:54'),
+(21, 210028, 'Student', 'User Logged In', 'Student CAYCE EVANGELISTA Logged In as Active', '2025-04-11 03:19:06');
 
 -- --------------------------------------------------------
 
@@ -418,11 +656,11 @@ INSERT INTO `users` (`id`, `school_id`, `firstname`, `middle_init`, `lastname`, 
 (65, 220048, 'AJLEIN', '', 'MONTERO', 'amontero2022@student.nbscollege.edu.ph', '$2y$10$eY1nHTFBmPL5zXdn5xcHnug8.UugoH9ZwneaTZEScJm8fQxrdDsIO', '', '../Images/Profile/default-avatar.jpg', 'Computer Science', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-10 20:05:30'),
 (66, 230014, 'JAY FRANKLIN', '', 'ROLLO', 'jrollo2023@student.nbscollege.edu.ph', '$2y$10$1teMIaPr5QqQbWS/nneXv.Ug8xnA5Fpj75xVkglisErkO1KdSj.R2', '', '../Images/Profile/default-avatar.jpg', 'Computer Science', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-10 20:05:30'),
 (67, 210079, 'CARLOS MIGUEL', '', 'AUTOR', 'cautor2021@student.nbscollege.edu.ph', '$2y$10$Fxf9W5yDhRDlkVDOXQmUzeu9Ppwi6AwdcLHtH.GAMUbBE77nWLHfi', '', '../Images/Profile/default-avatar.jpg', 'Computer Science', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-10 20:05:30'),
-(68, 210078, 'KENNETH LAURENCE', '', 'BONAAGUA', 'kbonaagua2021@student.nbscollege.edu.ph', '$2y$10$bZuYicsg3RhxOZBvOh.zLelWzK8cRk.SSCHy0ZaBAhCOxok4ZZxMS', '', '../Images/Profile/default-avatar.jpg', 'Computer Science', 'Student', '', '', '/upload/default-id.png', NULL, '1', '2025-04-10', '', '2025-04-10 20:07:45'),
+(68, 210078, 'KENNETH LAURENCE', '', 'BONAAGUA', 'kbonaagua2021@student.nbscollege.edu.ph', '$2y$10$bZuYicsg3RhxOZBvOh.zLelWzK8cRk.SSCHy0ZaBAhCOxok4ZZxMS', '', '../Images/Profile/default-avatar.jpg', 'Computer Science', 'Student', '', '', '/upload/default-id.png', NULL, '1', '2025-04-11', '', '2025-04-11 01:24:16'),
 (69, 220001, 'JOANNA CRIS', '', 'ESCANILLA', 'jescanilla2022@student.nbscollege.edu.ph', '$2y$10$f0LGab6QhaC/2f0V3fN3CO3bwso9uuiE2LdLQ.kS3xK4yigT5sPrW', '', '../Images/Profile/default-avatar.jpg', 'Computer Science', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-10 20:05:30'),
 (70, 210028, 'CAYCE', '', 'EVANGELISTA', 'cevangelista2021@student.nbscollege.edu.ph', '$2y$10$f8WlbjOvIqkTwsAO16wTAeg96zrl..jxIZxDPuvKUckhTWamb8/eq', '', '../Images/Profile/default-avatar.jpg', 'Computer Science', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-10 20:05:30'),
 (71, 210065, 'JENEPIR', '', 'JABILLO', 'jjabillo2021@student.nbscollege.edu.ph', '$2y$10$uV4vQQFApJ4GFTPq6VC2iOs8Jzf7wsw0A8mt8RGji.GyNw62ZBti2', '', '../Images/Profile/default-avatar.jpg', 'Computer Science', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-10 20:05:30'),
-(72, 220003, 'JOSEPH', '', 'SIMANGCA', 'jsimangca2022@student.nbscollege.edu.ph', '$2y$10$wdCXyigx/WQcJUxi3HM0b.AjcU1kX8T9FfM86ktneWrlhgEgi4kQC', '', '../Images/Profile/default-avatar.jpg', 'Computer Science', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-10 20:05:30'),
+(72, 220003, 'JOSEPH', '', 'SIMANGCA', 'jsimangca2022@student.nbscollege.edu.ph', '$2y$10$wdCXyigx/WQcJUxi3HM0b.AjcU1kX8T9FfM86ktneWrlhgEgi4kQC', '', '../Images/Profile/default-avatar.jpg', 'Computer Science', 'Student', '', '', '/upload/default-id.png', NULL, '1', '2025-04-11', '', '2025-04-11 12:02:45'),
 (73, 180012, 'KARA COLUMBA', '', 'RABANAL', 'krabanal2018@student.nbscollege.edu.ph', '$2y$10$X7QMQ2ZiXoaEXSukPOsPK.E.3IHiYpsjpeGZX8z5yiTXOxY114yg.', '', '../Images/Profile/default-avatar.jpg', 'Computer Science', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-10 20:05:31'),
 (74, 200067, 'AZZEL IVAN', '', 'WEE', 'awee2020@student.nbscollege.edu.ph', '$2y$10$BaydFArf9UOvarqs22I9ZucvYUHqBgAF9.SIAiRwynhwm/UZDc/zi', '', '../Images/Profile/default-avatar.jpg', 'Computer Science', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-10 20:05:31'),
 (75, 200026, 'JERALD', '', 'YSAAC', 'jysaac2020@student.nbscollege.edu.ph', '$2y$10$n/dvt23LuZ1gMERjyZrxlOhPPJT0e0n7ufosQKiCqmDaoRSRJSQQO', '', '../Images/Profile/default-avatar.jpg', 'Computer Science', 'Student', '', '', '/upload/default-id.png', NULL, '1', NULL, '', '2025-04-10 20:05:31'),
@@ -501,7 +739,15 @@ CREATE TABLE `writers` (
 
 INSERT INTO `writers` (`id`, `firstname`, `middle_init`, `lastname`) VALUES
 (3, 'wasadwasd', '', 'wasdwasdw'),
-(4, 'wqwesdad', '', 'wqeda');
+(4, 'wqwesdad', '', 'wqeda'),
+(5, 'E. Billy', '', 'Mondoñedo'),
+(6, 'Corazon', 'Pineda', 'Kabayao'),
+(7, 'Manuel', 'L.', 'Quezon III'),
+(8, 'Paulo', '', 'Alcazaren'),
+(9, 'Jeremy', '', 'Barns'),
+(10, 'Wig', '', 'Tysmans'),
+(11, 'Francisco', 'S.', 'Tatad'),
+(12, 'Marjorie', '', 'Evasco');
 
 --
 -- Indexes for dumped tables
@@ -608,31 +854,31 @@ ALTER TABLE `admins`
 -- AUTO_INCREMENT for table `books`
 --
 ALTER TABLE `books`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
 
 --
 -- AUTO_INCREMENT for table `borrowings`
 --
 ALTER TABLE `borrowings`
-  MODIFY `id` int(225) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+  MODIFY `id` int(225) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
 
 --
 -- AUTO_INCREMENT for table `cart`
 --
 ALTER TABLE `cart`
-  MODIFY `id` int(100) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(100) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
 
 --
 -- AUTO_INCREMENT for table `contributors`
 --
 ALTER TABLE `contributors`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=72;
 
 --
 -- AUTO_INCREMENT for table `fines`
 --
 ALTER TABLE `fines`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `library_visits`
@@ -650,25 +896,25 @@ ALTER TABLE `messages`
 -- AUTO_INCREMENT for table `publications`
 --
 ALTER TABLE `publications`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=39;
 
 --
 -- AUTO_INCREMENT for table `publishers`
 --
 ALTER TABLE `publishers`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `reservations`
 --
 ALTER TABLE `reservations`
-  MODIFY `id` int(225) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(225) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=59;
 
 --
 -- AUTO_INCREMENT for table `updates`
 --
 ALTER TABLE `updates`
-  MODIFY `id` int(225) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(225) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
 
 --
 -- AUTO_INCREMENT for table `users`
@@ -680,7 +926,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `writers`
 --
 ALTER TABLE `writers`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

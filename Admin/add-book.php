@@ -1791,6 +1791,7 @@ document.addEventListener("DOMContentLoaded", function() {
             const seriesInput = group.querySelector('input[name^="series"]');
             const volumeInput = group.querySelector('input[name^="volume"]');
             const editionInput = group.querySelector('input[name^="edition"]');
+            const partInput = group.querySelector('input[name^="part"]');
             
             if (accessionInput && copiesInput) {
                 accessionGroups.push({
@@ -1799,7 +1800,8 @@ document.addEventListener("DOMContentLoaded", function() {
                     isbn: isbnInput ? isbnInput.value : '',
                     series: seriesInput ? seriesInput.value : '',
                     volume: volumeInput ? volumeInput.value : '',
-                    edition: editionInput ? editionInput.value : ''
+                    edition: editionInput ? editionInput.value : '',
+                    part: partInput ? partInput.value : ''
                 });
             }
         });
@@ -1974,11 +1976,13 @@ document.addEventListener("DOMContentLoaded", function() {
                                 const seriesInput = group.querySelector('input[name^="series"]');
                                 const volumeInput = group.querySelector('input[name^="volume"]');
                                 const editionInput = group.querySelector('input[name^="edition"]');
+                                const partInput = group.querySelector('input[name^="part"]');
                                 
                                 if (isbnInput) isbnInput.value = groupData.isbn || '';
                                 if (seriesInput) seriesInput.value = groupData.series || '';
                                 if (volumeInput) volumeInput.value = groupData.volume || '';
                                 if (editionInput) editionInput.value = groupData.edition || '';
+                                if (partInput) partInput.value = groupData.part || '';
                             }
                         });
                     }, 100);
@@ -2542,7 +2546,7 @@ function updateISBNFields() {
         detailsLabel.textContent = `Details for Accession Group ${groupIndex + 1}`;
         detailsDiv.appendChild(detailsLabel);
 
-        // Create a row for ISBN, series, volume, and edition inputs
+        // Create a row for ISBN, series, volume, edition, and part inputs
         const rowDiv = document.createElement('div');
         rowDiv.className = 'row mb-3';
 
@@ -2567,7 +2571,7 @@ function updateISBNFields() {
 
         // Create series input
         const seriesDiv = document.createElement('div');
-        seriesDiv.className = 'col-md-3';
+        seriesDiv.className = 'col-md-2';
 
         const seriesLabel = document.createElement('small');
         seriesLabel.className = 'form-text text-muted';
@@ -2586,7 +2590,7 @@ function updateISBNFields() {
 
         // Create volume input
         const volumeDiv = document.createElement('div');
-        volumeDiv.className = 'col-md-3';
+        volumeDiv.className = 'col-md-2';
 
         const volumeLabel = document.createElement('small');
         volumeLabel.className = 'form-text text-muted';
@@ -2602,6 +2606,25 @@ function updateISBNFields() {
         
         volumeDiv.appendChild(volumeInput);
         rowDiv.appendChild(volumeDiv);
+
+        // Create part input - NEW
+        const partDiv = document.createElement('div');
+        partDiv.className = 'col-md-2';
+
+        const partLabel = document.createElement('small');
+        partLabel.className = 'form-text text-muted';
+        partLabel.textContent = 'Part';
+        partDiv.appendChild(partLabel);
+        
+        const partInput = document.createElement('input');
+        partInput.type = 'text';
+        partInput.className = 'form-control';
+        partInput.name = 'part[]';
+        partInput.placeholder = `Part`;
+        partInput.dataset.groupIndex = groupIndex; // Add data attribute for identification
+        
+        partDiv.appendChild(partInput);
+        rowDiv.appendChild(partDiv);
 
         // Create edition input
         const editionDiv = document.createElement('div');
@@ -2635,6 +2658,7 @@ function updateISBNFields() {
             series: seriesInput.value || '',
             volume: volumeInput.value || '',
             edition: editionInput.value || '',
+            part: partInput.value || '',
             accession: accessionInput,
             copies: copiesCount
         });
@@ -2646,7 +2670,7 @@ function updateISBNFields() {
     // Second pass: determine copy numbers and create call number inputs
     detailsGroups.forEach((groupDetails, index) => {
         // Create a key for this group's details
-        const detailsKey = `${groupDetails.isbn}|${groupDetails.series}|${groupDetails.volume}|${groupDetails.edition}`;
+        const detailsKey = `${groupDetails.isbn}|${groupDetails.series}|${groupDetails.volume}|${groupDetails.edition}|${groupDetails.part}`;
         
         // Check if we've seen this set of details before
         if (totalCopiesByDetails[detailsKey] === undefined) {
@@ -2870,13 +2894,15 @@ function saveDetailValues() {
         const seriesInput = group.querySelector('input[name^="series"]');
         const volumeInput = group.querySelector('input[name^="volume"]');
         const editionInput = group.querySelector('input[name^="edition"]');
+        const partInput = group.querySelector('input[name^="part"]');
         
-        if (isbnInput && seriesInput && volumeInput && editionInput) {
+        if (isbnInput && seriesInput && volumeInput && editionInput && partInput) {
             valuesMap[index] = {
                 isbn: isbnInput.value,
                 series: seriesInput.value,
                 volume: volumeInput.value,
-                edition: editionInput.value
+                edition: editionInput.value,
+                part: partInput.value
             };
         }
     });
@@ -2895,11 +2921,13 @@ function restoreDetailValues(valuesMap) {
             const seriesInput = group.querySelector('input[name^="series"]');
             const volumeInput = group.querySelector('input[name^="volume"]');
             const editionInput = group.querySelector('input[name^="edition"]');
+            const partInput = group.querySelector('input[name^="part"]');
             
             if (isbnInput) isbnInput.value = valuesMap[index].isbn;
             if (seriesInput) seriesInput.value = valuesMap[index].series;
             if (volumeInput) volumeInput.value = valuesMap[index].volume;
             if (editionInput) editionInput.value = valuesMap[index].edition;
+            if (partInput) partInput.value = valuesMap[index].part;
         }
     });
 }
@@ -2926,6 +2954,7 @@ function updateCallNumbers() {
         const seriesInput = group.querySelector('input[name^="series"]');
         const volumeInput = group.querySelector('input[name^="volume"]');
         const editionInput = group.querySelector('input[name^="edition"]');
+        const partInput = group.querySelector('input[name^="part"]');
         
         // Store this group's details for later comparison
         detailsGroups.push({
@@ -2934,6 +2963,7 @@ function updateCallNumbers() {
             series: seriesInput ? seriesInput.value || '' : '',
             volume: volumeInput ? volumeInput.value || '' : '',
             edition: editionInput ? editionInput.value || '' : '',
+            part: partInput ? partInput.value || '' : '',
             accession: accessionInput,
             copies: copiesCount
         });
@@ -2942,7 +2972,7 @@ function updateCallNumbers() {
     // Second pass: determine copy numbers and create call number inputs
     detailsGroups.forEach((groupDetails, index) => {
         // Create a key for this group's details
-        const detailsKey = `${groupDetails.isbn}|${groupDetails.series}|${groupDetails.volume}|${groupDetails.edition}`;
+        const detailsKey = `${groupDetails.isbn}|${groupDetails.series}|${groupDetails.volume}|${groupDetails.edition}|${groupDetails.part}`;
         
         // Check if we've seen this set of details before
         if (totalCopiesByDetails[detailsKey] === undefined) {

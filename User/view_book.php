@@ -2,64 +2,116 @@
 session_start();
 include '../db.php';
 
-// Get the book title from the query parameters
+// Get the book identifying parameters
 $bookTitle = isset($_GET['title']) ? $_GET['title'] : '';
+$isbn = isset($_GET['isbn']) ? $_GET['isbn'] : '';
+$series = isset($_GET['series']) ? $_GET['series'] : '';
+$volume = isset($_GET['volume']) ? $_GET['volume'] : '';
+$part = isset($_GET['part']) ? $_GET['part'] : '';
+$edition = isset($_GET['edition']) ? $_GET['edition'] : '';
 
 if (!empty($bookTitle)) {
+    // Build the WHERE clause for the query based on available parameters
+    $whereClause = "title = ?";
+    $queryParams = [$bookTitle];
+    $types = "s";
+    
+    if (!empty($isbn)) {
+        $whereClause .= " AND ISBN = ?";
+        $queryParams[] = $isbn;
+        $types .= "s";
+    } else {
+        $whereClause .= " AND (ISBN IS NULL OR ISBN = '')";
+    }
+    
+    if (!empty($series)) {
+        $whereClause .= " AND series = ?";
+        $queryParams[] = $series;
+        $types .= "s";
+    } else {
+        $whereClause .= " AND (series IS NULL OR series = '')";
+    }
+    
+    if (!empty($volume)) {
+        $whereClause .= " AND volume = ?";
+        $queryParams[] = $volume;
+        $types .= "s";
+    } else {
+        $whereClause .= " AND (volume IS NULL OR volume = '')";
+    }
+    
+    if (!empty($part)) {
+        $whereClause .= " AND part = ?";
+        $queryParams[] = $part;
+        $types .= "s";
+    } else {
+        $whereClause .= " AND (part IS NULL OR part = '')";
+    }
+    
+    if (!empty($edition)) {
+        $whereClause .= " AND edition = ?";
+        $queryParams[] = $edition;
+        $types .= "s";
+    } else {
+        $whereClause .= " AND (edition IS NULL OR edition = '')";
+    }
+
     // Fetch book details
-    $query = "SELECT * FROM books WHERE title = ?";
+    $query = "SELECT * FROM books WHERE $whereClause LIMIT 1";
     $stmt = $conn->prepare($query);
-    $stmt->bind_param("s", $bookTitle);
+    $stmt->bind_param($types, ...$queryParams);
     $stmt->execute();
     $result = $stmt->get_result();
     $book = $result->fetch_assoc();
 
     // Fetch total copies and in-shelf count
-    $copiesQuery = "SELECT COUNT(*) as total_copies, SUM(CASE WHEN status = 'Available' THEN 1 ELSE 0 END) as in_shelf FROM books WHERE title = ?";
+    $copiesQuery = "SELECT COUNT(*) as total_copies, SUM(CASE WHEN status = 'Available' THEN 1 ELSE 0 END) as in_shelf FROM books WHERE $whereClause";
     $stmt = $conn->prepare($copiesQuery);
-    $stmt->bind_param("s", $bookTitle);
+    $stmt->bind_param($types, ...$queryParams);
     $stmt->execute();
     $copiesResult = $stmt->get_result();
     $copies = $copiesResult->fetch_assoc();
     $totalCopies = $copies['total_copies'];
     $inShelf = $copies['in_shelf'];
 
-    // Fetch contributors
-    $contributorsQuery = "SELECT w.*, c.role FROM contributors c
-                         JOIN writers w ON c.writer_id = w.id
-                         WHERE c.book_id = ?";
-    $stmt = $conn->prepare($contributorsQuery);
-    $stmt->bind_param("i", $book['id']);
-    $stmt->execute();
-    $contributorsResult = $stmt->get_result();
-    $contributors = [];
-    while ($row = $contributorsResult->fetch_assoc()) {
-        $contributors[] = $row;
-    }
+    if ($book) {
+        // Fetch contributors
+        $contributorsQuery = "SELECT w.*, c.role FROM contributors c
+                             JOIN writers w ON c.writer_id = w.id
+                             WHERE c.book_id = ?";
+        $stmt = $conn->prepare($contributorsQuery);
+        $stmt->bind_param("i", $book['id']);
+        $stmt->execute();
+        $contributorsResult = $stmt->get_result();
+        $contributors = [];
+        while ($row = $contributorsResult->fetch_assoc()) {
+            $contributors[] = $row;
+        }
 
-    // Fetch publication details
-    $publicationsQuery = "SELECT p.*, pub.publisher, pub.place
-                         FROM publications p
-                         JOIN publishers pub ON p.publisher_id = pub.id
-                         WHERE p.book_id = ?";
-    $stmt = $conn->prepare($publicationsQuery);
-    $stmt->bind_param("i", $book['id']);
-    $stmt->execute();
-    $publicationsResult = $stmt->get_result();
-    $publications = [];
-    while ($row = $publicationsResult->fetch_assoc()) {
-        $publications[] = $row;
-    }
+        // Fetch publication details
+        $publicationsQuery = "SELECT p.*, pub.publisher, pub.place
+                             FROM publications p
+                             JOIN publishers pub ON p.publisher_id = pub.id
+                             WHERE p.book_id = ?";
+        $stmt = $conn->prepare($publicationsQuery);
+        $stmt->bind_param("i", $book['id']);
+        $stmt->execute();
+        $publicationsResult = $stmt->get_result();
+        $publications = [];
+        while ($row = $publicationsResult->fetch_assoc()) {
+            $publications[] = $row;
+        }
 
-    // Fetch all copies of the book
-    $allCopiesQuery = "SELECT * FROM books WHERE title = ?";
-    $stmt = $conn->prepare($allCopiesQuery);
-    $stmt->bind_param("s", $bookTitle);
-    $stmt->execute();
-    $allCopiesResult = $stmt->get_result();
-    $allCopies = [];
-    while ($row = $allCopiesResult->fetch_assoc()) {
-        $allCopies[] = $row;
+        // Fetch all copies of the book with the same identifying characteristics
+        $allCopiesQuery = "SELECT * FROM books WHERE $whereClause";
+        $stmt = $conn->prepare($allCopiesQuery);
+        $stmt->bind_param($types, ...$queryParams);
+        $stmt->execute();
+        $allCopiesResult = $stmt->get_result();
+        $allCopies = [];
+        while ($row = $allCopiesResult->fetch_assoc()) {
+            $allCopies[] = $row;
+        }
     }
 }
 ?>
@@ -247,10 +299,22 @@ if (!empty($bookTitle)) {
                 </ul>
                 <?php if (isset($book)): ?>
                 <div class="d-flex gap-2">
-                    <button class="btn btn-primary add-to-cart" data-title="<?php echo htmlspecialchars($book['title']); ?>">
+                    <button class="btn btn-primary add-to-cart" 
+                        data-title="<?php echo htmlspecialchars($book['title']); ?>"
+                        data-isbn="<?php echo htmlspecialchars($book['ISBN'] ?? ''); ?>"
+                        data-series="<?php echo htmlspecialchars($book['series'] ?? ''); ?>"
+                        data-volume="<?php echo htmlspecialchars($book['volume'] ?? ''); ?>"
+                        data-part="<?php echo htmlspecialchars($book['part'] ?? ''); ?>"
+                        data-edition="<?php echo htmlspecialchars($book['edition'] ?? ''); ?>">
                         <i class="fas fa-cart-plus"></i> Add to Cart
                     </button>
-                    <button class="btn btn-success borrow-book" data-title="<?php echo htmlspecialchars($book['title']); ?>">
+                    <button class="btn btn-success borrow-book" 
+                        data-title="<?php echo htmlspecialchars($book['title']); ?>"
+                        data-isbn="<?php echo htmlspecialchars($book['ISBN'] ?? ''); ?>"
+                        data-series="<?php echo htmlspecialchars($book['series'] ?? ''); ?>"
+                        data-volume="<?php echo htmlspecialchars($book['volume'] ?? ''); ?>"
+                        data-part="<?php echo htmlspecialchars($book['part'] ?? ''); ?>"
+                        data-edition="<?php echo htmlspecialchars($book['edition'] ?? ''); ?>">
                         <i class="fas fa-book"></i> Borrow Book
                     </button>
                 </div>
@@ -308,6 +372,39 @@ if (!empty($bookTitle)) {
                                 </p>
                             <?php endif; ?>
 
+                            <!-- Book Edition Details -->
+                            <div class="row mb-3">
+                                <?php if (!empty($book['ISBN'])): ?>
+                                <div class="col-md-4">
+                                    <strong>ISBN:</strong> <?php echo htmlspecialchars($book['ISBN']); ?>
+                                </div>
+                                <?php endif; ?>
+                                
+                                <?php if (!empty($book['series'])): ?>
+                                <div class="col-md-4">
+                                    <strong>Series:</strong> <?php echo htmlspecialchars($book['series']); ?>
+                                </div>
+                                <?php endif; ?>
+                                
+                                <?php if (!empty($book['volume'])): ?>
+                                <div class="col-md-4">
+                                    <strong>Volume:</strong> <?php echo htmlspecialchars($book['volume']); ?>
+                                </div>
+                                <?php endif; ?>
+                                
+                                <?php if (!empty($book['part'])): ?>
+                                <div class="col-md-4">
+                                    <strong>Part:</strong> <?php echo htmlspecialchars($book['part']); ?>
+                                </div>
+                                <?php endif; ?>
+                                
+                                <?php if (!empty($book['edition'])): ?>
+                                <div class="col-md-4">
+                                    <strong>Edition:</strong> <?php echo htmlspecialchars($book['edition']); ?>
+                                </div>
+                                <?php endif; ?>
+                            </div>
+
                             <!-- Content Type -->
                             <p><strong>Content Type:</strong> <?php echo htmlspecialchars($book['content_type']); ?></p>
 
@@ -327,9 +424,6 @@ if (!empty($bookTitle)) {
                                     $book['dimension'] . ' cm'); ?>
                             </p>
 
-                            <!-- ISBN -->
-                            <p><strong>ISBN:</strong> <?php echo htmlspecialchars($book['ISBN']); ?></p>
-
                             <!-- Subjects -->
                             <p><strong>Subject(s):</strong>
                                 <?php
@@ -344,7 +438,9 @@ if (!empty($bookTitle)) {
                             <p><strong>Loc classification:</strong> <?php echo htmlspecialchars($book['call_number']); ?></p>
 
                             <div class="book-images">
-                                <?php if (!empty($book['cover_image'])): ?>
+                                <?php if (!empty($book['front_image'])): ?>
+                                    <img src="<?php echo htmlspecialchars($book['front_image']); ?>" alt="Book Cover">
+                                <?php elseif (!empty($book['cover_image'])): ?>
                                     <img src="<?php echo htmlspecialchars($book['cover_image']); ?>" alt="Book Cover">
                                 <?php endif; ?>
                                 <?php if (!empty($book['back_image'])): ?>
@@ -416,7 +512,9 @@ if (!empty($bookTitle)) {
                         $marcFields[] = ['005', '', '', formatMarc21Date($book['date_added'])];
 
                         // Variable Fields
-                        $marcFields[] = ['020', '##', 'a', $book['ISBN']];
+                        if (!empty($book['ISBN'])) {
+                            $marcFields[] = ['020', '##', 'a', $book['ISBN']];
+                        }
                         $marcFields[] = ['040', '##', 'a', 'PH-MnNBS', 'c', 'PH-MnNBS'];
                         $marcFields[] = ['082', '04', 'a', $book['call_number']];
 
@@ -434,6 +532,23 @@ if (!empty($bookTitle)) {
                             'a', $book['title'],
                             'c', implode(', ', $responsibilityStatement)
                         ];
+
+                        // Series information
+                        if (!empty($book['series'])) {
+                            $seriesStatement = $book['series'];
+                            if (!empty($book['volume'])) {
+                                $seriesStatement .= ' ; v. ' . $book['volume'];
+                            }
+                            if (!empty($book['part'])) {
+                                $seriesStatement .= ', pt. ' . $book['part'];
+                            }
+                            $marcFields[] = ['490', '1#', 'a', $seriesStatement];
+                        }
+
+                        // Edition statement
+                        if (!empty($book['edition'])) {
+                            $marcFields[] = ['250', '##', 'a', $book['edition']];
+                        }
 
                         // Publication Information
                         if (!empty($publications)) {
@@ -546,10 +661,10 @@ if (!empty($bookTitle)) {
                                         if (!empty($field[$i + 1])) {
                                             echo '<div class="subfield">';
                                             echo '<span class="subfield-delimiter">‡</span>';
-                                            echo '<span class="subfield-code" title="' .
-                                                ($subfieldDescriptions[$field[$i]] ?? 'Subfield ' . $field[$i]) .
+                                            echo '<span class="subfield-code" title="' . 
+                                                ($subfieldDescriptions[$field[$i]] ?? 'Subfield ' . $field[$i]) . 
                                                 '">' . $field[$i] . '</span>';
-                                            echo '<span class="subfield-value">' .
+                                            echo '<span class="subfield-value">' . 
                                                 htmlspecialchars(formatMarcValue($field[$i + 1])) . '</span>';
                                             echo '</div>';
                                         }
@@ -679,6 +794,26 @@ foreach ($marcFields as $field) {
                             // Title Line
                             echo '<div class="isbd-area">';
                             echo htmlspecialchars($book['title']);
+                            
+                            // Add series/volume/part when available
+                            $additionalInfo = [];
+                            if (!empty($book['series'])) {
+                                $additionalInfo[] = $book['series'];
+                            }
+                            if (!empty($book['volume'])) {
+                                $additionalInfo[] = 'volume ' . $book['volume'];
+                            }
+                            if (!empty($book['part'])) {
+                                $additionalInfo[] = 'part ' . $book['part'];
+                            }
+                            if (!empty($additionalInfo)) {
+                                echo ' (' . htmlspecialchars(implode(', ', $additionalInfo)) . ')';
+                            }
+                            
+                            // Add edition when available
+                            if (!empty($book['edition'])) {
+                                echo ' -- ' . htmlspecialchars($book['edition'] . ' edition');
+                            }
                             echo '</div>';
 
                             // Author Line (surname first)
@@ -721,9 +856,11 @@ foreach ($marcFields as $field) {
                             echo '</div>';
 
                             // ISBN Line
-                            echo '<div class="isbd-area">';
-                            echo 'ISBN: ' . htmlspecialchars($book['ISBN']);
-                            echo '</div>';
+                            if (!empty($book['ISBN'])) {
+                                echo '<div class="isbd-area">';
+                                echo 'ISBN: ' . htmlspecialchars($book['ISBN']);
+                                echo '</div>';
+                            }
 
                             // Subject Category and Details
                             if (!empty($book['subject_category']) || !empty($book['subject_detail'])) {
@@ -767,19 +904,54 @@ foreach ($marcFields as $field) {
     <!-- Scripts section -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
     <script>
+    // Check login status
+    var isLoggedIn = <?php echo isset($_SESSION['user_id']) ? 'true' : 'false'; ?>;
+    
     // Add click event listener for 'Add to Cart' button
     document.querySelector('.add-to-cart').addEventListener('click', function() {
-        const title = this.getAttribute('data-title');
-        addToCart(title);
+        const bookData = {
+            title: this.getAttribute('data-title'),
+            isbn: this.getAttribute('data-isbn'),
+            series: this.getAttribute('data-series'),
+            volume: this.getAttribute('data-volume'),
+            part: this.getAttribute('data-part'),
+            edition: this.getAttribute('data-edition')
+        };
+        addToCart(bookData);
     });
 
     // Add click event listener for 'Borrow Book' button
     document.querySelector('.borrow-book').addEventListener('click', function() {
-        const title = this.getAttribute('data-title');
-        borrowBook(title);
+        const bookData = {
+            title: this.getAttribute('data-title'),
+            isbn: this.getAttribute('data-isbn'),
+            series: this.getAttribute('data-series'),
+            volume: this.getAttribute('data-volume'),
+            part: this.getAttribute('data-part'),
+            edition: this.getAttribute('data-edition')
+        };
+        borrowBook(bookData);
     });
 
-    function addToCart(title) {
+    // Helper function to format book details for display
+    function formatBookDetails(bookData) {
+        let details = [bookData.title];
+        let metaDetails = [];
+        
+        if (bookData.edition) metaDetails.push("Edition: " + bookData.edition);
+        if (bookData.series) metaDetails.push("Series: " + bookData.series);
+        if (bookData.volume) metaDetails.push("Volume: " + bookData.volume);
+        if (bookData.part) metaDetails.push("Part: " + bookData.part);
+        if (bookData.isbn) metaDetails.push("ISBN: " + bookData.isbn);
+        
+        if (metaDetails.length > 0) {
+            details.push(metaDetails.join(" | "));
+        }
+        
+        return details.join("<br>");
+    }
+
+    function addToCart(bookData) {
         if (!isLoggedIn) {
             Swal.fire({
                 title: 'Please Login',
@@ -792,7 +964,7 @@ foreach ($marcFields as $field) {
 
         Swal.fire({
             title: 'Are you sure?',
-            text: 'Do you want to add "' + title + '" to the cart?',
+            html: 'Do you want to add this book to the cart?<br><br><strong>' + formatBookDetails(bookData) + '</strong>',
             icon: 'question',
             showCancelButton: true,
             confirmButtonText: 'Yes, add it!',
@@ -802,12 +974,12 @@ foreach ($marcFields as $field) {
                 $.ajax({
                     url: 'add_to_cart.php',
                     type: 'POST',
-                    data: { title: title },
+                    data: bookData,
                     success: function(response) {
                         var res = JSON.parse(response);
                         Swal.fire({
                             title: res.success ? 'Added!' : 'Failed!',
-                            text: res.message,
+                            html: res.message,
                             icon: res.success ? 'success' : 'error'
                         }).then(() => {
                             if (res.success) {
@@ -816,14 +988,14 @@ foreach ($marcFields as $field) {
                         });
                     },
                     error: function() {
-                        Swal.fire('Failed!', 'Failed to add "' + title + '" to cart.', 'error');
+                        Swal.fire('Failed!', 'Failed to add book to cart.', 'error');
                     }
                 });
             }
         });
     }
 
-    function borrowBook(title) {
+    function borrowBook(bookData) {
         if (!isLoggedIn) {
             Swal.fire({
                 title: 'Please Login',
@@ -836,7 +1008,7 @@ foreach ($marcFields as $field) {
 
         Swal.fire({
             title: 'Are you sure?',
-            text: 'Do you want to borrow "' + title + '"?',
+            html: 'Do you want to borrow this book?<br><br><strong>' + formatBookDetails(bookData) + '</strong>',
             icon: 'question',
             showCancelButton: true,
             confirmButtonText: 'Yes, borrow it!',
@@ -846,12 +1018,12 @@ foreach ($marcFields as $field) {
                 $.ajax({
                     url: 'reserve_book.php',
                     type: 'POST',
-                    data: { title: title },
+                    data: bookData,
                     success: function(response) {
                         var res = JSON.parse(response);
                         Swal.fire({
                             title: res.success ? 'Reserved!' : 'Failed!',
-                            text: res.message,
+                            html: res.message,
                             icon: res.success ? 'success' : 'error'
                         }).then(() => {
                             if (res.success) {
@@ -860,7 +1032,7 @@ foreach ($marcFields as $field) {
                         });
                     },
                     error: function() {
-                        Swal.fire('Failed!', 'Failed to reserve "' + title + '".', 'error');
+                        Swal.fire('Failed!', 'Failed to reserve book.', 'error');
                     }
                 });
             }

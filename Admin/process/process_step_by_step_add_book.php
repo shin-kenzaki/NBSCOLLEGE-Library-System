@@ -65,6 +65,7 @@ if (isset($_POST['submit'])) {
                 $isbn = mysqli_real_escape_string($conn, $_POST['isbn'][$i] ?? '');
                 $series = mysqli_real_escape_string($conn, $_POST['series'][$i] ?? '');
                 $volume = mysqli_real_escape_string($conn, $_POST['volume'][$i] ?? '');
+                $part = mysqli_real_escape_string($conn, $_POST['part'][$i]); // Add part field
                 $edition = mysqli_real_escape_string($conn, $_POST['edition'][$i] ?? '');
                 
                 // Get shelf locations and call numbers
@@ -126,13 +127,13 @@ if (isset($_POST['submit'])) {
                     // Insert into books table
                     $insert_book_query = "INSERT INTO books (
                         accession, title, preferred_title, parallel_title, 
-                        summary, contents, dimension, series, volume, edition, copy_number,
+                        summary, contents, dimension, series, volume, part, edition, copy_number,
                         total_pages, supplementary_contents, ISBN, content_type, media_type, 
                         carrier_type, call_number, URL, language, shelf_location, 
                         entered_by, date_added, status, last_update
                     ) VALUES (
                         '$accession', '$title', '$preferred_title', '$parallel_title', 
-                        '$summary', '$contents', '$dimension', '$series', '$volume', '$edition', '$copy_number',
+                        '$summary', '$contents', '$dimension', '$series', '$volume', '$part', '$edition', '$copy_number',
                         '$total_pages', '$supplementary_contents', '$isbn', '$content_type', '$media_type', 
                         '$carrier_type', '$call_number', '$url', '$language', '$shelf_location', 
                         '$entered_by', '$date_added', '$status', '$last_update'
