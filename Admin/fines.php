@@ -149,7 +149,7 @@ $totalPaidValue = $paidFinesRow['total_paid_value'] ?: 0;
     <h1 class="h3 mb-0 text-gray-800">Fines</h1>
 
             <!-- Generate Receipt Form -->
-            <form action="fine-receipt.php" method="post" id="receiptForm" target="_blank" onsubmit="return validateForm()" class="d-flex align-items-center">
+            <form action="fine-receipt-invoice.php" method="post" id="receiptForm" target="_blank" onsubmit="return validateForm()" class="d-flex align-items-center">
                 <div class="col-auto p-2">
                     <label for="school_id" class="col-form-label" style="font-size:medium;">Enter ID Number:</label>
                 </div>
@@ -246,8 +246,8 @@ $totalPaidValue = $paidFinesRow['total_paid_value'] ?: 0;
                         <span class="text-primary font-weight-bold">Filter applied:</span>
                         Showing <span id="totalResults"><?= $totalRecords ?></span> result<span id="pluralSuffix"><?= $totalRecords != 1 ? 's' : '' ?></span>
                     </span>
+                    <button id="generateReceiptBtn" class="btn btn-primary btn-sm mr-2">Generate Receipt</button>
                     <button id="remindAllBtn" class="btn btn-warning btn-sm mr-2">Remind All</button>
-
                     <button id="exportPaidFinesBtn" class="btn btn-success btn-sm mr-2">Export Paid Fines</button>
                     <button id="exportUnpaidFinesBtn" class="btn btn-danger btn-sm">Export Unpaid Fines</button>
                 </div>
@@ -257,6 +257,9 @@ $totalPaidValue = $paidFinesRow['total_paid_value'] ?: 0;
                     <table class="table table-bordered" id="finesTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
+                                <th class="text-center">
+                                    <input type="checkbox" id="selectAll" />
+                                </th>
                                 <th class="text-center">Borrower ID</th>
                                 <th class="text-center">Borrower</th>
                                 <th class="text-center">Book</th>
@@ -272,49 +275,57 @@ $totalPaidValue = $paidFinesRow['total_paid_value'] ?: 0;
                             </tr>
                         </thead>
                         <tbody>
-                        <?php while ($row = $result->fetch_assoc()): ?>
-                                <tr data-fine-id="<?php echo $row['id']; ?>"
-                                    data-amount="<?php echo $row['amount']; ?>"
-                                    data-borrower="<?php echo htmlspecialchars($row['borrower_name']); ?>"
-                                    data-status="<?php echo $row['status']; ?>">
-                                    <td class="text-center"><?php echo htmlspecialchars($row['school_id']); ?></td>
-                                    <td class="text-left"><?php echo htmlspecialchars($row['borrower_name']); ?></td>
-                                    <td class="text-left"><?php echo htmlspecialchars($row['book_title']); ?></td>
-                                    <td class="text-center"><?php echo htmlspecialchars($row['type']); ?></td>
-                                    <td class="text-center">₱<?php echo number_format($row['amount'], 2); ?></td>
-                                    <td class="text-center"><?php echo date('Y-m-d', strtotime($row['date'])); ?></td>
-                                    <td class="text-center"><?php echo date('Y-m-d', strtotime($row['issue_date'])); ?></td>
-                                    <td class="text-center">
-                                        <?php
-                                        echo ($row['return_date'] !== null && $row['return_date'] !== '0000-00-00')
-                                            ? date('Y-m-d', strtotime($row['return_date']))
-                                            : '-';
-                                        ?>
-                                    </td>
-                                    <td class="text-center">
-                                        <?php if ($row['status'] === 'Unpaid'): ?>
-                                            <span class="badge badge-danger">Unpaid</span>
-                                        <?php else: ?>
-                                            <span class="badge badge-success">Paid</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td class="text-center">
-                                        <?php
-                                        echo ($row['payment_date'] !== null && $row['payment_date'] !== '0000-00-00')
-                                            ? date('Y-m-d', strtotime($row['payment_date']))
-                                            : '-';
-                                        ?>
-                                    </td>
-                                    <td class="text-center">
-                                        <?php echo ($row['invoice_sale'] !== null) ? htmlspecialchars($row['invoice_sale']) : '-'; ?>
-                                    </td>
-                                    <td class="text-center">
-                                        <?php echo ($row['reminder_sent'] == 1) ? '<span class="badge badge-success">Reminder Sent</span>' : '<span class="badge badge-warning">Not Reminded</span>'; ?>
-                                    </td>
-                                </tr>
-                            <?php endwhile; ?>
-
-                        </tbody>
+    <?php if ($result->num_rows > 0): ?>
+        <?php while ($row = $result->fetch_assoc()): ?>
+            <tr data-fine-id="<?php echo $row['id']; ?>"
+                data-amount="<?php echo $row['amount']; ?>"
+                data-borrower="<?php echo htmlspecialchars($row['borrower_name']); ?>"
+                data-status="<?php echo $row['status']; ?>">
+                <td class="text-center">
+                    <input type="checkbox" class="fineCheckbox" value="<?php echo $row['id']; ?>" />
+                </td>
+                <td class="text-center"><?php echo htmlspecialchars($row['school_id']); ?></td>
+                <td class="text-left"><?php echo htmlspecialchars($row['borrower_name']); ?></td>
+                <td class="text-left"><?php echo htmlspecialchars($row['book_title']); ?></td>
+                <td class="text-center"><?php echo htmlspecialchars($row['type']); ?></td>
+                <td class="text-center">₱<?php echo number_format($row['amount'], 2); ?></td>
+                <td class="text-center"><?php echo date('Y-m-d', strtotime($row['date'])); ?></td>
+                <td class="text-center"><?php echo date('Y-m-d', strtotime($row['issue_date'])); ?></td>
+                <td class="text-center">
+                    <?php
+                    echo ($row['return_date'] !== null && $row['return_date'] !== '0000-00-00')
+                        ? date('Y-m-d', strtotime($row['return_date']))
+                        : '-';
+                    ?>
+                </td>
+                <td class="text-center">
+                    <?php if ($row['status'] === 'Unpaid'): ?>
+                        <span class="badge badge-danger">Unpaid</span>
+                    <?php else: ?>
+                        <span class="badge badge-success">Paid</span>
+                    <?php endif; ?>
+                </td>
+                <td class="text-center">
+                    <?php
+                    echo ($row['payment_date'] !== null && $row['payment_date'] !== '0000-00-00')
+                        ? date('Y-m-d', strtotime($row['payment_date']))
+                        : '-';
+                    ?>
+                </td>
+                <td class="text-center">
+                    <?php echo ($row['invoice_sale'] !== null) ? htmlspecialchars($row['invoice_sale']) : '-'; ?>
+                </td>
+                <td class="text-center">
+                    <?php echo ($row['reminder_sent'] == 1) ? '<span class="badge badge-success">Reminder Sent</span>' : '<span class="badge badge-warning">Not Reminded</span>'; ?>
+                </td>
+            </tr>
+        <?php endwhile; ?>
+    <?php else: ?>
+        <tr>
+            <td colspan="13" class="text-center text-muted">No records found</td>
+        </tr>
+    <?php endif; ?>
+</tbody>
                     </table>
                 </div>
             </div>
@@ -403,6 +414,7 @@ $totalPaidValue = $paidFinesRow['total_paid_value'] ?: 0;
 <div class="context-menu" style="display: none; position: absolute; z-index: 1000;">
     <ul class="list-group">
         <li class="list-group-item" data-action="mark-paid">Mark as Paid</li>
+        <li class="list-group-item" data-action="mark-unpaid">Mark as Unpaid</li>
     </ul>
 </div>
 
@@ -411,181 +423,11 @@ $totalPaidValue = $paidFinesRow['total_paid_value'] ?: 0;
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
+
 $(document).ready(function() {
     // Store references
     const contextMenu = $('.context-menu');
     let $selectedRow = null;
-
-    // Toggle filter form visibility
-    $('#toggleFilter').on('click', function() {
-        $('#filterForm').toggleClass('d-none');
-    });
-
-    // Reset filters
-    $('#resetFilters').on('click', function(e) {
-        e.preventDefault();
-
-        // Store the current visibility state of the filter form
-        const isFilterVisible = !$('#filterForm').hasClass('d-none');
-
-        // Clear all filter values
-        $('#status').val('');
-        $('#date_start').val('');
-        $('#date_end').val('');
-        $('#user').val('');
-        $('#book').val('');
-        $('#type').val('');
-
-        // Update the filter summary to indicate no filters
-        $('#filterSummary').addClass('d-none');
-
-        // Use AJAX to reload content with explicitly empty parameters
-        $.ajax({
-            url: 'fines.php',
-            type: 'GET',
-            // Explicitly send empty parameters to override any existing URL parameters
-            data: {
-                status: '',
-                date_start: '',
-                date_end: '',
-                user: '',
-                book: '',
-                type: ''
-            },
-            success: function(data) {
-                // Parse the response HTML
-                const $data = $(data);
-
-                // Extract the table content
-                let tableHtml = $data.find('#finesTable').parent().html();
-                // Update just the table content
-                $('.table-responsive').html(tableHtml);
-
-                // Update statistics cards
-                let statsHtml = $data.find('.row.mb-4').html();
-                $('.row.mb-4').html(statsHtml);
-
-                // Update browser URL to remove query parameters without reloading
-                const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
-                window.history.pushState({path: newUrl}, '', newUrl);
-
-                // Reinitialize DataTable
-                if ($.fn.DataTable.isDataTable('#finesTable')) {
-                    $('#finesTable').DataTable().destroy();
-                }
-
-                initializeDataTable();
-
-                // Restore the filter form visibility state
-                if (isFilterVisible) {
-                    $('#filterForm').removeClass('d-none');
-                }
-            }
-        });
-    });
-
-    // Handle form submission (Apply filters)
-    $('#finesFilterForm').on('submit', function(e) {
-        e.preventDefault();
-
-        // Store the current visibility state of the filter form
-        const isFilterVisible = !$('#filterForm').hasClass('d-none');
-
-        // Submit the form using AJAX
-        $.ajax({
-            url: 'fines.php',
-            type: 'GET',
-            data: $(this).serialize(),
-            success: function(data) {
-                // Parse the response HTML
-                const $data = $(data);
-
-                // Extract the table content
-                let tableHtml = $data.find('#finesTable').parent().html();
-                // Update just the table content
-                $('.table-responsive').html(tableHtml);
-
-                // Update filter summary
-                let filterSummaryHtml = $data.find('#filterSummary').html();
-                $('#filterSummary').html(filterSummaryHtml);
-
-                // Update statistics cards
-                let statsHtml = $data.find('.row.mb-4').html();
-                $('.row.mb-4').html(statsHtml);
-
-                // Show or hide the filter summary based on whether filters are applied
-                if ($('#status').val() || $('#date_start').val() || $('#date_end').val() ||
-                    $('#user').val() || $('#book').val() || $('#type').val()) {
-                    $('#filterSummary').removeClass('d-none');
-                } else {
-                    $('#filterSummary').addClass('d-none');
-                }
-
-                // Reinitialize DataTable
-                if ($.fn.DataTable.isDataTable('#finesTable')) {
-                    $('#finesTable').DataTable().destroy();
-                }
-
-                initializeDataTable();
-
-                // Restore the filter form visibility state
-                if (isFilterVisible) {
-                    $('#filterForm').removeClass('d-none');
-                }
-            }
-        });
-    });
-
-    // Function to initialize DataTable with consistent settings
-    function initializeDataTable() {
-        const table = $('#finesTable').DataTable({
-            "dom": "<'row mb-3'<'col-sm-6'l><'col-sm-6 d-flex justify-content-end'f>>" +
-                   "<'row'<'col-sm-12'tr>>" +
-                   "<'row mt-3'<'col-sm-5'i><'col-sm-7 d-flex justify-content-end'p>>",
-            "pagingType": "simple_numbers",
-            "pageLength": 25,
-            "lengthMenu": [[10, 25, 50, 100, 500], [10, 25, 50, 100, 500]],
-            "responsive": false,
-            "scrollY": "60vh",
-            "scrollCollapse": true,
-            "fixedHeader": true,
-            "order": [[5, "desc"]],
-            "language": {
-                "search": "_INPUT_",
-                "searchPlaceholder": "Search..."
-            },
-            "initComplete": function() {
-                $('#finesTable_filter input').addClass('form-control form-control-sm');
-                $('#finesTable_filter').addClass('d-flex align-items-center');
-                $('#finesTable_filter label').append('<i class="fas fa-search ml-2"></i>');
-                $('.dataTables_paginate .paginate_button').addClass('btn btn-sm btn-outline-primary mx-1');
-            }
-        });
-
-        // Rebind context menu on newly loaded table rows
-        $('#finesTable tbody').on('contextmenu', 'tr', function(e) {
-            e.preventDefault();
-
-            $selectedRow = $(this);
-            const status = $selectedRow.data('status');
-
-            contextMenu.find('li').data('action', status === 'Unpaid' ? 'mark-paid' : 'mark-unpaid').text(status === 'Unpaid' ? 'Mark as Paid' : 'Mark as Unpaid');
-
-            contextMenu.css({
-                top: e.pageY + "px",
-                left: e.pageX + "px",
-                display: "block"
-            });
-        });
-
-        // Add window resize handler for the table
-        $(window).on('resize', function() {
-            table.columns.adjust().draw();
-        });
-    }
-
-    // Initialize DataTable on page load
-    initializeDataTable();
 
     // Right-click handler for table rows
     $('#finesTable tbody').on('contextmenu', 'tr', function(e) {
@@ -594,8 +436,11 @@ $(document).ready(function() {
         $selectedRow = $(this);
         const status = $selectedRow.data('status');
 
-        contextMenu.find('li').data('action', status === 'Unpaid' ? 'mark-paid' : 'mark-unpaid').text(status === 'Unpaid' ? 'Mark as Paid' : 'Mark as Unpaid');
+        // Update context menu actions based on the fine's status
+        contextMenu.find('li[data-action="mark-paid"]').toggle(status === 'Unpaid');
+        contextMenu.find('li[data-action="mark-unpaid"]').toggle(status === 'Paid');
 
+        // Show context menu at the cursor position
         contextMenu.css({
             top: e.pageY + "px",
             left: e.pageX + "px",
@@ -613,149 +458,203 @@ $(document).ready(function() {
         e.stopPropagation();
     });
 
-    // Handle menu item clicks
     $(".context-menu li").on('click', function() {
-        if (!$selectedRow) return;
+    const action = $(this).data('action');
+    const selectedRows = $('.fineCheckbox:checked');
+    const fineIds = selectedRows.map(function() {
+        return $(this).val();
+    }).get();
 
-        const fineId = $selectedRow.data('fine-id');
-        const amount = $selectedRow.data('amount');
-        const borrower = $selectedRow.data('borrower');
-        const action = $(this).data('action');
-        let url = '';
+    console.log('Fine IDs:', fineIds); // Debug: Check fine IDs being sent
 
-        if (action === 'mark-paid') {
-            url = 'mark_fine_paid.php';
-        } else if (action === 'mark-unpaid') {
-            url = 'mark_fine_unpaid.php';
+    if (action === 'mark-paid') {
+    if (selectedRows.length === 0) {
+        Swal.fire({
+            title: 'Error',
+            text: 'Please select at least one fine to mark as paid.',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+        return;
+    }
+
+    // Collect borrower names and total amount
+    const borrowerNames = [];
+    let totalAmount = 0;
+    selectedRows.each(function() {
+        const borrower = $(this).closest('tr').data('borrower');
+        const amount = parseFloat($(this).closest('tr').data('amount'));
+        if (!borrowerNames.includes(borrower)) {
+            borrowerNames.push(borrower);
         }
-
-        if (action === 'mark-paid') {
-            // Sweet Alert confirmation with added fields
-            Swal.fire({
-                title: 'Confirm Payment',
-                html: `
-                    <div class="text-left">
-                        <p class="mb-2"><strong>Borrower:</strong> ${borrower}</p>
-                        <p class="mb-2"><strong>Amount:</strong> ₱${parseFloat(amount).toLocaleString('en-PH', {minimumFractionDigits: 2})}</p>
-                        
-                        <div class="form-group mt-3">
-                            <label for="payment_date" class="float-left"><strong>Payment Date:</strong></label>
-                            <input type="date" id="payment_date" class="form-control" value="${new Date().toISOString().split('T')[0]}">
-                        </div>
-                        
-                        <div class="form-group mt-3">
-                            <label for="invoice_sale" class="float-left"><strong>Invoice/OR Number:</strong></label>
-                            <input type="text" id="invoice_sale" class="form-control" placeholder="Enter invoice or OR number">
-                        </div>
-                    </div>
-                `,
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: `<i class="fas fa-check"></i> Confirm Payment`,
-                cancelButtonText: '<i class="fas fa-times"></i> Cancel',
-                confirmButtonColor: '#28a745',
-                cancelButtonColor: '#dc3545',
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                showLoaderOnConfirm: true,
-                customClass: {
-                    confirmButton: 'btn btn-success',
-                    cancelButton: 'btn btn-danger'
-                },
-                preConfirm: () => {
-                    const paymentDate = document.getElementById('payment_date').value;
-                    const invoiceSale = document.getElementById('invoice_sale').value;
-                    
-                    if (!paymentDate) {
-                        Swal.showValidationMessage('Payment date is required');
-                        return false;
-                    }
-                    
-                    return fetch(`${url}`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
-                        body: `fine_id=${fineId}&payment_date=${paymentDate}&invoice_sale=${invoiceSale}`
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.status === 'error') {
-                            throw new Error(data.message);
-                        }
-                        return data;
-                    })
-                    .catch(error => {
-                        Swal.showValidationMessage(`Error: ${error.message}`);
-                    });
-                }
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Payment Recorded!',
-                        text: `The fine has been successfully marked as paid.`,
-                        confirmButtonColor: '#28a745',
-                        confirmButtonText: 'OK'
-                    }).then(() => {
-                        window.location.reload();
-                    });
-                }
-            });
-        } else if (action === 'mark-unpaid') {
-            // Keep the existing code for mark-unpaid
-            Swal.fire({
-                title: 'Confirm Action',
-                html: `
-                    <div class="text-left">
-                        <p class="mb-2"><strong>Borrower:</strong> ${borrower}</p>
-                        <p class="mb-2"><strong>Amount:</strong> ₱${parseFloat(amount).toLocaleString('en-PH', {minimumFractionDigits: 2})}</p>
-                        <p class="mt-3">Are you sure you want to mark this fine as unpaid?</p>
-                    </div>
-                `,
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: `<i class="fas fa-check"></i> Yes, Mark as Unpaid`,
-                cancelButtonText: '<i class="fas fa-times"></i> Cancel',
-                confirmButtonColor: '#28a745',
-                cancelButtonColor: '#dc3545',
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                showLoaderOnConfirm: true,
-                customClass: {
-                    confirmButton: 'btn btn-success',
-                    cancelButton: 'btn btn-danger'
-                },
-                preConfirm: () => {
-                    return fetch(`${url}?id=${fineId}`)
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.status === 'error') {
-                                throw new Error(data.message);
-                            }
-                            return data;
-                        })
-                        .catch(error => {
-                            Swal.showValidationMessage(`Error: ${error.message}`);
-                        });
-                }
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Status Updated!',
-                        text: `The fine has been successfully marked as unpaid.`,
-                        confirmButtonColor: '#28a745',
-                        confirmButtonText: 'OK'
-                    }).then(() => {
-                        window.location.reload();
-                    });
-                }
-            });
-        }
-
-        contextMenu.hide();
+        totalAmount += amount;
     });
+
+    if (borrowerNames.length > 1) {
+        Swal.fire({
+            title: 'Error',
+            text: 'Cannot mark as paid for fines with different borrowers.',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+        return;
+    }
+
+    const borrower = borrowerNames[0];
+
+    Swal.fire({
+        title: 'Confirm Payment',
+        html: `
+            <div class="text-left">
+                <p class="mb-2"><strong>Borrower:</strong> ${borrower}</p>
+                <p class="mb-2"><strong>Total Amount:</strong> ₱${totalAmount.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</p>
+
+                <div class="form-group mt-3">
+                    <label for="payment_date" class="float-left"><strong>Payment Date:</strong></label>
+                    <input type="date" id="payment_date" class="form-control" value="${new Date().toISOString().split('T')[0]}">
+                </div>
+
+                <div class="form-group mt-3">
+                    <label for="invoice_sale" class="float-left"><strong>Invoice/OR Number:</strong></label>
+                    <input type="text" id="invoice_sale" class="form-control" placeholder="Enter invoice or OR number">
+                </div>
+            </div>
+        `,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: `<i class="fas fa-check"></i> Confirm Payment`,
+        cancelButtonText: '<i class="fas fa-times"></i> Cancel',
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#dc3545',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showLoaderOnConfirm: true,
+        customClass: {
+            confirmButton: 'btn btn-success',
+            cancelButton: 'btn btn-danger'
+        },
+        preConfirm: () => {
+            const paymentDate = document.getElementById('payment_date').value;
+            const invoiceSale = document.getElementById('invoice_sale').value;
+
+            // Validate inputs
+            if (!paymentDate) {
+                Swal.showValidationMessage('Payment date is required');
+                return false;
+            }
+            if (!invoiceSale) {
+                Swal.showValidationMessage('Invoice/OR number is required');
+                return false;
+            }
+
+            return fetch('mark_fine_paid.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `fine_ids=${encodeURIComponent(JSON.stringify(fineIds))}&payment_date=${encodeURIComponent(paymentDate)}&invoice_sale=${encodeURIComponent(invoiceSale)}`
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Redirect to the server endpoint to open the PDF in a new tab
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = 'mark_fine_paid.php';
+                    form.target = '_blank';
+
+                    // Add the required POST parameters
+                    const fineIdsInput = document.createElement('input');
+                    fineIdsInput.type = 'hidden';
+                    fineIdsInput.name = 'fine_ids';
+                    fineIdsInput.value = JSON.stringify(fineIds);
+                    form.appendChild(fineIdsInput);
+
+                    const paymentDateInput = document.createElement('input');
+                    paymentDateInput.type = 'hidden';
+                    paymentDateInput.name = 'payment_date';
+                    paymentDateInput.value = paymentDate;
+                    form.appendChild(paymentDateInput);
+
+                    const invoiceSaleInput = document.createElement('input');
+                    invoiceSaleInput.type = 'hidden';
+                    invoiceSaleInput.name = 'invoice_sale';
+                    invoiceSaleInput.value = invoiceSale;
+                    form.appendChild(invoiceSaleInput);
+
+                    document.body.appendChild(form);
+                    form.submit();
+                    document.body.removeChild(form);
+                } else {
+                    return response.json().then(err => { throw new Error(err.message); });
+                }
+            })
+            .catch(error => {
+                Swal.showValidationMessage(`Error: ${error.message}`);
+            });
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Payment Recorded!',
+                text: `The fines have been successfully marked as paid.`,
+                confirmButtonColor: '#28a745',
+                confirmButtonText: 'OK'
+            }).then(() => {
+                window.location.reload();
+            });
+        }
+    });
+}
+     else if (action === 'mark-unpaid') {
+        Swal.fire({
+            title: 'Confirm Action',
+            text: 'Are you sure you want to mark the selected fines as unpaid?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: `<i class="fas fa-check"></i> Yes, Mark as Unpaid`,
+            cancelButtonText: '<i class="fas fa-times"></i> Cancel',
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#dc3545',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showLoaderOnConfirm: true,
+            preConfirm: () => {
+                return fetch('mark_fine_unpaid.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `fine_ids=${encodeURIComponent(JSON.stringify(fineIds))}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'error') {
+                        throw new Error(data.message);
+                    }
+                    return data;
+                })
+                .catch(error => {
+                    Swal.showValidationMessage(`Error: ${error.message}`);
+                });
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Status Updated!',
+                    text: `The fines have been successfully marked as unpaid.`,
+                    confirmButtonColor: '#28a745',
+                    confirmButtonText: 'OK'
+                }).then(() => {
+                    window.location.reload();
+                });
+            }
+        });
+    }
+
+    contextMenu.hide();
+});
 
     // Add custom styles for the context menu
     $('<style>')
@@ -778,62 +677,223 @@ $(document).ready(function() {
             }
         `)
         .appendTo('head');
-
-    // Export Paid Fines
-    $('#exportPaidFinesBtn').click(function() {
-        window.location.href = 'export_fines.php?status=Paid';
-    });
-
-    // Export Unpaid Fines
-    $('#exportUnpaidFinesBtn').click(function() {
-        window.location.href = 'export_fines.php?status=Unpaid';
-    });
 });
 </script>
+
+
+<!-- generate receipt script -->
 <script>
 $(document).ready(function() {
-    // Handle "Remind All" button click
-    $('#remindAllBtn').on('click', function() {
+    // Handle "Generate Receipt" button click
+    $('#generateReceiptBtn').on('click', function() {
+        const selectedRows = $('.fineCheckbox:checked');
+        if (selectedRows.length === 0) {
+            Swal.fire({
+                title: 'Error',
+                text: 'Please select at least one fine to generate a receipt.',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+
+        // Collect school IDs from selected rows
+        const schoolIds = [];
+        selectedRows.each(function() {
+            const schoolId = $(this).closest('tr').find('td:nth-child(2)').text().trim();
+            if (!schoolIds.includes(schoolId)) {
+                schoolIds.push(schoolId);
+            }
+        });
+
+        // Check if all selected rows have the same school ID
+        if (schoolIds.length > 1) {
+            Swal.fire({
+                title: 'Error',
+                text: 'Cannot generate a receipt for fines with different borrowers.',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+
+        // Collect the selected fine IDs
+        const fineIds = selectedRows.map(function() {
+            return $(this).val();
+        }).get();
+
+        // Confirm with the user before generating the receipt
         Swal.fire({
-            title: 'Send Reminders to All Unpaid Fines',
-            text: `Are you sure you want to send reminders to all users with unpaid fines?`,
+            title: 'Generate Receipt',
+            text: 'Are you sure you want to generate a receipt for the selected fines?',
             icon: 'question',
             showCancelButton: true,
-            confirmButtonText: 'Yes, Send',
+            confirmButtonText: 'Yes, Generate',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#dc3545'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Redirect to fine-receipt.php with the selected fine IDs
+                const form = $('<form>', {
+                    method: 'POST',
+                    action: 'fine-receipt.php',
+                    target: '_blank'
+                });
+
+                fineIds.forEach(fineId => {
+                    form.append($('<input>', {
+                        type: 'hidden',
+                        name: 'fine_ids[]',
+                        value: fineId
+                    }));
+                });
+
+                $('body').append(form);
+                form.submit();
+            }
+        });
+    });
+
+    // Handle "Select All" checkbox
+    $('#selectAll').on('change', function() {
+        $('.fineCheckbox').prop('checked', $(this).prop('checked'));
+    });
+
+    // Uncheck "Select All" if any individual checkbox is unchecked
+    $('.fineCheckbox').on('change', function() {
+        if (!$(this).prop('checked')) {
+            $('#selectAll').prop('checked', false);
+        }
+    });
+});
+
+
+// SCRIPT FOR FILTERS AND RESET
+$(document).ready(function () {
+    // Handle "Toggle Filter" button click
+    $('#toggleFilter').on('click', function () {
+        const filterForm = $('#filterForm');
+        filterForm.toggleClass('d-none'); // Toggle visibility by adding/removing the 'd-none' class
+
+        // Update the button text/icon based on the visibility of the filter form
+        if (filterForm.hasClass('d-none')) {
+            $(this).html('<i class="fas fa-filter"></i> Toggle Filter');
+        } else {
+            $(this).html('<i class="fas fa-filter"></i> Hide Filter');
+        }
+    });
+});
+
+$(document).ready(function () {
+    // Handle "Reset Filters" button click
+    $('#resetFilters').on('click', function () {
+        // Clear all filter inputs
+        $('#finesFilterForm').find('input, select').each(function () {
+            $(this).val(''); // Reset input and select values
+        });
+
+        // Reload the page without query parameters
+        window.location.href = window.location.pathname;
+    });
+});
+
+
+
+// script for export paid fines
+$(document).ready(function () {
+    // Handle "Export Paid Fines" button click
+    $('#exportPaidFinesBtn').on('click', function () {
+        Swal.fire({
+            title: 'Export Paid Fines',
+            text: 'Are you sure you want to export all paid fines?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Export',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#dc3545'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = 'export_fines.php?status=Paid';
+            }
+        });
+    });
+});
+
+// export for export unpaid fines
+$(document).ready(function () {
+    // Handle "Export Unpaid Fines" button click
+    $('#exportUnpaidFinesBtn').on('click', function () {
+        Swal.fire({
+            title: 'Export Unpaid Fines',
+            text: 'Are you sure you want to export all unpaid fines?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Export',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#dc3545'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = 'export_fines.php?status=Unpaid';
+
+            }
+        });
+    });
+});
+
+
+$(document).ready(function () {
+    // Handle "Remind All" button click
+    $('#remindAllBtn').on('click', function () {
+        Swal.fire({
+            title: 'Send Reminders',
+            text: 'Are you sure you want to send reminders for all unpaid fines?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Send Reminders',
             cancelButtonText: 'Cancel',
             confirmButtonColor: '#28a745',
             cancelButtonColor: '#dc3545',
             showLoaderOnConfirm: true,
             preConfirm: () => {
-                return $.ajax({
-                    url: 'send_fine_reminders.php',
-                    type: 'POST',
-                    data: {
-                        action: 'remind_all'
+                return fetch('send_fine_reminders.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
                     },
-                    dataType: 'json'
-                }).then(response => {
-                    if (response.status === 'success') {
-                        return response;
-                    } else {
-                        throw new Error(response.message || 'Failed to send reminders.');
+                    body: `action=remind_all`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'error') {
+                        throw new Error(data.message);
                     }
-                }).catch(error => {
+                    return data;
+                })
+                .catch(error => {
                     Swal.showValidationMessage(`Error: ${error.message}`);
                 });
             }
         }).then((result) => {
             if (result.isConfirmed) {
                 Swal.fire({
-                    title: 'Reminders Sent!',
-                    text: result.value.message,
                     icon: 'success',
+                    title: 'Reminders Sent!',
+                    text: 'Reminders have been successfully sent for all unpaid fines.',
+                    confirmButtonColor: '#28a745',
                     confirmButtonText: 'OK'
                 }).then(() => {
+                    // Refresh the page after the success message
                     window.location.reload();
                 });
             }
         });
     });
 });
+
+
+
+
 </script>
