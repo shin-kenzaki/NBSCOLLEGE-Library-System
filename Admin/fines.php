@@ -149,7 +149,7 @@ $totalPaidValue = $paidFinesRow['total_paid_value'] ?: 0;
     <h1 class="h3 mb-0 text-gray-800">Fines</h1>
 
             <!-- Generate Receipt Form -->
-            <form action="fine-receipt-invoice.php" method="post" id="receiptForm" target="_blank" onsubmit="return validateForm()" class="d-flex align-items-center">
+            <!-- <form action="fine-receipt-invoice.php" method="post" id="receiptForm" target="_blank" onsubmit="return validateForm()" class="d-flex align-items-center">
                 <div class="col-auto p-2">
                     <label for="school_id" class="col-form-label" style="font-size:medium;">Enter ID Number:</label>
                 </div>
@@ -159,7 +159,7 @@ $totalPaidValue = $paidFinesRow['total_paid_value'] ?: 0;
                 <div class="col-auto p-2">
                     <button class="btn btn-danger btn-block" type="submit">Generate Fine Receipt</button>
                 </div>
-            </form>
+            </form> -->
         </div>
 
         <!-- Fines Filter Card -->
@@ -691,6 +691,25 @@ $(document).ready(function() {
             Swal.fire({
                 title: 'Error',
                 text: 'Please select at least one fine to generate a receipt.',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+
+        // Check if all selected rows have the "Unpaid" status
+        let allUnpaid = true;
+        selectedRows.each(function() {
+            const status = $(this).closest('tr').data('status');
+            if (status !== 'Unpaid') {
+                allUnpaid = false;
+            }
+        });
+
+        if (!allUnpaid) {
+            Swal.fire({
+                title: 'Error',
+                text: 'Receipts can only be generated for fines with an "Unpaid" status.',
                 icon: 'error',
                 confirmButtonText: 'OK'
             });
