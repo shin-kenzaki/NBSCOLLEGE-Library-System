@@ -50,8 +50,8 @@ class PDF extends FPDF {
         $this->Cell(50, 5, $usertype, 0, 1);
 
         $this->Cell(130, 5, "Borrower's Name: " . $borrower, 0, 0);
-        $this->Cell(19, 5, '', 0, 0);
-        $this->Cell(50, 5, '', 0, 1);
+        $this->Cell(19, 5, 'Invoice No: ', 0, 0);
+        $this->Cell(50, 5, 'invoice number here', 0, 1);
         $this->Ln(1);
 
         // Table Header
@@ -65,7 +65,6 @@ class PDF extends FPDF {
         $this->SetFont('Arial', '', 8);
 
         $totalAmount = 0; // Initialize total amount
-
 
         while ($row = mysqli_fetch_assoc($result)) {
             $yPos = $this->GetY();
@@ -85,14 +84,15 @@ class PDF extends FPDF {
             $this->SetXY($xPos + $titleWidth, $yPos);
 
             $this->Cell(40, 3.5, $row['type'], 0, 0, 'L');
-            $this->Cell(30, 3.5, $row['status'], 0, 0, 'L'); // Status
-            $this->Cell(30, 3.5, number_format($row['amount'], 2), 0, 1, 'L'); // Amount
+            $this->Cell(30, 3.5, $row['status'], 0, 0, 'L'); // Status goes here
+            $this->Cell(30, 3.5, number_format($row['amount'], 2), 0, 1, 'L'); // Amount goes here
 
             // Add the amount to the total
             $totalAmount += $row['amount'];
         }
         $this->Ln(3);
         $this->Cell(170, 0, '', 'T', 1, 'C'); // Bottom border for the table
+
 
         // Display Total Amount
         $this->SetFont('Arial', 'B', 10);
@@ -108,58 +108,79 @@ class PDF extends FPDF {
     }
 }
 
-if (isset($_POST['fine_ids'])) {
-    $fine_ids = $_POST['fine_ids'];
-    $fine_ids = array_map('intval', $fine_ids); // Sanitize input
+if (isset($_POST['school_id'])) {
+    $school_id = mysqli_real_escape_string($conn, $_POST['school_id']);
 
-    // Fetch fines and borrower details
-    $sql = "SELECT f.type, f.amount, f.status, f.invoice_sale, bk.title AS book_title, u.school_id,
-                   CONCAT(u.firstname, ' ', u.lastname) AS borrower, u.usertype
+    $user_info_query = "SELECT CONCAT(firstname, ' ', lastname) AS borrower, usertype
+                        FROM users
+                        WHERE school_id = '$school_id'
+                        LIMIT 1";
+    $user_info_result = mysqli_query($conn, $user_info_query);
+    $user_info = mysqli_fetch_assoc($user_info_result);
+
+    if (!$user_info) {
+        echo "<script>alert('No user found for this School ID.'); window.close();</script>";
+        exit();
+    }
+
+    $borrower = $user_info['borrower'];
+    $usertype = $user_info['usertype'];
+
+    $user_ids_query = "SELECT id FROM users WHERE school_id = '$school_id'";
+    $user_ids_result = mysqli_query($conn, $user_ids_query);
+
+    $user_ids = [];
+    while ($user_row = mysqli_fetch_assoc($user_ids_result)) {
+        $user_ids[] = $user_row['id'];
+    }
+
+    $user_ids_str = implode(',', $user_ids);
+
+    $sql = "SELECT f.type, f.amount, f.status, f.date AS fine_date, f.payment_date,
+            bk.title AS book_title
             FROM fines f
             JOIN borrowings b ON f.borrowing_id = b.id
             JOIN books bk ON b.book_id = bk.id
-            JOIN users u ON b.user_id = u.id
-            WHERE f.id IN (" . implode(',', $fine_ids) . ")";
+            WHERE b.user_id IN ($user_ids_str) AND f.status = 'Unpaid'
+            ORDER BY f.date DESC";
+
     $result = mysqli_query($conn, $sql);
 
     if (mysqli_num_rows($result) > 0) {
-        $row = mysqli_fetch_assoc($result);
-        $borrower = $row['borrower'];
-        $usertype = $row['usertype'];
-        $school_id = $row['school_id'];
-
-        mysqli_data_seek($result, 0); // Reset result pointer
-
         $pdf = new PDF('P', 'mm', 'A4');
         $pdf->SetLeftMargin(20); // Set left margin
         $pdf->SetRightMargin(20); // Set right margin
         $pdf->AddPage();
 
         // Generate Borrower Copy
-        $pdf->generateReceipt($borrower, $usertype, $school_id, $result, 'Borrower Copy');
+        $copyType = ucfirst($usertype) . ' Copy';
+        $pdf->generateReceipt($borrower, $usertype, $school_id, $result, $copyType);
 
-        // Add a dashed line to separate the copies
+        // Add a dashed line to separate the copies with scissors icon
         $middleY = $pdf->GetPageHeight() / 2;
         $pdf->SetY($middleY - 5);
         $pdf->SetLineWidth(0);
         $pdf->SetDash(1, 1); // Set dashed line
         $pdf->Line(20, $pdf->GetY(), $pdf->GetPageWidth() - 20, $pdf->GetY());
         $pdf->SetDash(); // Reset to solid line
+        $pdf->SetY($middleY - 10);
         $pdf->SetY($middleY + 5);
 
         // Generate Librarian Copy
         mysqli_data_seek($result, 0);
         $pdf->generateReceipt($borrower, $usertype, $school_id, $result, 'Librarian Copy');
 
-        // Generate PDF Filename
-        $borrowerLastName = explode(' ', $borrower);
-        $borrowerLastName = end($borrowerLastName); // Get the last part as the Last Name
+        // Extract Last Name from Full Name
+        $borrowerNameParts = explode(' ', $borrower);
+        $borrowerLastName = end($borrowerNameParts); // Get the last part as the Last Name
         $currentDate = date('Y-m-d'); // Format: YYYY-MM-DD
+
+        // Generate PDF Filename
         $pdfFilename = $borrowerLastName . ' - Fine Receipt (' . $currentDate . ').pdf';
 
         $pdf->Output('', $pdfFilename);
     } else {
-        echo "<script>alert('No fines found for the selected IDs.'); window.close();</script>";
+        echo "<script>alert('No fines found for this School ID.'); window.close();</script>";
         exit();
     }
 }
