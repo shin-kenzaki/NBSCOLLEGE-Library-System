@@ -606,38 +606,60 @@ $(document).ready(function() {
         }
     });
 }
-     else if (action === 'mark-unpaid') {
+else if (action === 'mark-unpaid') {
+    if (selectedRows.length === 0) {
         Swal.fire({
-            title: 'Confirm Action',
-            text: 'Are you sure you want to mark the selected fines as unpaid?',
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: `<i class="fas fa-check"></i> Yes, Mark as Unpaid`,
-            cancelButtonText: '<i class="fas fa-times"></i> Cancel',
-            confirmButtonColor: '#28a745',
-            cancelButtonColor: '#dc3545',
-            allowOutsideClick: false,
-            allowEscapeKey: false,
-            showLoaderOnConfirm: true,
-            preConfirm: () => {
-                return fetch('mark_fine_unpaid.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: `fine_ids=${encodeURIComponent(JSON.stringify(fineIds))}`
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'error') {
-                        throw new Error(data.message);
-                    }
-                    return data;
-                })
-                .catch(error => {
-                    Swal.showValidationMessage(`Error: ${error.message}`);
-                });
-            }
+            title: 'Error',
+            text: 'Please select at least one fine to mark as unpaid.',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+        return;
+    }
+
+    Swal.fire({
+        title: 'Confirm Action',
+        text: 'Are you sure you want to mark the selected fines as unpaid?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: `<i class="fas fa-check"></i> Yes, Mark as Unpaid`,
+        cancelButtonText: '<i class="fas fa-times"></i> Cancel',
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#dc3545',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showLoaderOnConfirm: true,
+        preConfirm: () => {
+            return fetch('mark_fine_unpaid.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `fine_ids=${encodeURIComponent(JSON.stringify(fineIds))}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'error') {
+                    throw new Error(data.message);
+                }
+                return data;
+            })
+            .catch(error => {
+                Swal.showValidationMessage(`Error: ${error.message}`);
+            });
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Status Updated!',
+                text: `The fines have been successfully marked as unpaid.`,
+                confirmButtonColor: '#28a745',
+                confirmButtonText: 'OK'
+            }).then(() => {
+                window.location.reload();
+            });
+        }
         }).then((result) => {
             if (result.isConfirmed) {
                 Swal.fire({
