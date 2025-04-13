@@ -295,7 +295,14 @@ $result = $stmt->get_result();
         <span class="mr-2 total-books-display">
             Total Books: <?php echo number_format($totalBooks); ?>
         </span>
-        <a href="add-book.php" class="btn btn-secondary btn-sm">Add Book</a>
+        <div class="btn-group me-2">
+            <a href="add-book.php" class="btn btn-secondary btn-sm">
+                <i class="fas fa-plus-circle"></i> Quick Add
+            </a>
+            <a href="step-by-step-add-book.php" class="btn btn-primary btn-sm">
+                <i class="fas fa-list-ol"></i> Step-by-Step
+            </a>
+        </div>
         <button type="button" class="btn btn-danger btn-sm ms-2" data-bs-toggle="modal" data-bs-target="#instructionsModal">
             <i class="fas fa-question-circle"></i> Instructions
         </button>
@@ -354,7 +361,7 @@ $result = $stmt->get_result();
             $accessions = explode(',', $row['accession_range']);
             $accession_range = formatRange($accessions);
 
-            // Process call numbers (using existing formatCallNumberSequence function)
+            // Process call numbers
             $call_number_data = explode(',', $row['call_number_data']);
             $call_numbers = [];
             $current_base = '';
@@ -366,16 +373,16 @@ $result = $stmt->get_result();
 
                 if ($base_call !== $current_base) {
                     if (!empty($current_sequence)) {
-                        $call_numbers[] = formatCallNumberSequence($current_base, $current_sequence);
+                        $call_numbers[] = implode('<br>', $current_sequence);
                     }
                     $current_base = $base_call;
                     $current_sequence = [];
                 }
-                $current_sequence[] = $copy_num;
+                $current_sequence[] = $call_num;
             }
             
             if (!empty($current_sequence)) {
-                $call_numbers[] = formatCallNumberSequence($current_base, $current_sequence);
+                $call_numbers[] = implode('<br>', $current_sequence);
             }
 
             // Process copy numbers

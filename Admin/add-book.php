@@ -46,7 +46,7 @@ $subject_options = array(
 );
 
 // Fetch writers for the dropdown
-$writers_query = "SELECT id, CONCAT(firstname, ' ', middle_init, ' ', lastname) AS name FROM writers";
+$writers_query = "SELECT id, CONCAT(lastname, ', ', firstname, ' ', middle_init) AS name FROM writers";
 $writers_result = mysqli_query($conn, $writers_query);
 $writers = [];
 while ($row = mysqli_fetch_assoc($writers_result)) {
@@ -623,7 +623,7 @@ $accession_error = '';
                                             <select class="form-control" id="publisher" name="publisher" required>
                                                 <option value="">Select Publisher</option>
                                                 <?php foreach ($publishers as $publisher): ?>
-                                                    <option value="<?php echo $publisher['publisher']; ?>"><?php echo $publisher['publisher']; ?> (<?php echo $publisher['place'] ?? 'Unknown'; ?>)</option>
+                                                    <option value="<?php echo $publisher['publisher']; ?>"><?php echo $publisher['place']; ?> ; <?php echo $publisher['publisher'] ?? 'Unknown'; ?></option>
                                                 <?php endforeach; ?>
                                             </select>
                                         </div>
@@ -1221,7 +1221,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             
                             const copyNumberLabel = document.createElement('span');
                             copyNumberLabel.className = 'input-group-text';
-                            copyNumberLabel.textContent = 'Copy #';
+                            copyNumberLabel.textContent = 'Copy Number';
                             
                             // Use saved copy number if available, otherwise use continuous numbering
                             const copyIndex = totalCopiesCount + i;
@@ -1310,7 +1310,7 @@ function updateFormattedCallNumber(input) {
     const container = input.closest('.input-group');
     if (!container) return;
     
-    const baseCallNumber = input.value.trim();
+    const baseCallNumber = input.value; // Don't trim to preserve spaces
     if (!baseCallNumber) return;
     
     const shelfSelect = container.querySelector('.shelf-location-select');
@@ -1321,15 +1321,11 @@ function updateFormattedCallNumber(input) {
     const shelf = shelfSelect.value;
     const copy = 'c' + copyInput.value;
     
-    // Process base call number to ensure proper spacing
-    const callParts = baseCallNumber.split(/\s+/).filter(part => part.length > 0);
-    const processedCallNumber = callParts.join(' ');
-    
-    // Build the formatted call number with proper spacing
-    const elements = [shelf, processedCallNumber];
+    // Build the formatted call number without modifying the base call number
+    const elements = [shelf, baseCallNumber];
     if (publishYear) elements.push(publishYear);
     elements.push(copy);
-    const formatted = elements.join(' ').trim();
+    const formatted = elements.join(' ');
     
     // Store in data attribute for form submission
     input.dataset.formattedCallNumber = formatted;
@@ -1348,15 +1344,6 @@ function updateFormattedCallNumber(input) {
     }
     
     preview.textContent = `→ ${formatted}`;
-    
-    // Add warning about trailing spaces if needed
-    let warningElem = container.querySelector('.call-number-warning');
-    if (!warningElem) {
-        warningElem = document.createElement('small');
-        warningElem.className = 'call-number-warning text-danger d-block mt-1';
-        warningElem.style.fontSize = '11px';
-        input.parentNode.appendChild(warningElem);
-    }
 }
 </script>
 
@@ -2013,7 +2000,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     // Create copy number label and input
                     const copyNumberLabel = document.createElement('span');
                     copyNumberLabel.className = 'input-group-text';
-                    copyNumberLabel.textContent = 'Copy #';
+                    copyNumberLabel.textContent = 'Copy Number';
                     
                     const copyNumberInput = document.createElement('input');
                     copyNumberInput.type = 'number';
@@ -2423,7 +2410,7 @@ document.addEventListener("DOMContentLoaded", function() {
             const index = Array.from(callNumberInputs).indexOf(e.target);
             
             // Get the base call number
-            const baseCallNumber = e.target.value.trim();
+            const baseCallNumber = e.target.value;
             
             // Format and update all subsequent call numbers
             for (let i = index; i < callNumberInputs.length; i++) {
@@ -2737,7 +2724,7 @@ function updateISBNFields() {
             // Create copy number label and input (positioned between call number and shelf location)
             const copyNumberLabel = document.createElement('span');
             copyNumberLabel.className = 'input-group-text';
-            copyNumberLabel.textContent = 'Copy #';
+            copyNumberLabel.textContent = 'Copy Number';
             
             const copyNumberInput = document.createElement('input');
             copyNumberInput.type = 'number';
@@ -3039,7 +3026,7 @@ function updateCallNumbers() {
             // Create copy number label and input (positioned between call number and shelf location)
             const copyNumberLabel = document.createElement('span');
             copyNumberLabel.className = 'input-group-text';
-            copyNumberLabel.textContent = 'Copy #';
+            copyNumberLabel.textContent = 'Copy Number';
             
             const copyNumberInput = document.createElement('input');
             copyNumberInput.type = 'number';
@@ -3130,7 +3117,7 @@ function createCallNumberRow(container, baseAccession, increment, groupIndex) {
     
     const copyNumberLabel = document.createElement('span');
     copyNumberLabel.className = 'input-group-text';
-    copyNumberLabel.textContent = 'Copy #';
+    copyNumberLabel.textContent = 'Copy Number';
     
     const copyNumberInput = document.createElement('input');
     copyNumberInput.type = 'number';
@@ -3180,8 +3167,8 @@ function createCallNumberRow(container, baseAccession, increment, groupIndex) {
 function formatCallNumberDisplay(callNumberInput) {
     if (!callNumberInput) return;
     
-    // Get the base call number entered by the user
-    const baseCallNumber = callNumberInput.value.trim();
+    // Get the base call number entered by the user - Don't trim to preserve spaces
+    const baseCallNumber = callNumberInput.value;
     if (!baseCallNumber) return; // Skip if no base call number
     
     // Get the container and find related elements
@@ -3204,15 +3191,22 @@ function formatCallNumberDisplay(callNumberInput) {
     
     // Get volume if available - find the volume input for this accession group
     let volume = '';
+    let part = ''; // Add part variable
     
-    // First try to find volume in the same accession group
+    // First try to find volume and part in the same accession group
     const accessionGroup = callNumberInput.closest('[data-accession-group]');
     if (accessionGroup) {
         const groupIndex = accessionGroup.dataset.accessionGroup;
         // Find volume inputs and check if there's a value
         const volumeInputs = document.querySelectorAll('input[name="volume[]"]');
         if (volumeInputs.length > groupIndex && volumeInputs[groupIndex].value) {
-            volume = 'vol' + volumeInputs[groupIndex].value;
+            volume = 'v.' + volumeInputs[groupIndex].value;
+        }
+        
+        // Find part inputs and check if there's a value
+        const partInputs = document.querySelectorAll('input[name="part[]"]');
+        if (partInputs.length > groupIndex && partInputs[groupIndex].value) {
+            part = 'pt.' + partInputs[groupIndex].value;
         }
     }
     
@@ -3220,16 +3214,16 @@ function formatCallNumberDisplay(callNumberInput) {
     let formattedCallNumber = [];
     formattedCallNumber.push(shelfLocation);
     
-    // Process base call number to ensure proper spacing between classification and cutter
-    const callParts = baseCallNumber.split(/\s+/).filter(part => part.length > 0);
-    formattedCallNumber.push(callParts.join(' '));
+    // Add base call number as-is without splitting/trimming to preserve spaces
+    formattedCallNumber.push(baseCallNumber);
     
     if (publishYear) formattedCallNumber.push(publishYear);
     if (volume) formattedCallNumber.push(volume);
-    formattedCallNumber.push('c' + copyNumber);
+    if (part) formattedCallNumber.push(part); // Add part to call number if present
+    formattedCallNumber.push('c.' + copyNumber);
     
-    // Join with single spaces and ensure no trailing spaces
-    const preview = formattedCallNumber.join(' ').trim();
+    // Join with single spaces but preserve internal spaces in the base call number
+    const preview = formattedCallNumber.join(' ');
     
     // Add a data attribute with the full formatted call number
     callNumberInput.dataset.formattedCallNumber = preview;
@@ -3382,7 +3376,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 const copyNumberLabel = document.createElement('span');
                 copyNumberLabel.className = 'input-group-text';
-                copyNumberLabel.textContent = 'Copy #';
+                copyNumberLabel.textContent = 'Copy Number';
                 
                 // Use existing copy number if available, otherwise use global sequence
                 const copyIndex = totalCopiesCount + i;
@@ -3443,14 +3437,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (typeof formatCallNumberDisplay === 'function') {
                         formatCallNumberDisplay(callNumberInput);
                     } else {
-                        // Default simple formatting
-                        const baseCallNumber = this.value.trim();
+                        // Default simple formatting without trimming
+                        const baseCallNumber = this.value;
                         if (baseCallNumber) {
                             const shelf = shelfLocationSelect.value;
                             const volume = volumeValue ? ` vol${volumeValue}` : '';
                             const year = publishYear ? ` ${publishYear}` : '';
                             const copy = ` c${copyNumberInput.value}`;
-                            const formatted = `${shelf} ${baseCallNumber}${year}${volume}${copy}`.trim();
+                            const formatted = `${shelf} ${baseCallNumber}${year}${volume}${copy}`;
                             callNumberPreview.textContent = `→ ${formatted}`;
                             // Store the formatted value to be used on submission
                             this.dataset.formattedCallNumber = formatted;
@@ -3883,7 +3877,7 @@ document.addEventListener("DOMContentLoaded", function() {
                             if (!exists) {
                                 const newOption = document.createElement('option');
                                 newOption.value = pub.publisher;
-                                newOption.textContent = `${pub.publisher} (${pub.place})`;
+                                newOption.textContent = `${pub.place} ; ${pub.publisher}`;
                                 publisherSelect.appendChild(newOption);
                             }
                         });
@@ -3948,29 +3942,31 @@ document.addEventListener("DOMContentLoaded", function() {
             title: 'Add New Author',
             html: `
                 <div id="sweetAlertAuthorContainer">
-                    <div class="author-entry row mb-3">
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label>First Name</label>
-                                <input type="text" class="form-control author-firstname" required>
+                    <div id="authorEntriesContainer">
+                        <div class="author-entry row mb-3">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>First Name</label>
+                                    <input type="text" class="form-control author-firstname" required>
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <label>Middle Initial</label>
-                                <input type="text" class="form-control author-middleinit">
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>Middle Initial</label>
+                                    <input type="text" class="form-control author-middleinit">
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label>Last Name</label>
-                                <input type="text" class="form-control author-lastname" required>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>Last Name</label>
+                                    <input type="text" class="form-control author-lastname" required>
+                                </div>
+                            </div>
+                            <div class="col-md-1 remove-btn-container">
+                                <!-- No remove button for first author -->
                             </div>
                         </div>
                     </div>
-                    <button type="button" id="swalAddAuthorEntry" class="btn btn-info btn-sm">
-                        <i class="fas fa-plus"></i> Add Another Author
-                    </button>
                 </div>
             `,
             showCancelButton: true,
@@ -3978,9 +3974,21 @@ document.addEventListener("DOMContentLoaded", function() {
             cancelButtonText: 'Cancel',
             width: '800px',
             didOpen: () => {
-                // Add another author entry when clicking the add button
-                document.getElementById('swalAddAuthorEntry').addEventListener('click', function() {
-                    const container = document.getElementById('sweetAlertAuthorContainer');
+                // Add button below the author entries container
+                const container = document.getElementById('sweetAlertAuthorContainer');
+                const addButton = document.createElement('button');
+                addButton.type = 'button';
+                addButton.className = 'btn btn-secondary btn-sm mt-2';
+                addButton.innerHTML = '<i class="fas fa-plus"></i> Add Another Author';
+                addButton.id = 'addAuthorEntry';
+                addButton.style.display = 'block';
+                addButton.style.width = '100%';
+                addButton.style.marginBottom = '10px';
+                container.appendChild(addButton);
+                
+                // Add event listener for the button
+                addButton.addEventListener('click', function() {
+                    const authorEntriesContainer = document.getElementById('authorEntriesContainer');
                     const newEntry = document.createElement('div');
                     newEntry.className = 'author-entry row mb-3';
                     newEntry.innerHTML = `
@@ -4003,23 +4011,39 @@ document.addEventListener("DOMContentLoaded", function() {
                             </div>
                         </div>
                         <div class="col-md-1 remove-btn-container">
-                            <button type="button" class="btn btn-danger btn-sm remove-author-entry">
+                            <button type="button" class="btn btn-danger btn-sm remove-author-entry" style="margin-top: 30px;">
                                 <i class="fas fa-times"></i>
                             </button>
                         </div>
                     `;
-                    container.insertBefore(newEntry, document.getElementById('swalAddAuthorEntry'));
+                    authorEntriesContainer.appendChild(newEntry);
                     
-                    // Add remove functionality
+                    // Scroll to the bottom of the container to show the new entry
+                    const swalContent = document.querySelector('.swal2-content');
+                    if (swalContent) {
+                        swalContent.scrollTop = swalContent.scrollHeight;
+                    }
+
+                    // Add remove functionality for the new entry
                     newEntry.querySelector('.remove-author-entry').addEventListener('click', function() {
                         newEntry.remove();
                     });
+                });
+
+                // Setup delegation for removing author entries
+                document.addEventListener('click', function(e) {
+                    if (e.target && (e.target.classList.contains('remove-author-entry') || e.target.closest('.remove-author-entry'))) {
+                        const entry = e.target.closest('.author-entry');
+                        if (entry) {
+                            entry.remove();
+                        }
+                    }
                 });
             }
         }).then((result) => {
             if (result.isConfirmed) {
                 // Collect data from all author entries
-                const authorEntries = document.querySelectorAll('#sweetAlertAuthorContainer .author-entry');
+                const authorEntries = document.querySelectorAll('#authorEntriesContainer .author-entry');
                 const authorsData = [];
                 let hasErrors = false;
                 
@@ -4086,7 +4110,11 @@ document.addEventListener("DOMContentLoaded", function() {
                                 
                                 Swal.fire(
                                     'Success',
-                                    `Successfully added ${response.authors.length} author(s)!`,
+                                    `Successfully added ${response.authors.length} author(s)!<br><br>
+                                    <div style="text-align: center; max-height: 150px; overflow-y: auto;">
+                                        <strong>Authors Added:</strong><br>
+                                        ${response.authors.map(author => `- ${author.name}`).join('<br>')}
+                                    </div>`,
                                     'success'
                                 );
                             } else {
@@ -4103,6 +4131,170 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         });
     };
+
+    // Create a function to show the add publisher dialog using SweetAlert
+    window.showAddPublisherDialog = function() {
+        Swal.fire({
+            title: 'Add New Publisher',
+            html: `
+                <div id="sweetAlertPublisherContainer">
+                    <div id="publisherEntriesContainer">
+                        <div class="publisher-entry row mb-3">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>Publisher Name</label>
+                                    <input type="text" class="form-control publisher-name" placeholder="Enter publisher name" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>Place</label>
+                                    <input type="text" class="form-control publisher-place" placeholder="Enter place of publication" required>
+                                </div>
+                            </div>
+                            <div class="col-md-1 remove-btn-container">
+                                <!-- No remove button for first publisher -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: 'Save Publisher',
+            cancelButtonText: 'Cancel',
+            width: '800px',
+            didOpen: () => {
+                // Add button below the publisher entries container
+                const container = document.getElementById('sweetAlertPublisherContainer');
+                const addButton = document.createElement('button');
+                addButton.type = 'button';
+                addButton.className = 'btn btn-secondary btn-sm mt-2';
+                addButton.innerHTML = '<i class="fas fa-plus"></i> Add Another Publisher';
+                addButton.id = 'addPublisherEntry';
+                addButton.style.display = 'block';
+                addButton.style.width = '100%';
+                addButton.style.marginBottom = '10px';
+                container.appendChild(addButton);
+                
+                // Add event listener for the button
+                addButton.addEventListener('click', function() {
+                    const publisherEntriesContainer = document.getElementById('publisherEntriesContainer');
+                    const newEntry = document.createElement('div');
+                    newEntry.className = 'publisher-entry row mb-3';
+                    newEntry.innerHTML = `
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Publisher Name</label>
+                                <input type="text" class="form-control publisher-name" placeholder="Enter publisher name" required>
+                            </div>
+                        </div>
+                        <div class="col-md-5">
+                            <div class="form-group">
+                                <label>Place</label>
+                                <input type="text" class="form-control publisher-place" placeholder="Enter place of publication" required>
+                            </div>
+                        </div>
+                        <div class="col-md-1 remove-btn-container">
+                            <button type="button" class="btn btn-danger btn-sm remove-publisher-entry" style="margin-top: 30px;">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    `;
+                    publisherEntriesContainer.appendChild(newEntry);
+                    
+                    // Scroll to the bottom of the container to show the new entry
+                    const swalContent = document.querySelector('.swal2-content');
+                    if (swalContent) {
+                        swalContent.scrollTop = swalContent.scrollHeight;
+                    }
+
+                    // Add remove functionality for the new entry
+                    newEntry.querySelector('.remove-publisher-entry').addEventListener('click', function() {
+                        newEntry.remove();
+                    });
+                });
+
+                // Setup delegation for removing publisher entries
+                document.addEventListener('click', function(e) {
+                    if (e.target && (e.target.classList.contains('remove-publisher-entry') || e.target.closest('.remove-publisher-entry'))) {
+                        const entry = e.target.closest('.publisher-entry');
+                        if (entry) {
+                            entry.remove();
+                        }
+                    }
+                });
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const publisherEntries = document.querySelectorAll('#publisherEntriesContainer .publisher-entry');
+                const publishersData = [];
+                let hasErrors = false;
+                
+                // Collect data from all publisher entries
+                publisherEntries.forEach(entry => {
+                    const publisher = entry.querySelector('.publisher-name').value.trim();
+                    const place = entry.querySelector('.publisher-place').value.trim();
+                    
+                    if (!publisher || !place) {
+                        hasErrors = true;
+                        return;
+                    }
+                    
+                    publishersData.push({
+                        publisher: publisher,
+                        place: place
+                    });
+                });
+                
+                if (hasErrors) {
+                    Swal.fire('Error', 'Publisher name and place are required for all publishers.', 'error');
+                    return;
+                }
+                
+                if (publishersData.length === 0) {
+                    Swal.fire('Error', 'Please add at least one publisher.', 'error');
+                    return;
+                }
+                
+                // AJAX request to save all publishers
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', 'ajax/add_publishers.php', true);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.onload = function() {
+                    if (this.status === 200) {
+                        try {
+                            const response = JSON.parse(this.responseText);
+                            if (response.success) {
+                                // Refresh publisher dropdown
+                                const publisherSelect = document.getElementById('publisher');
+                                response.publishers.forEach(publisher => {
+                                    const option = document.createElement('option');
+                                    option.value = publisher.publisher;
+                                    option.textContent = publisher.place + ' ; ' + publisher.publisher;
+                                    publisherSelect.appendChild(option);
+                                });
+                                
+                                Swal.fire('Success', 
+                                    `Publishers added successfully!<br><br>
+                                    <div style="text-align: center; max-height: 150px; overflow-y: auto;">
+                                        <strong>Publishers Added:</strong><br>
+                                        ${response.publishers.map(pub => `- ${pub.place} ; ${pub.publisher}`).join('<br>')}
+                                    </div>`,
+                                    'success');
+                            } else {
+                                Swal.fire('Error', response.message || 'Failed to add publishers', 'error');
+                            }
+                        } catch (e) {
+                            Swal.fire('Error', 'Invalid response from server', 'error');
+                        }
+                    } else {
+                        Swal.fire('Error', 'Failed to add publishers', 'error');
+                    }
+                };
+                xhr.send(JSON.stringify(publishersData));
+            }
+        });
+    };
     
     // Create a function to show the add publisher dialog using SweetAlert
     window.showAddPublisherDialog = function() {
@@ -4110,834 +4302,173 @@ document.addEventListener("DOMContentLoaded", function() {
             title: 'Add New Publisher',
             html: `
                 <div id="sweetAlertPublisherContainer">
-                    <div class="publisher-entry row mb-3">
-                        <!-- Switched the order of these two fields -->
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="place">Publication Place</label>
-                                <input type="text" class="form-control" name="place" placeholder="Enter publication place">
+                    <div id="publisherEntriesContainer">
+                        <div class="publisher-entry row mb-3">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>Publisher Name</label>
+                                    <input type="text" class="form-control publisher-name" placeholder="Enter publisher name" required>
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="publisher">Publisher Name</label>
-                                <input type="text" class="form-control" name="publisher" placeholder="Enter publisher name">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>Place</label>
+                                    <input type="text" class="form-control publisher-place" placeholder="Enter place of publication" required>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-12 d-flex justify-content-center">
-                            <button type="button" id="addPublisherEntryBtn" class="btn btn-sm btn-primary mr-2">
-                                <i class="fas fa-plus mr-1"></i> Add Another Publisher
-                            </button>
+                            <div class="col-md-1 remove-btn-container">
+                                <!-- No remove button for first publisher -->
+                            </div>
                         </div>
                     </div>
                 </div>
             `,
             showCancelButton: true,
-            confirmButtonText: 'Save Publishers',
+            confirmButtonText: 'Save Publisher',
             cancelButtonText: 'Cancel',
             width: '800px',
             didOpen: () => {
-                // Initialize event handler for adding new publisher entries
-                document.getElementById('addPublisherEntryBtn').addEventListener('click', function() {
-                    const container = document.getElementById('sweetAlertPublisherContainer');
+                // Add button below the publisher entries container
+                const container = document.getElementById('sweetAlertPublisherContainer');
+                const addButton = document.createElement('button');
+                addButton.type = 'button';
+                addButton.className = 'btn btn-secondary btn-sm mt-2';
+                addButton.innerHTML = '<i class="fas fa-plus"></i> Add Another Publisher';
+                addButton.id = 'addPublisherEntry';
+                addButton.style.display = 'block';
+                addButton.style.width = '100%';
+                addButton.style.marginBottom = '10px';
+                container.appendChild(addButton);
+                
+                // Add event listener for the button
+                addButton.addEventListener('click', function() {
+                    const publisherEntriesContainer = document.getElementById('publisherEntriesContainer');
                     const newEntry = document.createElement('div');
                     newEntry.className = 'publisher-entry row mb-3';
                     newEntry.innerHTML = `
-                        <!-- Keep consistent with the swapped order above -->
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label for="place">Publication Place</label>
-                                <input type="text" class="form-control" name="place" placeholder="Enter publication place">
+                                <label>Publisher Name</label>
+                                <input type="text" class="form-control publisher-name" placeholder="Enter publisher name" required>
                             </div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-5">
                             <div class="form-group">
-                                <label for="publisher">Publisher Name</label>
-                                <input type="text" class="form-control" name="publisher" placeholder="Enter publisher name">
+                                <label>Place</label>
+                                <input type="text" class="form-control publisher-place" placeholder="Enter place of publication" required>
                             </div>
                         </div>
-                        <div class="col-md-12 text-right">
-                            <button type="button" class="btn btn-sm btn-danger remove-publisher-entry">
-                                <i class="fas fa-times"></i> Remove
+                        <div class="col-md-1 remove-btn-container">
+                            <button type="button" class="btn btn-danger btn-sm remove-publisher-entry" style="margin-top: 30px;">
+                                <i class="fas fa-times"></i>
                             </button>
                         </div>
                     `;
-                    container.appendChild(newEntry);
+                    publisherEntriesContainer.appendChild(newEntry);
                     
-                    // Add event listener to the new remove button
-                    const removeBtn = newEntry.querySelector('.remove-publisher-entry');
-                    if (removeBtn) {
-                        removeBtn.addEventListener('click', function() {
-                            this.closest('.publisher-entry').remove();
-                        });
+                    // Scroll to the bottom of the container to show the new entry
+                    const swalContent = document.querySelector('.swal2-content');
+                    if (swalContent) {
+                        swalContent.scrollTop = swalContent.scrollHeight;
+                    }
+
+                    // Add remove functionality for the new entry
+                    newEntry.querySelector('.remove-publisher-entry').addEventListener('click', function() {
+                        newEntry.remove();
+                    });
+                });
+
+                // Setup delegation for removing publisher entries
+                document.addEventListener('click', function(e) {
+                    if (e.target && (e.target.classList.contains('remove-publisher-entry') || e.target.closest('.remove-publisher-entry'))) {
+                        const entry = e.target.closest('.publisher-entry');
+                        if (entry) {
+                            entry.remove();
+                        }
                     }
                 });
             }
         }).then((result) => {
-            // Handle form submission
             if (result.isConfirmed) {
-                const publishers = [];
-                document.querySelectorAll('#sweetAlertPublisherContainer .publisher-entry').forEach(entry => {
-                    const place = entry.querySelector('input[name="place"]').value.trim();
-                    const publisher = entry.querySelector('input[name="publisher"]').value.trim();
+                const publisherEntries = document.querySelectorAll('#publisherEntriesContainer .publisher-entry');
+                const publishersData = [];
+                let hasErrors = false;
+                
+                // Collect data from all publisher entries
+                publisherEntries.forEach(entry => {
+                    const publisher = entry.querySelector('.publisher-name').value.trim();
+                    const place = entry.querySelector('.publisher-place').value.trim();
                     
-                    if (place && publisher) {
-                        publishers.push({ place, publisher });
+                    if (!publisher || !place) {
+                        hasErrors = true;
+                        return;
                     }
+                    
+                    publishersData.push({
+                        publisher: publisher,
+                        place: place
+                    });
                 });
                 
-                if (publishers.length > 0) {
-                    // Send AJAX request to save publishers
-                    const xhr = new XMLHttpRequest();
-                    xhr.open('POST', 'ajax/add_publishers.php', true);
-                    xhr.setRequestHeader('Content-Type', 'application/json');
-                    xhr.onload = function() {
-                        if (xhr.status === 200) {
-                            const response = JSON.parse(xhr.responseText);
-                            if (response.success) {
-                                // Refresh the publishers dropdown
-                                const publisherSelect = document.querySelector('select[name="publisher"]');
-                                if (publisherSelect) {
-                                    response.publishers.forEach(pub => {
-                                        const option = document.createElement('option');
-                                        option.value = pub.id;
-                                        option.textContent = `${pub.publisher} (${pub.place})`;
-                                        publisherSelect.appendChild(option);
-                                    });
-                                    
-                                    // Select the last added publisher
-                                    if (response.publishers.length > 0) {
-                                        publisherSelect.value = response.publishers[response.publishers.length - 1].id;
-                                    }
-                                }
-                                
-                                Swal.fire('Success', 'Publishers added successfully', 'success');
-                            } else {
-                                Swal.fire('Error', response.message || 'Failed to add publishers', 'error');
-                            }
-                        } else {
-                            Swal.fire('Error', 'Server error occurred', 'error');
-                        }
-                    };
-                    xhr.send(JSON.stringify(publishers));
-                } else {
-                    Swal.fire('Error', 'Please enter at least one publisher with place', 'error');
+                if (hasErrors) {
+                    Swal.fire('Error', 'Publisher name and place are required for all publishers.', 'error');
+                    return;
                 }
-            }
-        });
-    };
-    
-    // Add event listeners to buttons that should trigger the dialogs
-    document.getElementById('addNewAuthorBtn').addEventListener('click', showAddAuthorDialog);
-    document.getElementById('addNewPublisherBtn').addEventListener('click', showAddPublisherDialog);
-});
-</script>
-
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-    const form = document.getElementById('bookForm');
-    
-    // Replace SweetAlert validation with standard alert
-    function validateForm(e) {
-        const accessionInputs = document.querySelectorAll('.accession-input');
-        let hasError = false;
-        let errorMessage = '';
-        
-        accessionInputs.forEach(input => {
-            if (!input.value.trim()) {
-                hasError = true;
-                errorMessage = 'Please fill in all accession fields before submitting.';
-            } else if (!/^\d+$/.test(input.value.trim())) {
-                hasError = true;
-                errorMessage = 'Accession numbers must contain only digits (0-9).';
-            }
-        });
-        
-        if (hasError) {
-            e.preventDefault();
-            alert(errorMessage);
-            return false;
-        }
-        return true;
-    }
-    
-    // Add event listener to the form
-    form.addEventListener('submit', function(e) {
-        // First perform validation
-        if (!validateForm(e)) {
-            e.preventDefault();
-            return false;
-        }
-
-        // Format call numbers if needed
-        const callNumberInputs = document.querySelectorAll('.call-number-input');
-        const previewElements = document.querySelectorAll('.call-number-preview');
-        
-        if (callNumberInputs.length > 0 && previewElements.length > 0) {
-            // Check if any preview is different from input value
-            callNumberInputs.forEach((input, index) => {
-                const preview = previewElements[index]?.textContent?.replace('→ ', '') || '';
-                if (preview && input.value !== preview && !input.dataset.formattedCallNumber) {
-                    // Set the formatted value for submission
-                    input.value = preview;
-                }
-            });
-        }
-    });
-
-    // Initialize file input display
-    document.querySelectorAll('.custom-file-input').forEach(input => {
-        input.addEventListener('change', function() {
-            const fileName = this.files[0]?.name || 'Choose file';
-            this.nextElementSibling.textContent = fileName;
-        });
-    });
-});
-</script>
-
-<script>
-// Author Management Functionality
-document.addEventListener("DOMContentLoaded", function() {
-    // Add author entry functionality
-    document.getElementById('addAuthorEntry').addEventListener('click', function() {
-        const authorEntriesContainer = document.getElementById('authorEntriesContainer');
-        const newEntry = document.createElement('div');
-        newEntry.className = 'author-entry row mb-3';
-        newEntry.innerHTML = `
-            <div class="col-md-4">
-                <div class="form-group">
-                    <label>First Name</label>
-                    <input type="text" class="form-control author-firstname" required>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="form-group">
-                    <label>Middle Initial</label>
-                    <input type="text" class="form-control author-middleinit">
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="form-group">
-                    <label>Last Name</label>
-                    <input type="text" class="form-control author-lastname" required>
-                </div>
-            </div>
-            <div class="col-md-1 remove-btn-container">
-                <button type="button" class="btn btn-danger btn-sm remove-author-entry">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-        `;
-        authorEntriesContainer.appendChild(newEntry);
-    });
-
-    // Remove author entry
-    document.addEventListener('click', function(e) {
-        if (e.target && (e.target.classList.contains('remove-author-entry') || e.target.closest('.remove-author-entry'))) {
-            const authorEntriesContainer = document.getElementById('authorEntriesContainer');
-            if (authorEntriesContainer.children.length > 1) {
-                e.target.closest('.author-entry').remove();
-            } else {
-                alert('At least one author entry is required.');
-            }
-        }
-    });
-
-    // Save authors functionality
-    document.getElementById('saveAuthors').addEventListener('click', function() {
-        const authorEntries = document.querySelectorAll('.author-entry');
-        const authorsData = [];
-        let hasErrors = false;
-
-        // Collect data from all author entries
-        authorEntries.forEach(entry => {
-            const firstname = entry.querySelector('.author-firstname').value.trim();
-            const middle_init = entry.querySelector('.author-middleinit').value.trim();
-            const lastname = entry.querySelector('.author-lastname').value.trim();
-            
-            if (!firstname || !lastname) {
-                hasErrors = true;
-                return;
-            }
-            
-            authorsData.push({
-                firstname: firstname,
-                middle_init: middle_init,
-                lastname: lastname
-            });
-        });
-        
-        if (hasErrors) {
-            alert('First name and last name are required for all authors.');
-            return;
-        }
-        
-        if (authorsData.length === 0) {
-            alert('Please add at least one author.');
-            return;
-        }
-        
-        // AJAX request to save all authors
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', 'ajax/add_writers.php', true);
-        xhr.setRequestHeader('Content-Type', 'application/json');
-        xhr.onload = function() {
-            if (this.status === 200) {
-                try {
-                    const response = JSON.parse(this.responseText);
-                    if (response.success) {
-                        // Add all new authors to the select options
-                        const authorSelect = document.getElementById('authorSelect');
-                        const coAuthorsSelect = document.getElementById('coAuthorsSelect');
-                        const editorsSelect = document.getElementById('editorsSelect');
-                        
-                        response.authors.forEach(author => {
-                            const newOption = document.createElement('option');
-                            newOption.value = author.id;
-                            newOption.textContent = author.name;
-                            
-                            authorSelect.appendChild(newOption.cloneNode(true));
-                            coAuthorsSelect.appendChild(newOption.cloneNode(true));
-                            editorsSelect.appendChild(newOption.cloneNode(true));
-                        });
-                        
-                        // Select the first new author in the author dropdown if no author is selected
-                        if (!authorSelect.value && response.authors.length > 0) {
-                            authorSelect.value = response.authors[0].id;
-                        }
-                        
-                        // Close the modal
-                        $('#addAuthorModal').modal('hide');
-                        
-                        // Clear the form
-                        document.getElementById('newAuthorForm').reset();
-                        // Reset to just one author entry
-                        document.getElementById('authorEntriesContainer').innerHTML = `
-                            <div class="author-entry row mb-3">
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label>First Name</label>
-                                        <input type="text" class="form-control author-firstname" required>
-                                    </div>
-                                </div>
-                                <div class="col-md-3">
-                                    <div class="form-group">
-                                        <label>Middle Initial</label>
-                                        <input type="text" class="form-control author-middleinit">
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label>Last Name</label>
-                                        <input type="text" class="form-control author-lastname" required>
-                                    </div>
-                                </div>
-                                <div class="col-md-1 remove-btn-container">
-                                    <button type="button" class="btn btn-danger btn-sm remove-author-entry">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        `;
-                        
-                        alert(`Successfully added ${response.authors.length} author(s)!`);
-                    } else {
-                        alert('Error: ' + response.message);
-                    }
-                } catch (e) {
-                    alert('Error processing response: ' + e.message);
-                }
-            } else {
-                alert('Error adding authors');
-            }
-        };
-        xhr.send(JSON.stringify(authorsData));
-    });
-});
-
-// Publisher Management Functionality
-function showAddPublisherDialog() {
-    Swal.fire({
-        title: 'Add New Publisher',
-        html: `
-            <div id="sweetAlertPublisherContainer">
-                <div class="publisher-entry row mb-3">
-                    <!-- Switched the order of these two fields -->
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="place">Publication Place</label>
-                            <input type="text" class="form-control" name="place" placeholder="Enter publication place">
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="publisher">Publisher Name</label>
-                            <input type="text" class="form-control" name="publisher" placeholder="Enter publisher name">
-                        </div>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-12 d-flex justify-content-center">
-                        <button type="button" id="addPublisherEntryBtn" class="btn btn-sm btn-primary mr-2">
-                            <i class="fas fa-plus mr-1"></i> Add Another Publisher
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `,
-        showCancelButton: true,
-        confirmButtonText: 'Save Publishers',
-        cancelButtonText: 'Cancel',
-        width: '800px',
-        didOpen: () => {
-            // Initialize event handler for adding new publisher entries
-            document.getElementById('addPublisherEntryBtn').addEventListener('click', function() {
-                const container = document.getElementById('sweetAlertPublisherContainer');
-                const newEntry = document.createElement('div');
-                newEntry.className = 'publisher-entry row mb-3';
-                newEntry.innerHTML = `
-                    <!-- Keep consistent with the swapped order above -->
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="place">Publication Place</label>
-                            <input type="text" class="form-control" name="place" placeholder="Enter publication place">
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="publisher">Publisher Name</label>
-                            <input type="text" class="form-control" name="publisher" placeholder="Enter publisher name">
-                        </div>
-                    </div>
-                    <div class="col-md-12 text-right">
-                        <button type="button" class="btn btn-sm btn-danger remove-publisher-entry">
-                            <i class="fas fa-times"></i> Remove
-                        </button>
-                    </div>
-                `;
-                container.appendChild(newEntry);
                 
-                // Add event listener to the new remove button
-                const removeBtn = newEntry.querySelector('.remove-publisher-entry');
-                if (removeBtn) {
-                    removeBtn.addEventListener('click', function() {
-                        this.closest('.publisher-entry').remove();
-                    });
+                if (publishersData.length === 0) {
+                    Swal.fire('Error', 'Please add at least one publisher.', 'error');
+                    return;
                 }
-            });
-        }
-    }).then((result) => {
-        // Handle form submission
-        if (result.isConfirmed) {
-            const publishers = [];
-            document.querySelectorAll('#sweetAlertPublisherContainer .publisher-entry').forEach(entry => {
-                const place = entry.querySelector('input[name="place"]').value.trim();
-                const publisher = entry.querySelector('input[name="publisher"]').value.trim();
                 
-                if (place && publisher) {
-                    publishers.push({ place, publisher });
-                }
-            });
-            
-            if (publishers.length > 0) {
-                // Send AJAX request to save publishers
+                // AJAX request to save all publishers
                 const xhr = new XMLHttpRequest();
                 xhr.open('POST', 'ajax/add_publishers.php', true);
                 xhr.setRequestHeader('Content-Type', 'application/json');
                 xhr.onload = function() {
-                    if (xhr.status === 200) {
-                        const response = JSON.parse(xhr.responseText);
-                        if (response.success) {
-                            // Refresh the publishers dropdown
-                            const publisherSelect = document.querySelector('select[name="publisher"]');
-                            if (publisherSelect) {
-                                response.publishers.forEach(pub => {
+                    if (this.status === 200) {
+                        try {
+                            const response = JSON.parse(this.responseText);
+                            if (response.success) {
+                                // Refresh publisher dropdown
+                                const publisherSelect = document.getElementById('publisher');
+                                response.publishers.forEach(publisher => {
                                     const option = document.createElement('option');
-                                    option.value = pub.id;
-                                    option.textContent = `${pub.publisher} (${pub.place})`;
+                                    option.value = publisher.publisher;
+                                    option.textContent = publisher.place + ' ; ' + publisher.publisher;
                                     publisherSelect.appendChild(option);
                                 });
                                 
-                                // Select the last added publisher
-                                if (response.publishers.length > 0) {
-                                    publisherSelect.value = response.publishers[response.publishers.length - 1].id;
-                                }
+                                Swal.fire('Success', 
+                                    `Publishers added successfully!<br><br>
+                                    <div style="text-align: center; max-height: 150px; overflow-y: auto;">
+                                        <strong>Publishers Added:</strong><br>
+                                        ${response.publishers.map(pub => `- ${pub.place} ; ${pub.publisher}`).join('<br>')}
+                                    </div>`,
+                                    'success');
+                            } else {
+                                Swal.fire('Error', response.message || 'Failed to add publishers', 'error');
                             }
-                            
-                            Swal.fire('Success', 'Publishers added successfully', 'success');
-                        } else {
-                            Swal.fire('Error', response.message || 'Failed to add publishers', 'error');
+                        } catch (e) {
+                            Swal.fire('Error', 'Invalid response from server', 'error');
                         }
                     } else {
-                        Swal.fire('Error', 'Server error occurred', 'error');
+                        Swal.fire('Error', 'Failed to add publishers', 'error');
                     }
                 };
-                xhr.send(JSON.stringify(publishers));
-            } else {
-                Swal.fire('Error', 'Please enter at least one publisher with place', 'error');
-            }
-        }
-    });
-}
-</script>
-
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-    const form = document.getElementById('bookForm');
-
-    // Remove SweetAlert confirmation and directly submit the form
-    form.addEventListener('submit', function(e) {
-        // Perform validation before submission
-        const accessionInputs = document.querySelectorAll('.accession-input');
-        let hasError = false;
-        let errorMessage = '';
-
-        accessionInputs.forEach(input => {
-            if (!input.value.trim()) {
-                hasError = true;
-                errorMessage = 'Please fill in all accession fields before submitting.';
-            } else if (!/^\d+$/.test(input.value.trim())) {
-                hasError = true;
-                errorMessage = 'Accession fields must contain only numeric values.';
+                xhr.send(JSON.stringify(publishersData));
             }
         });
-
-        if (hasError) {
-            e.preventDefault();
-            alert(errorMessage);
-            return false;
-        }
-
-        // Format call numbers if needed
-        const callNumberInputs = document.querySelectorAll('.call-number-input');
-        const previewElements = document.querySelectorAll('.call-number-preview');
-
-        if (callNumberInputs.length > 0 && previewElements.length > 0) {
-            callNumberInputs.forEach((input, index) => {
-                const preview = previewElements[index]?.textContent?.replace('→ ', '') || '';
-                if (preview && input.value !== preview && !input.dataset.formattedCallNumber) {
-                    input.value = preview; // Apply formatted value before submission
-                }
-            });
-        }
-    });
-
-    // Initialize file input display
-    document.querySelectorAll('.custom-file-input').forEach(input => {
-        input.addEventListener('change', function() {
-            const fileName = this.files[0]?.name || 'Choose file';
-            this.nextElementSibling.textContent = fileName;
-        });
-    });
-});
-</script>
-
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-    const accessionContainer = document.getElementById("accessionContainer");
-    const publicationDetailsContainer = document.getElementById("publicationDetails");
-    const contributorsContainer = document.getElementById("contributors");
-
-    // Function to update publication details and contributors
-    function updateDetails() {
-        // Clear existing content
-        publicationDetailsContainer.innerHTML = "";
-        contributorsContainer.innerHTML = "";
-
-        // Get all accession groups
-        const accessionGroups = accessionContainer.querySelectorAll(".accession-group");
-
-        accessionGroups.forEach((group, index) => {
-            // Publication Details
-            const publicationDiv = document.createElement("div");
-            publicationDiv.className = "publication-detail mb-3";
-            publicationDiv.innerHTML = `
-                <h5>Accession Group ${index + 1}</h5>
-                <div class="form-group">
-                    <label for="publisher_${index}">Publisher</label>
-                    <select class="form-control" id="publisher_${index}" name="publisher[]">
-                        <option value="">Select Publisher</option>
-                        <?php foreach ($publishers as $publisher): ?>
-                            <option value="<?php echo $publisher['id']; ?>">
-                                <?php echo $publisher['publisher']; ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="publish_date_${index}">Publication Year</label>
-                    <input type="number" class="form-control" id="publish_date_${index}" name="publish_date[]" placeholder="Enter Year">
-                </div>
-            `;
-            publicationDetailsContainer.appendChild(publicationDiv);
-
-            // Contributors
-            const contributorsDiv = document.createElement("div");
-            contributorsDiv.className = "contributors-detail mb-3";
-            contributorsDiv.innerHTML = `
-                <h5>Accession Group ${index + 1}</h5>
-                <div class="form-group">
-                    <label for="author_${index}">Author</label>
-                    <select class="form-control" id="author_${index}" name="author[]">
-                        <option value="">Select Author</option>
-                        <?php foreach ($writers as $writer): ?>
-                            <option value="<?php echo $writer['id']; ?>">
-                                <?php echo $writer['name']; ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="co_authors_${index}">Co-Authors</label>
-                    <select class="form-control" id="co_authors_${index}" name="co_authors[${index}][]" multiple>
-                        <?php foreach ($writers as $writer): ?>
-                            <option value="<?php echo $writer['id']; ?>">
-                                <?php echo $writer['name']; ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                    <small class="form-text text-muted">Hold Ctrl (Windows) or Command (Mac) to select multiple options.</small>
-                </div>
-                <div class="form-group">
-                    <label for="editors_${index}">Editors</label>
-                    <select class="form-control" id="editors_${index}" name="editors[${index}][]" multiple>
-                        <?php foreach ($writers as $writer): ?>
-                            <option value="<?php echo $writer['id']; ?>">
-                                <?php echo $writer['name']; ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                    <small class="form-text text-muted">Hold Ctrl (Windows) or Command (Mac) to select multiple options.</small>
-                </div>
-            `;
-            contributorsContainer.appendChild(contributorsDiv);
-        });
-    }
-
-    // Listen for changes in accession groups
-    accessionContainer.addEventListener("input", updateDetails);
-
-    // Initial population
-    updateDetails();
-});
-</script>
-
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-    // ...existing code...
-
-    // Add this to the form submission handler
-    document.getElementById('bookForm').addEventListener('submit', function(e) {
-        // Format call numbers before submission
-        const callNumberInputs = document.querySelectorAll('.call-number-input');
-        
-        // Create hidden inputs for formatted call numbers
-        callNumberInputs.forEach((input, index) => {
-            // Get the formatted call number from the data attribute or preview
-            let formattedCallNumber = input.dataset.formattedCallNumber;
-            if (!formattedCallNumber) {
-                const preview = input.closest('.input-group').querySelector('.call-number-preview');
-                if (preview) {
-                    formattedCallNumber = preview.textContent.replace('→ ', '').trim();
-                }
-            }
-            
-            if (formattedCallNumber) {
-                const hiddenInput = document.createElement('input');
-                hiddenInput.type = 'hidden';
-                hiddenInput.name = 'formatted_call_numbers[]';
-                hiddenInput.value = formattedCallNumber;
-                this.appendChild(hiddenInput);
-            }
-        });
-    });
-});
-</script>
-
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const publisherSearch = document.getElementById('publisherSearch');
-    const publisherDropdown = document.getElementById('publisher');
-
-    publisherSearch.addEventListener('input', function () {
-        const searchValue = this.value.toLowerCase();
-        Array.from(publisherDropdown.options).forEach(option => {
-            const text = option.textContent.toLowerCase();
-            option.style.display = text.includes(searchValue) ? '' : 'none';
-        });
-    });
-});
-</script>
-
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    // Function to dynamically filter dropdown options
-    function filterDropdown(inputId, dropdownId) {
-        const input = document.getElementById(inputId);
-        const dropdown = document.getElementById(dropdownId);
-
-        input.addEventListener('input', function () {
-            const searchValue = this.value.toLowerCase();
-            Array.from(dropdown.options).forEach(option => {
-                const text = option.textContent.toLowerCase();
-                option.style.display = text.includes(searchValue) ? '' : 'none';
-            });
-        });
-    }
-
-    // Apply the filter function to contributors dropdowns
-    filterDropdown('authorSearch', 'authorSelect');
-    filterDropdown('coAuthorsSearch', 'coAuthorsSelect');
-    filterDropdown('editorsSearch', 'editorsSelect');
-});
-</script>
-
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    // Function to dynamically update the preview for multi-select dropdowns
-    function updateContributorsPreview(selectId, previewId) {
-        const select = document.getElementById(selectId);
-        const preview = document.getElementById(previewId);
-
-        if (!select || !preview) return;
-
-        const selectedOptions = Array.from(select.selectedOptions).map(option => {
-            return `<span class="badge bg-secondary mr-1 text-white">${option.text} <i class="fas fa-times remove-icon" data-value="${option.value}"></i></span>`;
-        });
-
-        preview.innerHTML = selectedOptions.join(' ');
-
-        // Add click event to remove selected options dynamically
-        preview.addEventListener('click', function (event) {
-            if (event.target.classList.contains('remove-icon')) {
-                const value = event.target.getAttribute('data-value');
-                Array.from(select.options).forEach(option => {
-                    if (option.value === value) {
-                        option.selected = false;
-                    }
-                });
-                updateContributorsPreview(selectId, previewId);
-            }
-        });
-    }
-
-    // Attach event listeners to contributors dropdowns
-    document.getElementById('authorSelect').addEventListener('change', function () {
-        updateContributorsPreview('authorSelect', 'authorPreview');
-    });
-    document.getElementById('coAuthorsSelect').addEventListener('change', function () {
-        updateContributorsPreview('coAuthorsSelect', 'coAuthorsPreview');
-    });
-    document.getElementById('editorsSelect').addEventListener('change', function () {
-        updateContributorsPreview('editorsSelect', 'editorsPreview');
-    });
-
-    // Initialize previews on page load
-    updateContributorsPreview('authorSelect', 'authorPreview');
-    updateContributorsPreview('coAuthorsSelect', 'coAuthorsPreview');
-    updateContributorsPreview('editorsSelect', 'editorsPreview');
-});
-</script>
-
-<script>
-/**
- * Enhanced validation for form submission
- */
-document.addEventListener("DOMContentLoaded", function() {
-    const form = document.getElementById('bookForm');
+  
     
-    form.addEventListener('submit', function(e) {
-        let hasErrors = false;
-        let errorMessages = [];
-        
-        // Check accession numbers
-        const accessionInputs = document.querySelectorAll('.accession-input');
-        accessionInputs.forEach(input => {
-            if (!input.value.trim()) {
-                hasErrors = true;
-                errorMessages.push('Accession number is required');
-                input.classList.add('is-invalid');
-            } else if (!/^\d+$/.test(input.value.trim())) {
-                hasErrors = true;
-                errorMessages.push('Accession numbers must be numeric');
-                input.classList.add('is-invalid');
-            } else {
-                input.classList.remove('is-invalid');
-            }
-        });
-        
-        // Check author selection
-        const authorSelect = document.getElementById('authorSelect');
-        if (!authorSelect || authorSelect.selectedOptions.length === 0) {
-            hasErrors = true;
-            errorMessages.push('At least one author must be selected');
-            if (authorSelect) {
-                authorSelect.classList.add('is-invalid');
-                
-                // Add error message below the select
-                let errorFeedback = authorSelect.nextElementSibling;
-                if (!errorFeedback || !errorFeedback.classList.contains('invalid-feedback')) {
-                    errorFeedback = document.createElement('div');
-                    errorFeedback.className = 'invalid-feedback';
-                    authorSelect.parentNode.insertBefore(errorFeedback, authorSelect.nextSibling);
-                }
-                errorFeedback.textContent = 'Please select at least one author';
-            }
-        } else {
-            let hasValidAuthor = false;
-            for (let i = 0; i < authorSelect.selectedOptions.length; i++) {
-                if (authorSelect.selectedOptions[i].value > 0) {
-                    hasValidAuthor = true;
-                    break;
-                }
-            }
-            
-            if (!hasValidAuthor) {
-                hasErrors = true;
-                errorMessages.push('At least one valid author must be selected');
-                authorSelect.classList.add('is-invalid');
-            } else {
-                authorSelect.classList.remove('is-invalid');
-            }
-        }
-        
-        // If we have errors, prevent form submission and show alert
-        if (hasErrors) {
-            e.preventDefault();
-            
-            // Create error alert at the top of the form
-            const formContainer = form.querySelector('.container-fluid');
-            const existingAlert = formContainer.querySelector('.alert-danger');
-            
-            if (existingAlert) {
-                existingAlert.remove(); // Remove existing alert to prevent duplicates
-            }
-            
-            const errorAlert = document.createElement('div');
-            errorAlert.className = 'alert alert-danger alert-dismissible fade show mb-4';
-            errorAlert.setAttribute('role', 'alert');
-            
-            errorAlert.innerHTML = `
-                <i class="fas fa-exclamation-circle me-2"></i>
-                <strong>Error:</strong> Please fix the following errors:
-                <ul class="mb-0 mt-2">
-                    ${errorMessages.map(msg => `<li>${msg}</li>`).join('')}
-                </ul>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            `;
-            
-            // Insert after the heading container
-            const headingContainer = formContainer.querySelector('.d-flex.justify-content-between');
-            headingContainer.insertAdjacentElement('afterend', errorAlert);
-            
-            // Scroll to the top of the form to show the error
-            window.scrollTo({
-                top: formContainer.offsetTop - 100,
-                behavior: 'smooth'
-            });
-        }
-    });
+    // Set up event listeners for the "Add New" buttons
+    const addNewAuthorBtn = document.getElementById('addNewAuthorBtn');
+    if (addNewAuthorBtn) {
+        addNewAuthorBtn.addEventListener('click', showAddAuthorDialog);
+    }
+    
+    const addNewPublisherBtn = document.getElementById('addNewPublisherBtn');
+    if (addNewPublisherBtn) {
+        addNewPublisherBtn.addEventListener('click', showAddPublisherDialog);
+    }   }
 });
 </script>

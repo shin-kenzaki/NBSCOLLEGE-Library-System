@@ -901,35 +901,22 @@ if ($first_book) {
                                                value="<?php 
                                                    $call_number = $first_book['call_number'] ?? '';
                                                    
-                                                   // Split the call number into parts by spaces
+                                                   // Extract only the classification number and author cutter (parts 2 and 3)
                                                    $parts = explode(' ', $call_number);
-                                                   $space_count = count($parts) - 1;
-
-                                                   if ($space_count === 5) {
-                                                       // Exclude the first part and the last three parts
-                                                       array_shift($parts); // Remove the first part
-                                                       array_pop($parts);   // Remove the last part
-                                                       array_pop($parts);   // Remove the second last part
-                                                       array_pop($parts);   // Remove the third last part
-                                                       echo htmlspecialchars(implode(' ', $parts));
-                                                   } elseif ($space_count === 4) {
-                                                       // Exclude the first part and the last two parts
-                                                       array_shift($parts); // Remove the first part
-                                                       array_pop($parts);   // Remove the last part
-                                                       array_pop($parts);   // Remove the second last part
-                                                       echo htmlspecialchars(implode(' ', $parts));
-                                                   } elseif ($space_count === 3) {
-                                                       // Exclude the first part and the last two parts
-                                                       array_shift($parts); // Remove the first part
-                                                       array_pop($parts);   // Remove the last part
-                                                       array_pop($parts);   // Remove the second last part
-                                                       echo htmlspecialchars(implode(' ', $parts));
-                                                   } else {
-                                                       // Do not display any call number
-                                                       echo '';
+                                                   
+                                                   // We need parts 2 and 3 (if they exist)
+                                                   $classification_and_cutter = '';
+                                                   if (count($parts) >= 3) {
+                                                       // Get the 2nd and 3rd parts
+                                                       $classification_and_cutter = $parts[1] . ' ' . $parts[2];
+                                                   } elseif (count($parts) >= 2) {
+                                                       // Just get the 2nd part if 3rd doesn't exist
+                                                       $classification_and_cutter = $parts[1];
                                                    }
+                                                   
+                                                   echo htmlspecialchars($classification_and_cutter);
                                                ?>">
-                                        <small class="text-muted">Enter only the classification number and author cutter (e.g., Z936.98 L39) or leave empty if not applicable</small>
+                                        <small class="text-muted">Enter only the classification number and author cutter (e.g., Z936.98 L39) without volume, part, or copy number</small>
                                     </div>
                                 </div>
                             </div>
@@ -1303,11 +1290,13 @@ document.addEventListener("DOMContentLoaded", function() {
             const copyNumberInput = copy.querySelector('input[name="copy_number[]"]');
             const shelfLocationSelect = copy.querySelector('select[name="shelf_location[]"]');
             const volumeInput = copy.querySelector('input[name="volume[]"]');
+            const partInput = copy.querySelector('input[name="part[]"]');
             
             // Get values
             const copyNum = copyNumberInput.value.replace(/^c/, '');
             const shelfLocation = shelfLocationSelect.value;
-            const volumeText = volumeInput && volumeInput.value.trim() ? `vol${volumeInput.value.trim()}` : '';
+            const volumeText = volumeInput && volumeInput.value.trim() ? `v.${volumeInput.value.trim()}` : '';
+            const partText = partInput && partInput.value.trim() ? `pt.${partInput.value.trim()}` : '';
             
             // Validate raw call number format
             if (rawCallNumber && !/^[A-Z0-9]+(\.[0-9]+)?\s[A-Z][0-9]+$/.test(rawCallNumber)) {
@@ -1321,14 +1310,21 @@ document.addEventListener("DOMContentLoaded", function() {
                 publishYear            // Publication year
             ].filter(Boolean).join(' ');
             
-            // Append volume number if present
+            // Build the final call number with all components
             let finalCallNumber = formattedCallNumber;
+            
+            // Append volume number if present
             if (volumeText) {
                 finalCallNumber += ` ${volumeText}`;
             }
             
+            // Append part number if present
+            if (partText) {
+                finalCallNumber += ` ${partText}`;
+            }
+            
             // Append copy number
-            finalCallNumber += ` c${copyNum}`;
+            finalCallNumber += ` c.${copyNum}`;
             
             // Update call number field
             const callNumberField = copy.querySelector('input[name="call_numbers[]"]');
@@ -1356,6 +1352,7 @@ document.addEventListener("DOMContentLoaded", function() {
         const publishYear = document.querySelector('input[name="publish_date"]');
         const shelfLocations = document.querySelectorAll('select[name="shelf_location[]"]');
         const volumeInputs = document.querySelectorAll('input[name="volume[]"]');
+        const partInputs = document.querySelectorAll('input[name="part[]"]'); // Add part inputs
 
         if (rawCallNumber) rawCallNumber.addEventListener('input', formatCallNumber);
         if (publishYear) publishYear.addEventListener('input', formatCallNumber);
@@ -1368,6 +1365,13 @@ document.addEventListener("DOMContentLoaded", function() {
         volumeInputs.forEach(input => {
             input.addEventListener('input', function() {
                 formatCallNumber(); // Update call numbers when volume changes
+            });
+        });
+        
+        // Add event listeners to all part inputs
+        partInputs.forEach(input => {
+            input.addEventListener('input', function() {
+                formatCallNumber(); // Update call numbers when part changes
             });
         });
     }
