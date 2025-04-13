@@ -296,9 +296,12 @@ if (isset($_POST['submit'])) {
                             }
                         } else {
                             // It's a name, look it up
-                            $publisher_name = $publisher_value;
-                            $publisher_query = "SELECT id FROM publishers WHERE publisher = '$publisher_name'";
-                            $publisher_result = mysqli_query($conn, $publisher_query);
+                            $publisher_name = mysqli_real_escape_string($conn, $publisher_value);
+                            $publisher_query = "SELECT id FROM publishers WHERE publisher = ?";
+                            $stmt = mysqli_prepare($conn, $publisher_query);
+                            mysqli_stmt_bind_param($stmt, "s", $publisher_name);
+                            mysqli_stmt_execute($stmt);
+                            $publisher_result = mysqli_stmt_get_result($stmt);
                             
                             if ($publisher_result && mysqli_num_rows($publisher_result) > 0) {
                                 $publisher_row = mysqli_fetch_assoc($publisher_result);
@@ -306,6 +309,16 @@ if (isset($_POST['submit'])) {
                             } else {
                                 // Publisher not found, log a warning
                                 error_log("Warning: Publisher '$publisher_name' not found in database");
+                                
+                                // Option: Insert the publisher if it doesn't exist
+                                $insert_publisher = "INSERT INTO publishers (publisher, place) VALUES (?, 'Unknown')";
+                                $stmt = mysqli_prepare($conn, $insert_publisher);
+                                mysqli_stmt_bind_param($stmt, "s", $publisher_name);
+                                
+                                if (mysqli_stmt_execute($stmt)) {
+                                    $publisher_id = mysqli_insert_id($conn);
+                                    error_log("Created new publisher with ID: $publisher_id");
+                                }
                             }
                         }
                     }

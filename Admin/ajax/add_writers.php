@@ -30,12 +30,11 @@ foreach ($authors_data as $author) {
     $middle_init = mysqli_real_escape_string($conn, $author['middle_init'] ?? '');
     $lastname = mysqli_real_escape_string($conn, $author['lastname']);
     
-    // Format the writer's full name
-    $full_name = $firstname;
+    // Format the writer's full name - MODIFIED: Use the same format as in the dropdown
+    $full_name = "$lastname, $firstname";
     if (!empty($middle_init)) {
-        $full_name .= ' ' . $middle_init;
+        $full_name .= " $middle_init";
     }
-    $full_name .= ' ' . $lastname;
     
     // Check if author already exists
     $check_query = "SELECT id FROM writers WHERE 

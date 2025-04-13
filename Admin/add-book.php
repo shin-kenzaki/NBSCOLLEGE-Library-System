@@ -3962,9 +3962,6 @@ document.addEventListener("DOMContentLoaded", function() {
                                     <input type="text" class="form-control author-lastname" required>
                                 </div>
                             </div>
-                            <div class="col-md-1 remove-btn-container">
-                                <!-- No remove button for first author -->
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -4088,35 +4085,25 @@ document.addEventListener("DOMContentLoaded", function() {
                                 const coAuthorsSelect = document.getElementById('coAuthorsSelect');
                                 const editorsSelect = document.getElementById('editorsSelect');
                                 
-                                if (authorSelect && coAuthorsSelect && editorsSelect) {
-                                    response.authors.forEach(author => {
-                                        const newOption = document.createElement('option');
-                                        newOption.value = author.id;
-                                        newOption.textContent = author.name;
-                                        
-                                        authorSelect.appendChild(newOption.cloneNode(true));
-                                        coAuthorsSelect.appendChild(newOption.cloneNode(true));
-                                        editorsSelect.appendChild(newOption.cloneNode(true));
-                                    });
+                                response.authors.forEach(author => {
+                                    const newOption = document.createElement('option');
+                                    newOption.value = author.id;
+                                    newOption.textContent = author.name;
                                     
-                                    // Select the first new author in the author dropdown if no author is selected
-                                    if (!authorSelect.value && response.authors.length > 0) {
-                                        authorSelect.value = response.authors[0].id;
-                                        // Manually trigger change event to update any previews
-                                        const event = new Event('change');
-                                        authorSelect.dispatchEvent(event);
-                                    }
+                                    if (authorSelect) authorSelect.appendChild(newOption.cloneNode(true));
+                                    if (coAuthorsSelect) coAuthorsSelect.appendChild(newOption.cloneNode(true));
+                                    if (editorsSelect) editorsSelect.appendChild(newOption.cloneNode(true));
+                                });
+                                
+                                // Auto-select the last added author
+                                if (authorSelect && response.authors.length > 0) {
+                                    const lastAuthor = response.authors[response.authors.length - 1];
+                                    authorSelect.value = lastAuthor.id;
+                                    // Trigger change event to update any dependent UI
+                                    authorSelect.dispatchEvent(new Event('change'));
                                 }
                                 
-                                Swal.fire(
-                                    'Success',
-                                    `Successfully added ${response.authors.length} author(s)!<br><br>
-                                    <div style="text-align: center; max-height: 150px; overflow-y: auto;">
-                                        <strong>Authors Added:</strong><br>
-                                        ${response.authors.map(author => `- ${author.name}`).join('<br>')}
-                                    </div>`,
-                                    'success'
-                                );
+                                Swal.fire('Success', `Successfully added ${response.authors.length} author(s)!`, 'success');
                             } else {
                                 Swal.fire('Error', response.message || 'Failed to add authors', 'error');
                             }
@@ -4146,14 +4133,11 @@ document.addEventListener("DOMContentLoaded", function() {
                                     <input type="text" class="form-control publisher-name" placeholder="Enter publisher name" required>
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-5">
                                 <div class="form-group">
                                     <label>Place</label>
                                     <input type="text" class="form-control publisher-place" placeholder="Enter place of publication" required>
                                 </div>
-                            </div>
-                            <div class="col-md-1 remove-btn-container">
-                                <!-- No remove button for first publisher -->
                             </div>
                         </div>
                     </div>
@@ -4267,20 +4251,24 @@ document.addEventListener("DOMContentLoaded", function() {
                             if (response.success) {
                                 // Refresh publisher dropdown
                                 const publisherSelect = document.getElementById('publisher');
-                                response.publishers.forEach(publisher => {
-                                    const option = document.createElement('option');
-                                    option.value = publisher.publisher;
-                                    option.textContent = publisher.place + ' ; ' + publisher.publisher;
-                                    publisherSelect.appendChild(option);
-                                });
+                                if (publisherSelect) {
+                                    response.publishers.forEach(publisher => {
+                                        const option = document.createElement('option');
+                                        option.value = publisher.id;
+                                        option.textContent = `${publisher.place} ; ${publisher.publisher}`;
+                                        publisherSelect.appendChild(option);
+                                    });
+                                    
+                                    // Auto-select the last added publisher
+                                    if (response.publishers.length > 0) {
+                                        const lastPublisher = response.publishers[response.publishers.length - 1];
+                                        publisherSelect.value = lastPublisher.id;
+                                        // Trigger change event to update any dependent UI
+                                        publisherSelect.dispatchEvent(new Event('change'));
+                                    }
+                                }
                                 
-                                Swal.fire('Success', 
-                                    `Publishers added successfully!<br><br>
-                                    <div style="text-align: center; max-height: 150px; overflow-y: auto;">
-                                        <strong>Publishers Added:</strong><br>
-                                        ${response.publishers.map(pub => `- ${pub.place} ; ${pub.publisher}`).join('<br>')}
-                                    </div>`,
-                                    'success');
+                                Swal.fire('Success', `Successfully added ${response.publishers.length} publisher(s)!`, 'success');
                             } else {
                                 Swal.fire('Error', response.message || 'Failed to add publishers', 'error');
                             }
@@ -4296,170 +4284,6 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     };
     
-    // Create a function to show the add publisher dialog using SweetAlert
-    window.showAddPublisherDialog = function() {
-        Swal.fire({
-            title: 'Add New Publisher',
-            html: `
-                <div id="sweetAlertPublisherContainer">
-                    <div id="publisherEntriesContainer">
-                        <div class="publisher-entry row mb-3">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Publisher Name</label>
-                                    <input type="text" class="form-control publisher-name" placeholder="Enter publisher name" required>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Place</label>
-                                    <input type="text" class="form-control publisher-place" placeholder="Enter place of publication" required>
-                                </div>
-                            </div>
-                            <div class="col-md-1 remove-btn-container">
-                                <!-- No remove button for first publisher -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `,
-            showCancelButton: true,
-            confirmButtonText: 'Save Publisher',
-            cancelButtonText: 'Cancel',
-            width: '800px',
-            didOpen: () => {
-                // Add button below the publisher entries container
-                const container = document.getElementById('sweetAlertPublisherContainer');
-                const addButton = document.createElement('button');
-                addButton.type = 'button';
-                addButton.className = 'btn btn-secondary btn-sm mt-2';
-                addButton.innerHTML = '<i class="fas fa-plus"></i> Add Another Publisher';
-                addButton.id = 'addPublisherEntry';
-                addButton.style.display = 'block';
-                addButton.style.width = '100%';
-                addButton.style.marginBottom = '10px';
-                container.appendChild(addButton);
-                
-                // Add event listener for the button
-                addButton.addEventListener('click', function() {
-                    const publisherEntriesContainer = document.getElementById('publisherEntriesContainer');
-                    const newEntry = document.createElement('div');
-                    newEntry.className = 'publisher-entry row mb-3';
-                    newEntry.innerHTML = `
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label>Publisher Name</label>
-                                <input type="text" class="form-control publisher-name" placeholder="Enter publisher name" required>
-                            </div>
-                        </div>
-                        <div class="col-md-5">
-                            <div class="form-group">
-                                <label>Place</label>
-                                <input type="text" class="form-control publisher-place" placeholder="Enter place of publication" required>
-                            </div>
-                        </div>
-                        <div class="col-md-1 remove-btn-container">
-                            <button type="button" class="btn btn-danger btn-sm remove-publisher-entry" style="margin-top: 30px;">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                    `;
-                    publisherEntriesContainer.appendChild(newEntry);
-                    
-                    // Scroll to the bottom of the container to show the new entry
-                    const swalContent = document.querySelector('.swal2-content');
-                    if (swalContent) {
-                        swalContent.scrollTop = swalContent.scrollHeight;
-                    }
-
-                    // Add remove functionality for the new entry
-                    newEntry.querySelector('.remove-publisher-entry').addEventListener('click', function() {
-                        newEntry.remove();
-                    });
-                });
-
-                // Setup delegation for removing publisher entries
-                document.addEventListener('click', function(e) {
-                    if (e.target && (e.target.classList.contains('remove-publisher-entry') || e.target.closest('.remove-publisher-entry'))) {
-                        const entry = e.target.closest('.publisher-entry');
-                        if (entry) {
-                            entry.remove();
-                        }
-                    }
-                });
-            }
-        }).then((result) => {
-            if (result.isConfirmed) {
-                const publisherEntries = document.querySelectorAll('#publisherEntriesContainer .publisher-entry');
-                const publishersData = [];
-                let hasErrors = false;
-                
-                // Collect data from all publisher entries
-                publisherEntries.forEach(entry => {
-                    const publisher = entry.querySelector('.publisher-name').value.trim();
-                    const place = entry.querySelector('.publisher-place').value.trim();
-                    
-                    if (!publisher || !place) {
-                        hasErrors = true;
-                        return;
-                    }
-                    
-                    publishersData.push({
-                        publisher: publisher,
-                        place: place
-                    });
-                });
-                
-                if (hasErrors) {
-                    Swal.fire('Error', 'Publisher name and place are required for all publishers.', 'error');
-                    return;
-                }
-                
-                if (publishersData.length === 0) {
-                    Swal.fire('Error', 'Please add at least one publisher.', 'error');
-                    return;
-                }
-                
-                // AJAX request to save all publishers
-                const xhr = new XMLHttpRequest();
-                xhr.open('POST', 'ajax/add_publishers.php', true);
-                xhr.setRequestHeader('Content-Type', 'application/json');
-                xhr.onload = function() {
-                    if (this.status === 200) {
-                        try {
-                            const response = JSON.parse(this.responseText);
-                            if (response.success) {
-                                // Refresh publisher dropdown
-                                const publisherSelect = document.getElementById('publisher');
-                                response.publishers.forEach(publisher => {
-                                    const option = document.createElement('option');
-                                    option.value = publisher.publisher;
-                                    option.textContent = publisher.place + ' ; ' + publisher.publisher;
-                                    publisherSelect.appendChild(option);
-                                });
-                                
-                                Swal.fire('Success', 
-                                    `Publishers added successfully!<br><br>
-                                    <div style="text-align: center; max-height: 150px; overflow-y: auto;">
-                                        <strong>Publishers Added:</strong><br>
-                                        ${response.publishers.map(pub => `- ${pub.place} ; ${pub.publisher}`).join('<br>')}
-                                    </div>`,
-                                    'success');
-                            } else {
-                                Swal.fire('Error', response.message || 'Failed to add publishers', 'error');
-                            }
-                        } catch (e) {
-                            Swal.fire('Error', 'Invalid response from server', 'error');
-                        }
-                    } else {
-                        Swal.fire('Error', 'Failed to add publishers', 'error');
-                    }
-                };
-                xhr.send(JSON.stringify(publishersData));
-            }
-        });
-  
-    
     // Set up event listeners for the "Add New" buttons
     const addNewAuthorBtn = document.getElementById('addNewAuthorBtn');
     if (addNewAuthorBtn) {
@@ -4469,6 +4293,6 @@ document.addEventListener("DOMContentLoaded", function() {
     const addNewPublisherBtn = document.getElementById('addNewPublisherBtn');
     if (addNewPublisherBtn) {
         addNewPublisherBtn.addEventListener('click', showAddPublisherDialog);
-    }   }
+    }
 });
 </script>
