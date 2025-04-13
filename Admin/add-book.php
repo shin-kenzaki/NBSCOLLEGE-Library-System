@@ -2310,26 +2310,34 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <script>
-// Confirm formatted call numbers are being used before submission
+/**
+ * Confirm formatted call numbers are being used before submission
+ */
 document.getElementById('bookForm').addEventListener('submit', function(e) {
     const callNumberInputs = document.querySelectorAll('.call-number-input');
     const previewElements = document.querySelectorAll('.call-number-preview');
     
     if (callNumberInputs.length > 0 && previewElements.length > 0) {
-        // Check if any preview is different from input value
-        let differentFormatDetected = false;
+        // Always use formatted call numbers for submission
         callNumberInputs.forEach((input, index) => {
             const preview = previewElements[index]?.textContent?.replace('→ ', '') || '';
-            if (preview && input.value !== preview && !input.dataset.formattedCallNumber) {
-                differentFormatDetected = true;
-                // Set the formatted value for submission
-                input.value = preview;
+            // Get formatted call number from data attribute or preview text
+            const formattedCallNumber = input.dataset.formattedCallNumber || preview;
+            
+            if (formattedCallNumber) {
+                // Always replace the input value with the formatted version that includes shelf location
+                input.value = formattedCallNumber;
+                
+                // Also create a hidden input for backward compatibility
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = 'formatted_call_numbers[]';
+                hiddenInput.value = formattedCallNumber;
+                this.appendChild(hiddenInput);
             }
         });
         
-        if (differentFormatDetected) {
-            console.log('Formatted call numbers applied before submission');
-        }
+        console.log('Formatted call numbers with shelf location applied for submission');
     }
 });
 </script>
