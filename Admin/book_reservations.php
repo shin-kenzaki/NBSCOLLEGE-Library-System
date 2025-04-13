@@ -53,11 +53,22 @@ if ($bookFilter) {
     $filterParams[] = "book=" . urlencode($bookFilter);
 }
 
+// Updated query to include ISBN, Series, Volume, Part, and Edition
 $query = "SELECT 
     r.id AS reservation_id,
+    r.user_id,
+    r.book_id,
+    u.school_id,
+    u.usertype,
     CONCAT(u.firstname, ' ', u.lastname) AS user_name,
     b.title AS book_title,
     b.accession AS accession,
+    b.ISBN,
+    b.series,
+    b.volume,
+    b.part,
+    b.edition,
+    b.shelf_location,
     r.reserve_date,
     r.ready_date,
     CONCAT(a1.firstname, ' ', a1.lastname) AS ready_by_name,
@@ -66,8 +77,7 @@ $query = "SELECT
     r.cancel_date,
     CONCAT(COALESCE(a3.firstname, u2.firstname), ' ', COALESCE(a3.lastname, u2.lastname)) AS cancelled_by_name,
     r.cancelled_by_role,
-    CONCAT(UPPER(SUBSTRING(r.status, 1, 1)), LOWER(SUBSTRING(r.status, 2))) as status,
-    r.recieved_date
+    r.status
 FROM reservations r
 JOIN users u ON r.user_id = u.id
 JOIN books b ON r.book_id = b.id
@@ -75,7 +85,9 @@ LEFT JOIN admins a1 ON r.ready_by = a1.id
 LEFT JOIN admins a2 ON r.issued_by = a2.id
 LEFT JOIN admins a3 ON (r.cancelled_by = a3.id AND r.cancelled_by_role = 'Admin')
 LEFT JOIN users u2 ON (r.cancelled_by = u2.id AND r.cancelled_by_role = 'User')
-$whereClause";
+$whereClause
+ORDER BY r.reserve_date DESC";
+
 $result = $conn->query($query);
 
 // Count total number of records for the filter summary
@@ -147,295 +159,366 @@ $checkboxStyles = "margin: 0; vertical-align: middle;";
 ?>
 
 <!-- Main Content -->
-    <div class="container-fluid px-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1 class="h3 mb-0 text-gray-800">Book Reservations</h1>
-        </div>
-
-        <!-- Reservations Filter Card -->
-        <div class="card shadow mb-4">
-            <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                <h6 class="m-0 font-weight-bold text-primary">Filter Reservations</h6>
-                <button class="btn btn-sm btn-primary" id="toggleFilter">
-                    <i class="fas fa-filter"></i> Toggle Filter
-                </button>
-            </div>
-            <div class="card-body <?= empty($filterParams) ? 'd-none' : '' ?>" id="filterForm">
-                <form method="get" action="" class="mb-0" id="reservationsFilterForm">
-                    <div class="row">
-                        <div class="col-md-2">
-                            <div class="form-group">
-                                <label for="status">Status</label>
-                                <select class="form-control form-control-sm" id="status" name="status">
-                                    <option value="">All Statuses</option>
-                                    <option value="Pending" <?= ($statusFilter == 'Pending') ? 'selected' : '' ?>>Pending</option>
-                                    <option value="Ready" <?= ($statusFilter == 'Ready') ? 'selected' : '' ?>>Ready</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-2">
-                            <div class="form-group">
-                                <label for="date_start">From Date</label>
-                                <input type="date" class="form-control form-control-sm" id="date_start" 
-                                       name="date_start" value="<?= $dateStart ?>">
-                            </div>
-                        </div>
-                        <div class="col-md-2">
-                            <div class="form-group">
-                                <label for="date_end">To Date</label>
-                                <input type="date" class="form-control form-control-sm" id="date_end" 
-                                       name="date_end" value="<?= $dateEnd ?>">
-                            </div>
-                        </div>
-                        <div class="col-md-2">
-                            <div class="form-group">
-                                <label for="user">User</label>
-                                <input type="text" class="form-control form-control-sm" id="user" 
-                                       name="user" placeholder="Name or ID" value="<?= htmlspecialchars($userFilter) ?>">
-                            </div>
-                        </div>
-                        <div class="col-md-2">
-                            <div class="form-group">
-                                <label for="book">Book</label>
-                                <input type="text" class="form-control form-control-sm" id="book" 
-                                       name="book" placeholder="Title or Accession" value="<?= htmlspecialchars($bookFilter) ?>">
-                            </div>
-                        </div>
-                        <div class="col-md-2">
-                            <div class="form-group d-flex justify-content-center" style="margin-top: 2rem">
-                                <button type="submit" id="applyFilters" class="btn btn-primary btn-sm mr-2">
-                                    <i class="fas fa-filter"></i> Apply
-                                </button>
-                                <button type="button" id="resetFilters" class="btn btn-secondary btn-sm">
-                                    <i class="fas fa-undo"></i> Reset
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <div class="card shadow mb-4">
-            <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                <h6 class="m-0 font-weight-bold text-primary">Book Reservations List</h6>
-                <div>
-                    <!-- Results summary - Moved from card-body to card-header -->
-                    <span id="filterSummary" class="mr-3 <?= empty($filterParams) ? 'd-none' : '' ?>">
-                        <span class="text-primary font-weight-bold">Filter applied:</span> 
-                        Showing <span id="totalResults"><?= $totalRecords ?></span> result<span id="pluralSuffix"><?= $totalRecords != 1 ? 's' : '' ?></span>
-                    </span>
-                    <button id="bulkReadyBtn" class="btn btn-primary btn-sm mr-2" disabled>
-                        Mark Ready (<span id="selectedCountReady">0</span>)
-                    </button>
-                    <button id="bulkReceiveBtn" class="btn btn-success btn-sm mr-2" disabled>
-                        Mark Received (<span id="selectedCountReceive">0</span>)
-                    </button>
-                    <button id="bulkCancelBtn" class="btn btn-danger btn-sm" disabled>
-                        Cancel Selected (<span id="selectedCount">0</span>)
-                    </button>
-                </div>
-            </div>
-            <!-- Add alert section -->
-            <?php if (isset($_GET['error'])): ?>
-            <div class="alert alert-danger alert-dismissible fade show mx-4 mt-3" role="alert">
-                <?php echo htmlspecialchars($_GET['error']); ?>
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <?php endif; ?>
-            <?php if (isset($_GET['success'])): ?>
-            <div class="alert alert-success alert-dismissible fade show mx-4 mt-3" role="alert">
-                <?php echo htmlspecialchars($_GET['success']); ?>
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <?php endif; ?>
-            <div class="card-body">
-                <!-- Remove the old filter summary div that was here -->
-                <style>
-                    /* Add alternating row colors */
-                    #dataTable.table-striped tbody tr:nth-of-type(odd) {
-                        background-color: rgba(0, 0, 0, 0.03);
-                    }
-
-                    #dataTable.table-striped tbody tr:hover {
-                        background-color: rgba(0, 123, 255, 0.05);
-                    }
-                    
-                    /* Add selected row styles */
-                    #dataTable tbody tr.selected {
-                        background-color: rgba(0, 123, 255, 0.1) !important;
-                    }
-                    
-                    /* Ensure selected rows override striped styles */
-                    #dataTable.table-striped tbody tr.selected:nth-of-type(odd),
-                    #dataTable.table-striped tbody tr.selected:nth-of-type(even) {
-                        background-color: rgba(0, 123, 255, 0.1) !important;
-                    }
-                    
-                    /* Add hover effect styles */
-                    #dataTable tbody tr {
-                        transition: background-color 0.2s;
-                        cursor: pointer;
-                    }
-
-                    #dataTable tbody tr:hover {
-                        background-color: rgba(0, 123, 255, 0.05);
-                    }
-                    
-                    /* Checkbox styling */
-                    .checkbox-cell {
-                        cursor: pointer;
-                        text-align: center;
-                        vertical-align: middle;
-                        width: 40px !important;
-                    }
-                    
-                    .checkbox-cell input[type="checkbox"] {
-                        margin: 0 auto;
-                        display: block;
-                    }
-                </style>
-                <div class="table-responsive" style="<?php echo $tableResponsiveStyles; ?>">
-                    <table class="table table-bordered table-striped" id="dataTable" width="100%" cellspacing="0">
-                        <thead>
-                            <tr>
-                                <th style="<?php echo $checkboxColumnStyles; ?> width: 30px;" id="checkboxHeader">
-                                    Select
-                                </th>
-                                <th style="<?php echo $tableCenterStyles; ?>">User</th>
-                                <th style="<?php echo $tableCenterStyles; ?>">Book</th>
-                                <th style="<?php echo $tableCenterStyles; ?>">Accession No.</th>
-                                <th style="<?php echo $tableCenterStyles; ?>">Reserve Date</th>
-                                <th style="<?php echo $tableCenterStyles; ?>">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php 
-                            if ($result->num_rows > 0): 
-                                while ($row = $result->fetch_assoc()): 
-                            ?>
-                                <tr data-reservation-id='<?php echo $row["reservation_id"]; ?>' data-status='<?php echo $row["status"]; ?>'>
-                                    <td style="<?php echo $checkboxColumnStyles; ?>">
-                                        <input type="checkbox" class="reservation-checkbox" data-id="<?php echo $row["reservation_id"]; ?>" style="<?php echo $checkboxStyles; ?>">
-                                    </td>
-                                    <td style="<?php echo $tableCellStyles; ?>"><?php echo $row["user_name"]; ?></td>
-                                    <td style="<?php echo $tableCellStyles; ?>"><?php echo $row["book_title"]; ?></td>
-                                    <td style="<?php echo $tableCellStyles . $tableCenterStyles; ?>"><?php echo $row["accession"]; ?></td>
-                                    <td style="<?php echo $tableCellStyles . $tableCenterStyles; ?>"><?php echo $row["reserve_date"]; ?></td>
-                                    <?php
-                                    $status = $row["status"];
-                                    $statusClass = match($status) {
-                                        'Pending' => 'text-warning',
-                                        'Ready' => 'text-primary',
-                                        'Received' => 'text-success',
-                                        'Cancelled' => 'text-danger',
-                                        default => 'text-secondary'
-                                    };
-                                    ?>
-                                    <td style="<?php echo $tableCellStyles . $tableCenterStyles; ?>">
-                                        <span class='font-weight-bold <?php echo $statusClass; ?>'><?php echo $status; ?></span>
-                                    </td>
-                                </tr>
-                            <?php 
-                                endwhile;
-                            endif;
-                            $conn->close();
-                            ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- Statistics Dashboard -->
-        <h4 class="mb-3 text-gray-800">Statistics Overview</h4>
-        <div class="row mb-4">
-            <!-- Pending Reservations -->
-            <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card shadow h-100 py-2" style="<?php echo $cardStyles; ?> border-left-color: <?php echo $warningCardBorder; ?>;" 
-                     onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 0.5rem 1rem rgba(0, 0, 0, 0.15)';" 
-                     onmouseout="this.style.transform=''; this.style.boxShadow='';">
-                    <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1" style="<?php echo $titleStyles; ?>">
-                                    Pending Reservations</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800" style="<?php echo $numberStyles; ?>"><?php echo $pendingCount; ?></div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-clock fa-2x text-gray-300" style="<?php echo $iconStyles; ?>"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Ready Reservations -->
-            <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card shadow h-100 py-2" style="<?php echo $cardStyles; ?> border-left-color: <?php echo $infoCardBorder; ?>;"
-                     onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 0.5rem 1rem rgba(0, 0, 0, 0.15)';" 
-                     onmouseout="this.style.transform=''; this.style.boxShadow='';">
-                    <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1" style="<?php echo $titleStyles; ?>">
-                                    Ready Reservations</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800" style="<?php echo $numberStyles; ?>"><?php echo $readyCount; ?></div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-book fa-2x text-gray-300" style="<?php echo $iconStyles; ?>"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Overall Received -->
-            <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card shadow h-100 py-2" style="<?php echo $cardStyles; ?> border-left-color: <?php echo $successCardBorder; ?>;"
-                     onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 0.5rem 1rem rgba(0, 0, 0, 0.15)';" 
-                     onmouseout="this.style.transform=''; this.style.boxShadow='';">
-                    <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1" style="<?php echo $titleStyles; ?>">
-                                    Overall Received</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800" style="<?php echo $numberStyles; ?>"><?php echo $totalReceivedCount; ?></div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-check-circle fa-2x text-gray-300" style="<?php echo $iconStyles; ?>"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Overall Cancelled -->
-            <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card shadow h-100 py-2" style="<?php echo $cardStyles; ?> border-left-color: <?php echo $dangerCardBorder; ?>;"
-                     onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 0.5rem 1rem rgba(0, 0, 0, 0.15)';" 
-                     onmouseout="this.style.transform=''; this.style.boxShadow='';">
-                    <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-danger text-uppercase mb-1" style="<?php echo $titleStyles; ?>">
-                                    Overall Cancelled</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800" style="<?php echo $numberStyles; ?>"><?php echo $totalCancelledCount; ?></div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-ban fa-2x text-gray-300" style="<?php echo $iconStyles; ?>"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!-- End Statistics Dashboard -->
+<div class="container-fluid px-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Book Reservations</h1>
     </div>
+
+    <!-- Reservations Filter Card -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">Filter Reservations</h6>
+            <button class="btn btn-sm btn-primary" id="toggleFilter">
+                <?php echo empty($filterParams) ? '<i class="fas fa-filter"></i> Show Filter' : '<i class="fas fa-times"></i> Hide Filter'; ?>
+            </button>
+        </div>
+        <div class="card-body <?= empty($filterParams) ? 'd-none' : '' ?>" id="filterForm">
+            <form method="get" action="" class="mb-0" id="reservationsFilterForm">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="status">Status</label>
+                            <select class="form-control" id="status" name="status">
+                                <option value="">All</option>
+                                <option value="Pending" <?= $statusFilter === 'Pending' ? 'selected' : '' ?>>Pending</option>
+                                <option value="Ready" <?= $statusFilter === 'Ready' ? 'selected' : '' ?>>Ready</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="date_start">From Date</label>
+                            <input type="date" class="form-control" id="date_start" name="date_start" value="<?= $dateStart ?>">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="date_end">To Date</label>
+                            <input type="date" class="form-control" id="date_end" name="date_end" value="<?= $dateEnd ?>">
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="user">User (Name or ID)</label>
+                            <input type="text" class="form-control" id="user" name="user" value="<?= htmlspecialchars($userFilter) ?>">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="book">Book (Title or Accession)</label>
+                            <input type="text" class="form-control" id="book" name="book" value="<?= htmlspecialchars($bookFilter) ?>">
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12 text-end">
+                        <button type="button" id="resetFilters" class="btn btn-secondary">Reset</button>
+                        <button type="submit" class="btn btn-primary">Apply Filters</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">Book Reservations List</h6>
+            <div class="d-flex">
+                <button id="bulkReadyBtn" class="btn btn-info btn-sm mr-2" disabled>
+                    <i class="fas fa-check"></i> Mark as Ready (<span id="selectedCountReady">0</span>)
+                </button>
+                <button id="bulkReceiveBtn" class="btn btn-success btn-sm mr-2" disabled>
+                    <i class="fas fa-book"></i> Issue Books (<span id="selectedCountReceive">0</span>)
+                </button>
+                <button id="bulkCancelBtn" class="btn btn-danger btn-sm" disabled>
+                    <i class="fas fa-times"></i> Cancel (<span id="selectedCount">0</span>)
+                </button>
+            </div>
+        </div>
+        <!-- Add alert section -->
+        <?php if (isset($_GET['error'])): ?>
+        <div class="alert alert-danger alert-dismissible fade show mx-4 mt-3" role="alert">
+            <?php echo htmlspecialchars($_GET['error']); ?>
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <?php endif; ?>
+        <?php if (isset($_GET['success'])): ?>
+        <div class="alert alert-success alert-dismissible fade show mx-4 mt-3" role="alert">
+            <?php echo htmlspecialchars($_GET['success']); ?>
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <?php endif; ?>
+        <div class="card-body">
+            <!-- Filter summary -->
+            <?php if (!empty($filterParams)): ?>
+            <div class="alert alert-info d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <strong><i class="fas fa-filter"></i> Active Filters:</strong>
+                    <?php
+                    $filterStrings = [];
+                    if ($statusFilter) $filterStrings[] = "Status: $statusFilter";
+                    if ($dateStart) $filterStrings[] = "From: " . date('M j, Y', strtotime($dateStart));
+                    if ($dateEnd) $filterStrings[] = "To: " . date('M j, Y', strtotime($dateEnd));
+                    if ($userFilter) $filterStrings[] = "User: " . htmlspecialchars($userFilter);
+                    if ($bookFilter) $filterStrings[] = "Book: " . htmlspecialchars($bookFilter);
+                    echo implode(' | ', $filterStrings);
+                    ?>
+                    | Showing <?= $totalRecords ?> result<?= $totalRecords !== 1 ? 's' : '' ?>
+                </div>
+                <a href="book_reservations.php" class="btn btn-sm btn-outline-secondary">
+                    Clear Filters
+                </a>
+            </div>
+            <?php endif; ?>
+            
+            <style>
+                tr.selected {
+                    background-color: rgba(0, 123, 255, 0.1);
+                }
+                #checkboxHeader {
+                    cursor: pointer;
+                }
+                .book-details-title {
+                    font-weight: bold;
+                    color: #4e73df;
+                }
+                .book-details-info {
+                    color: #666;
+                    font-size: 0.9em;
+                }
+                .table-responsive table td.book-details {
+                    white-space: normal;
+                }
+            </style>
+            
+            <div class="table-responsive" style="<?php echo $tableResponsiveStyles; ?>">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th class="text-center" id="checkboxHeader" style="width: 5%;">
+                                <input type="checkbox" id="selectAll" title="Select/Unselect All">
+                            </th>
+                            <th style="width: 15%;">User</th>
+                            <th style="width: 40%;">Book</th>
+                            <th style="width: 15%;">Reserve Date</th>
+                            <th style="width: 10%;">Status</th>
+                            <th style="width: 15%;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if ($result && $result->num_rows > 0): 
+                            while ($row = $result->fetch_assoc()): 
+                                // Format additional book details
+                                $detailsArray = [];
+                                if (!empty($row['ISBN'])) $detailsArray[] = 'ISBN: ' . htmlspecialchars($row['ISBN']);
+                                if (!empty($row['series'])) $detailsArray[] = 'Series: ' . htmlspecialchars($row['series']);
+                                if (!empty($row['volume'])) $detailsArray[] = 'Vol: ' . htmlspecialchars($row['volume']);
+                                if (!empty($row['part'])) $detailsArray[] = 'Part: ' . htmlspecialchars($row['part']);
+                                if (!empty($row['edition'])) $detailsArray[] = 'Ed: ' . htmlspecialchars($row['edition']);
+                                
+                                $additionalDetails = !empty($detailsArray) ? implode(' | ', $detailsArray) : '';
+                        ?>
+                            <tr data-reservation-id="<?= $row['reservation_id'] ?>" data-status="<?= htmlspecialchars($row['status']) ?>">
+                                <td class="text-center">
+                                    <input type="checkbox" class="reservation-checkbox" 
+                                           data-id="<?= $row['reservation_id'] ?>"
+                                           data-user-id="<?= $row['user_id'] ?>"
+                                           data-book-id="<?= $row['book_id'] ?>"
+                                           data-status="<?= htmlspecialchars($row['status']) ?>">
+                                </td>
+                                <td>
+                                    <strong><?= htmlspecialchars($row['user_name']) ?></strong><br>
+                                    <small>ID: <?= htmlspecialchars($row['school_id']) ?></small><br>
+                                    <small>User Type: <?= htmlspecialchars($row['usertype']) ?></small>
+                                </td>
+                                <td class="book-details">
+                                    <div class="book-details-title">
+                                        <?= htmlspecialchars($row['book_title']) ?>
+                                    </div>
+                                    <?php if (!empty($additionalDetails)): ?>
+                                    <div class="book-details-info">
+                                        <?= $additionalDetails ?>
+                                    </div>
+                                    <?php endif; ?>
+                                    <div class="book-details-info">
+                                        <strong>Accession:</strong> <?= htmlspecialchars($row['accession']) ?>
+                                        <strong>Location:</strong> <?= htmlspecialchars($row['shelf_location']) ?>
+                                    </div>
+                                </td>
+                                <td>
+                                    <?= date('M j, Y', strtotime($row['reserve_date'])) ?><br>
+                                    <small><?= date('h:i A', strtotime($row['reserve_date'])) ?></small>
+                                </td>
+                                <td>
+                                    <?php if ($row['status'] === 'Pending'): ?>
+                                        <span class="badge badge-warning p-2 w-100">Pending</span>
+                                    <?php elseif ($row['status'] === 'Ready'): ?>
+                                        <span class="badge badge-info p-2 w-100" 
+                                              data-toggle="tooltip" 
+                                              title="Made ready by: <?= htmlspecialchars($row['ready_by_name']) ?> on <?= date('Y-m-d h:i A', strtotime($row['ready_date'])) ?>">
+                                            Ready for Pickup
+                                        </span>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group">
+                                        <?php if ($row['status'] === 'Pending'): ?>
+                                            <button class="btn btn-sm btn-info mark-ready-btn" 
+                                                    data-id="<?= $row['reservation_id'] ?>"
+                                                    title="Mark as Ready">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                        <?php elseif ($row['status'] === 'Ready'): ?>
+                                            <button class="btn btn-sm btn-success issue-book-btn"
+                                                    data-id="<?= $row['reservation_id'] ?>"
+                                                    data-user-id="<?= $row['user_id'] ?>"
+                                                    data-book-id="<?= $row['book_id'] ?>"
+                                                    title="Issue Book">
+                                                <i class="fas fa-book"></i>
+                                            </button>
+                                        <?php endif; ?>
+                                        <button class="btn btn-sm btn-danger cancel-btn"
+                                                data-id="<?= $row['reservation_id'] ?>"
+                                                data-book-id="<?= $row['book_id'] ?>"
+                                                title="Cancel Reservation">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php 
+endwhile;
+endif;
+                            $conn->close();
+?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Dashboard -->
+    <h4 class="mb-3 text-gray-800">Statistics Overview</h4>
+    <div class="row mb-4">
+        <!-- Pending Reservations -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card shadow h-100 py-2" style="<?php echo $cardStyles; ?> border-left-color: <?php echo $warningCardBorder; ?>;" 
+                 onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 0.5rem 1rem rgba(0, 0, 0, 0.15)';" 
+                 onmouseout="this.style.transform=''; this.style.boxShadow='';">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1" style="<?php echo $titleStyles; ?>">
+                                Reserved Books
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" style="<?php echo $numberStyles; ?>">
+                                <?php echo $pendingCount; ?>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock fa-2x text-gray-300" style="<?php echo $iconStyles; ?>"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <a href="book_reservations.php?status=Reserved" class="text-warning small">
+                        View Details <i class="fas fa-chevron-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ready Reservations -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card shadow h-100 py-2" style="<?php echo $cardStyles; ?> border-left-color: <?php echo $infoCardBorder; ?>;"
+                 onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 0.5rem 1rem rgba(0, 0, 0, 0.15)';" 
+                 onmouseout="this.style.transform=''; this.style.boxShadow='';">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1" style="<?php echo $titleStyles; ?>">
+                                Ready for Pickup
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" style="<?php echo $numberStyles; ?>">
+                                <?php echo $readyCount; ?>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check fa-2x text-gray-300" style="<?php echo $iconStyles; ?>"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <a href="book_reservations.php?status=Ready" class="text-info small">
+                        View Details <i class="fas fa-chevron-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Overall Received -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card shadow h-100 py-2" style="<?php echo $cardStyles; ?> border-left-color: <?php echo $successCardBorder; ?>;"
+                 onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 0.5rem 1rem rgba(0, 0, 0, 0.15)';" 
+                 onmouseout="this.style.transform=''; this.style.boxShadow='';">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1" style="<?php echo $titleStyles; ?>">
+                                Total Received Books
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" style="<?php echo $numberStyles; ?>">
+                                <?php echo $totalReceivedCount; ?>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-book fa-2x text-gray-300" style="<?php echo $iconStyles; ?>"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <a href="reservation_history.php?status=Received" class="text-success small">
+                        View Details <i class="fas fa-chevron-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Overall Cancelled -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card shadow h-100 py-2" style="<?php echo $cardStyles; ?> border-left-color: <?php echo $dangerCardBorder; ?>;"
+                 onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 0.5rem 1rem rgba(0, 0, 0, 0.15)';" 
+                 onmouseout="this.style.transform=''; this.style.boxShadow='';">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1" style="<?php echo $titleStyles; ?>">
+                                Cancelled Reservations
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" style="<?php echo $numberStyles; ?>">
+                                <?php echo $totalCancelledCount; ?>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-ban fa-2x text-gray-300" style="<?php echo $iconStyles; ?>"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <a href="reservation_history.php?status=Cancelled" class="text-danger small">
+                        View Details <i class="fas fa-chevron-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- End Statistics Dashboard -->
 </div>
 <!-- End of Main Content -->
 
@@ -448,10 +531,11 @@ $checkboxStyles = "margin: 0; vertical-align: middle;";
     <i class="fas fa-angle-up"></i>
 </a>
 
+<!-- Context Menu -->
 <div class="context-menu" style="display: none; position: absolute; z-index: 1000; background: white; border: 1px solid #ddd; border-radius: 4px; box-shadow: 2px 2px 5px rgba(0,0,0,0.1);">
     <ul class="list-group">
         <li class="list-group-item" data-action="ready" style="cursor: pointer; padding: 8px 20px;">Mark as Ready</li>
-        <li class="list-group-item" data-action="received" style="cursor: pointer; padding: 8px 20px;">Mark as Received</li>
+        <li class="list-group-item" data-action="received" style="cursor: pointer; padding: 8px 20px;">Issue Book</li>
         <li class="list-group-item" data-action="cancel" style="cursor: pointer; padding: 8px 20px;">Cancel Reservation</li>
     </ul>
 </div>
@@ -465,15 +549,17 @@ $checkboxStyles = "margin: 0; vertical-align: middle;";
         // Toggle filter form visibility
         $('#toggleFilter').on('click', function() {
             $('#filterForm').toggleClass('d-none');
+            
+            // Update button text based on visibility
+            const isVisible = !$('#filterForm').hasClass('d-none');
+            $(this).html(isVisible ? 
+                '<i class="fas fa-times"></i> Hide Filter' : 
+                '<i class="fas fa-filter"></i> Show Filter');
         });
 
         // Reset filters
         $('#resetFilters').on('click', function(e) {
-            // Prevent default form submission
             e.preventDefault();
-            
-            // Store the current visibility state of the filter form
-            const isFilterVisible = !$('#filterForm').hasClass('d-none');
             
             // Clear all filter values
             $('#status').val('');
@@ -482,71 +568,11 @@ $checkboxStyles = "margin: 0; vertical-align: middle;";
             $('#user').val('');
             $('#book').val('');
             
-            // Update the filter summary to indicate no filters
-            $('#filterSummary').addClass('d-none');
-            
-            // Reload the current page with no filters but don't hide the filter form
-            $.ajax({
-                url: 'book_reservations.php',
-                type: 'GET',
-                success: function(data) {
-                    // Extract the table content from the response
-                    let tableHtml = $(data).find('#dataTable').parent().html();
-                    // Update just the table content, not the whole page
-                    $('.table-responsive').html(tableHtml);
-                    
-                    // Reinitialize DataTable
-                    initializeDataTable();
-                    
-                    // Restore the filter form visibility state
-                    if (isFilterVisible) {
-                        $('#filterForm').removeClass('d-none');
-                    }
-                }
-            });
+            // Submit the form
+            $('#reservationsFilterForm').submit();
         });
         
-        // Handle form submission (Apply filters)
-        $('#reservationsFilterForm').on('submit', function(e) {
-            e.preventDefault();
-            
-            // Store the current visibility state of the filter form
-            const isFilterVisible = !$('#filterForm').hasClass('d-none');
-            
-            // Submit the form using AJAX
-            $.ajax({
-                url: 'book_reservations.php',
-                type: 'GET',
-                data: $(this).serialize(),
-                success: function(data) {
-                    // Extract the relevant parts from the response
-                    let tableHtml = $(data).find('#dataTable').parent().html();
-                    let filterSummaryHtml = $(data).find('#filterSummary').html();
-                    
-                    // Update parts of the page
-                    $('.table-responsive').html(tableHtml);
-                    $('#filterSummary').html(filterSummaryHtml);
-                    
-                    // Show or hide the filter summary based on whether filters are applied
-                    if ($('#status').val() || $('#date_start').val() || $('#date_end').val() || 
-                        $('#user').val() || $('#book').val()) {
-                        $('#filterSummary').removeClass('d-none');
-                    } else {
-                        $('#filterSummary').addClass('d-none');
-                    }
-                    
-                    // Reinitialize DataTable
-                    initializeDataTable();
-                    
-                    // Restore the filter form visibility state
-                    if (isFilterVisible) {
-                        $('#filterForm').removeClass('d-none');
-                    }
-                }
-            });
-        });
-        
-        // Function to initialize DataTable with consistent settings
+        // Initialize DataTable with consistent settings
         function initializeDataTable() {
             if ($.fn.DataTable.isDataTable('#dataTable')) {
                 $('#dataTable').DataTable().destroy();
@@ -560,283 +586,110 @@ $checkboxStyles = "margin: 0; vertical-align: middle;";
                 "pageLength": 10,
                 "lengthMenu": [[10, 25, 50, 100, 500], [10, 25, 50, 100, 500]],
                 "responsive": false,
-                "scrollY": "60vh",
+                "scrollX": true,
                 "scrollCollapse": true,
-                "fixedHeader": true,
                 "ordering": true,
-                "order": [[1, 'asc']], // Default sort by second column (user)
+                "order": [[3, 'desc']], // Default sort by reserve date (newest first)
                 "columnDefs": [
-                    { "orderable": false, "targets": 0, "searchable": false } // Disable sorting for checkbox column completely
+                    { "orderable": false, "targets": 0, "searchable": false }, // Disable sorting for checkbox column
+                    { "orderable": false, "targets": 5, "searchable": false }  // Disable sorting for actions column
                 ],
                 "language": {
-                    "search": "_INPUT_",
-                    "searchPlaceholder": "Search..."
+                    "searchPlaceholder": "Search...",
+                    "emptyTable": "No reservations found",
+                    "zeroRecords": "No matching reservations found"
                 },
                 "initComplete": function() {
                     $('#dataTable_filter input').addClass('form-control form-control-sm');
-                    $('#dataTable_filter').addClass('d-flex align-items-center');
-                    $('#dataTable_filter label').append('<i class="fas fa-search ml-2"></i>');
-                    $('.dataTables_paginate .paginate_button').addClass('btn btn-sm btn-outline-primary mx-1');
+                    $('[data-toggle="tooltip"]').tooltip();
+                    updateRowSelectionState();
                 }
             });
             
-            // Re-bind checkbox events
-            $('#selectAll').change(function() {
-                const isChecked = $(this).prop('checked');
-                $('.reservation-checkbox').each(function() {
-                    const status = $(this).closest('tr').data('status');
-                    // Only allow selection of Pending and Ready items
-                    if (status === 'Pending' || status === 'Ready') {
-                        $(this).prop('checked', isChecked);
-                    } else {
-                        $(this).prop('checked', false);
-                        $(this).prop('disabled', true);
-                    }
-                });
-                updateBulkButtons();
-            });
-            
-            $(document).on('change', '.reservation-checkbox', function() {
-                const totalCheckable = $('.reservation-checkbox').filter(function() {
-                    const status = $(this).closest('tr').find('td:eq(5) span').text().trim();
-                    return status === 'Pending' || status === 'Ready';
-                }).length;
-                
-                const totalChecked = $('.reservation-checkbox:checked').length;
-                
-                $('#selectAll').prop({
-                    'checked': totalChecked > 0 && totalChecked === totalCheckable,
-                    'indeterminate': totalChecked > 0 && totalChecked < totalCheckable
-                });
-                
-                updateBulkButtons();
-            });
+            return table;
         }
 
-        // Add inline style for context menu hover
-        $('.context-menu .list-group-item').hover(
-            function() { $(this).css('background-color', '#f8f9fa'); },
-            function() { $(this).css('background-color', ''); }
-        );
-
-        // Add style for table rows
-        $('tr[data-reservation-id]').css('cursor', 'context-menu');
-
-        // Add CSS to hide sorting icons for checkbox column
-        $('<style>')
-            .text(`
-                #dataTable thead th:first-child.sorting::before,
-                #dataTable thead th:first-child.sorting::after,
-                #dataTable thead th:first-child.sorting_asc::before,
-                #dataTable thead th:first-child.sorting_asc::after,
-                #dataTable thead th:first-child.sorting_desc::before,
-                #dataTable thead th:first-child.sorting_desc::after {
-                    display: none !important;
-                }
-            `)
-            .appendTo('head');
-
-        const table = $('#dataTable').DataTable({
-            "dom": "<'row mb-3'<'col-sm-6'l><'col-sm-6 d-flex justify-content-end'f>>" +
-                   "<'row'<'col-sm-12'tr>>" +
-                   "<'row mt-3'<'col-sm-5'i><'col-sm-7 d-flex justify-content-end'p>>",
-            "pagingType": "simple_numbers",
-            "pageLength": 10,
-            "lengthMenu": [[10, 25, 50, 100, 500], [10, 25, 50, 100, 500]],
-            "responsive": false,
-            "scrollY": "60vh",
-            "scrollCollapse": true,
-            "fixedHeader": true,
-            "ordering": true,
-            "order": [[1, 'asc']], // Default sort by second column (user)
-            "columnDefs": [
-                { "orderable": false, "targets": 0, "searchable": false } // Disable sorting for checkbox column completely
-            ],
-            "language": {
-                "search": "_INPUT_",
-                "searchPlaceholder": "Search..."
-            },
-            "initComplete": function() {
-                $('#dataTable_filter input').addClass('form-control form-control-sm');
-                $('#dataTable_filter').addClass('d-flex align-items-center');
-                $('#dataTable_filter label').append('<i class="fas fa-search ml-2"></i>');
-                $('.dataTables_paginate .paginate_button').addClass('btn btn-sm btn-outline-primary mx-1');
-            }
-        });
+        // Initialize the DataTable
+        const table = initializeDataTable();
 
         // Add window resize handler
         $(window).on('resize', function() {
             table.columns.adjust().draw();
         });
 
+        // Style for all action buttons
         const contextMenu = $('.context-menu');
         let $selectedRow = null;
 
-        // Right-click handler for table rows
-        $('#dataTable tbody').on('contextmenu', 'tr', function(e) {
+        // Handle Mark as Ready button clicks
+        $(document).on('click', '.mark-ready-btn', function(e) {
             e.preventDefault();
+            const reservationId = $(this).data('id');
             
-            const reservationId = $(this).data('reservation-id');
-            if (!reservationId) return;
-
-            $selectedRow = $(this);
-            const status = $selectedRow.data('status');
-
-            // Don't show menu for completed states
-            if (status === 'Cancelled' || status === 'Received') {
-                return;
-            }
-
-            // Show/hide menu items based on status
-            $(".context-menu .list-group-item").hide(); // Hide all items by default
-
-            if (status === 'Pending') {
-                // For pending items, show only Ready and Cancel options
-                $(".context-menu .list-group-item[data-action='ready']").show();
-                $(".context-menu .list-group-item[data-action='cancel']").show();
-            } else if (status === 'Ready') {
-                // For ready items, show only Received and Cancel options
-                $(".context-menu .list-group-item[data-action='received']").show();
-                $(".context-menu .list-group-item[data-action='cancel']").show();
-            }
-
-            contextMenu.css({
-                top: e.pageY + "px",
-                left: e.pageX + "px",
-                display: "block"
+            Swal.fire({
+                title: 'Mark as Ready?',
+                text: 'Do you want to mark this reservation as ready for pickup?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, Mark as Ready',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#6c757d'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = `reservation_ready.php?id=${reservationId}`;
+                }
             });
         });
 
-        // Hide context menu on document click
-        $(document).on('click', function() {
-            contextMenu.hide();
-        });
-
-        // Prevent hiding when clicking menu items
-        $('.context-menu').on('click', function(e) {
-            e.stopPropagation();
-        });
-
-        // Handle menu item clicks
-        $(".context-menu li").on('click', function() {
-            if (!$selectedRow) return;
-
-            const reservationId = $selectedRow.data('reservation-id');
-            const action = $(this).data('action');
-            const status = $selectedRow.data('status');
-            let url = '';
-            let confirmConfig = {};
-
-            // Validate action against current status
-            if ((action === 'ready' && status !== 'Pending') ||
-                (action === 'received' && status !== 'Ready') ||
-                (action === 'cancel' && !['Pending', 'Ready'].includes(status))) {
-                Swal.fire({
-                    title: 'Invalid Action',
-                    text: 'This action cannot be performed on the current reservation status.',
-                    icon: 'error'
-                });
-                contextMenu.hide();
-                return;
-            }
-
-            switch(action) {
-                case 'ready':
-                    url = 'reservation_ready.php';
-                    confirmConfig = {
-                        title: 'Mark as Ready?',
-                        text: 'Are you sure you want to mark this reservation as ready?',
-                        icon: 'question',
-                        confirmButtonText: 'Yes, Mark as Ready',
-                        confirmButtonColor: '#3085d6'
-                    };
-                    break;
-                case 'received':
-                    url = 'reservation_receive.php';
-                    confirmConfig = {
-                        title: 'Mark as Received?',
-                        text: 'Are you sure you want to mark this reservation as received and create a borrowing record? This action cannot be undone.',
-                        icon: 'warning',
-                        confirmButtonText: 'Yes, Mark as Received',
-                        confirmButtonColor: '#28a745'
-                    };
-                    break;
-                case 'cancel':
-                    url = 'reservation_cancel.php';
-                    confirmConfig = {
-                        title: 'Cancel Reservation?',
-                        text: 'Are you sure you want to cancel this reservation?',
-                        icon: 'warning',
-                        confirmButtonText: 'Yes, Cancel It',
-                        confirmButtonColor: '#dc3545'
-                    };
-                    break;
-            }
-
-            if (url && confirmConfig) {
-                Swal.fire({
-                    ...confirmConfig,
-                    showCancelButton: true,
-                    cancelButtonText: 'No, Keep It',
-                    cancelButtonColor: '#6c757d',
-                    allowOutsideClick: false,
-                    allowEscapeKey: false,
-                    showLoaderOnConfirm: true,
-                    preConfirm: () => {
-                        return fetch(`${url}?id=${reservationId}`)
-                            .then(response => response.json())
-                            .then(data => {
-                                if (!data.success) {
-                                    throw new Error(data.message || 'Error processing request');
-                                }
-                                return data;
-                            })
-                            .catch(error => {
-                                Swal.showValidationMessage(`Request failed: ${error.message}`);
-                            });
-                    }
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        const actionTexts = {
-                            'ready': 'marked as ready',
-                            'received': 'received and borrowing record created',
-                            'cancel': 'cancelled'
-                        };
-                        
-                        Swal.fire({
-                            title: 'Success!',
-                            text: `The reservation has been ${actionTexts[action]}.`,
-                            icon: 'success',
-                            confirmButtonColor: '#3085d6'
-                        }).then(() => {
-                            window.location.reload();
-                        });
-                    }
-                });
-            }
+        // Handle Issue Book button clicks
+        $(document).on('click', '.issue-book-btn', function(e) {
+            e.preventDefault();
+            const reservationId = $(this).data('id');
             
-            contextMenu.hide();
+            Swal.fire({
+                title: 'Issue Book?',
+                text: 'Do you want to issue this book to the user?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, Issue Book',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = `reservation_receive.php?id=${reservationId}`;
+                }
+            });
         });
 
-        // Add custom styles for the context menu
+        // Handle Cancel Reservation button clicks
+        $(document).on('click', '.cancel-btn', function(e) {
+            e.preventDefault();
+            const reservationId = $(this).data('id');
+            
+            Swal.fire({
+                title: 'Cancel Reservation?',
+                text: 'Do you want to cancel this reservation?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, Cancel It',
+                cancelButtonText: 'No, Keep It',
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = `reservation_cancel.php?id=${reservationId}&admin=1`;
+                }
+            });
+        });
+
+        // Add inline styles for selection visual feedback
         $('<style>')
             .text(`
-                .context-menu {
-                    background: white;
-                    border: 1px solid #ddd;
-                    border-radius: 4px;
-                    box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
-                }
-                .context-menu .list-group-item {
-                    cursor: pointer;
-                    padding: 8px 20px;
-                }
-                .context-menu .list-group-item:hover {
-                    background-color: #f8f9fa;
-                }
-                tr[data-reservation-id] {
-                    cursor: context-menu;
-                }
+                .selected { background-color: rgba(0, 123, 255, 0.1); }
+                #checkboxHeader { cursor: pointer; }
+                .reservation-checkbox { cursor: pointer; }
             `)
             .appendTo('head');
 
@@ -844,384 +697,310 @@ $checkboxStyles = "margin: 0; vertical-align: middle;";
         $('#selectAll').change(function() {
             const isChecked = $(this).prop('checked');
             $('.reservation-checkbox').each(function() {
-                const status = $(this).closest('tr').data('status');
-                // Only allow selection of Pending and Ready items
-                if (status === 'Pending' || status === 'Ready') {
-                    $(this).prop('checked', isChecked);
-                } else {
-                    $(this).prop('checked', false);
-                    $(this).prop('disabled', true);
-                }
+                $(this).prop('checked', isChecked);
             });
+            updateRowSelectionState();
             updateBulkButtons();
         });
 
         // Handle individual checkboxes
         $(document).on('change', '.reservation-checkbox', function() {
-            const totalCheckable = $('.reservation-checkbox').filter(function() {
-                const status = $(this).closest('tr').find('td:eq(5) span').text().trim();
-                return status === 'Pending' || status === 'Ready';
-            }).length;
-            
-            const totalChecked = $('.reservation-checkbox:checked').length;
-            
-            $('#selectAll').prop({
-                'checked': totalChecked > 0 && totalChecked === totalCheckable,
-                'indeterminate': totalChecked > 0 && totalChecked < totalCheckable
-            });
-            
+            updateRowSelectionState();
             updateBulkButtons();
         });
 
-        // Update bulk cancel button visibility
+        // Update bulk button states based on selections
         function updateBulkButtons() {
-            const checkedBoxes = $('.reservation-checkbox:checked').length;
-            $('#selectedCount, #selectedCountReady, #selectedCountReceive').text(checkedBoxes);
-            $('#bulkCancelBtn, #bulkReadyBtn, #bulkReceiveBtn').prop('disabled', checkedBoxes === 0);
+            const total = $('.reservation-checkbox:checked').length;
+            const totalPending = $('.reservation-checkbox:checked[data-status="Pending"]').length;
+            const totalReady = $('.reservation-checkbox:checked[data-status="Ready"]').length;
+            
+            $('#selectedCount').text(total);
+            $('#selectedCountReady').text(totalPending);
+            $('#selectedCountReceive').text(totalReady);
+            
+            $('#bulkCancelBtn').prop('disabled', total === 0);
+            $('#bulkReadyBtn').prop('disabled', totalPending === 0);
+            $('#bulkReceiveBtn').prop('disabled', totalReady === 0);
+            
+            // Log for debugging
+            console.log(`Total selected: ${total}, Pending: ${totalPending}, Ready: ${totalReady}`);
         }
 
-        // Handle bulk cancel button click
-        $('#bulkCancelBtn').click(function() {
-            const selectedIds = [];
-            const invalidSelections = [];
-            
-            $('.reservation-checkbox:checked').each(function() {
-                const $row = $(this).closest('tr');
-                const status = $row.data('status');
-                const bookTitle = $row.find('td:eq(2)').text();
-                const borrower = $row.find('td:eq(1)').text();
-                
-                if (status === 'Pending' || status === 'Ready') {
-                    selectedIds.push($(this).data('id'));
-                } else {
-                    invalidSelections.push(`${bookTitle} - ${borrower} (${status})`);
-                }
-            });
-
-            // Show error if any invalid selections
-            if (invalidSelections.length > 0) {
-                let errorMessage = 'Only pending or ready reservations can be cancelled:<ul class="list-group mt-3">';
-                invalidSelections.forEach(item => {
-                    errorMessage += `<li class="list-group-item text-danger">${item}</li>`;
-                });
-                errorMessage += '</ul>';
-                
-                Swal.fire({
-                    title: 'Invalid Selections',
-                    html: errorMessage,
-                    icon: 'warning'
-                });
-                return;
-            }
-
-            if (selectedIds.length === 0) return;
-
-            Swal.fire({
-                title: 'Cancel Multiple Reservations?',
-                text: `Are you sure you want to cancel ${selectedIds.length} reservation(s)?`,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#dc3545',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Yes, Cancel Them',
-                cancelButtonText: 'No, Keep Them',
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                showLoaderOnConfirm: true,
-                preConfirm: () => {
-                    return fetch('reservation_cancel.php', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ ids: selectedIds })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (!data.success) {
-                            throw new Error(data.message || 'Error cancelling reservations');
-                        }
-                        return data;
-                    })
-                    .catch(error => {
-                        Swal.showValidationMessage(`Request failed: ${error}`);
-                    });
-                }
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    Swal.fire({
-                        title: 'Success!',
-                        text: 'The selected reservations have been cancelled.',
-                        icon: 'success',
-                        confirmButtonColor: '#3085d6'
-                    }).then(() => {
-                        window.location.reload();
-                    });
-                }
-            });
-        });
-
-        // Add bulk ready button handler
-        $('#bulkReadyBtn').click(function() {
-            const selectedIds = [];
-            const invalidSelections = [];
-            
-            $('.reservation-checkbox:checked').each(function() {
-                const $row = $(this).closest('tr');
-                const status = $row.data('status');
-                const bookTitle = $row.find('td:eq(2)').text();
-                const borrower = $row.find('td:eq(1)').text();
-                
-                if (status === 'Pending') {
-                    selectedIds.push($(this).data('id'));
-                } else {
-                    invalidSelections.push(`${bookTitle} - ${borrower} (${status})`);
-                }
-            });
-
-            // Show error if any invalid selections
-            if (invalidSelections.length > 0) {
-                let errorMessage = 'Only pending reservations can be marked as ready:<ul class="list-group mt-3">';
-                invalidSelections.forEach(item => {
-                    errorMessage += `<li class="list-group-item text-danger">${item}</li>`;
-                });
-                errorMessage += '</ul>';
-                
-                Swal.fire({
-                    title: 'Invalid Selections',
-                    html: errorMessage,
-                    icon: 'warning'
-                });
-                return;
-            }
-
-            if (selectedIds.length === 0) return;
-
-            Swal.fire({
-                title: 'Mark Reservations as Ready?',
-                text: `Are you sure you want to mark ${selectedIds.length} reservation(s) as ready?`,
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Yes, Mark as Ready',
-                cancelButtonText: 'Cancel',
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                showLoaderOnConfirm: true,
-                preConfirm: () => {
-                    return fetch('reservation_ready.php', {  // Changed from reservation_bulk_ready.php
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ ids: selectedIds })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (!data.success) {
-                            throw new Error(data.message || 'Error updating reservations');
-                        }
-                        return data;
-                    })
-                    .catch(error => {
-                        Swal.showValidationMessage(`Request failed: ${error}`);
-                    });
-                }
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    Swal.fire({
-                        title: 'Success!',
-                        text: 'The selected reservations have been marked as ready.',
-                        icon: 'success',
-                        confirmButtonColor: '#3085d6'
-                    }).then(() => {
-                        window.location.reload();
-                    });
-                }
-            });
-        });
-
-        // Add bulk receive button handler
-        $('#bulkReceiveBtn').click(function() {
-            const selectedIds = [];
-            const selectedBooks = [];
-            const invalidSelections = [];
-            
-            $('.reservation-checkbox:checked').each(function() {
-                const $row = $(this).closest('tr');
-                const status = $row.data('status');
-                const bookTitle = $row.find('td:eq(2)').text();
-                const borrower = $row.find('td:eq(1)').text();
-                
-                if (status === 'Ready') {
-                    selectedIds.push($(this).data('id'));
-                    selectedBooks.push({
-                        title: bookTitle,
-                        borrower: borrower
-                    });
-                } else {
-                    invalidSelections.push(`${bookTitle} - ${borrower} (${status})`);
-                }
-            });
-
-            if (invalidSelections.length > 0) {
-                let errorMessage = 'The following reservations must be marked as Ready first:<ul class="list-group mt-3">';
-                invalidSelections.forEach(item => {
-                    errorMessage += `<li class="list-group-item text-danger">${item}</li>`;
-                });
-                errorMessage += '</ul>';
-                
-                Swal.fire({
-                    title: 'Invalid Selections',
-                    html: errorMessage,
-                    icon: 'warning'
-                });
-                return;
-            }
-
-            let booksListHtml = '<ul class="list-group mt-3">';
-            selectedBooks.forEach(book => {
-                booksListHtml += `<li class="list-group-item">${book.title} - ${book.borrower}</li>`;
-            });
-            booksListHtml += '</ul>';
-
-            Swal.fire({
-                title: 'Mark Reservations as Received?',
-                html: `Are you sure you want to mark these books as received?${booksListHtml}`,
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#28a745',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Yes, Mark as Received',
-                cancelButtonText: 'Cancel',
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                showLoaderOnConfirm: true,
-                preConfirm: () => {
-                    return fetch('reservation_receive.php', { // Fix URL here too
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ ids: selectedIds })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (!data.success) {
-                            throw new Error(data.message || 'Error processing reservations');
-                        }
-                        return data;
-                    })
-                    .catch(error => {
-                        Swal.showValidationMessage(`Request failed: ${error}`);
-                    });
-                }
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    Swal.fire({
-                        title: 'Success!',
-                        text: 'The selected reservations have been marked as received.',
-                        icon: 'success',
-                        confirmButtonColor: '#28a745'
-                    }).then(() => {
-                        window.location.reload();
-                    });
-                }
-            });
-        });
-        
-        // Function to update the highlighting of selected rows
+        // Function to update the row selection visual state
         function updateRowSelectionState() {
-            // First, remove the selected class from all rows
             $('#dataTable tbody tr').removeClass('selected');
             
-            // Then add it only to rows with checked checkboxes
             $('.reservation-checkbox:checked').each(function() {
                 $(this).closest('tr').addClass('selected');
             });
             
-            // Update button states
-            updateBulkButtons();
+            // Update select all checkbox state
+            const totalCheckboxes = $('.reservation-checkbox').length;
+            const totalChecked = $('.reservation-checkbox:checked').length;
+            
+            $('#selectAll').prop({
+                'checked': totalChecked > 0 && totalChecked === totalCheckboxes,
+                'indeterminate': totalChecked > 0 && totalChecked < totalCheckboxes
+            });
         }
-        
-        // Handle row clicks to select/deselect rows
+
+        // Handle row clicks to toggle checkbox
         $('#dataTable tbody').on('click', 'tr', function(e) {
-            // Ignore clicks on checkbox itself and on action buttons
-            if (e.target.type === 'checkbox' || $(e.target).hasClass('btn') || $(e.target).parent().hasClass('btn')) {
+            // Ignore if clicked on a button or checkbox
+            if ($(e.target).is('button, input, a, .btn, i') || $(e.target).parents('button, a, .btn').length) {
                 return;
             }
             
             const checkbox = $(this).find('.reservation-checkbox');
-            if (checkbox.is(':disabled')) return;
-            
             checkbox.prop('checked', !checkbox.prop('checked')).trigger('change');
         });
         
-        // Update row selection when checkbox state changes
-        $(document).on('change', '.reservation-checkbox', function() {
-            const $row = $(this).closest('tr');
-            
-            if ($(this).prop('checked')) {
-                $row.addClass('selected');
-            } else {
-                $row.removeClass('selected');
+        // Handle checkbox header click
+        $('#checkboxHeader').on('click', function(e) {
+            if (e.target.type !== 'checkbox') {
+                $('#selectAll').prop('checked', !$('#selectAll').prop('checked')).trigger('change');
             }
+        });
+
+        // Handle bulk cancel button
+        $('#bulkCancelBtn').click(function() {
+            const selectedIds = [];
+            const selectedBookDetails = [];
             
-            const totalCheckable = $('.reservation-checkbox').filter(function() {
-                const status = $(this).closest('tr').find('td:eq(5) span').text().trim();
-                return status === 'Pending' || status === 'Ready';
-            }).length;
-            
-            const totalChecked = $('.reservation-checkbox:checked').length;
-            
-            $('#selectAll').prop({
-                'checked': totalChecked > 0 && totalChecked === totalCheckable,
-                'indeterminate': totalChecked > 0 && totalChecked < totalCheckable
+            $('.reservation-checkbox:checked').each(function() {
+                const $row = $(this).closest('tr');
+                selectedIds.push($(this).data('id'));
+                const bookTitle = $row.find('.book-details-title').text().trim();
+                const userName = $row.find('td:eq(1) strong').text().trim();
+                selectedBookDetails.push(`${bookTitle} (${userName})`);
             });
             
-            updateBulkButtons();
-        });
-        
-        // Handle select all checkbox
-        $('#selectAll').change(function() {
-            const isChecked = $(this).prop('checked');
-            $('.reservation-checkbox').each(function() {
-                const $row = $(this).closest('tr');
-                const status = $row.data('status');
-                
-                // Only allow selection of Pending and Ready items
-                if (status === 'Pending' || status === 'Ready') {
-                    $(this).prop('checked', isChecked);
+            if (selectedIds.length === 0) return;
+            
+            let message = `<p>Are you sure you want to cancel ${selectedIds.length} reservation(s)?</p>`;
+            
+            if (selectedBookDetails.length > 0) {
+                message += `<div style="max-height: 200px; overflow-y: auto; margin-top: 10px; text-align: left;">
+                    <ul>
+                        ${selectedBookDetails.map(detail => `<li>${detail}</li>`).join('')}
+                    </ul>
+                </div>`;
+            }
+            
+            Swal.fire({
+                title: 'Cancel Multiple Reservations',
+                html: message,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, Cancel Them',
+                cancelButtonText: 'No, Keep Them',
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Create a form to submit the IDs
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = 'reservation_bulk_cancel.php';
                     
-                    if (isChecked) {
-                        $row.addClass('selected');
-                    } else {
-                        $row.removeClass('selected');
-                    }
+                    // Add IDs as hidden fields
+                    selectedIds.forEach(id => {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = 'reservation_ids[]';
+                        input.value = id;
+                        form.appendChild(input);
+                    });
+                    
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+        });
+
+        // Handle bulk ready button
+        $('#bulkReadyBtn').click(function() {
+            const selectedIds = [];
+            const selectedBooks = [];
+            
+            $('.reservation-checkbox:checked').each(function() {
+                const status = $(this).data('status');
+                if (status === 'Pending') {
+                    selectedIds.push($(this).data('id'));
+                    const $row = $(this).closest('tr');
+                    const bookTitle = $row.find('.book-details-title').text().trim();
+                    const userName = $row.find('td:eq(1) strong').text().trim();
+                    selectedBooks.push({ title: bookTitle, borrower: userName });
                 }
             });
             
-            updateBulkButtons();
-        });
-        
-        // Handle header checkbox cell click
-        $(document).on('click', '#checkboxHeader', function(e) {
-            // If the click was directly on the checkbox, don't execute this handler
-            if (e.target.type === 'checkbox') return;
+            if (selectedIds.length === 0) {
+                Swal.fire({
+                    title: 'No Eligible Reservations',
+                    text: 'Please select reservations with "Pending" status.',
+                    icon: 'info'
+                });
+                return;
+            }
             
-            // Find and toggle the checkbox
-            var checkbox = $('#selectAll');
-            checkbox.prop('checked', !checkbox.prop('checked')).trigger('change');
+            let booksListHtml = '<ul class="text-left mt-3">';
+            selectedBooks.forEach(book => {
+                booksListHtml += `<li>${book.title} - ${book.borrower}</li>`;
+            });
+            booksListHtml += '</ul>';
+            
+            Swal.fire({
+                title: 'Mark Books as Ready for Pickup?',
+                html: `Are you sure you want to mark ${selectedIds.length} book(s) as ready for pickup?${booksListHtml}`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, Mark as Ready',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#6c757d'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Use AJAX to send the IDs for marking as ready
+                    $.ajax({
+                        url: 'reservation_ready.php',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({ ids: selectedIds }),
+                        success: function(response) {
+                            try {
+                                const result = typeof response === 'object' ? response : JSON.parse(response);
+                                if (result.success) {
+                                    Swal.fire({
+                                        title: 'Success!',
+                                        text: 'Books marked as ready for pickup',
+                                        icon: 'success'
+                                    }).then(() => {
+                                        location.reload();
+                                    });
+                                } else {
+                                    Swal.fire({
+                                        title: 'Error',
+                                        text: result.message || 'Failed to mark books as ready',
+                                        icon: 'error'
+                                    });
+                                }
+                            } catch (e) {
+                                console.error("Error processing response:", e, response);
+                                Swal.fire({
+                                    title: 'Error',
+                                    text: 'An unexpected error occurred',
+                                    icon: 'error'
+                                });
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            console.error("AJAX Error:", status, error);
+                            Swal.fire({
+                                title: 'Error',
+                                text: 'Failed to communicate with the server',
+                                icon: 'error'
+                            });
+                        }
+                    });
+                }
+            });
         });
-        
-        // Initialize row selection states after DataTable is fully loaded
-        $('#dataTable').on('draw.dt', function() {
-            updateRowSelectionState();
+
+        // Handle bulk receive button
+        $('#bulkReceiveBtn').click(function() {
+            const selectedIds = [];
+            const selectedBooks = [];
+            
+            $('.reservation-checkbox:checked').each(function() {
+                const status = $(this).data('status');
+                if (status === 'Ready') {
+                    selectedIds.push($(this).data('id'));
+                    const $row = $(this).closest('tr');
+                    const bookTitle = $row.find('.book-details-title').text().trim();
+                    const userName = $row.find('td:eq(1) strong').text().trim();
+                    selectedBooks.push({ title: bookTitle, borrower: userName });
+                }
+            });
+            
+            if (selectedIds.length === 0) {
+                Swal.fire({
+                    title: 'No Eligible Reservations',
+                    text: 'Please select reservations with "Ready" status.',
+                    icon: 'info'
+                });
+                return;
+            }
+            
+            let booksListHtml = '<ul class="text-left mt-3">';
+            selectedBooks.forEach(book => {
+                booksListHtml += `<li>${book.title} - ${book.borrower}</li>`;
+            });
+            booksListHtml += '</ul>';
+            
+            Swal.fire({
+                title: 'Issue Books to Users?',
+                html: `Are you sure you want to issue ${selectedIds.length} book(s) to the users?${booksListHtml}`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, Issue Books',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Use AJAX to send the IDs for issuing books
+                    $.ajax({
+                        url: 'reservation_receive.php',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({ ids: selectedIds }),
+                        success: function(response) {
+                            try {
+                                const result = typeof response === 'object' ? response : JSON.parse(response);
+                                if (result.success) {
+                                    Swal.fire({
+                                        title: 'Success!',
+                                        text: 'Books issued to users successfully',
+                                        icon: 'success'
+                                    }).then(() => {
+                                        location.reload();
+                                    });
+                                } else {
+                                    Swal.fire({
+                                        title: 'Error',
+                                        text: result.message || 'Failed to issue books',
+                                        icon: 'error'
+                                    });
+                                }
+                            } catch (e) {
+                                console.error("Error processing response:", e, response);
+                                Swal.fire({
+                                    title: 'Error',
+                                    text: 'An unexpected error occurred',
+                                    icon: 'error'
+                                });
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            console.error("AJAX Error:", status, error);
+                            Swal.fire({
+                                title: 'Error',
+                                text: 'Failed to communicate with the server',
+                                icon: 'error'
+                            });
+                        }
+                    });
+                }
+            });
         });
+
+        // Initialize tooltips
+        $('[data-toggle="tooltip"]').tooltip();
         
         // Initialize row selection state on page load
         updateRowSelectionState();
+        updateBulkButtons();
     });
 </script>
 </body>

@@ -94,6 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $copies_for_this_accession = (int)$number_of_copies_array[$i];
             $current_series = mysqli_real_escape_string($conn, $_POST['series'][$i]);
             $current_volume = mysqli_real_escape_string($conn, $_POST['volume'][$i]);
+            $current_part = mysqli_real_escape_string($conn, $_POST['part'][$i]); // Add part field
             $current_edition = mysqli_real_escape_string($conn, $_POST['edition'][$i]);
             $current_isbn = isset($_POST['isbn'][$i]) ? mysqli_real_escape_string($conn, $_POST['isbn'][$i]) : '';
             
@@ -106,16 +107,28 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     mysqli_real_escape_string($conn, $_POST['call_number'][$call_number_index]) : '';
                 $current_shelf_location = isset($_POST['shelf_locations'][$call_number_index]) ? 
                     mysqli_real_escape_string($conn, $_POST['shelf_locations'][$call_number_index]) : '';
+                $current_copy_number = isset($_POST['user_copy_numbers'][$call_number_index]) ? 
+                    mysqli_real_escape_string($conn, $_POST['user_copy_numbers'][$call_number_index]) : $copy_number;
                 $call_number_index++;
 
                 // Format the call number - include volume information if present
                 if (!empty($current_volume)) {
                     // With volume, format: [shelf_location] [call_number] [publish_year] vol[volume_number] c[copy_number]
                     $publish_year = $_SESSION['book_shortcut']['publish_year'] ?? date('Y');
-                    $formatted_call_number = $current_shelf_location . ' ' . $current_call_number . ' ' . $publish_year . ' vol' . $current_volume . ' c' . $copy_number;
+                    
+                    // Build formatted call number with parts
+                    $formatted_call_number = $current_shelf_location . ' ' . $current_call_number . ' ' . $publish_year . ' vol.' . $current_volume;
+                    
+                    // Add part if present
+                    if (!empty($current_part)) {
+                        $formatted_call_number .= ' pt.' . $current_part;
+                    }
+                    
+                    // Add copy number
+                    $formatted_call_number .= ' c.' . $current_copy_number;
                 } else {
                     // Without volume, use standard format: [shelf_location] [call_number] c[copy_number]
-                    $formatted_call_number = $current_shelf_location . ' ' . $current_call_number . ' c' . $copy_number;
+                    $formatted_call_number = $current_shelf_location . ' ' . $current_call_number . ' c' . $current_copy_number;
                 }
 
                 // Check for duplicate accession
@@ -149,7 +162,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     accession, title, preferred_title, parallel_title, 
                     subject_category, subject_detail,
                     summary, contents, front_image, back_image, 
-                    dimension, series, volume, edition, 
+                    dimension, series, volume, part, edition, 
                     copy_number, total_pages, supplementary_contents, ISBN, content_type, 
                     media_type, carrier_type, call_number, URL, 
                     language, shelf_location, entered_by, date_added, 
@@ -158,8 +171,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     '$current_accession', '$title', '$preferred_title', '$parallel_title',
                     '$subject_category', '$subject_detail',
                     '$summary', '$contents', '$front_image', '$back_image',
-                    '$dimension', '$current_series', '$current_volume', '$current_edition',
-                    $copy_number, '$total_pages', '$supplementary_contents', '$current_isbn', '$content_type',
+                    '$dimension', '$current_series', '$current_volume', '$current_part', '$current_edition',
+                    $current_copy_number, '$total_pages', '$supplementary_contents', '$current_isbn', '$content_type',
                     '$media_type', '$carrier_type', '$formatted_call_number', '$url',
                     '$language', '$current_shelf_location', '$entered_by', '$date_added',
                     '$status', '$last_update'
@@ -983,6 +996,12 @@ function updateISBNFields() {
     callNumberContainer.innerHTML = '';
     detailsForAccessionGroupContainer.innerHTML = '';
     
+    // Save existing copy numbers before regenerating
+    const copyNumberValues = {};
+    document.querySelectorAll('.copy-number-input').forEach((input, index) => {
+        copyNumberValues[index] = input.value;
+    });
+    
     // Get all accession groups
     const accessionGroups = document.querySelectorAll('.accession-group');
     
@@ -1003,7 +1022,7 @@ function updateISBNFields() {
         
         // Create ISBN input cell
         const isbnDiv = document.createElement('div');
-        isbnDiv.className = 'col-md-3';
+        isbnDiv.className = 'col-md-2';
         const isbnLabel = document.createElement('small');
         isbnLabel.className = 'd-block';
         isbnLabel.textContent = 'ISBN';
@@ -1018,7 +1037,7 @@ function updateISBNFields() {
         
         // Create Series input cell
         const seriesDiv = document.createElement('div');
-        seriesDiv.className = 'col-md-3';
+        seriesDiv.className = 'col-md-2';
         const seriesLabel = document.createElement('small');
         seriesLabel.className = 'd-block';
         seriesLabel.textContent = 'Series';
@@ -1033,7 +1052,7 @@ function updateISBNFields() {
 
         // Create Volume input cell
         const volumeDiv = document.createElement('div');
-        volumeDiv.className = 'col-md-3';
+        volumeDiv.className = 'col-md-2';
         const volumeLabel = document.createElement('small');
         volumeLabel.className = 'd-block';
         volumeLabel.textContent = 'Volume';
@@ -1046,9 +1065,24 @@ function updateISBNFields() {
         volumeDiv.appendChild(volumeInput);
         rowDiv.appendChild(volumeDiv);
 
+        // Create Part input cell - NEW
+        const partDiv = document.createElement('div');
+        partDiv.className = 'col-md-2';
+        const partLabel = document.createElement('small');
+        partLabel.className = 'd-block';
+        partLabel.textContent = 'Part';
+        const partInput = document.createElement('input');
+        partInput.type = 'text';
+        partInput.className = 'form-control';
+        partInput.name = 'part[]';
+        partInput.placeholder = 'Part';
+        partDiv.appendChild(partLabel);
+        partDiv.appendChild(partInput);
+        rowDiv.appendChild(partDiv);
+
         // Create Edition input cell
         const editionDiv = document.createElement('div');
-        editionDiv.className = 'col-md-3';
+        editionDiv.className = 'col-md-2';
         const editionLabel = document.createElement('small');
         editionLabel.className = 'd-block';
         editionLabel.textContent = 'Edition';
@@ -1070,6 +1104,8 @@ function updateISBNFields() {
         callNumberGroupLabel.textContent = `Call Numbers for Accession Group ${groupIndex + 1}`;
         callNumberContainer.appendChild(callNumberGroupLabel);
         
+        // Track index across all copies for accessing saved copy numbers
+        let globalCopyIndex = 0;
         for (let i = 0; i < copiesCount; i++) {
             const currentAccession = calculateAccession(accessionInput, i);
             
@@ -1085,6 +1121,26 @@ function updateISBNFields() {
             callNumberInput.className = 'form-control call-number-input';
             callNumberInput.name = 'call_number[]';
             callNumberInput.placeholder = 'Enter call number';
+            
+            // Add Copy Number label and input
+            const copyNumberLabel = document.createElement('span');
+            copyNumberLabel.className = 'input-group-text';
+            copyNumberLabel.textContent = 'Copy Number';
+            
+            const copyNumberInput = document.createElement('input');
+            copyNumberInput.type = 'number';
+            copyNumberInput.className = 'form-control copy-number-input';
+            copyNumberInput.name = 'copy_number[]';
+            copyNumberInput.min = '1';
+            
+            // Use saved copy number if available, otherwise use i+1
+            const copyIndex = globalCopyIndex;
+            globalCopyIndex++;
+            const savedCopyNumber = copyNumberValues[copyIndex];
+            copyNumberInput.value = savedCopyNumber || (i + 1);
+            
+            copyNumberInput.style.width = '70px';
+            copyNumberInput.dataset.originalValue = i + 1; // Store original value for reference
             
             const shelfLocationSelect = document.createElement('select');
             shelfLocationSelect.className = 'form-control shelf-location-select';
@@ -1109,10 +1165,19 @@ function updateISBNFields() {
                 shelfLocationSelect.appendChild(option);
             });
             
+            // Restructure the order of elements
             callNumberDiv.appendChild(accessionLabel);
             callNumberDiv.appendChild(callNumberInput);
+            callNumberDiv.appendChild(copyNumberLabel);
+            callNumberDiv.appendChild(copyNumberInput);
             callNumberDiv.appendChild(shelfLocationSelect);
             callNumberContainer.appendChild(callNumberDiv);
+            
+            // Add event listener to update the call number preview when copy number changes
+            copyNumberInput.addEventListener('input', function() {
+                const callNumberInput = this.closest('.input-group').querySelector('.call-number-input');
+                formatCallNumberDisplay(callNumberInput);
+            });
         }
     });
 }
@@ -1222,6 +1287,18 @@ document.getElementById('bookForm').onsubmit = function(e) {
         return false;
     }
     
+    // Apply copy number values to hidden fields to ensure they're properly submitted
+    document.querySelectorAll('.copy-number-input').forEach(function(input) {
+        const value = input.value.trim();
+        if (value) {
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.name = 'user_copy_numbers[]';
+            hiddenInput.value = value;
+            document.getElementById('bookForm').appendChild(hiddenInput);
+        }
+    });
+    
     if (!confirm('Are you sure you want to add this book?')) {
         e.preventDefault();
         return false;
@@ -1271,8 +1348,10 @@ function formatCallNumber() {
     const copies = document.querySelectorAll('.book-copy');
     
     copies.forEach((copy, index) => {
+        // Use the user-entered copy number rather than the index+1
+        const copyNumberInput = copy.querySelector('input[name="copy_number[]"]');
+        const copyNumber = copyNumberInput ? copyNumberInput.value : (index + 1);
         const shelfLocation = copy.querySelector('select[name="shelf_location[]"]').value;
-        const copyNumber = index + 1;
         
         // Ensure proper spacing between components
         const formattedCallNumber = [
@@ -1300,20 +1379,88 @@ function formatCallNumber() {
     });
 }
 
-// Add event listeners for call number formatting
-document.querySelector('input[name="raw_call_number"]').addEventListener('input', formatCallNumber);
-document.querySelector('input[name="publish_date"]').addEventListener('input', formatCallNumber);
-document.querySelectorAll('select[name="shelf_location[]"]').forEach(select => {
-    select.addEventListener('change', formatCallNumber);
+// Add more specific formatting for call numbers with copy numbers
+function formatCallNumberDisplay(callNumberInput) {
+    if (!callNumberInput) return;
+    
+    const container = callNumberInput.closest('.input-group');
+    if (!container) return;
+    
+    const baseCallNumber = callNumberInput.value.trim();
+    const copyNumberInput = container.querySelector('.copy-number-input');
+    const shelfLocationSelect = container.querySelector('.shelf-location-select');
+    
+    if (!baseCallNumber || !copyNumberInput || !shelfLocationSelect) return;
+    
+    // Use user's copy number value rather than auto-generated
+    const copyNumber = copyNumberInput.value || '1';
+    const shelfLocation = shelfLocationSelect.value;
+    const publishYear = document.getElementById('publish_date')?.value || '';
+    
+    // Build formatted call number with proper spacing
+    const formattedCallNumber = [
+        shelfLocation,
+        baseCallNumber,
+        publishYear
+    ].filter(Boolean).join(' ');
+    
+    // Get the volume and part if available
+    const accessionGroup = container.closest('[data-accession-group]')?.dataset?.accessionGroup;
+    let volumeText = '';
+    let partText = '';
+    
+    if (accessionGroup !== undefined) {
+        const volumeInputs = document.querySelectorAll('input[name="volume[]"]');
+        if (volumeInputs[accessionGroup] && volumeInputs[accessionGroup].value) {
+            volumeText = 'vol.' + volumeInputs[accessionGroup].value;
+        }
+        
+        const partInputs = document.querySelectorAll('input[name="part[]"]');
+        if (partInputs[accessionGroup] && partInputs[accessionGroup].value) {
+            partText = 'pt.' + partInputs[accessionGroup].value;
+        }
+    }
+    
+    // Build the final call number with all components
+    const finalCallNumber = [
+        formattedCallNumber,
+        volumeText,
+        partText,
+        'c.' + copyNumber
+    ].filter(Boolean).join(' ');
+    
+    // Create or update preview element
+    let previewElem = container.querySelector('.call-number-preview');
+    if (!previewElem) {
+        previewElem = document.createElement('small');
+        previewElem.className = 'call-number-preview text-muted';
+        previewElem.style.position = 'absolute';
+        previewElem.style.right = '120px';
+        previewElem.style.top = '50%';
+        previewElem.style.transform = 'translateY(-50%)';
+        container.style.position = 'relative';
+        container.appendChild(previewElem);
+    }
+    
+    previewElem.textContent = `→ ${finalCallNumber}`;
+    callNumberInput.setAttribute('data-formatted', finalCallNumber);
+}
+
+// Add event listener specifically for copy number changes
+document.addEventListener('input', function(e) {
+    if (e.target && e.target.classList.contains('copy-number-input')) {
+        // When copy number changes, update the formatted call number display
+        const callNumberInput = e.target.closest('.input-group')?.querySelector('.call-number-input');
+        if (callNumberInput) {
+            formatCallNumberDisplay(callNumberInput);
+        }
+    }
 });
 
 // Update call numbers when adding/removing copies
 function updateCopyNumbers() {
-    const copies = document.querySelectorAll('.book-copy');
-    copies.forEach((copy, index) => {
-        const copyNum = index + 1;
-        copy.querySelector('input[name="copy_number[]"]').value = `c${copyNum}`;
+    document.querySelectorAll('.call-number-input').forEach((input) => {
+        formatCallNumberDisplay(input);
     });
-    formatCallNumber();
 }
 </script>

@@ -33,6 +33,11 @@
         }
     </style>
 
+    <script>
+        // Global JavaScript variable to check login status
+        var isLoggedIn = <?php echo (isset($_SESSION['user_id']) || isset($_SESSION['id'])) ? 'true' : 'false'; ?>;
+    </script>
+
 </head>
 
 <body id="page-top">

@@ -12,7 +12,12 @@ $user_id = $_SESSION['user_id'];
 
 $query = "SELECT 
     r.id, 
-    b.title, 
+    b.title,
+    b.ISBN,
+    b.series,
+    b.volume,
+    b.part,
+    b.edition,
     r.reserve_date, 
     r.ready_date,
     CONCAT(a1.firstname, ' ', a1.lastname) as ready_by_name,
@@ -58,20 +63,18 @@ include 'inc/header.php';
         table.dataTable {
             width: 100% !important;
         }
-        @media screen and (max-width: 767px) {
-            .table-responsive {
-                border: none;
-                margin-bottom: 15px;
-            }
+        /* Allow book details column to wrap */
+        .table-responsive table td.book-details {
+            white-space: normal;
         }
-        .table-responsive table td {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+        .book-details-title {
+            font-weight: bold;
+            color: #4e73df;
+            margin-bottom: 5px;
         }
-        .table-responsive table td,
-        .table-responsive table th {
-            vertical-align: middle !important;
+        .book-details-info {
+            color: #666;
+            font-size: 0.9em;
         }
         .badge {
             display: inline-block;
@@ -86,6 +89,30 @@ include 'inc/header.php';
             display: block;
             margin-top: 3px;
         }
+        /* Table styling without vertical lines */
+        .table-no-lines {
+            border-collapse: collapse;
+        }
+        .table-no-lines th,
+        .table-no-lines td {
+            border: none;
+            border-bottom: 1px solid #e3e6f0;
+        }
+        .table-no-lines thead th {
+            border-bottom: 2px solid #e3e6f0;
+            background-color: #f8f9fc;
+        }
+        /* Navigation pills styling - kept for reference */
+        .nav-pills {
+            margin-bottom: 15px;
+        }
+        .nav-pills .nav-link {
+            border-radius: 0.25rem;
+            margin-right: 5px;
+        }
+        .nav-pills .nav-link.active {
+            background-color: #4e73df;
+        }
     </style>
 </head>
 
@@ -95,17 +122,24 @@ include 'inc/header.php';
         <div class="card shadow mb-4">
             <div class="card-header py-3 d-flex justify-content-between align-items-center">
                 <h6 class="m-0 font-weight-bold text-primary">Reservation History</h6>
-                <a href="searchbook.php" class="btn btn-sm btn-primary">
-                    <i class="fas fa-search"></i> Search Books
-                </a>
+                <div>
+                    <a href="book_reservations.php" class="btn btn-sm btn-info mr-2">
+                        <i class="fas fa-bookmark"></i> Current Reservations
+                    </a>
+                    <a href="searchbook.php" class="btn btn-sm btn-primary">
+                        <i class="fas fa-search"></i> Search Books
+                    </a>
+                </div>
             </div>
             <div class="card-body">
+                <!-- Navigation pills removed -->
+                
                 <div class="table-responsive">
-                    <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <table class="table table-no-lines" id="dataTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
                                 <th class="text-center">ID</th>
-                                <th class="text-center">Title</th>
+                                <th class="text-center">Book Details</th>
                                 <th class="text-center">Reserve Date</th>
                                 <th class="text-center">Ready Date</th>
                                 <th class="text-center">Issue Date</th>
@@ -114,19 +148,61 @@ include 'inc/header.php';
                             </tr>
                         </thead>
                         <tbody>
-                            <?php while ($row = $result->fetch_assoc()): ?>
+                            <?php while ($row = $result->fetch_assoc()): 
+                                // Format additional details
+                                $detailsArray = [];
+                                if (!empty($row['ISBN'])) $detailsArray[] = 'ISBN: ' . htmlspecialchars($row['ISBN']);
+                                if (!empty($row['series'])) $detailsArray[] = 'Series: ' . htmlspecialchars($row['series']);
+                                if (!empty($row['volume'])) $detailsArray[] = 'Vol: ' . htmlspecialchars($row['volume']);
+                                if (!empty($row['part'])) $detailsArray[] = 'Part: ' . htmlspecialchars($row['part']);
+                                if (!empty($row['edition'])) $detailsArray[] = 'Ed: ' . htmlspecialchars($row['edition']);
+                                
+                                $additionalDetails = !empty($detailsArray) ? implode(' | ', $detailsArray) : '';
+                            ?>
                                 <tr>
                                     <td class="text-center"><?php echo htmlspecialchars($row['id']); ?></td>
-                                    <td><?php echo htmlspecialchars($row['title']); ?></td>
-                                    <td class="text-center"><?php echo date('Y-m-d h:i A', strtotime($row['reserve_date'])); ?></td>
-                                    <td class="text-center"><?php echo $row['ready_date'] ? date('Y-m-d h:i A', strtotime($row['ready_date'])) : '-'; ?></td>
-                                    <td class="text-center"><?php echo $row['issue_date'] ? date('Y-m-d h:i A', strtotime($row['issue_date'])) : '-'; ?></td>
-                                    <td class="text-center"><?php echo $row['cancel_date'] ? date('Y-m-d h:i A', strtotime($row['cancel_date'])) : '-'; ?></td>
+                                    <td class="book-details">
+                                        <div class="book-details-title">
+                                            <?php echo htmlspecialchars($row['title']); ?>
+                                        </div>
+                                        <?php if (!empty($additionalDetails)): ?>
+                                        <div class="book-details-info">
+                                            <?php echo $additionalDetails; ?>
+                                        </div>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-center"><?php echo date('M j, Y', strtotime($row['reserve_date'])); ?><br>
+                                        <small><?php echo date('h:i A', strtotime($row['reserve_date'])); ?></small>
+                                    </td>
+                                    <td class="text-center">
+                                        <?php if($row['ready_date']): ?>
+                                            <?php echo date('M j, Y', strtotime($row['ready_date'])); ?><br>
+                                            <small><?php echo date('h:i A', strtotime($row['ready_date'])); ?></small>
+                                        <?php else: ?>
+                                            -
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-center">
+                                        <?php if($row['issue_date']): ?>
+                                            <?php echo date('M j, Y', strtotime($row['issue_date'])); ?><br>
+                                            <small><?php echo date('h:i A', strtotime($row['issue_date'])); ?></small>
+                                        <?php else: ?>
+                                            -
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-center">
+                                        <?php if($row['cancel_date']): ?>
+                                            <?php echo date('M j, Y', strtotime($row['cancel_date'])); ?><br>
+                                            <small><?php echo date('h:i A', strtotime($row['cancel_date'])); ?></small>
+                                        <?php else: ?>
+                                            -
+                                        <?php endif; ?>
+                                    </td>
                                     <td class="text-center">
                                         <?php if ($row["status"] == 'Ready'): ?>
                                             <span class="badge badge-success p-2" 
                                                   data-toggle="tooltip" 
-                                                  title="Made ready by: <?php echo htmlspecialchars($row["ready_by_name"]); ?> on <?php echo date('Y-m-d h:i A', strtotime($row["ready_date"])); ?>">
+                                                  title="Made ready by: <?php echo htmlspecialchars($row["ready_by_name"]); ?> on <?php echo date('M j, Y h:i A', strtotime($row["ready_date"])); ?>">
                                                 <i class="fas fa-check"></i> READY
                                                 <small>Book is ready for pickup</small>
                                             </span>
@@ -134,18 +210,18 @@ include 'inc/header.php';
                                             <span class="badge badge-danger p-2" 
                                                   data-toggle="tooltip" 
                                                   title="Cancelled by: <?php echo htmlspecialchars($row["cancelled_by_name"]); ?> (<?php echo $row["cancelled_by_role"]; ?>)
-                                                         on <?php echo date('Y-m-d h:i A', strtotime($row["cancel_date"])); ?>">
+                                                         on <?php echo date('M j, Y h:i A', strtotime($row["cancel_date"])); ?>">
                                                 <i class="fas fa-times"></i> CANCELLED
                                             </span>
                                         <?php elseif ($row["status"] == 'Issued'): ?>
                                             <span class="badge badge-primary p-2"
                                                   data-toggle="tooltip"
-                                                  title="Issued by: <?php echo htmlspecialchars($row["issued_by_name"]); ?> on <?php echo date('Y-m-d h:i A', strtotime($row["issue_date"])); ?>">
+                                                  title="Issued by: <?php echo htmlspecialchars($row["issued_by_name"]); ?> on <?php echo date('M j, Y h:i A', strtotime($row["issue_date"])); ?>">
                                                 <i class="fas fa-book"></i> ISSUED
                                             </span>
                                         <?php elseif ($row["status"] == 'Pending'): ?>
                                             <span class="badge badge-warning p-2">
-                                                <i class="fas fa-clock"></i> Pending
+                                                <i class="fas fa-clock"></i> PENDING
                                                 <small>Waiting for librarian</small>
                                             </span>
                                         <?php else: ?>
@@ -174,7 +250,9 @@ $(document).ready(function() {
                "<'row mt-3'<'col-sm-5'i><'col-sm-7 d-flex justify-content-end'p>>",
         "language": {
             "search": "_INPUT_",
-            "searchPlaceholder": "Search within results..."
+            "searchPlaceholder": "Search within results...",
+            "emptyTable": "No reservation history found",
+            "zeroRecords": "No matching reservations found"
         },
         "pageLength": 10,
         "order": [[2, 'desc']], // Sort by reserve date (newest first)

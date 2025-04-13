@@ -2,241 +2,309 @@
 session_start();
 include '../db.php';
 
-// Check if the user is logged in and has the appropriate role
-if (!isset($_SESSION['user_id']) || !in_array($_SESSION['usertype'], ['Student', 'Faculty', 'Staff', 'Visitor'])) {
-    header("Location: index.php");
-    exit();
+// Check if the user is logged in
+if (!isset($_SESSION['user_id']) && !isset($_SESSION['id'])) {
+    echo json_encode(array('success' => false, 'message' => 'You need to be logged in to checkout.'));
+    exit;
 }
 
-$user_id = $_SESSION['user_id'];
+// Get user ID - check both possible session variables
+$userId = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : $_SESSION['id'];
 
-// Handle AJAX checkout request
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $titles = $_POST['titles'];
-    $date = date('Y-m-d H:i:s');
-    $response = ['success' => false, 'message' => 'Failed to checkout selected items.'];
-
-    try {
-        // Get user type
-        $user_query = "SELECT usertype FROM users WHERE id = ?";
-        $stmt = $conn->prepare($user_query);
-        if (!$stmt) {
-            throw new Exception("Prepare statement failed: " . $conn->error);
-        }
-        $stmt->bind_param('i', $user_id);
-        $stmt->execute();
-        $user_result = $stmt->get_result();
-        $user = $user_result->fetch_assoc();
-
-        // If user is a student, check for overdue books
-        if ($user && $user['usertype'] == 'Student') {
-            // Check if the student has any overdue books
-            $overdue_query = "SELECT COUNT(*) as overdue_count FROM borrowings
-                              WHERE user_id = ? AND status = 'Overdue'";
-            $stmt = $conn->prepare($overdue_query);
-            if (!$stmt) {
-                throw new Exception("Prepare statement failed: " . $conn->error);
-            }
-            $stmt->bind_param('i', $user_id);
-            $stmt->execute();
-            $overdue_result = $stmt->get_result();
-            $overdue = $overdue_result->fetch_assoc();
-
-            if ($overdue['overdue_count'] > 0) {
-                throw new Exception("You have " . $overdue['overdue_count'] . " overdue book(s). " .
-                                   "All overdue books must be returned before checking out additional books.");
-            }
-        }
-
-        // Check if the user has reached the maximum limit of 3 books
-        $query = "SELECT
-                  (SELECT COUNT(*) FROM borrowings WHERE user_id = ? AND status = 'Active') +
-                  (SELECT COUNT(*) FROM reservations WHERE user_id = ? AND status IN ('Pending', 'Ready')) as total_active_books";
-        $stmt = $conn->prepare($query);
-        if (!$stmt) {
-            throw new Exception("Prepare statement failed: " . $conn->error);
-        }
-        $stmt->bind_param('ii', $user_id, $user_id);
-        if (!$stmt->execute()) {
-            throw new Exception("Execute statement failed: " . $stmt->error);
-        }
-        $result = $stmt->get_result();
-        $total = $result->fetch_assoc();
-
-        // Check if adding these new books would exceed the limit
-        $new_total = $total['total_active_books'] + count($titles);
-        if ($new_total > 3) {
-            throw new Exception("You can only have 3 books borrowed or reserved at once. You currently have " .
-                               $total['total_active_books'] . " active books. Please return some books before checking out more.");
-        }
-
-        foreach ($titles as $title) {
-            // Check if the user already has this book reserved
-            $query = "SELECT COUNT(*) as count
-                     FROM reservations r
-                     JOIN books b ON r.book_id = b.id
-                     WHERE r.user_id = ?
-                     AND b.title = ?
-                     AND r.cancel_date IS NULL
-                     AND r.recieved_date IS NULL";
-            $stmt = $conn->prepare($query);
-            if (!$stmt) {
-                throw new Exception("Prepare statement failed: " . $conn->error);
-            }
-            $stmt->bind_param('is', $user_id, $title);
-            if (!$stmt->execute()) {
-                throw new Exception("Execute statement failed: " . $stmt->error);
-            }
-            $result = $stmt->get_result();
-            $reservation = $result->fetch_assoc();
-            if ($reservation['count'] > 0) {
-                throw new Exception("You already have an active reservation for: " . $title);
-            }
-
-            // Get book ID by title
-            $query = "SELECT id FROM books WHERE title = ?";
-            $stmt = $conn->prepare($query);
-            if (!$stmt) {
-                throw new Exception("Prepare statement failed: " . $conn->error);
-            }
-            $stmt->bind_param('s', $title);
-            if (!$stmt->execute()) {
-                throw new Exception("Execute statement failed: " . $stmt->error);
-            }
-            $result = $stmt->get_result();
-            if (!$result) {
-                throw new Exception("Get result failed: " . $stmt->error);
-            }
-            $book = $result->fetch_assoc();
-            if (!$book) {
-                throw new Exception("Book not found: " . $title);
-            }
-            $book_id = $book['id'];
-
-            // Insert into reservations table
-            $query = "INSERT INTO reservations (user_id, book_id, reserve_date, cancel_date, recieved_date, status) VALUES (?, ?, ?, NULL, NULL, 'Pending')";
-            $stmt = $conn->prepare($query);
-            if (!$stmt) {
-                throw new Exception("Prepare statement failed: " . $conn->error);
-            }
-            $stmt->bind_param('iis', $user_id, $book_id, $date);
-            if (!$stmt->execute()) {
-                throw new Exception("Execute statement failed: " . $stmt->error);
-            }
-
-            // Update cart status to inactive
-            $query = "UPDATE cart SET status = 0 WHERE user_id = ? AND book_id = ?";
-            $stmt = $conn->prepare($query);
-            if (!$stmt) {
-                throw new Exception("Prepare statement failed: " . $conn->error);
-            }
-            $stmt->bind_param('ii', $user_id, $book_id);
-            if (!$stmt->execute()) {
-                throw new Exception("Execute statement failed: " . $stmt->error);
-            }
-        }
-
-        // Update user status
-        $currentDate = date('Y-m-d');
-        $updateUserQuery = "UPDATE users SET status = '1', last_update = ? WHERE id = ?";
-        $stmt = $conn->prepare($updateUserQuery);
-        if (!$stmt) {
-            throw new Exception("Prepare statement failed: " . $conn->error);
-        }
-        $stmt->bind_param('si', $currentDate, $user_id);
-        if (!$stmt->execute()) {
-            throw new Exception("Execute statement failed: " . $stmt->error);
-        }
-
-        $response['success'] = true;
-        $response['message'] = 'Books checked out successfully.';
-    } catch (Exception $e) {
-        $response['message'] = $e->getMessage();
+// Format book details for messages
+function formatBookDetails($title, $isbn, $series, $volume, $part, $edition) {
+    $details = [$title];
+    $metaDetails = [];
+    
+    if (!empty($edition)) $metaDetails[] = "Edition: $edition";
+    if (!empty($series)) $metaDetails[] = "Series: $series";
+    if (!empty($volume)) $metaDetails[] = "Volume: $volume";
+    if (!empty($part)) $metaDetails[] = "Part: $part";
+    if (!empty($isbn)) $metaDetails[] = "ISBN: $isbn";
+    
+    if (!empty($metaDetails)) {
+        $details[] = implode(" | ", $metaDetails);
     }
-
-    echo json_encode($response);
-    exit();
+    
+    return implode("<br>", $details);
 }
 
-// Get reservation history
-$historyQuery = "SELECT r.id, b.title, r.reserve_date, r.cancel_date, r.recieved_date
-                FROM reservations r
-                JOIN books b ON r.book_id = b.id
-                WHERE r.user_id = ? AND (r.cancel_date IS NOT NULL OR r.recieved_date IS NOT NULL)";
-$historyStmt = $conn->prepare($historyQuery);
-$historyStmt->bind_param('i', $user_id);
-$historyStmt->execute();
-$historyResult = $historyStmt->get_result();
+// Check for overdue books
+$overdueCheckQuery = "SELECT COUNT(*) AS overdue_count 
+                     FROM borrowings 
+                     WHERE user_id = ? 
+                     AND status = 'Borrowed' 
+                     AND due_date < CURRENT_DATE()";
+$stmt = $conn->prepare($overdueCheckQuery);
+$stmt->bind_param('i', $userId);
+$stmt->execute();
+$overdueResult = $stmt->get_result();
+$overdueCount = $overdueResult->fetch_assoc()['overdue_count'];
 
-// Get current cart items
-$cartQuery = "SELECT b.title, c.date,
-             (SELECT CONCAT(w.firstname, ' ', w.lastname)
-              FROM contributors con
-              JOIN writers w ON con.writer_id = w.id
-              WHERE con.book_id = b.id AND con.role = 'Author'
-              ORDER BY con.id LIMIT 1) as author
-             FROM cart c
-             JOIN books b ON c.book_id = b.id
-             WHERE c.user_id = ? AND c.status = 1";
-$cartStmt = $conn->prepare($cartQuery);
-$cartStmt->bind_param('i', $user_id);
-$cartStmt->execute();
-$cartResult = $cartStmt->get_result();
+if ($overdueCount > 0) {
+    echo json_encode(array(
+        'success' => false, 
+        'message' => "You have $overdueCount overdue book(s). Please return them before making new reservations."
+    ));
+    exit;
+}
 
-include 'inc/header.php';
+// Check if selected cart IDs are provided
+$selectedCartIds = isset($_POST['selected_cart_ids']) ? $_POST['selected_cart_ids'] : array();
+
+// Build query based on selection
+if (!empty($selectedCartIds)) {
+    // Checkout only selected books by cart ID
+    $placeholders = str_repeat('?,', count($selectedCartIds) - 1) . '?';
+    $cartQuery = "SELECT c.id, c.book_id, b.title, b.ISBN, b.series, b.volume, b.part, b.edition 
+                 FROM cart c 
+                 JOIN books b ON c.book_id = b.id 
+                 WHERE c.user_id = ? AND c.status = 1 AND c.id IN ($placeholders)";
+    
+    $types = "i" . str_repeat("i", count($selectedCartIds));
+    $params = array_merge([$userId], $selectedCartIds);
+    $stmt = $conn->prepare($cartQuery);
+    $stmt->bind_param($types, ...$params);
+} else {
+    // Checkout all books in cart
+    $cartQuery = "SELECT c.id, c.book_id, b.title, b.ISBN, b.series, b.volume, b.part, b.edition 
+                 FROM cart c 
+                 JOIN books b ON c.book_id = b.id 
+                 WHERE c.user_id = ? AND c.status = 1";
+    $stmt = $conn->prepare($cartQuery);
+    $stmt->bind_param('i', $userId);
+}
+
+$stmt->execute();
+$cartResult = $stmt->get_result();
+
+// Check if cart is empty
+if ($cartResult->num_rows === 0) {
+    echo json_encode(array('success' => false, 'message' => 'Your cart is empty or the selected books are not found.'));
+    exit;
+}
+
+// Check if user has reached the maximum limit of active borrowings
+$activeBorrowingsQuery = "SELECT COUNT(*) as count FROM borrowings 
+                         WHERE user_id = ? AND status = 'Active'";
+$stmt = $conn->prepare($activeBorrowingsQuery);
+$stmt->bind_param('i', $userId);
+$stmt->execute();
+$activeBorrowingsResult = $stmt->get_result();
+$activeBorrowings = $activeBorrowingsResult->fetch_assoc()['count'];
+
+// Get active reservations count (already issued but not yet returned)
+$activeReservationsQuery = "SELECT COUNT(*) as count FROM reservations 
+                          WHERE user_id = ? AND status IN ('Pending', 'Reserved', 'Ready')";
+$stmt = $conn->prepare($activeReservationsQuery);
+$stmt->bind_param('i', $userId);
+$stmt->execute();
+$activeReservationsResult = $stmt->get_result();
+$activeReservations = $activeReservationsResult->fetch_assoc()['count'];
+
+$cartCount = $cartResult->num_rows;
+
+// Check if adding these items would exceed the limit
+// The combined total of active borrowings + active reservations + new cart items should not exceed 3
+if ($activeBorrowings + $activeReservations + $cartCount > 3) {
+    $currentTotal = $activeBorrowings + $activeReservations;
+    $remainingSlots = 3 - $currentTotal;
+    
+    if ($remainingSlots <= 0) {
+        echo json_encode(array(
+            'success' => false, 
+            'message' => "You can have a maximum of 3 active items (borrowed or reserved). You currently have $currentTotal active items."
+        ));
+    } else {
+        echo json_encode(array(
+            'success' => false, 
+            'message' => "You can have a maximum of 3 active items (borrowed or reserved). You currently have $currentTotal active items, so you can only checkout $remainingSlots more items."
+        ));
+    }
+    exit;
+}
+
+// Check if any selected books are already reserved by the user
+$alreadyReservedBooks = [];
+
+// Store book IDs from cart to check
+$cartBookIds = [];
+while ($cartItem = $cartResult->fetch_assoc()) {
+    $cartBookIds[] = [
+        'id' => $cartItem['book_id'],
+        'title' => $cartItem['title'],
+        'ISBN' => $cartItem['ISBN'],
+        'series' => $cartItem['series'],
+        'volume' => $cartItem['volume'],
+        'part' => $cartItem['part'],
+        'edition' => $cartItem['edition']
+    ];
+}
+
+// Reset the result pointer
+$cartResult->data_seek(0);
+
+// Check for already reserved books with same identifying characteristics
+foreach ($cartBookIds as $book) {
+    $whereClause = "title = ?";
+    $queryParams = [$book['title']];
+    $types = "s";
+    
+    if (!empty($book['ISBN'])) {
+        $whereClause .= " AND ISBN = ?";
+        $queryParams[] = $book['ISBN'];
+        $types .= "s";
+    } else {
+        $whereClause .= " AND (ISBN IS NULL OR ISBN = '')";
+    }
+    
+    if (!empty($book['series'])) {
+        $whereClause .= " AND series = ?";
+        $queryParams[] = $book['series'];
+        $types .= "s";
+    } else {
+        $whereClause .= " AND (series IS NULL OR series = '')";
+    }
+    
+    if (!empty($book['volume'])) {
+        $whereClause .= " AND volume = ?";
+        $queryParams[] = $book['volume'];
+        $types .= "s";
+    } else {
+        $whereClause .= " AND (volume IS NULL OR volume = '')";
+    }
+    
+    if (!empty($book['part'])) {
+        $whereClause .= " AND part = ?";
+        $queryParams[] = $book['part'];
+        $types .= "s";
+    } else {
+        $whereClause .= " AND (part IS NULL OR part = '')";
+    }
+    
+    if (!empty($book['edition'])) {
+        $whereClause .= " AND edition = ?";
+        $queryParams[] = $book['edition'];
+        $types .= "s";
+    } else {
+        $whereClause .= " AND (edition IS NULL OR edition = '')";
+    }
+    
+    // Check for existing reservations
+    $reservationCheckQuery = "SELECT r.id FROM reservations r 
+                            JOIN books b ON r.book_id = b.id 
+                            WHERE r.user_id = ? AND b.$whereClause 
+                            AND r.status IN ('Pending', 'Reserved', 'Ready')
+                            LIMIT 1";
+    
+    $stmt = $conn->prepare($reservationCheckQuery);
+    $bindParams = array_merge([$userId], $queryParams);
+    $stmt->bind_param("s" . $types, ...$bindParams);
+    $stmt->execute();
+    $reservationResult = $stmt->get_result();
+    
+    // Check for existing borrowings
+    $borrowingCheckQuery = "SELECT br.id FROM borrowings br 
+                          JOIN books b ON br.book_id = b.id 
+                          WHERE br.user_id = ? AND b.$whereClause 
+                          AND br.status = 'Active'
+                          LIMIT 1";
+                          
+    $stmt = $conn->prepare($borrowingCheckQuery);
+    $bindParams = array_merge([$userId], $queryParams);
+    $stmt->bind_param("s" . $types, ...$bindParams);
+    $stmt->execute();
+    $borrowingResult = $stmt->get_result();
+    
+    if ($reservationResult->num_rows > 0 || $borrowingResult->num_rows > 0) {
+        $alreadyReservedBooks[] = formatBookDetails(
+            $book['title'],
+            $book['ISBN'],
+            $book['series'],
+            $book['volume'],
+            $book['part'],
+            $book['edition']
+        );
+    }
+}
+
+// If there are already reserved books, return error
+if (!empty($alreadyReservedBooks)) {
+    $message = "You already have active reservations or borrowings for the following books:<br><br>";
+    foreach ($alreadyReservedBooks as $index => $book) {
+        $message .= ($index + 1) . ". " . $book . "<br><br>";
+    }
+    $message .= "Please remove these books from your cart before proceeding.";
+    
+    echo json_encode(array('success' => false, 'message' => $message));
+    exit;
+}
+
+// Start transaction
+$conn->begin_transaction();
+
+try {
+    $currentTime = date('Y-m-d H:i:s');
+    $successCount = 0;
+    $reservedBooks = array();
+    
+    // Process each book
+    while ($cartItem = $cartResult->fetch_assoc()) {
+        $bookId = $cartItem['book_id'];
+        $cartId = $cartItem['id'];
+        
+        // Create reservation
+        $insertReservationQuery = "INSERT INTO reservations 
+                                (user_id, book_id, reserve_date, status) 
+                                VALUES (?, ?, ?, 'Pending')";
+        $stmt = $conn->prepare($insertReservationQuery);
+        $stmt->bind_param('iis', $userId, $bookId, $currentTime);
+        $stmt->execute();
+        
+        // Update book status
+        $updateBookQuery = "UPDATE books SET status = 'Reserved' WHERE id = ?";
+        $stmt = $conn->prepare($updateBookQuery);
+        $stmt->bind_param('i', $bookId);
+        $stmt->execute();
+        
+        // Remove from cart
+        $deleteCartItemQuery = "DELETE FROM cart WHERE id = ?";
+        $stmt = $conn->prepare($deleteCartItemQuery);
+        $stmt->bind_param('i', $cartId);
+        $stmt->execute();
+        
+        // Format book details for output
+        $formattedBookDetails = formatBookDetails(
+            $cartItem['title'],
+            $cartItem['ISBN'],
+            $cartItem['series'],
+            $cartItem['volume'],
+            $cartItem['part'],
+            $cartItem['edition']
+        );
+        $reservedBooks[] = $formattedBookDetails;
+        $successCount++;
+    }
+    
+    // Commit transaction
+    $conn->commit();
+    
+    // Build success message with detailed book info
+    if ($successCount > 0) {
+        $message = "Successfully reserved $successCount book(s):<br><br>";
+        foreach ($reservedBooks as $index => $book) {
+            $message .= ($index + 1) . ". <strong>" . $book . "</strong><br><br>";
+        }
+        $message .= "Please visit the library counter to collect your items.";
+        
+        echo json_encode(array('success' => true, 'message' => $message));
+    } else {
+        echo json_encode(array('success' => false, 'message' => 'No books were checked out. Please try again.'));
+    }
+    
+} catch (Exception $e) {
+    // Roll back transaction on error
+    $conn->rollback();
+    echo json_encode(array('success' => false, 'message' => 'Error during checkout: ' . $e->getMessage()));
+}
 ?>
-
-<!-- Main Content -->
-<div id="content" class="d-flex flex-column min-vh-100">
-    <div class="container-fluid">
-        <!-- Nav tabs -->
-        <ul class="nav nav-tabs mb-4">
-            <li class="nav-item">
-                <a class="nav-link active" data-toggle="tab" href="#cart">Cart</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" data-toggle="tab" href="#history">Reservation History</a>
-            </li>
-        </ul>
-
-        <!-- Tab content -->
-        <div class="tab-content">
-            <!-- Cart Tab -->
-            <div id="cart" class="tab-pane active">
-                <div class="card shadow mb-4">
-                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                        <h6 class="m-0 font-weight-bold text-primary">Cart</h6>
-                        <div>
-                            <span id="selectedCount">(0 items selected)</span>
-                            <button class="btn btn-primary btn-sm" id="checkout">Checkout</button>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <!-- Cart Table -->
-                        <div class="table-responsive">
-                            <!-- ...existing cart table code... -->
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- History Tab -->
-            <div id="history" class="tab-pane fade">
-                <div class="card shadow mb-4">
-                    <div class="card-header py-3">
-                        <h6 class="m-0 font-weight-bold text-primary">Reservation History</h6>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <!-- ...existing history table code... -->
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<?php include 'inc/footer.php'; ?>
-
-<!-- ...existing JavaScript code... -->

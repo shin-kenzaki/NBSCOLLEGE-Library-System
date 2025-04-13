@@ -154,6 +154,7 @@ if (isset($_POST['submit'])) {
             // Get individual series, volume, edition values from form inputs for each copy
             $series_value = isset($series[$index]) ? mysqli_real_escape_string($conn, $series[$index]) : '';
             $volume_value = isset($volumes[$index]) ? mysqli_real_escape_string($conn, $volumes[$index]) : '';
+            $part_value = isset($_POST['part'][$index]) ? mysqli_real_escape_string($conn, $_POST['part'][$index]) : ''; // Add this line to get part value
             $edition_value = isset($editions[$index]) ? mysqli_real_escape_string($conn, $editions[$index]) : '';
             
             // Fix: Properly capture copy number value
@@ -196,6 +197,7 @@ if (isset($_POST['submit'])) {
                 dimension = ?,
                 series = ?,
                 volume = ?,
+                part = ?,
                 edition = ?,
                 copy_number = ?,
                 total_pages = ?,
@@ -219,7 +221,7 @@ if (isset($_POST['submit'])) {
             $stmt = $conn->prepare($update_query);
             
             // Bind parameters with copy-specific values including preserved entered_by/date_added
-            $stmt->bind_param("ssssssssssssssssssssssssssssssi", 
+            $stmt->bind_param("sssssssssssssssssssssssssssssssi", 
                 $title, 
                 $preferred_title, 
                 $parallel_title,
@@ -232,6 +234,7 @@ if (isset($_POST['submit'])) {
                 $dimension,
                 $series_value,     // Use individual series value for this copy
                 $volume_value,     // Use individual volume value for this copy
+                $part_value,       // Add part value in binding
                 $edition_value,    // Use individual edition value for this copy
                 $copy_number,      // Include copy_number in binding
                 $total_page,
@@ -898,35 +901,22 @@ if ($first_book) {
                                                value="<?php 
                                                    $call_number = $first_book['call_number'] ?? '';
                                                    
-                                                   // Split the call number into parts by spaces
+                                                   // Extract only the classification number and author cutter (parts 2 and 3)
                                                    $parts = explode(' ', $call_number);
-                                                   $space_count = count($parts) - 1;
-
-                                                   if ($space_count === 5) {
-                                                       // Exclude the first part and the last three parts
-                                                       array_shift($parts); // Remove the first part
-                                                       array_pop($parts);   // Remove the last part
-                                                       array_pop($parts);   // Remove the second last part
-                                                       array_pop($parts);   // Remove the third last part
-                                                       echo htmlspecialchars(implode(' ', $parts));
-                                                   } elseif ($space_count === 4) {
-                                                       // Exclude the first part and the last two parts
-                                                       array_shift($parts); // Remove the first part
-                                                       array_pop($parts);   // Remove the last part
-                                                       array_pop($parts);   // Remove the second last part
-                                                       echo htmlspecialchars(implode(' ', $parts));
-                                                   } elseif ($space_count === 3) {
-                                                       // Exclude the first part and the last two parts
-                                                       array_shift($parts); // Remove the first part
-                                                       array_pop($parts);   // Remove the last part
-                                                       array_pop($parts);   // Remove the second last part
-                                                       echo htmlspecialchars(implode(' ', $parts));
-                                                   } else {
-                                                       // Do not display any call number
-                                                       echo '';
+                                                   
+                                                   // We need parts 2 and 3 (if they exist)
+                                                   $classification_and_cutter = '';
+                                                   if (count($parts) >= 3) {
+                                                       // Get the 2nd and 3rd parts
+                                                       $classification_and_cutter = $parts[1] . ' ' . $parts[2];
+                                                   } elseif (count($parts) >= 2) {
+                                                       // Just get the 2nd part if 3rd doesn't exist
+                                                       $classification_and_cutter = $parts[1];
                                                    }
+                                                   
+                                                   echo htmlspecialchars($classification_and_cutter);
                                                ?>">
-                                        <small class="text-muted">Enter only the classification number and author cutter (e.g., Z936.98 L39) or leave empty if not applicable</small>
+                                        <small class="text-muted">Enter only the classification number and author cutter (e.g., Z936.98 L39) without volume, part, or copy number</small>
                                     </div>
                                 </div>
                             </div>
@@ -1024,6 +1014,7 @@ if ($first_book) {
                                                         <th style="width: 120px; white-space: nowrap;">Series</th>
                                                         <th style="width: 120px; white-space: nowrap;">Volume</th>
                                                         <th style="width: 120px; white-space: nowrap;">Edition</th>
+                                                        <th style="width: 120px; white-space: nowrap;">Part</th>
                                                         <th style="width: 200px; white-space: nowrap;">Status</th>
                                                         <th style="width: 100px; white-space: nowrap;">Actions</th>
                                                     </tr>
@@ -1060,6 +1051,9 @@ if ($first_book) {
                                                             </td>
                                                             <td>
                                                                 <input type="text" class="form-control text-center" name="edition[]" value="<?php echo htmlspecialchars($book['edition']); ?>">
+                                                            </td>
+                                                            <td>
+                                                                <input type="text" class="form-control text-center" name="part[]" value="<?php echo htmlspecialchars($book['part']); ?>">
                                                             </td>
                                                             <td>
                                                                 <select class="form-control text-center" name="statuses[]">
@@ -1296,11 +1290,13 @@ document.addEventListener("DOMContentLoaded", function() {
             const copyNumberInput = copy.querySelector('input[name="copy_number[]"]');
             const shelfLocationSelect = copy.querySelector('select[name="shelf_location[]"]');
             const volumeInput = copy.querySelector('input[name="volume[]"]');
+            const partInput = copy.querySelector('input[name="part[]"]');
             
             // Get values
             const copyNum = copyNumberInput.value.replace(/^c/, '');
             const shelfLocation = shelfLocationSelect.value;
-            const volumeText = volumeInput && volumeInput.value.trim() ? `vol${volumeInput.value.trim()}` : '';
+            const volumeText = volumeInput && volumeInput.value.trim() ? `v.${volumeInput.value.trim()}` : '';
+            const partText = partInput && partInput.value.trim() ? `pt.${partInput.value.trim()}` : '';
             
             // Validate raw call number format
             if (rawCallNumber && !/^[A-Z0-9]+(\.[0-9]+)?\s[A-Z][0-9]+$/.test(rawCallNumber)) {
@@ -1314,14 +1310,21 @@ document.addEventListener("DOMContentLoaded", function() {
                 publishYear            // Publication year
             ].filter(Boolean).join(' ');
             
-            // Append volume number if present
+            // Build the final call number with all components
             let finalCallNumber = formattedCallNumber;
+            
+            // Append volume number if present
             if (volumeText) {
                 finalCallNumber += ` ${volumeText}`;
             }
             
+            // Append part number if present
+            if (partText) {
+                finalCallNumber += ` ${partText}`;
+            }
+            
             // Append copy number
-            finalCallNumber += ` c${copyNum}`;
+            finalCallNumber += ` c.${copyNum}`;
             
             // Update call number field
             const callNumberField = copy.querySelector('input[name="call_numbers[]"]');
@@ -1349,6 +1352,7 @@ document.addEventListener("DOMContentLoaded", function() {
         const publishYear = document.querySelector('input[name="publish_date"]');
         const shelfLocations = document.querySelectorAll('select[name="shelf_location[]"]');
         const volumeInputs = document.querySelectorAll('input[name="volume[]"]');
+        const partInputs = document.querySelectorAll('input[name="part[]"]'); // Add part inputs
 
         if (rawCallNumber) rawCallNumber.addEventListener('input', formatCallNumber);
         if (publishYear) publishYear.addEventListener('input', formatCallNumber);
@@ -1361,6 +1365,13 @@ document.addEventListener("DOMContentLoaded", function() {
         volumeInputs.forEach(input => {
             input.addEventListener('input', function() {
                 formatCallNumber(); // Update call numbers when volume changes
+            });
+        });
+        
+        // Add event listeners to all part inputs
+        partInputs.forEach(input => {
+            input.addEventListener('input', function() {
+                formatCallNumber(); // Update call numbers when part changes
             });
         });
     }

@@ -207,7 +207,7 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
         echo "ISBN: " . htmlspecialchars($book['ISBN']) . "\n";
         echo "Language: " . htmlspecialchars($book['language']) . "\n";
         echo "Physical Description: " . htmlspecialchars($book['total_pages']) . " pages, " . htmlspecialchars($book['dimension']) . " cm\n";
-        echo "Publication: " . htmlspecialchars($publications[0]['publisher'] ?? 'N/A') . ", " . htmlspecialchars($publications[0]['publish_date'] ?? 'N/A') . "\n";
+        echo "Publication: " . htmlspecialchars($publications[0]['place'] ?? 'N/A') . "; " . htmlspecialchars($publications[0]['publisher'] ?? 'N/A') . ", " . htmlspecialchars($publications[0]['publish_date'] ?? 'N/A') . "\n";
     } elseif ($exportType === 'marc21') {
         echo "MARC21 Export\n";
         foreach ($marcFields as $field) {
@@ -607,6 +607,7 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                                             <div class="col-md-6">
                                                 <div class="mb-2"><strong>Series:</strong> <?php echo !empty($book['series']) ? htmlspecialchars($book['series']) : 'N/A'; ?></div>
                                                 <div class="mb-2"><strong>Volume:</strong> <?php echo !empty($book['volume']) ? htmlspecialchars($book['volume']) : 'N/A'; ?></div>
+                                                <div class="mb-2"><strong>Part:</strong> <?php echo !empty($book['part']) ? htmlspecialchars($book['part']) : 'N/A'; ?></div>
                                                 <div class="mb-2"><strong>Edition:</strong> <?php echo !empty($book['edition']) ? htmlspecialchars($book['edition']) : 'N/A'; ?></div>
                                                 <div class="mb-2"><strong>Location:</strong> <?php echo !empty($book['shelf_location']) ? htmlspecialchars($book['shelf_location']) : 'N/A'; ?></div>
                                                 <div class="mb-2"><strong>Availability:</strong> <span class="text-<?php echo ($inShelf > 0) ? 'success' : 'danger'; ?> fw-bold"><?php echo htmlspecialchars($inShelf); ?> of <?php echo htmlspecialchars($totalCopies); ?> copies</span></div>
@@ -637,7 +638,7 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                                             <?php 
                                             if (!empty($publications)) {
                                                 $pub = $publications[0];
-                                                echo htmlspecialchars($pub['publisher'] . ' (' . $pub['place'] . '), ' . $pub['publish_date']);
+                                                echo htmlspecialchars($pub['place'] . '; ' . $pub['publisher'] . ', ' . $pub['publish_date']);
                                             } else {
                                                 echo 'Information not available';
                                             }
@@ -802,6 +803,7 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                                                     <th style="min-width: 100px;">Last Update</th>
                                                     <th style="min-width: 100px;">Series</th>
                                                     <th style="min-width: 80px;">Volume</th>
+                                                    <th style="min-width: 80px;">Part</th>
                                                     <th style="min-width: 80px;">Edition</th>
                                                     <th style="min-width: 120px;">ISBN</th>
                                                     <th style="min-width: 80px;">Actions</th>
@@ -822,6 +824,7 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                                                         <td><?php echo htmlspecialchars(date('Y-m-d', strtotime($copy['last_update']))); ?></td>
                                                         <td><?php echo !empty($copy['series']) ? htmlspecialchars($copy['series']) : '-'; ?></td>
                                                         <td><?php echo !empty($copy['volume']) ? htmlspecialchars($copy['volume']) : '-'; ?></td>
+                                                        <td><?php echo !empty($copy['part']) ? htmlspecialchars($copy['part']) : '-'; ?></td>
                                                         <td><?php echo !empty($copy['edition']) ? htmlspecialchars($copy['edition']) : '-'; ?></td>
                                                         <td><?php echo !empty($copy['ISBN']) ? htmlspecialchars($copy['ISBN']) : '-'; ?></td>
                                                         <td>
