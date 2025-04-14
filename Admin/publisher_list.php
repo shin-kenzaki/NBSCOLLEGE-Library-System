@@ -32,24 +32,46 @@ if (isset($_POST['bulk_action']) && isset($_POST['selected_ids'])) {
     if (empty($selectedIds)) {
         $_SESSION['error_message'] = "No publishers selected for action.";
     } else {
+        // Ensure all IDs are integers
+        $safeSelectedIds = array_map('intval', $selectedIds);
+        $idsString = implode(',', $safeSelectedIds);
+
         // Process bulk actions
         switch ($action) {
             case 'delete':
+                // Fetch details before deleting
+                $deleted_publishers_details = [];
+                if (!empty($idsString)) {
+                    $fetchDetailsSql = "SELECT id, publisher, place FROM publishers WHERE id IN ($idsString)";
+                    $detailsResult = $conn->query($fetchDetailsSql);
+                    if ($detailsResult && $detailsResult->num_rows > 0) {
+                        while ($row = $detailsResult->fetch_assoc()) {
+                            $deleted_publishers_details[$row['id']] = $row['publisher'] . ' (' . $row['place'] . ')';
+                        }
+                    }
+                }
+
                 // Start transaction to ensure data integrity
                 $conn->begin_transaction();
                 try {
                     $deleteCount = 0;
-                    foreach ($selectedIds as $id) {
-                        $id = (int)$id; // Ensure it's an integer
-                        
+                    $successfully_deleted_details = []; // Store details of successfully deleted publishers
+
+                    foreach ($safeSelectedIds as $id) {
                         // First delete all publication records that reference this publisher
                         $deletePublicationsSql = "DELETE FROM publications WHERE publisher_id = $id";
-                        $conn->query($deletePublicationsSql);
+                        $conn->query($deletePublicationsSql); // Assuming this won't fail critically or has FK constraints
                         
                         // Then delete the publisher
                         $deletePublisherSql = "DELETE FROM publishers WHERE id = $id";
-                        if ($conn->query($deletePublisherSql)) {
+                        if ($conn->query($deletePublisherSql) && $conn->affected_rows > 0) {
                             $deleteCount++;
+                            // Add details to the list if deletion was successful
+                            if (isset($deleted_publishers_details[$id])) {
+                                $successfully_deleted_details[] = $deleted_publishers_details[$id];
+                            }
+                        } else {
+                            // Optional: Log or handle cases where deletion might fail
                         }
                     }
                     
@@ -57,9 +79,10 @@ if (isset($_POST['bulk_action']) && isset($_POST['selected_ids'])) {
                     $conn->commit();
                     
                     if ($deleteCount > 0) {
-                        $_SESSION['success_message'] = "$deleteCount publisher(s) deleted successfully. Related publication records were also removed.";
+                        $_SESSION['success_message'] = "$deleteCount publisher(s) deleted successfully.";
+                        $_SESSION['deleted_publishers_details'] = $successfully_deleted_details; // Store successfully deleted details
                     } else {
-                        $_SESSION['error_message'] = "Failed to delete publishers.";
+                        $_SESSION['error_message'] = "Failed to delete selected publishers or they were already deleted.";
                     }
                 } catch (Exception $e) {
                     // An error occurred, rollback the transaction
@@ -86,13 +109,16 @@ $totalPublishersResult = $conn->query($totalPublishersQuery);
 $totalPublishers = $totalPublishersResult->fetch_assoc()['total'];
 
 // Handle form submission to save publishers
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['publisher'])) { // Check if it's the add publisher form
     $companies = $_POST['publisher'];
     $places = $_POST['place'];
 
     $success = true;
     $valid_entries = 0;
     $existing_combinations = [];
+    $error_message = '';
+    $duplicate_message = '';
+    $added_publishers_details = []; // Array to store details of added publishers
 
     for ($i = 0; $i < count($companies); $i++) {
         $publisher = trim($conn->real_escape_string($companies[$i]));
@@ -107,8 +133,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $combination = $publisher . '|' . $place;
         if (in_array($combination, $existing_combinations)) {
             $success = false;
-            echo "<script>alert('Duplicate entry found: $publisher in $place');</script>";
-            break;
+            $duplicate_message = "Duplicate entry found in submission: '$publisher' in '$place'.";
+            break; // Stop processing if duplicate in submission
         }
         $existing_combinations[] = $combination;
 
@@ -118,26 +144,37 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         if ($checkResult->num_rows > 0) {
             $success = false;
-            echo "<script>alert('This publisher already exists in this location: $publisher in $place');</script>";
-            break;
+            $duplicate_message = "This publisher already exists: '$publisher' in '$place'.";
+            break; // Stop processing if duplicate in DB
         }
 
         $sql = "INSERT INTO publishers (publisher, place) VALUES ('$publisher', '$place')";
         if ($conn->query($sql)) {
             $valid_entries++;
+            $added_publishers_details[] = "$publisher ($place)"; // Add details to list
         } else {
             $success = false;
-            break;
+            $error_message = "Database error while saving publisher: " . $conn->error;
+            break; // Stop processing on database error
         }
     }
 
     if ($success && $valid_entries > 0) {
-        echo "<script>alert('$valid_entries publisher(s) saved successfully'); window.location.href='publisher_list.php';</script>";
-    } elseif ($valid_entries === 0) {
-        echo "<script>alert('No valid publishers to save. Please provide both publisher name and place.');</script>";
+        $_SESSION['success_message'] = "$valid_entries publisher(s) saved successfully.";
+        $_SESSION['added_publishers_details'] = $added_publishers_details; // Store details in session
+    } elseif (!$success && !empty($duplicate_message)) {
+        $_SESSION['error_message'] = $duplicate_message;
+    } elseif ($valid_entries === 0 && empty($duplicate_message) && empty($error_message)) {
+        $_SESSION['warning_message'] = 'No valid publishers to save. Please provide both publisher name and place.';
+    } elseif (!$success && !empty($error_message)) {
+        $_SESSION['error_message'] = "Failed to save publishers. " . $error_message;
     } else {
-        echo "<script>alert('Failed to save publishers');</script>";
+         $_SESSION['error_message'] = 'An unexpected error occurred while saving publishers.';
     }
+
+    // Redirect to the same page to prevent form resubmission
+    header("Location: publisher_list.php");
+    exit();
 }
 
 // Get the search query if it exists
@@ -294,6 +331,35 @@ $result = $conn->query($sql);
     #dataTable.table-striped tbody tr.selected:nth-of-type(even) {
         background-color: rgba(0, 123, 255, 0.1) !important;
     }
+
+    /* Add Publisher Modal Enhancements */
+    #addPublisherModal .modal-lg {
+        max-width: 700px; /* Adjust width as needed */
+    }
+    #addPublisherModal .publisher-entry {
+        background-color: #f8f9fc; /* Light background for each entry */
+    }
+    #addPublisherModal .form-label {
+        margin-bottom: 0.25rem; /* Reduce space below labels */
+        font-weight: 500;
+    }
+    #addPublisherModal .form-control-sm {
+        height: calc(1.5em + 0.5rem + 2px); /* Adjust input height */
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+    #addPublisherModal .remove-publisher {
+        line-height: 1; /* Center the 'x' better */
+        padding: 0.3rem 0.6rem;
+    }
+    #addPublisherModal .form-group {
+        margin-bottom: 0.5rem; /* Reduce space between fields */
+    }
+    @media (min-width: 768px) {
+        #addPublisherModal .form-group.mb-md-0 {
+            margin-bottom: 0 !important;
+        }
+    }
 </style>
 
 <!-- Main Content -->
@@ -368,33 +434,41 @@ $result = $conn->query($sql);
 </a>
 <!-- Add Publisher Modal -->
 <div class="modal fade" id="addPublisherModal" tabindex="-1" role="dialog" aria-labelledby="addPublisherModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
+    <div class="modal-dialog modal-lg" role="document"> <!-- Increased modal size -->
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="addPublisherModalLabel">Add Publishers</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="addPublisherModalLabel"><i class="fas fa-building mr-2"></i>Add New Publishers</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <div class="modal-body">
                 <form id="addPublishersForm" method="POST" action="publisher_list.php">
                     <div id="publishersContainer">
-                        <div class="publisher-entry mb-3">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div class="flex-grow-1">
-                                    <input type="text" name="publisher[]" class="form-control mb-2" placeholder="Publisher" required>
-                                    <input type="text" name="place[]" class="form-control mb-2" placeholder="Place" required>
+                        <!-- Initial Publisher Entry -->
+                        <div class="publisher-entry border rounded p-3 mb-3 bg-light">
+                            <div class="row align-items-center">
+                                <div class="col-md-5 form-group mb-md-0">
+                                    <label for="publisher_0" class="form-label small text-muted">Publisher Name <span class="text-danger">*</span></label>
+                                    <input type="text" name="publisher[]" id="publisher_0" class="form-control form-control-sm" placeholder="Enter publisher name" required>
                                 </div>
-                                <button type="button" class="btn btn-danger ml-2 remove-publisher" style="height: 38px;">×</button>
+                                <div class="col-md-5 form-group mb-md-0">
+                                    <label for="place_0" class="form-label small text-muted">Place of Publication <span class="text-danger">*</span></label>
+                                    <input type="text" name="place[]" id="place_0" class="form-control form-control-sm" placeholder="Enter city/place" required>
+                                </div>
+                                <div class="col-md-2 d-flex align-items-end justify-content-center">
+                                    <button type="button" class="btn btn-danger btn-sm remove-publisher" title="Remove this publisher">×</button>
+                                </div>
                             </div>
                         </div>
+                        <!-- End Initial Publisher Entry -->
                     </div>
-                    <button type="button" class="btn btn-secondary" id="addMorePublishers">Add More Publishers</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="addMorePublishers"><i class="fas fa-plus mr-1"></i>Add Another Publisher</button>
                 </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" id="savePublishers">Save Publishers</button>
+                <button type="button" class="btn btn-primary" id="savePublishers"><i class="fas fa-save mr-1"></i>Save Publishers</button>
             </div>
         </div>
     </div>
@@ -528,27 +602,39 @@ $(document).ready(function () {
         table.columns.adjust();
     });
 
-    // Add more publishers functionality
+    // Add more publishers functionality - Updated for new structure
+    let publisherIndex = 1; // Start index for dynamically added publishers
     $('#addMorePublishers').click(function() {
         var publisherEntry = `
-            <div class="publisher-entry mb-3">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div class="flex-grow-1">
-                        <input type="text" name="publisher[]" class="form-control mb-2" placeholder="Publisher" required>
-                        <input type="text" name="place[]" class="form-control mb-2" placeholder="Place" required>
+            <div class="publisher-entry border rounded p-3 mb-3 bg-light">
+                <div class="row align-items-center">
+                    <div class="col-md-5 form-group mb-md-0">
+                        <label for="publisher_${publisherIndex}" class="form-label small text-muted">Publisher Name <span class="text-danger">*</span></label>
+                        <input type="text" name="publisher[]" id="publisher_${publisherIndex}" class="form-control form-control-sm" placeholder="Enter publisher name" required>
                     </div>
-                    <button type="button" class="btn btn-danger ml-2 remove-publisher" style="height: 38px;">×</button>
+                    <div class="col-md-5 form-group mb-md-0">
+                        <label for="place_${publisherIndex}" class="form-label small text-muted">Place of Publication <span class="text-danger">*</span></label>
+                        <input type="text" name="place[]" id="place_${publisherIndex}" class="form-control form-control-sm" placeholder="Enter city/place" required>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end justify-content-center">
+                        <button type="button" class="btn btn-danger btn-sm remove-publisher" title="Remove this publisher">×</button>
+                    </div>
                 </div>
             </div>`;
         $('#publishersContainer').append(publisherEntry);
+        publisherIndex++; // Increment index for the next entry
     });
 
-    // Remove publisher functionality
+    // Remove publisher functionality - Updated confirmation
     $(document).on('click', '.remove-publisher', function() {
-        if ($('.publisher-entry').length > 1) {
+        const publisherEntries = $('.publisher-entry');
+        if (publisherEntries.length > 1) {
             $(this).closest('.publisher-entry').remove();
         } else {
-            alert('At least one publisher entry must remain.');
+            // Optionally, clear the fields instead of showing an alert
+            const entry = $(this).closest('.publisher-entry');
+            entry.find('input[type="text"]').val('');
+            // alert('At least one publisher entry must remain. You can clear the fields if needed.');
         }
     });
 
@@ -598,12 +684,54 @@ $(document).ready(function () {
         $('#updatePublisherForm').submit();
     });
 
-    // Display success message if available
-    var successMessage = "<?php echo isset($_SESSION['success_message']) ? $_SESSION['success_message'] : ''; ?>";
-    if (successMessage) {
-        alert(successMessage);
-        <?php unset($_SESSION['success_message']); ?>
-    }
+    // Display session messages using SweetAlert2
+    <?php if (isset($_SESSION['success_message'])): ?>
+        <?php
+        $message = addslashes($_SESSION['success_message']);
+        $detailsList = '';
+        // Check for added publishers first
+        if (isset($_SESSION['added_publishers_details']) && !empty($_SESSION['added_publishers_details'])) {
+            $details = array_map('htmlspecialchars', $_SESSION['added_publishers_details']); // Sanitize details
+            $detailsList = '<br><br><strong>Added:</strong><br>' . implode('<br>', $details);
+            unset($_SESSION['added_publishers_details']); // Unset the added details list
+        } 
+        // Check for deleted publishers if no added publishers
+        elseif (isset($_SESSION['deleted_publishers_details']) && !empty($_SESSION['deleted_publishers_details'])) {
+            $details = array_map('htmlspecialchars', $_SESSION['deleted_publishers_details']); // Sanitize details
+            $detailsList = '<br><br><strong>Deleted:</strong><br>' . implode('<br>', $details);
+            unset($_SESSION['deleted_publishers_details']); // Unset the deleted details list
+        }
+        ?>
+        Swal.fire({
+            title: 'Success!',
+            html: '<?php echo $message . $detailsList; ?>', // Use html property
+            icon: 'success',
+            confirmButtonColor: '#3085d6'
+        });
+        <?php
+        unset($_SESSION['success_message']);
+        ?>
+    <?php endif; ?>
+
+    <?php if (isset($_SESSION['error_message'])): ?>
+        Swal.fire({
+            title: 'Error!',
+            text: '<?php echo addslashes($_SESSION['error_message']); ?>',
+            icon: 'error',
+            confirmButtonColor: '#d33'
+        });
+        <?php unset($_SESSION['error_message']); ?>
+    <?php endif; ?>
+    
+    <?php if (isset($_SESSION['warning_message'])): ?>
+        Swal.fire({
+            title: 'Warning!',
+            text: '<?php echo addslashes($_SESSION['warning_message']); ?>',
+            icon: 'warning',
+            confirmButtonColor: '#ffc107'
+        });
+        <?php unset($_SESSION['warning_message']); ?>
+    <?php endif; ?>
 
     // Update the save publishers functionality
     $('#savePublishers').click(function(e) {
@@ -762,7 +890,7 @@ $(document).ready(function () {
     // Modified checkbox handling - Header cell click handler
     $(document).on('click', 'thead th:first-child', function(e) {
         // If the click was directly on the checkbox, don't execute this handler
-        if (e.target.type === 'checkbox') return;
+        if (e.target.type !== 'checkbox') return;
         
         // Find and click the checkbox
         var checkbox = $('#selectAll');
@@ -796,25 +924,40 @@ $(document).ready(function () {
         deleteBtn.prop('disabled', count === 0);
     }
 
-    // Replace the bulk-action click handler with this:
+    // Replace the bulk-action click handler with this: - Updated with SweetAlert2
     $('.bulk-delete-btn').on('click', function(e) {
         e.preventDefault();
         
         if (selectedIds.length === 0) {
-            alert('Please select at least one publisher to delete.');
+             Swal.fire({
+                title: 'No Selection',
+                text: 'Please select at least one publisher to delete.',
+                icon: 'warning',
+                confirmButtonColor: '#ffc107'
+            });
             return;
         }
         
-        var confirmMessage = 'Are you sure you want to delete ' + selectedIds.length + ' selected publisher(s)?\n\nThis will also delete all publication records for these publishers.';
-        
-        if (confirm(confirmMessage)) {
-            $('#selected_ids_container').empty();
-            selectedIds.forEach(function(id) {
-                $('#selected_ids_container').append('<input type="hidden" name="selected_ids[]" value="' + id + '">');
-            });
-            $('#bulk_action').val('delete');
-            $('#bulkActionForm').submit();
-        }
+        Swal.fire({
+            title: 'Confirm Bulk Deletion',
+            html: `Are you sure you want to delete <strong>${selectedIds.length}</strong> selected publisher(s)?<br><br>
+                   <span class="text-danger">This will also delete all publication records for these publishers. This action cannot be undone.</span>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete them!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $('#selected_ids_container').empty();
+                selectedIds.forEach(function(id) {
+                    $('#selected_ids_container').append('<input type="hidden" name="selected_ids[]" value="' + id + '">');
+                });
+                $('#bulk_action').val('delete');
+                $('#bulkActionForm').submit();
+            }
+        });
     });
 
     // Make the entire checkbox cell clickable
@@ -867,7 +1010,7 @@ $(document).ready(function () {
         $('#contextMenu').hide();
     });
     
-    // Handle context menu item clicks
+    // Handle context menu item clicks - Updated delete action with SweetAlert2
     $('.context-menu-item').on('click', function() {
         const action = $(this).data('action');
         
@@ -878,8 +1021,8 @@ $(document).ready(function () {
         } else if (action === 'delete') {
             Swal.fire({
                 title: 'Delete Publisher?',
-                html: `Are you sure you want to delete <strong>${contextTarget.publisher}</strong> in <strong>${contextTarget.place}</strong>?<br><br>
-                      <span class="text-danger">This will also remove all publication records for this publisher.</span>`,
+                html: `Are you sure you want to delete <strong>${contextTarget.publisher}</strong> in <strong>${contextTarget.place}</strong> (ID: ${contextTarget.id})?<br><br>
+                      <span class="text-danger">This will also remove all publication records for this publisher. This action cannot be undone.</span>`,
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
@@ -890,7 +1033,7 @@ $(document).ready(function () {
                 if (result.isConfirmed) {
                     // Perform delete operation via AJAX
                     $.ajax({
-                        url: 'delete_publisher.php',
+                        url: 'delete_publisher.php', // Ensure this endpoint exists and handles deletion
                         type: 'POST',
                         data: { publisher_id: contextTarget.id },
                         dataType: 'json',
@@ -898,24 +1041,25 @@ $(document).ready(function () {
                             if (response.success) {
                                 Swal.fire({
                                     title: 'Deleted!',
-                                    text: response.message || 'Publisher deleted successfully',
-                                    icon: 'success'
-                                }).then(() => {
-                                    // Remove row from table
-                                    table.row($(contextTarget.element)).remove().draw();
+                                    text: response.message || 'Publisher deleted successfully.',
+                                    icon: 'success',
+                                    timer: 1500, // Auto close after 1.5 seconds
+                                    showConfirmButton: false
                                 });
+                                // Remove row from table using DataTables API
+                                table.row($(contextTarget.element)).remove().draw(false); // Use draw(false) to avoid resetting pagination
                             } else {
                                 Swal.fire({
                                     title: 'Error!',
-                                    text: response.message || 'Failed to delete publisher',
+                                    text: response.message || 'Failed to delete publisher.',
                                     icon: 'error'
                                 });
                             }
                         },
-                        error: function() {
+                        error: function(xhr) {
                             Swal.fire({
                                 title: 'Error!',
-                                text: 'A server error occurred',
+                                text: 'A server error occurred: ' + xhr.statusText,
                                 icon: 'error'
                             });
                         }
@@ -926,6 +1070,11 @@ $(document).ready(function () {
         
         // Hide the context menu
         $('#contextMenu').hide();
+         // Remove highlight from the row
+        if (contextTarget && contextTarget.element) {
+            $(contextTarget.element).removeClass('table-primary');
+        }
+        contextTarget = null; // Clear context target
     });
 
     // Wrap checkboxes in centering div for better alignment

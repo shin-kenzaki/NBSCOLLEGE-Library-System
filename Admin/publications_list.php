@@ -12,27 +12,57 @@ if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Lib
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete') {
     if (isset($_POST['ids']) && !empty($_POST['ids'])) {
         require_once '../db.php';
+
+        $safeIds = array_map('intval', $_POST['ids']);
+        $idsString = implode(',', $safeIds);
+        $deleted_details = [];
+
+        // Fetch details before deleting
+        if (!empty($idsString)) {
+            $fetchDetailsSql = "SELECT p.id, b.title as book_title, pb.publisher, pb.place, YEAR(p.publish_date) as year 
+                                FROM publications p
+                                JOIN books b ON p.book_id = b.id
+                                JOIN publishers pb ON p.publisher_id = pb.id
+                                WHERE p.id IN ($idsString)";
+            $detailsResult = $conn->query($fetchDetailsSql);
+            if ($detailsResult && $detailsResult->num_rows > 0) {
+                while ($row = $detailsResult->fetch_assoc()) {
+                    $deleted_details[$row['id']] = htmlspecialchars('"' . $row['book_title'] . '" by ' . $row['publisher'] . ' (' . $row['place'] . ', ' . $row['year'] . ')');
+                }
+            }
+        }
+
         $conn->begin_transaction();
         try {
             $deleteCount = 0;
+            $successfully_deleted_list = [];
             $stmt = $conn->prepare("DELETE FROM publications WHERE id = ?");
             
-            foreach ($_POST['ids'] as $id) {
-                $id = (int)$id;
+            foreach ($safeIds as $id) {
                 $stmt->bind_param("i", $id);
-                if ($stmt->execute()) {
+                if ($stmt->execute() && $conn->affected_rows > 0) {
                     $deleteCount++;
+                     if (isset($deleted_details[$id])) {
+                        $successfully_deleted_list[] = $deleted_details[$id];
+                    }
                 }
             }
-            
+            $stmt->close();
             $conn->commit();
-            echo json_encode(['success' => true, 'message' => "$deleteCount publication(s) deleted successfully."]);
+            echo json_encode([
+                'success' => true, 
+                'message' => "$deleteCount publication record(s) deleted successfully.",
+                'deleted_items' => $successfully_deleted_list // Send back the list
+            ]);
             exit();
         } catch (Exception $e) {
             $conn->rollback();
             echo json_encode(['success' => false, 'message' => "Error deleting publications: " . $e->getMessage()]);
             exit();
         }
+    } else {
+        echo json_encode(['success' => false, 'message' => "No publication IDs provided for deletion."]);
+        exit();
     }
 }
 
@@ -429,22 +459,48 @@ $(document).ready(function() {
         e.preventDefault();
         
         const selectedRanges = [];
-        let selectedPublications = [];
-        
+        let selectedPublicationsInfo = []; // Store details for confirmation
+        let pubCounts = {}; // Temporary map { 'Publisher (Place)': count }
+
         $('.row-checkbox:checked').each(function() {
             const row = $(this).closest('tr');
-            const idRange = row.find('td:eq(1)').text(); // Get ID range from hidden column
+            const idRange = row.find('td:eq(1)').text();
             const publisher = row.find('td:eq(2)').text();
-            const year = row.find('td:eq(4)').text();
+            const place = row.find('td:eq(3)').text();
+            const bookTitle = row.find('td:eq(4)').text(); // Get book title
+            
             selectedRanges.push(idRange);
-            selectedPublications.push(`${publisher} (${year})`);
+
+            // Count items per publisher/place for the confirmation message
+            let currentCount = 0;
+            idRange.split(',').forEach(item => {
+                item = item.trim();
+                if (item.includes('-')) {
+                    const [start, end] = item.split('-').map(Number);
+                    currentCount += end - start + 1;
+                } else if (item) {
+                    currentCount++;
+                }
+            });
+
+            const key = `${publisher} (${place}) - "${bookTitle}"`; // Group by publisher, place, and book
+            if (!pubCounts[key]) {
+                pubCounts[key] = 0;
+            }
+            pubCounts[key] += currentCount;
         });
+
+        // Format counts for display
+        for (const key in pubCounts) {
+            selectedPublicationsInfo.push(`- ${key} (${pubCounts[key]} record(s))`);
+        }
 
         if (selectedRanges.length === 0) {
             Swal.fire({
                 title: 'No Selection',
                 text: 'Please select at least one publication group to delete.',
-                icon: 'warning'
+                icon: 'warning',
+                confirmButtonColor: '#ffc107'
             });
             return;
         }
@@ -452,23 +508,28 @@ $(document).ready(function() {
         let totalItems = 0;
         selectedRanges.forEach(range => {
             range.split(',').forEach(item => {
+                item = item.trim();
                 if (item.includes('-')) {
                     const [start, end] = item.split('-').map(Number);
                     totalItems += end - start + 1;
-                } else {
+                } else if (item) {
                     totalItems++;
                 }
             });
         });
 
         Swal.fire({
-            title: 'Are you sure?',
-            html: `You are about to delete ${totalItems} publication(s) from:<br><br>` +
-                  selectedPublications.map(pub => `- ${pub}`).join('<br>'),
+            title: 'Confirm Deletion',
+            html: `Are you sure you want to delete <strong>${totalItems}</strong> selected publication record(s)?<br><br>
+                   This action will affect the following:<br>
+                   <div style="text-align: left; max-height: 150px; overflow-y: auto; margin-top: 10px; padding-left: 20px;">
+                       ${selectedPublicationsInfo.join('<br>')}
+                   </div><br>
+                   <span class="text-danger">This action cannot be undone.</span>`,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
             confirmButtonText: 'Yes, delete them!',
             cancelButtonText: 'Cancel'
         }).then((result) => {
@@ -476,6 +537,7 @@ $(document).ready(function() {
                 $('#selected_ids_container').empty();
                 selectedRanges.forEach(range => {
                     range.split(',').forEach(item => {
+                        item = item.trim();
                         if (item.includes('-')) {
                             const [start, end] = item.split('-').map(Number);
                             for (let id = start; id <= end; id++) {
@@ -483,9 +545,9 @@ $(document).ready(function() {
                                     `<input type="hidden" name="ids[]" value="${id}">`
                                 );
                             }
-                        } else {
+                        } else if (item) {
                             $('#selected_ids_container').append(
-                                `<input type="hidden" name="ids[]" value="${item.trim()}">`
+                                `<input type="hidden" name="ids[]" value="${item}">`
                             );
                         }
                     });
@@ -499,26 +561,43 @@ $(document).ready(function() {
                     dataType: 'json',
                     success: function(response) {
                         if (response.success) {
+                             let successHtml = response.message;
+                            if (response.deleted_items && response.deleted_items.length > 0) {
+                                successHtml += `<br><br><strong>Deleted Items:</strong><br>
+                                                <div style="text-align: left; max-height: 150px; overflow-y: auto; margin-top: 5px; font-size: 0.9em;">
+                                                    ${response.deleted_items.join('<br>')}
+                                                </div>`;
+                            }
                             Swal.fire({
                                 title: 'Deleted!',
-                                text: response.message,
-                                icon: 'success'
+                                html: successHtml,
+                                icon: 'success',
+                                confirmButtonColor: '#3085d6'
                             }).then(() => {
-                                location.reload();
+                                location.reload(); // Reload page
                             });
                         } else {
                             Swal.fire({
                                 title: 'Error!',
-                                text: response.message,
-                                icon: 'error'
+                                text: response.message || 'An unknown error occurred.',
+                                icon: 'error',
+                                confirmButtonColor: '#d33'
                             });
                         }
+                    },
+                     error: function(xhr) { // Add error handling for AJAX request itself
+                         Swal.fire({
+                            title: 'Request Failed!',
+                            text: 'Could not reach the server. Please try again. Status: ' + xhr.statusText,
+                            icon: 'error',
+                            confirmButtonColor: '#d33'
+                        });
                     }
                 });
             }
         });
     });
-
+    
     // Make the entire checkbox cell clickable
     $(document).on('click', '.checkbox-cell', function(e) {
         // Prevent triggering if clicking directly on the checkbox

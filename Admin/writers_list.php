@@ -32,24 +32,46 @@ if (isset($_POST['bulk_action']) && isset($_POST['selected_ids'])) {
     if (empty($selectedIds)) {
         $_SESSION['error_message'] = "No writers selected for action.";
     } else {
+        // Ensure all IDs are integers
+        $safeSelectedIds = array_map('intval', $selectedIds);
+        $idsString = implode(',', $safeSelectedIds);
+
         // Process bulk actions
         switch ($action) {
             case 'delete':
+                // Fetch names before deleting
+                $deleted_writers_names = [];
+                if (!empty($idsString)) {
+                    $fetchNamesSql = "SELECT id, firstname, middle_init, lastname FROM writers WHERE id IN ($idsString)";
+                    $namesResult = $conn->query($fetchNamesSql);
+                    if ($namesResult && $namesResult->num_rows > 0) {
+                        while ($row = $namesResult->fetch_assoc()) {
+                            $deleted_writers_names[$row['id']] = trim($row['firstname'] . ' ' . $row['middle_init'] . ' ' . $row['lastname']);
+                        }
+                    }
+                }
+
                 // Start transaction to ensure data integrity
                 $conn->begin_transaction();
                 try {
                     $deleteCount = 0;
-                    foreach ($selectedIds as $id) {
-                        $id = (int)$id; // Ensure it's an integer
-                        
+                    $successfully_deleted_names = []; // Store names of successfully deleted writers
+
+                    foreach ($safeSelectedIds as $id) {
                         // First delete all contributor records that reference this writer
                         $deleteContributorsSql = "DELETE FROM contributors WHERE writer_id = $id";
-                        $conn->query($deleteContributorsSql);
-                        
+                        $conn->query($deleteContributorsSql); // Assuming this won't fail critically or has FK constraints
+
                         // Then delete the writer
                         $deleteWriterSql = "DELETE FROM writers WHERE id = $id";
-                        if ($conn->query($deleteWriterSql)) {
+                        if ($conn->query($deleteWriterSql) && $conn->affected_rows > 0) {
                             $deleteCount++;
+                            // Add name to the list if deletion was successful
+                            if (isset($deleted_writers_names[$id])) {
+                                $successfully_deleted_names[] = $deleted_writers_names[$id];
+                            }
+                        } else {
+                            // Optional: Log or handle cases where deletion might fail for a specific ID
                         }
                     }
                     
@@ -57,9 +79,10 @@ if (isset($_POST['bulk_action']) && isset($_POST['selected_ids'])) {
                     $conn->commit();
                     
                     if ($deleteCount > 0) {
-                        $_SESSION['success_message'] = "$deleteCount writer(s) deleted successfully. Related contributor records were also removed.";
+                        $_SESSION['success_message'] = "$deleteCount writer(s) deleted successfully.";
+                        $_SESSION['deleted_writers_names'] = $successfully_deleted_names; // Store successfully deleted names
                     } else {
-                        $_SESSION['error_message'] = "Failed to delete writers.";
+                        $_SESSION['error_message'] = "Failed to delete selected writers or they were already deleted.";
                     }
                 } catch (Exception $e) {
                     // An error occurred, rollback the transaction
@@ -86,13 +109,16 @@ $totalWritersResult = $conn->query($totalWritersQuery);
 $totalWriters = $totalWritersResult->fetch_assoc()['total'];
 
 // Handle form submission to save writers
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['firstname'])) { // Check if it's the add writer form
     $firstnames = $_POST['firstname'];
     $middle_inits = $_POST['middle_init'];
     $lastnames = $_POST['lastname'];
 
     $success = true;
     $valid_entries = 0;
+    $error_message = '';
+    $duplicate_message = '';
+    $added_writers_names = []; // Array to store names of added writers
 
     for ($i = 0; $i < count($firstnames); $i++) {
         $firstname = trim($conn->real_escape_string($firstnames[$i]));
@@ -110,26 +136,37 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         if ($checkResult->num_rows > 0) {
             $success = false;
-            echo "<script>alert('The writer already exists: $firstname $middle_init $lastname');</script>";
-            break;
+            $duplicate_message = "The writer '$firstname $middle_init $lastname' already exists.";
+            break; // Stop processing if a duplicate is found
         }
 
         $sql = "INSERT INTO writers (firstname, middle_init, lastname) VALUES ('$firstname', '$middle_init', '$lastname')";
         if ($conn->query($sql)) {
             $valid_entries++;
+            $added_writers_names[] = trim("$firstname $middle_init $lastname"); // Add name to list
         } else {
             $success = false;
-            break;
+            $error_message = "Database error while saving writer: " . $conn->error;
+            break; // Stop processing on database error
         }
     }
 
     if ($success && $valid_entries > 0) {
-        echo "<script>alert('$valid_entries writer(s) saved successfully'); window.location.href='writers_list.php';</script>";
-    } elseif ($valid_entries === 0) {
-        echo "<script>alert('No valid writers to save. Please provide both firstname and lastname.');</script>";
+        $_SESSION['success_message'] = "$valid_entries writer(s) saved successfully.";
+        $_SESSION['added_writers_names'] = $added_writers_names; // Store names in session
+    } elseif (!$success && !empty($duplicate_message)) {
+        $_SESSION['error_message'] = $duplicate_message;
+    } elseif ($valid_entries === 0 && empty($duplicate_message) && empty($error_message)) {
+        $_SESSION['warning_message'] = 'No valid writers to save. Please provide both firstname and lastname.';
+    } elseif (!$success && !empty($error_message)) {
+        $_SESSION['error_message'] = "Failed to save writers. " . $error_message;
     } else {
-        echo "<script>alert('Failed to save writers');</script>";
+         $_SESSION['error_message'] = 'An unexpected error occurred while saving writers.';
     }
+
+    // Redirect to the same page to prevent form resubmission
+    header("Location: writers_list.php");
+    exit();
 }
 
 // Get the search query if it exists
@@ -217,34 +254,45 @@ $result = $conn->query($sql);
 
 <!-- Add Writer Modal -->
 <div class="modal fade" id="addWriterModal" tabindex="-1" role="dialog" aria-labelledby="addWriterModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
+    <div class="modal-dialog modal-lg" role="document"> <!-- Increased modal size -->
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="addWriterModalLabel">Add Writers</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="addWriterModalLabel"><i class="fas fa-user-plus mr-2"></i>Add New Writers</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <div class="modal-body">
                 <form id="addWritersForm" method="POST" action="writers_list.php">
                     <div id="writersContainer">
-                        <div class="writer-entry mb-3">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div class="flex-grow-1">
-                                    <input type="text" name="firstname[]" class="form-control mb-2" placeholder="First Name" required>
-                                    <input type="text" name="middle_init[]" class="form-control mb-2" placeholder="Middle Initial">
-                                    <input type="text" name="lastname[]" class="form-control mb-2" placeholder="Last Name" required>
+                        <!-- Initial Writer Entry -->
+                        <div class="writer-entry border rounded p-3 mb-3 bg-light">
+                            <div class="row align-items-center">
+                                <div class="col-md-4 form-group mb-md-0">
+                                    <label for="firstname_0" class="form-label small text-muted">First Name <span class="text-danger">*</span></label>
+                                    <input type="text" name="firstname[]" id="firstname_0" class="form-control form-control-sm" placeholder="Enter first name" required>
                                 </div>
-                                <button type="button" class="btn btn-danger ml-2 remove-writer" style="height: 38px;">×</button>
+                                <div class="col-md-3 form-group mb-md-0">
+                                    <label for="middle_init_0" class="form-label small text-muted">Middle Initial</label>
+                                    <input type="text" name="middle_init[]" id="middle_init_0" class="form-control form-control-sm" placeholder="M.I.">
+                                </div>
+                                <div class="col-md-4 form-group mb-md-0">
+                                    <label for="lastname_0" class="form-label small text-muted">Last Name <span class="text-danger">*</span></label>
+                                    <input type="text" name="lastname[]" id="lastname_0" class="form-control form-control-sm" placeholder="Enter last name" required>
+                                </div>
+                                <div class="col-md-1 d-flex align-items-end justify-content-center">
+                                    <button type="button" class="btn btn-danger btn-sm remove-writer" title="Remove this writer">×</button>
+                                </div>
                             </div>
                         </div>
+                        <!-- End Initial Writer Entry -->
                     </div>
-                    <button type="button" class="btn btn-secondary" id="addMoreWriters">Add More Writers</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="addMoreWriters"><i class="fas fa-plus mr-1"></i>Add Another Writer</button>
                 </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" id="saveWriters">Save Writers</button>
+                <button type="button" class="btn btn-primary" id="saveWriters"><i class="fas fa-save mr-1"></i>Save Writers</button>
             </div>
         </div>
     </div>
@@ -586,6 +634,35 @@ $result = $conn->query($sql);
     #dataTable.table-striped tbody tr.selected:nth-of-type(even) {
         background-color: rgba(0, 123, 255, 0.1) !important;
     }
+
+    /* Add Writer Modal Enhancements */
+    #addWriterModal .modal-lg {
+        max-width: 800px; /* Adjust width as needed */
+    }
+    #addWriterModal .writer-entry {
+        background-color: #f8f9fc; /* Light background for each entry */
+    }
+    #addWriterModal .form-label {
+        margin-bottom: 0.25rem; /* Reduce space below labels */
+        font-weight: 500;
+    }
+    #addWriterModal .form-control-sm {
+        height: calc(1.5em + 0.5rem + 2px); /* Adjust input height */
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+    #addWriterModal .remove-writer {
+        line-height: 1; /* Center the 'x' better */
+        padding: 0.3rem 0.6rem;
+    }
+    #addWriterModal .form-group {
+        margin-bottom: 0.5rem; /* Reduce space between fields */
+    }
+    @media (min-width: 768px) {
+        #addWriterModal .form-group.mb-md-0 {
+            margin-bottom: 0 !important;
+        }
+    }
 </style>
 
 <script>
@@ -640,28 +717,43 @@ $(document).ready(function () {
         }
     });
 
-    // Add more writers functionality
+    // Add more writers functionality - Updated for new structure
+    let writerIndex = 1; // Start index for dynamically added writers
     $('#addMoreWriters').click(function() {
         var writerEntry = `
-            <div class="writer-entry mb-3">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div class="flex-grow-1">
-                        <input type="text" name="firstname[]" class="form-control mb-2" placeholder="First Name" required>
-                        <input type="text" name="middle_init[]" class="form-control mb-2" placeholder="Middle Initial">
-                        <input type="text" name="lastname[]" class="form-control mb-2" placeholder="Last Name" required>
+            <div class="writer-entry border rounded p-3 mb-3 bg-light">
+                <div class="row align-items-center">
+                    <div class="col-md-4 form-group mb-md-0">
+                        <label for="firstname_${writerIndex}" class="form-label small text-muted">First Name <span class="text-danger">*</span></label>
+                        <input type="text" name="firstname[]" id="firstname_${writerIndex}" class="form-control form-control-sm" placeholder="Enter first name" required>
                     </div>
-                    <button type="button" class="btn btn-danger ml-2 remove-writer" style="height: 38px;">×</button>
+                    <div class="col-md-3 form-group mb-md-0">
+                        <label for="middle_init_${writerIndex}" class="form-label small text-muted">Middle Initial</label>
+                        <input type="text" name="middle_init[]" id="middle_init_${writerIndex}" class="form-control form-control-sm" placeholder="M.I.">
+                    </div>
+                    <div class="col-md-4 form-group mb-md-0">
+                        <label for="lastname_${writerIndex}" class="form-label small text-muted">Last Name <span class="text-danger">*</span></label>
+                        <input type="text" name="lastname[]" id="lastname_${writerIndex}" class="form-control form-control-sm" placeholder="Enter last name" required>
+                    </div>
+                    <div class="col-md-1 d-flex align-items-end justify-content-center">
+                        <button type="button" class="btn btn-danger btn-sm remove-writer" title="Remove this writer">×</button>
+                    </div>
                 </div>
             </div>`;
         $('#writersContainer').append(writerEntry);
+        writerIndex++; // Increment index for the next entry
     });
 
-    // Remove writer functionality
+    // Remove writer functionality - Updated confirmation
     $(document).on('click', '.remove-writer', function() {
-        if ($('.writer-entry').length > 1) {
+        const writerEntries = $('.writer-entry');
+        if (writerEntries.length > 1) {
             $(this).closest('.writer-entry').remove();
         } else {
-            alert('At least one writer entry must remain.');
+            // Optionally, clear the fields instead of showing an alert
+            const entry = $(this).closest('.writer-entry');
+            entry.find('input[type="text"]').val('');
+            // alert('At least one writer entry must remain. You can clear the fields if needed.');
         }
     });
 
@@ -727,12 +819,54 @@ $(document).ready(function () {
         $('#updateWriterForm').submit();
     });
 
-    // Display success message if available
-    var successMessage = "<?php echo isset($_SESSION['success_message']) ? $_SESSION['success_message'] : ''; ?>";
-    if (successMessage) {
-        alert(successMessage);
-        <?php unset($_SESSION['success_message']); ?>
-    }
+    // Display session messages using SweetAlert2
+    <?php if (isset($_SESSION['success_message'])): ?>
+        <?php
+        $message = addslashes($_SESSION['success_message']);
+        $detailsList = '';
+        // Check for added writers first
+        if (isset($_SESSION['added_writers_names']) && !empty($_SESSION['added_writers_names'])) {
+            $names = array_map('htmlspecialchars', $_SESSION['added_writers_names']); // Sanitize names
+            $detailsList = '<br><br><strong>Added:</strong><br>' . implode('<br>', $names);
+            unset($_SESSION['added_writers_names']); // Unset the added names list
+        } 
+        // Check for deleted writers if no added writers
+        elseif (isset($_SESSION['deleted_writers_names']) && !empty($_SESSION['deleted_writers_names'])) {
+            $names = array_map('htmlspecialchars', $_SESSION['deleted_writers_names']); // Sanitize names
+            $detailsList = '<br><br><strong>Deleted:</strong><br>' . implode('<br>', $names);
+            unset($_SESSION['deleted_writers_names']); // Unset the deleted names list
+        }
+        ?>
+        Swal.fire({
+            title: 'Success!',
+            html: '<?php echo $message . $detailsList; ?>', // Use html property
+            icon: 'success',
+            confirmButtonColor: '#3085d6'
+        });
+        <?php
+        unset($_SESSION['success_message']); 
+        ?>
+    <?php endif; ?>
+
+    <?php if (isset($_SESSION['error_message'])): ?>
+        Swal.fire({
+            title: 'Error!',
+            text: '<?php echo addslashes($_SESSION['error_message']); ?>',
+            icon: 'error',
+            confirmButtonColor: '#d33'
+        });
+        <?php unset($_SESSION['error_message']); ?>
+    <?php endif; ?>
+    
+    <?php if (isset($_SESSION['warning_message'])): ?>
+        Swal.fire({
+            title: 'Warning!',
+            text: '<?php echo addslashes($_SESSION['warning_message']); ?>',
+            icon: 'warning',
+            confirmButtonColor: '#ffc107'
+        });
+        <?php unset($_SESSION['warning_message']); ?>
+    <?php endif; ?>
 
     // Update the save writers functionality
     $('#saveWriters').click(function(e) {
@@ -936,25 +1070,40 @@ $(document).ready(function () {
         $('#selectAll').trigger('click');
     });
     
-    // Handle bulk actions
+    // Handle bulk actions - Updated with SweetAlert2
     $('.bulk-delete-btn').on('click', function(e) {
         e.preventDefault();
         
         if (selectedIds.length === 0) {
-            alert('Please select at least one writer to delete.');
+            Swal.fire({
+                title: 'No Selection',
+                text: 'Please select at least one writer to delete.',
+                icon: 'warning',
+                confirmButtonColor: '#ffc107'
+            });
             return;
         }
         
-        var confirmMessage = 'Are you sure you want to delete ' + selectedIds.length + ' selected writer(s)?\n\nThis will also delete all contributor records for these writers.';
-        
-        if (confirm(confirmMessage)) {
-            $('#selected_ids_container').empty();
-            selectedIds.forEach(function(id) {
-                $('#selected_ids_container').append('<input type="hidden" name="selected_ids[]" value="' + id + '">');
-            });
-            $('#bulk_action').val('delete');
-            $('#bulkActionForm').submit();
-        }
+        Swal.fire({
+            title: 'Confirm Bulk Deletion',
+            html: `Are you sure you want to delete <strong>${selectedIds.length}</strong> selected writer(s)?<br><br>
+                   <span class="text-danger">This will also delete all contributor records for these writers. This action cannot be undone.</span>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete them!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $('#selected_ids_container').empty();
+                selectedIds.forEach(function(id) {
+                    $('#selected_ids_container').append('<input type="hidden" name="selected_ids[]" value="' + id + '">');
+                });
+                $('#bulk_action').val('delete');
+                $('#bulkActionForm').submit();
+            }
+        });
     });
 
     // Modified checkbox handling - Header cell click handler
@@ -1047,7 +1196,7 @@ $(document).ready(function () {
         $('#contextMenu').hide();
     });
     
-    // Handle context menu item clicks
+    // Handle context menu item clicks - Updated delete action with SweetAlert2
     $('.context-menu-item').on('click', function() {
         const action = $(this).data('action');
         
@@ -1058,8 +1207,8 @@ $(document).ready(function () {
         } else if (action === 'delete') {
             Swal.fire({
                 title: 'Delete Writer?',
-                html: `Are you sure you want to delete <strong>${contextTarget.firstName} ${contextTarget.lastName}</strong>?<br><br>
-                      <span class="text-danger">This will also remove all contributor records for this writer.</span>`,
+                html: `Are you sure you want to delete <strong>${contextTarget.firstName} ${contextTarget.lastName}</strong> (ID: ${contextTarget.id})?<br><br>
+                      <span class="text-danger">This will also remove all contributor records for this writer. This action cannot be undone.</span>`,
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
@@ -1070,7 +1219,7 @@ $(document).ready(function () {
                 if (result.isConfirmed) {
                     // Perform delete operation via AJAX
                     $.ajax({
-                        url: 'delete_writer.php',
+                        url: 'delete_writer.php', // Ensure this endpoint exists and handles deletion
                         type: 'POST',
                         data: { writer_id: contextTarget.id },
                         dataType: 'json',
@@ -1078,24 +1227,25 @@ $(document).ready(function () {
                             if (response.success) {
                                 Swal.fire({
                                     title: 'Deleted!',
-                                    text: response.message || 'Writer deleted successfully',
-                                    icon: 'success'
-                                }).then(() => {
-                                    // Remove row from table
-                                    table.row($(contextTarget.element)).remove().draw();
+                                    text: response.message || 'Writer deleted successfully.',
+                                    icon: 'success',
+                                    timer: 1500, // Auto close after 1.5 seconds
+                                    showConfirmButton: false
                                 });
+                                // Remove row from table using DataTables API for proper redraw
+                                table.row($(contextTarget.element)).remove().draw(false); // Use draw(false) to avoid resetting pagination
                             } else {
                                 Swal.fire({
                                     title: 'Error!',
-                                    text: response.message || 'Failed to delete writer',
+                                    text: response.message || 'Failed to delete writer.',
                                     icon: 'error'
                                 });
                             }
                         },
-                        error: function() {
+                        error: function(xhr) {
                             Swal.fire({
                                 title: 'Error!',
-                                text: 'A server error occurred',
+                                text: 'A server error occurred: ' + xhr.statusText,
                                 icon: 'error'
                             });
                         }
@@ -1106,6 +1256,11 @@ $(document).ready(function () {
         
         // Hide the context menu
         $('#contextMenu').hide();
+        // Remove highlight from the row
+        if (contextTarget && contextTarget.element) {
+            $(contextTarget.element).removeClass('table-primary');
+        }
+        contextTarget = null; // Clear context target
     });
 
     // Add row selection functionality - click anywhere on row to toggle checkbox

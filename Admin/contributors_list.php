@@ -12,28 +12,59 @@ if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Lib
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete') {
     if (isset($_POST['ids']) && !empty($_POST['ids'])) {
         require_once '../db.php';
+        
+        $safeIds = array_map('intval', $_POST['ids']);
+        $idsString = implode(',', $safeIds);
+        $deleted_details = [];
+
+        // Fetch details before deleting
+        if (!empty($idsString)) {
+            $fetchDetailsSql = "SELECT c.id, b.title as book_title, CONCAT(w.firstname, ' ', w.middle_init, ' ', w.lastname) as writer_name, c.role 
+                                FROM contributors c
+                                JOIN books b ON c.book_id = b.id
+                                JOIN writers w ON c.writer_id = w.id
+                                WHERE c.id IN ($idsString)";
+            $detailsResult = $conn->query($fetchDetailsSql);
+            if ($detailsResult && $detailsResult->num_rows > 0) {
+                while ($row = $detailsResult->fetch_assoc()) {
+                    $deleted_details[$row['id']] = htmlspecialchars($row['writer_name'] . ' (' . $row['role'] . ') for "' . $row['book_title'] . '"');
+                }
+            }
+        }
+
         $conn->begin_transaction();
         try {
             $deleteCount = 0;
+            $successfully_deleted_list = [];
             $stmt = $conn->prepare("DELETE FROM contributors WHERE id = ?");
             
-            foreach ($_POST['ids'] as $id) {
-                $id = (int)$id;
+            foreach ($safeIds as $id) {
                 $stmt->bind_param("i", $id);
-                if ($stmt->execute()) {
+                if ($stmt->execute() && $conn->affected_rows > 0) {
                     $deleteCount++;
+                    if (isset($deleted_details[$id])) {
+                        $successfully_deleted_list[] = $deleted_details[$id];
+                    }
                 }
             }
-            
+            $stmt->close();
             $conn->commit();
             
-            echo json_encode(['success' => true, 'message' => "$deleteCount contributor(s) deleted successfully."]);
+            echo json_encode([
+                'success' => true, 
+                'message' => "$deleteCount contributor record(s) deleted successfully.",
+                'deleted_items' => $successfully_deleted_list // Send back the list of deleted items
+            ]);
             exit();
         } catch (Exception $e) {
             $conn->rollback();
             echo json_encode(['success' => false, 'message' => "Error deleting contributors: " . $e->getMessage()]);
             exit();
         }
+    } else {
+        // Handle case where no IDs were provided
+        echo json_encode(['success' => false, 'message' => "No contributor IDs provided for deletion."]);
+        exit();
     }
 }
 
@@ -443,21 +474,47 @@ $(document).ready(function() {
         e.preventDefault();
         
         const selectedRanges = [];
-        let selectedBooks = [];
-        
+        let selectedBooksInfo = []; // Store {title: '...', count: X}
+        let bookCounts = {}; // Temporary map to count items per book
+
         $('.row-checkbox:checked').each(function() {
             const row = $(this).closest('tr');
-            const idRange = row.find('td:eq(1)').text(); // Get ID range from hidden column
+            const idRange = row.find('td:eq(1)').text(); // Get ID range
             const bookTitle = row.find('td:eq(2)').text();
+            const writerName = row.find('td:eq(3)').text();
+            const role = row.find('td:eq(4)').text();
+            
             selectedRanges.push(idRange);
-            selectedBooks.push(bookTitle);
+
+            // Count items per book title for the confirmation message
+            let currentCount = 0;
+            idRange.split(',').forEach(item => {
+                if (item.includes('-')) {
+                    const [start, end] = item.split('-').map(Number);
+                    currentCount += end - start + 1;
+                } else {
+                    currentCount++;
+                }
+            });
+
+            if (!bookCounts[bookTitle]) {
+                bookCounts[bookTitle] = 0;
+            }
+            bookCounts[bookTitle] += currentCount;
         });
+
+        // Format book counts for display
+        for (const title in bookCounts) {
+            selectedBooksInfo.push(`- ${title} (${bookCounts[title]} record(s))`);
+        }
+
 
         if (selectedRanges.length === 0) {
             Swal.fire({
                 title: 'No Selection',
                 text: 'Please select at least one contributor group to delete.',
-                icon: 'warning'
+                icon: 'warning',
+                confirmButtonColor: '#ffc107' // Use Bootstrap warning color
             });
             return;
         }
@@ -466,23 +523,28 @@ $(document).ready(function() {
         let totalItems = 0;
         selectedRanges.forEach(range => {
             range.split(',').forEach(item => {
+                item = item.trim(); // Trim whitespace
                 if (item.includes('-')) {
                     const [start, end] = item.split('-').map(Number);
-                    totalItems += end - start + 1;
-                } else {
+                    totalItems += (end - start + 1);
+                } else if (item) { // Ensure item is not empty
                     totalItems++;
                 }
             });
         });
 
         Swal.fire({
-            title: 'Are you sure?',
-            html: `You are about to delete ${totalItems} contributor(s) from:<br><br>` +
-                  selectedBooks.map(book => `- ${book}`).join('<br>'),
+            title: 'Confirm Deletion',
+            html: `Are you sure you want to delete <strong>${totalItems}</strong> selected contributor record(s)?<br><br>
+                   This action will affect the following books:<br>
+                   <div style="text-align: left; max-height: 150px; overflow-y: auto; margin-top: 10px; padding-left: 20px;">
+                       ${selectedBooksInfo.join('<br>')}
+                   </div><br>
+                   <span class="text-danger">This action cannot be undone.</span>`,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
+            confirmButtonColor: '#d33', // Use Bootstrap danger color
+            cancelButtonColor: '#3085d6', // Use Bootstrap primary color
             confirmButtonText: 'Yes, delete them!',
             cancelButtonText: 'Cancel'
         }).then((result) => {
@@ -490,6 +552,7 @@ $(document).ready(function() {
                 $('#selected_ids_container').empty();
                 selectedRanges.forEach(range => {
                     range.split(',').forEach(item => {
+                        item = item.trim(); // Trim whitespace
                         if (item.includes('-')) {
                             const [start, end] = item.split('-').map(Number);
                             for (let id = start; id <= end; id++) {
@@ -497,9 +560,9 @@ $(document).ready(function() {
                                     `<input type="hidden" name="ids[]" value="${id}">`
                                 );
                             }
-                        } else {
+                        } else if (item) { // Ensure item is not empty
                             $('#selected_ids_container').append(
-                                `<input type="hidden" name="ids[]" value="${item.trim()}">`
+                                `<input type="hidden" name="ids[]" value="${item}">`
                             );
                         }
                     });
@@ -513,20 +576,37 @@ $(document).ready(function() {
                     dataType: 'json',
                     success: function(response) {
                         if (response.success) {
+                            let successHtml = response.message;
+                            if (response.deleted_items && response.deleted_items.length > 0) {
+                                successHtml += `<br><br><strong>Deleted Items:</strong><br>
+                                                <div style="text-align: left; max-height: 150px; overflow-y: auto; margin-top: 5px; font-size: 0.9em;">
+                                                    ${response.deleted_items.join('<br>')}
+                                                </div>`;
+                            }
                             Swal.fire({
                                 title: 'Deleted!',
-                                text: response.message,
-                                icon: 'success'
+                                html: successHtml,
+                                icon: 'success',
+                                confirmButtonColor: '#3085d6'
                             }).then(() => {
-                                location.reload();
+                                location.reload(); // Reload page to reflect changes
                             });
                         } else {
                             Swal.fire({
                                 title: 'Error!',
-                                text: response.message,
-                                icon: 'error'
+                                text: response.message || 'An unknown error occurred.',
+                                icon: 'error',
+                                confirmButtonColor: '#d33'
                             });
                         }
+                    },
+                    error: function(xhr) { // Add error handling for AJAX request itself
+                         Swal.fire({
+                            title: 'Request Failed!',
+                            text: 'Could not reach the server. Please try again. Status: ' + xhr.statusText,
+                            icon: 'error',
+                            confirmButtonColor: '#d33'
+                        });
                     }
                 });
             }
