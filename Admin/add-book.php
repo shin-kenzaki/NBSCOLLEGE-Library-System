@@ -3947,27 +3947,33 @@ document.addEventListener("DOMContentLoaded", function() {
     // Create a function to show the add author dialog using SweetAlert
     window.showAddAuthorDialog = function() {
         Swal.fire({
-            title: 'Add New Author',
+            title: '<i class="fas fa-user-plus"></i> Add New Author',
             html: `
                 <div id="sweetAlertAuthorContainer">
+                    <p class="text-muted mb-3">Enter author details below. You can add multiple authors at once.</p>
                     <div id="authorEntriesContainer">
-                        <div class="author-entry row mb-3">
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label>First Name</label>
-                                    <input type="text" class="form-control author-firstname" required>
+                        <div class="author-entry card mb-3 p-3">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label>First Name <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control author-firstname" required>
+                                        <div class="invalid-feedback">First name is required</div>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="form-group">
-                                    <label>Middle Initial</label>
-                                    <input type="text" class="form-control author-middleinit">
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label>Middle Initial</label>
+                                        <input type="text" class="form-control author-middleinit" maxlength="5">
+                                        <small class="form-text text-muted">Optional</small>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label>Last Name</label>
-                                    <input type="text" class="form-control author-lastname" required>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label>Last Name <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control author-lastname" required>
+                                        <div class="invalid-feedback">Last name is required</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -3975,15 +3981,21 @@ document.addEventListener("DOMContentLoaded", function() {
                 </div>
             `,
             showCancelButton: true,
-            confirmButtonText: 'Save Authors',
-            cancelButtonText: 'Cancel',
+            confirmButtonText: '<i class="fas fa-save"></i> Save Authors',
+            confirmButtonColor: '#3085d6',
+            cancelButtonText: '<i class="fas fa-times"></i> Cancel',
+            cancelButtonColor: '#d33',
             width: '800px',
+            customClass: {
+                confirmButton: 'btn btn-primary',
+                cancelButton: 'btn btn-danger'
+            },
             didOpen: () => {
                 // Add button below the author entries container
                 const container = document.getElementById('sweetAlertAuthorContainer');
                 const addButton = document.createElement('button');
                 addButton.type = 'button';
-                addButton.className = 'btn btn-secondary btn-sm mt-2';
+                addButton.className = 'btn btn-secondary btn-sm mt-2 add-author-btn';
                 addButton.innerHTML = '<i class="fas fa-plus"></i> Add Another Author';
                 addButton.id = 'addAuthorEntry';
                 addButton.style.display = 'block';
@@ -3991,37 +4003,49 @@ document.addEventListener("DOMContentLoaded", function() {
                 addButton.style.marginBottom = '10px';
                 container.appendChild(addButton);
                 
+                // Setup validation listeners for required fields
+                setupValidationListeners();
+                
                 // Add event listener for the button
                 addButton.addEventListener('click', function() {
                     const authorEntriesContainer = document.getElementById('authorEntriesContainer');
                     const newEntry = document.createElement('div');
-                    newEntry.className = 'author-entry row mb-3';
+                    newEntry.className = 'author-entry card mb-3 p-3';
                     newEntry.innerHTML = `
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label>First Name</label>
-                                <input type="text" class="form-control author-firstname" required>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <label>Middle Initial</label>
-                                <input type="text" class="form-control author-middleinit">
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label>Last Name</label>
-                                <input type="text" class="form-control author-lastname" required>
-                            </div>
-                        </div>
-                        <div class="col-md-1 remove-btn-container">
-                            <button type="button" class="btn btn-danger btn-sm remove-author-entry" style="margin-top: 30px;">
-                                <i class="fas fa-times"></i>
+                        <div class="d-flex justify-content-between mb-2">
+                            <h6 class="text-muted">Additional Author</h6>
+                            <button type="button" class="btn btn-danger btn-sm remove-author-entry">
+                                <i class="fas fa-times"></i> Remove
                             </button>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>First Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control author-firstname" required>
+                                    <div class="invalid-feedback">First name is required</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>Middle Initial</label>
+                                    <input type="text" class="form-control author-middleinit" maxlength="5">
+                                    <small class="form-text text-muted">Optional</small>
+                                </div>
+                            </div>
+                            <div class="col-md-5">
+                                <div class="form-group">
+                                    <label>Last Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control author-lastname" required>
+                                    <div class="invalid-feedback">Last name is required</div>
+                                </div>
+                            </div>
                         </div>
                     `;
                     authorEntriesContainer.appendChild(newEntry);
+                    
+                    // Setup validation for new fields
+                    setupValidationListeners(newEntry);
                     
                     // Scroll to the bottom of the container to show the new entry
                     const swalContent = document.querySelector('.swal2-content');
@@ -4044,6 +4068,20 @@ document.addEventListener("DOMContentLoaded", function() {
                         }
                     }
                 });
+                
+                function setupValidationListeners(parent = document) {
+                    // Setup real-time validation
+                    parent.querySelectorAll('.author-firstname, .author-lastname').forEach(input => {
+                        input.addEventListener('input', function() {
+                            if (this.value.trim() === '') {
+                                this.classList.add('is-invalid');
+                            } else {
+                                this.classList.remove('is-invalid');
+                                this.classList.add('is-valid');
+                            }
+                        });
+                    });
+                }
             }
         }).then((result) => {
             if (result.isConfirmed) {
@@ -4059,6 +4097,14 @@ document.addEventListener("DOMContentLoaded", function() {
                     
                     if (!firstname || !lastname) {
                         hasErrors = true;
+                        
+                        // Highlight empty fields
+                        if (!firstname) {
+                            entry.querySelector('.author-firstname').classList.add('is-invalid');
+                        }
+                        if (!lastname) {
+                            entry.querySelector('.author-lastname').classList.add('is-invalid');
+                        }
                         return;
                     }
                     
@@ -4070,14 +4116,32 @@ document.addEventListener("DOMContentLoaded", function() {
                 });
                 
                 if (hasErrors) {
-                    Swal.fire('Error', 'First name and last name are required for all authors.', 'error');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Validation Error',
+                        text: 'First name and last name are required for all authors.',
+                        confirmButtonColor: '#3085d6'
+                    });
                     return;
                 }
                 
                 if (authorsData.length === 0) {
-                    Swal.fire('Error', 'Please add at least one author.', 'error');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'No Authors Added',
+                        text: 'Please add at least one author.',
+                        confirmButtonColor: '#3085d6'
+                    });
                     return;
                 }
+                
+                // Show loading state
+                Swal.fire({
+                    title: 'Saving Authors',
+                    html: '<i class="fas fa-spinner fa-spin"></i> Please wait...',
+                    allowOutsideClick: false,
+                    showConfirmButton: false
+                });
                 
                 // AJAX request to save all authors
                 const xhr = new XMLHttpRequest();
@@ -4111,15 +4175,35 @@ document.addEventListener("DOMContentLoaded", function() {
                                     authorSelect.dispatchEvent(new Event('change'));
                                 }
                                 
-                                Swal.fire('Success', `Successfully added ${response.authors.length} author(s)!`, 'success');
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Authors Added',
+                                    text: `Successfully added ${response.authors.length} author(s)!`,
+                                    confirmButtonColor: '#3085d6'
+                                });
                             } else {
-                                Swal.fire('Error', response.message || 'Failed to add authors', 'error');
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: response.message || 'Failed to add authors',
+                                    confirmButtonColor: '#3085d6'
+                                });
                             }
                         } catch (e) {
-                            Swal.fire('Error', 'Error processing response: ' + e.message, 'error');
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Error processing response: ' + e.message,
+                                confirmButtonColor: '#3085d6'
+                            });
                         }
                     } else {
-                        Swal.fire('Error', 'Server error while adding authors', 'error');
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Server Error',
+                            text: 'Server error while adding authors',
+                            confirmButtonColor: '#3085d6'
+                        });
                     }
                 };
                 xhr.send(JSON.stringify(authorsData));
@@ -4130,21 +4214,27 @@ document.addEventListener("DOMContentLoaded", function() {
     // Create a function to show the add publisher dialog using SweetAlert
     window.showAddPublisherDialog = function() {
         Swal.fire({
-            title: 'Add New Publisher',
+            title: '<i class="fas fa-building"></i> Add New Publisher',
             html: `
                 <div id="sweetAlertPublisherContainer">
+                    <p class="text-muted mb-3">Enter publisher details below. You can add multiple publishers at once.</p>
                     <div id="publisherEntriesContainer">
-                        <div class="publisher-entry row mb-3">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Publisher Name</label>
-                                    <input type="text" class="form-control publisher-name" placeholder="Enter publisher name" required>
+                        <div class="publisher-entry card mb-3 p-3">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Publisher Name <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control publisher-name" placeholder="Enter publisher name" required>
+                                        <div class="invalid-feedback">Publisher name is required</div>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="col-md-5">
-                                <div class="form-group">
-                                    <label>Place</label>
-                                    <input type="text" class="form-control publisher-place" placeholder="Enter place of publication" required>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Place of Publication <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control publisher-place" placeholder="Enter place of publication" required>
+                                        <div class="invalid-feedback">Place is required</div>
+                                        <small class="form-text text-muted">Example: New York, Manila, London</small>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -4152,15 +4242,21 @@ document.addEventListener("DOMContentLoaded", function() {
                 </div>
             `,
             showCancelButton: true,
-            confirmButtonText: 'Save Publisher',
-            cancelButtonText: 'Cancel',
+            confirmButtonText: '<i class="fas fa-save"></i> Save Publisher',
+            confirmButtonColor: '#3085d6',
+            cancelButtonText: '<i class="fas fa-times"></i> Cancel',
+            cancelButtonColor: '#d33',
             width: '800px',
+            customClass: {
+                confirmButton: 'btn btn-primary',
+                cancelButton: 'btn btn-danger'
+            },
             didOpen: () => {
                 // Add button below the publisher entries container
                 const container = document.getElementById('sweetAlertPublisherContainer');
                 const addButton = document.createElement('button');
                 addButton.type = 'button';
-                addButton.className = 'btn btn-secondary btn-sm mt-2';
+                addButton.className = 'btn btn-secondary btn-sm mt-2 add-publisher-btn';
                 addButton.innerHTML = '<i class="fas fa-plus"></i> Add Another Publisher';
                 addButton.id = 'addPublisherEntry';
                 addButton.style.display = 'block';
@@ -4168,31 +4264,43 @@ document.addEventListener("DOMContentLoaded", function() {
                 addButton.style.marginBottom = '10px';
                 container.appendChild(addButton);
                 
+                // Setup validation listeners
+                setupValidationListeners();
+                
                 // Add event listener for the button
                 addButton.addEventListener('click', function() {
                     const publisherEntriesContainer = document.getElementById('publisherEntriesContainer');
                     const newEntry = document.createElement('div');
-                    newEntry.className = 'publisher-entry row mb-3';
+                    newEntry.className = 'publisher-entry card mb-3 p-3';
                     newEntry.innerHTML = `
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label>Publisher Name</label>
-                                <input type="text" class="form-control publisher-name" placeholder="Enter publisher name" required>
-                            </div>
-                        </div>
-                        <div class="col-md-5">
-                            <div class="form-group">
-                                <label>Place</label>
-                                <input type="text" class="form-control publisher-place" placeholder="Enter place of publication" required>
-                            </div>
-                        </div>
-                        <div class="col-md-1 remove-btn-container">
-                            <button type="button" class="btn btn-danger btn-sm remove-publisher-entry" style="margin-top: 30px;">
-                                <i class="fas fa-times"></i>
+                        <div class="d-flex justify-content-between mb-2">
+                            <h6 class="text-muted">Additional Publisher</h6>
+                            <button type="button" class="btn btn-danger btn-sm remove-publisher-entry">
+                                <i class="fas fa-times"></i> Remove
                             </button>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>Publisher Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control publisher-name" placeholder="Enter publisher name" required>
+                                    <div class="invalid-feedback">Publisher name is required</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>Place of Publication <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control publisher-place" placeholder="Enter place of publication" required>
+                                    <div class="invalid-feedback">Place is required</div>
+                                    <small class="form-text text-muted">Example: New York, Manila, London</small>
+                                </div>
+                            </div>
                         </div>
                     `;
                     publisherEntriesContainer.appendChild(newEntry);
+                    
+                    // Setup validation for new fields
+                    setupValidationListeners(newEntry);
                     
                     // Scroll to the bottom of the container to show the new entry
                     const swalContent = document.querySelector('.swal2-content');
@@ -4215,6 +4323,20 @@ document.addEventListener("DOMContentLoaded", function() {
                         }
                     }
                 });
+                
+                function setupValidationListeners(parent = document) {
+                    // Setup real-time validation
+                    parent.querySelectorAll('.publisher-name, .publisher-place').forEach(input => {
+                        input.addEventListener('input', function() {
+                            if (this.value.trim() === '') {
+                                this.classList.add('is-invalid');
+                            } else {
+                                this.classList.remove('is-invalid');
+                                this.classList.add('is-valid');
+                            }
+                        });
+                    });
+                }
             }
         }).then((result) => {
             if (result.isConfirmed) {
@@ -4229,6 +4351,14 @@ document.addEventListener("DOMContentLoaded", function() {
                     
                     if (!publisher || !place) {
                         hasErrors = true;
+                        
+                        // Highlight empty fields
+                        if (!publisher) {
+                            entry.querySelector('.publisher-name').classList.add('is-invalid');
+                        }
+                        if (!place) {
+                            entry.querySelector('.publisher-place').classList.add('is-invalid');
+                        }
                         return;
                     }
                     
@@ -4239,14 +4369,32 @@ document.addEventListener("DOMContentLoaded", function() {
                 });
                 
                 if (hasErrors) {
-                    Swal.fire('Error', 'Publisher name and place are required for all publishers.', 'error');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Validation Error',
+                        text: 'Publisher name and place are required for all publishers.',
+                        confirmButtonColor: '#3085d6'
+                    });
                     return;
                 }
                 
                 if (publishersData.length === 0) {
-                    Swal.fire('Error', 'Please add at least one publisher.', 'error');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'No Publishers Added',
+                        text: 'Please add at least one publisher.',
+                        confirmButtonColor: '#3085d6'
+                    });
                     return;
                 }
+                
+                // Show loading state
+                Swal.fire({
+                    title: 'Saving Publishers',
+                    html: '<i class="fas fa-spinner fa-spin"></i> Please wait...',
+                    allowOutsideClick: false,
+                    showConfirmButton: false
+                });
                 
                 // AJAX request to save all publishers
                 const xhr = new XMLHttpRequest();
@@ -4260,31 +4408,51 @@ document.addEventListener("DOMContentLoaded", function() {
                                 // Refresh publisher dropdown
                                 const publisherSelect = document.getElementById('publisher');
                                 if (publisherSelect) {
-                                    response.publishers.forEach(publisher => {
+                                    response.publishers.forEach(pub => {
                                         const option = document.createElement('option');
-                                        option.value = publisher.id;
-                                        option.textContent = `${publisher.place} ; ${publisher.publisher}`;
+                                        option.value = pub.id;
+                                        option.textContent = `${pub.place} ; ${pub.publisher}`;
                                         publisherSelect.appendChild(option);
                                     });
                                     
                                     // Auto-select the last added publisher
                                     if (response.publishers.length > 0) {
-                                        const lastPublisher = response.publishers[response.publishers.length - 1];
-                                        publisherSelect.value = lastPublisher.id;
+                                        const lastPub = response.publishers[response.publishers.length - 1];
+                                        publisherSelect.value = lastPub.id;
                                         // Trigger change event to update any dependent UI
                                         publisherSelect.dispatchEvent(new Event('change'));
                                     }
                                 }
                                 
-                                Swal.fire('Success', `Successfully added ${response.publishers.length} publisher(s)!`, 'success');
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Publishers Added',
+                                    text: `Successfully added ${response.publishers.length} publisher(s)!`,
+                                    confirmButtonColor: '#3085d6'
+                                });
                             } else {
-                                Swal.fire('Error', response.message || 'Failed to add publishers', 'error');
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: response.message || 'Failed to add publishers',
+                                    confirmButtonColor: '#3085d6'
+                                });
                             }
                         } catch (e) {
-                            Swal.fire('Error', 'Invalid response from server', 'error');
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Invalid response from server: ' + e.message,
+                                confirmButtonColor: '#3085d6'
+                            });
                         }
                     } else {
-                        Swal.fire('Error', 'Failed to add publishers', 'error');
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Server Error',
+                            text: 'Failed to add publishers - server returned an error',
+                            confirmButtonColor: '#3085d6'
+                        });
                     }
                 };
                 xhr.send(JSON.stringify(publishersData));
