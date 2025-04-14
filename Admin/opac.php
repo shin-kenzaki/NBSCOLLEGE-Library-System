@@ -644,6 +644,12 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                                             }
                                             ?>
                                         </div>
+                                        
+                                        <!-- Program Field -->
+                                        <div class="mb-3">
+                                            <strong>Program:</strong> 
+                                            <?php echo !empty($book['program']) ? htmlspecialchars($book['program']) : 'N/A'; ?>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

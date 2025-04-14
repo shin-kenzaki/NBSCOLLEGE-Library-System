@@ -144,6 +144,7 @@ $query = "SELECT
     GROUP_CONCAT(CONCAT(call_number, '|', copy_number) ORDER BY copy_number) as call_number_data,
     GROUP_CONCAT(DISTINCT copy_number ORDER BY copy_number) as copy_number_range,
     GROUP_CONCAT(DISTINCT shelf_location ORDER BY shelf_location) as shelf_locations,
+    GROUP_CONCAT(DISTINCT program ORDER BY program) as programs,
     ISBN,
     series,
     volume,
@@ -319,6 +320,7 @@ $result = $stmt->get_result();
                                     <th style="text-align: center">Call Number Range</th>
                                     <th style="text-align: center">Copy Number Range</th>
                                     <th style="text-align: center">Shelf Locations</th>
+                                    <th style="text-align: center">Program</th>
                                     <th style="text-align: center">ISBN</th>
                                     <th style="text-align: center">Series</th>
                                     <th style="text-align: center">Volume</th>
@@ -336,6 +338,7 @@ $result = $stmt->get_result();
             GROUP_CONCAT(CONCAT(call_number, '|', copy_number) ORDER BY copy_number) as call_number_data,
             GROUP_CONCAT(DISTINCT copy_number ORDER BY copy_number) as copy_number_range,
             GROUP_CONCAT(DISTINCT shelf_location ORDER BY shelf_location) as shelf_locations,
+            GROUP_CONCAT(DISTINCT program ORDER BY program) as programs,
             ISBN,
             series,
             volume,
@@ -393,7 +396,11 @@ $result = $stmt->get_result();
             $shelf_locations = array_unique(explode(',', $row['shelf_locations']));
             $formatted_shelf_locations = implode(', ', $shelf_locations);
 
-            // Format all data for display - reordered columns to put accession first
+            // Process program data
+            $programs = !empty($row['programs']) ? array_unique(explode(',', $row['programs'])) : ['N/A'];
+            $formatted_programs = implode(', ', $programs);
+
+            // Format all data for display - reordered columns to put accession first, and add program
             echo "<tr data-book-id='" . $ids[0] . "'>
                 <td style='text-align: center'>{$id_range}</td>
                 <td style='text-align: center'>{$accession_range}</td>
@@ -401,6 +408,7 @@ $result = $stmt->get_result();
                 <td style='text-align: center'>" . implode('<br>', $call_numbers) . "</td>
                 <td style='text-align: center'>{$copy_range}</td>
                 <td style='text-align: center'>{$formatted_shelf_locations}</td>
+                <td style='text-align: center'>{$formatted_programs}</td>
                 <td style='text-align: center'>" . ($row['ISBN'] ?: 'N/A') . "</td>
                 <td style='text-align: center'>" . ($row['series'] ?: 'N/A') . "</td>
                 <td style='text-align: center'>" . ($row['volume'] ?: 'N/A') . "</td>

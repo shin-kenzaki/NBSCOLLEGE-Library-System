@@ -152,7 +152,7 @@ if (isset($_POST['submit'])) {
             $accession = isset($accessions[$index]) ? mysqli_real_escape_string($conn, $accessions[$index]) : '';
             
             // Get individual series, volume, edition values from form inputs for each copy
-            $series_value = isset($series[$index]) ? mysqli_real_escape_string($conn, $series[$index]) : '';
+            $series_value = isset($series[0]) ? mysqli_real_escape_string($conn, $series[0]) : ''; // Use the same series value for all copies
             $volume_value = isset($volumes[$index]) ? mysqli_real_escape_string($conn, $volumes[$index]) : '';
             $part_value = isset($_POST['part'][$index]) ? mysqli_real_escape_string($conn, $_POST['part'][$index]) : ''; // Add this line to get part value
             $edition_value = isset($editions[$index]) ? mysqli_real_escape_string($conn, $editions[$index]) : '';
@@ -195,7 +195,7 @@ if (isset($_POST['submit'])) {
                 front_image = ?,
                 back_image = ?,
                 dimension = ?,
-                series = ?,
+                series = ?, -- Update series for all copies
                 volume = ?,
                 part = ?,
                 edition = ?,
@@ -232,7 +232,7 @@ if (isset($_POST['submit'])) {
                 $front_image,
                 $back_image,
                 $dimension,
-                $series_value,     // Use individual series value for this copy
+                $series_value, // Use the same series value for all copies
                 $volume_value,     // Use individual volume value for this copy
                 $part_value,       // Add part value in binding
                 $edition_value,    // Use individual edition value for this copy
@@ -764,7 +764,7 @@ if ($first_book) {
                         <div id="subjectEntriesContainer">
                             <div class="subject-entry-group mb-3">
                                 <div class="row">
-                                    <div class="col-md-6">
+                                    <div class="col-md-4">
                                         <div class="form-group">
                                             <label>Subject Category</label>
                                             <select class="form-control subject-category" name="subject_categories[]">
@@ -778,7 +778,19 @@ if ($first_book) {
                                             </select>
                                         </div>
                                     </div>
-                                    <div class="col-md-6">
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label>Program</label>
+                                            <select class="form-control" name="program">
+                                                <option value="">Select Program</option>
+                                                <option value="Accountancy" <?php echo ($first_book['program'] == 'Accountancy') ? 'selected' : ''; ?>>Accountancy</option>
+                                                <option value="Computer Science" <?php echo ($first_book['program'] == 'Computer Science') ? 'selected' : ''; ?>>Computer Science</option>
+                                                <option value="Entrepreneurship" <?php echo ($first_book['program'] == 'Entrepreneurship') ? 'selected' : ''; ?>>Entrepreneurship</option>
+                                                <option value="Tourism Management" <?php echo ($first_book['program'] == 'Tourism Management') ? 'selected' : ''; ?>>Tourism Management</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
                                         <div class="form-group">
                                             <label>Details</label>
                                             <textarea class="form-control" name="subject_paragraphs[]" 
@@ -845,9 +857,7 @@ if ($first_book) {
                                            ?>">
                                     <small class="text-muted">Can include letters (e.g. 123a, 456b)</small>
                                 </div>
-                            </div>
-                            <div class="row mt-2">
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <label class="small">Supplementary Contents</label>
                                     <select class="form-control" name="supplementary_content[]" multiple>
                                         <?php

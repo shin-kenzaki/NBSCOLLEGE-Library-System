@@ -2,759 +2,464 @@
 session_start();
 include '../db.php';
 
+// Check if user is logged in
+if (!isset($_SESSION['user_id'])) {
+    header("Location: ../index.php");
+    exit();
+}
 
+// Get search parameters
+$searchTerm = isset($_GET['search']) ? $_GET['search'] : '';
+$program = isset($_GET['program']) ? $_GET['program'] : '';
+$category = isset($_GET['category']) ? $_GET['category'] : '';
+
+// Prepare SQL query based on search parameters - modified to group books
+$sql = "SELECT 
+    MIN(books.id) as id, 
+    books.title, 
+    COUNT(books.id) as total_copies,
+    SUM(CASE WHEN books.status = 'Available' THEN 1 ELSE 0 END) as available_copies,
+    books.subject_category, 
+    books.program,
+    books.ISBN,
+    books.series,
+    books.volume,
+    books.part,
+    books.edition,
+    books.front_image,
+    books.summary,
+    writers.firstname, 
+    writers.middle_init, 
+    writers.lastname 
+FROM books 
+LEFT JOIN contributors ON books.id = contributors.book_id 
+LEFT JOIN writers ON contributors.writer_id = writers.id 
+WHERE 1=1";
+
+$params = array();
+$types = "";
+
+if (!empty($searchTerm)) {
+    $sql .= " AND (books.title LIKE ? OR books.accession LIKE ? OR writers.firstname LIKE ? OR writers.lastname LIKE ?)";
+    $searchParam = "%$searchTerm%";
+    $params[] = $searchParam;
+    $params[] = $searchParam;
+    $params[] = $searchParam;
+    $params[] = $searchParam;
+    $types .= "ssss";
+}
+
+if (!empty($program)) {
+    $sql .= " AND books.program = ?";
+    $params[] = $program;
+    $types .= "s";
+}
+
+if (!empty($category)) {
+    $sql .= " AND books.subject_category = ?";
+    $params[] = $category;
+    $types .= "s";
+}
+
+// Group by the attributes that identify unique books
+$sql .= " GROUP BY 
+    books.title, 
+    IFNULL(books.ISBN, ''),
+    IFNULL(books.series, ''),
+    IFNULL(books.volume, ''),
+    IFNULL(books.part, ''),
+    IFNULL(books.edition, '')
+    ORDER BY books.title";
+
+// Get all unique programs and categories for filter dropdowns
+$programsQuery = "SELECT DISTINCT program FROM books WHERE program IS NOT NULL AND program != '' ORDER BY program";
+$programsResult = $conn->query($programsQuery);
+
+$categoriesQuery = "SELECT DISTINCT subject_category FROM books WHERE subject_category IS NOT NULL AND subject_category != '' ORDER BY subject_category";
+$categoriesResult = $conn->query($categoriesQuery);
+
+// Execute search query
+$stmt = $conn->prepare($sql);
+if (!empty($params)) {
+    $stmt->bind_param($types, ...$params);
+}
+$stmt->execute();
+$searchResults = $stmt->get_result();
 ?>
-
-
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Search Book</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library Catalog Search</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <!-- DataTables CSS -->
+    <link href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <!-- Custom styles -->
     <style>
-        .book-details-link {
-            color: #4e73df;
-            text-decoration: none;
+        :root {
+            --primary-color: #4e73df;
+            --secondary-color: #2e59d9;
+            --light-bg: #f8f9fc;
         }
-        .book-details-link:hover {
-            text-decoration: underline;
+        
+        body {
+            background-color: var(--light-bg);
         }
-        .dataTables_filter input {
-            width: 400px;
+        
+        .hero-section {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            padding: 3rem 0;
+            margin-bottom: 2rem;
+            color: white;
+            border-radius: 0 0 1rem 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
-        .dataTables_wrapper .dataTables_length,
-        .dataTables_wrapper .dataTables_filter,
-        .dataTables_wrapper .dataTables_info,
-        .dataTables_wrapper .dataTables_paginate {
+        
+        .search-container {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 1rem;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+            margin-bottom: 2rem;
+            position: relative;
+            margin-top: -4rem;
+        }
+        
+        .result-card {
+            transition: all 0.3s ease;
+            border: none;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            height: 100%;
+        }
+        
+        .result-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        
+        .card-img-top {
+            height: 200px;
+            object-fit: cover;
+            background-color: #e9ecef;
+        }
+        
+        .card-body {
+            padding: 1.5rem;
+        }
+        
+        .card-title {
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            font-size: 1.1rem;
+            line-height: 1.4;
+            height: 3rem;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+        
+        .card-author {
+            color: #6c757d;
+            font-size: 0.9rem;
             margin-bottom: 1rem;
+            height: 1.5rem;
+            overflow: hidden;
         }
-        .clickable-row {
-            cursor: pointer;
+        
+        .card-text {
+            color: #6c757d;
+            font-size: 0.9rem;
+            height: 4.5rem;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
         }
-        .book-entry {
-            padding: 10px 0;
+        
+        .card-details-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1rem;
+            font-size: 0.85rem;
         }
-        .book-entry p {
-            margin: 5px 0;
+        
+        .card-details {
+            display: flex;
+            flex-direction: column;
+            color: #6c757d;
         }
-        .title-line {
-            font-weight: bold;
-            color: #4e73df;
+        
+        .card-details span:first-child {
+            font-weight: 600;
+            color: #495057;
         }
-        .contributors-line {
-            font-style: italic;
+        
+        .availability {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
         }
-        .type-line, .publication-line, .availability-line {
-            color: #666;
-            font-size: 0.9em;
+        
+        .available {
+            background-color: rgba(40, 167, 69, 0.1);
+            color: #28a745;
         }
-        .edition-line {
-            color: #555;
-            font-size: 0.9em;
-            font-style: italic;
+        
+        .unavailable {
+            background-color: rgba(220, 53, 69, 0.1);
+            color: #dc3545;
         }
-        .action-buttons {
-            margin-top: 10px;
+        
+        .btn-view {
+            width: 100%;
+            margin-top: 1rem;
         }
-        .action-buttons button {
-            margin-right: 5px;
+        
+        .search-count {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 1.5rem;
         }
-        .bulk-actions {
-            display: inline-flex;
-            align-items: center;
+        
+        .filter-label {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #495057;
         }
-        .table-responsive table td,
-        .table-responsive table th {
-            vertical-align: middle !important;
+        
+        .form-select:focus, .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.25rem rgba(78, 115, 223, 0.25);
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 767.98px) {
+            .search-container {
+                margin-top: -2rem;
+            }
+            
+            .hero-section {
+                padding: 2rem 0;
+            }
+            
+            .card-img-top {
+                height: 160px;
+            }
         }
     </style>
-    <!-- Include SweetAlert CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 </head>
 <body>
-    <?php include '../user/inc/header.php'; ?>
+    <?php include 'inc/header.php'; ?>
 
-    <!-- Main Content -->
-    <div id="content" class="d-flex flex-column min-vh-100">
-        <div class="container-fluid">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 font-weight-bold text-primary">Search Book</h6>
-                    <div class="d-flex align-items-center">
-                        <div class="mr-3 text-info">
-                            <small><i class="fas fa-info-circle"></i> You can add unavailable books to cart for future reservation</small>
-                        </div>
-                        <div class="bulk-actions">
-                            <button class="btn btn-primary btn-sm mr-2" id="bulk-cart">
-                                Add to Cart (<span id="selectedCount">0</span>)
-                            </button>
-                            <button class="btn btn-success btn-sm" id="bulk-reserve">
-                                Reserve Selected (<span id="selectedCount2">0</span>)
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <!-- Books Table -->
-                    <div class="table-responsive">
-                        <table class="table" id="dataTable">
-                            <thead>
-                                <tr>
-                                    <th style="width: 5%">Select</th>
-                                    <th style="width: 75%">Book Details</th>
-                                    <th style="width: 20%">Image</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php
-                                // Updated query to group by title, ISBN, series, volume, part, and edition
-                                $query = "SELECT
-                                    b1.title,
-                                    b1.content_type,
-                                    b1.media_type,
-                                    MIN(b1.shelf_location) as shelf_location,
-                                    b1.front_image,
-                                    b1.ISBN,
-                                    b1.series,
-                                    b1.volume,
-                                    b1.part,
-                                    b1.edition,
-                                    p.publisher,
-                                    pub.publish_date as publication_year,
-                                    (SELECT COUNT(*)
-                                     FROM books b2
-                                     WHERE b2.title = b1.title 
-                                     AND COALESCE(b2.ISBN,'') = COALESCE(b1.ISBN,'')
-                                     AND COALESCE(b2.series,'') = COALESCE(b1.series,'')
-                                     AND COALESCE(b2.volume,'') = COALESCE(b1.volume,'')
-                                     AND COALESCE(b2.part,'') = COALESCE(b1.part,'')
-                                     AND COALESCE(b2.edition,'') = COALESCE(b1.edition,'')) as total_copies,
-                                    (SELECT COUNT(*)
-                                     FROM books b3
-                                     WHERE b3.title = b1.title
-                                     AND COALESCE(b3.ISBN,'') = COALESCE(b1.ISBN,'')
-                                     AND COALESCE(b3.series,'') = COALESCE(b1.series,'')
-                                     AND COALESCE(b3.volume,'') = COALESCE(b1.volume,'')
-                                     AND COALESCE(b3.part,'') = COALESCE(b1.part,'')
-                                     AND COALESCE(b3.edition,'') = COALESCE(b1.edition,'')
-                                     AND b3.status = 'Available') as available_copies,
-                                    GROUP_CONCAT(DISTINCT
-                                        CONCAT(
-                                            c.role, ':',
-                                            w.lastname, ', ',
-                                            w.firstname
-                                        )
-                                        ORDER BY
-                                            FIELD(c.role, 'Author', 'Co-Author', 'Editor'),
-                                            w.lastname,
-                                            w.firstname
-                                        SEPARATOR '|'
-                                    ) as contributors
-                                FROM books b1
-                                LEFT JOIN contributors c ON b1.id = c.book_id
-                                LEFT JOIN writers w ON c.writer_id = w.id
-                                LEFT JOIN publications pub ON b1.id = pub.book_id
-                                LEFT JOIN publishers p ON pub.publisher_id = p.id
-                                GROUP BY b1.title, b1.ISBN, b1.series, b1.volume, b1.part, b1.edition
-                                ORDER BY b1.title";
-
-                                $result = $conn->query($query);
-
-                                while ($row = $result->fetch_assoc()) {
-                                    // Process contributors
-                                    $contributors = [];
-                                    $contributorsByRole = [
-                                        'Author' => [],
-                                        'Co-Author' => [],
-                                        'Editor' => []
-                                    ];
-
-                                    if ($row['contributors']) {
-                                        foreach (explode('|', $row['contributors']) as $contributor) {
-                                            list($role, $name) = explode(':', $contributor);
-                                            $nameParts = explode(', ', $name);
-                                            $lastName = $nameParts[0];
-                                            $firstNameParts = explode(' ', $nameParts[1]);
-                                            $firstName = $firstNameParts[0];
-                                            $middleInit = isset($firstNameParts[1]) ? $firstNameParts[1][0] . '.' : '';
-                                            $formattedName = $firstName . ' ' . $middleInit . ' ' . $lastName;
-                                            $formattedByLineName = $lastName . ', ' . $firstName . ' ' . $middleInit;
-                                            $contributorsByRole[$role][] = $formattedName;
-                                            $contributors[] = $formattedByLineName . ' (' . $role . ')';
-                                        }
-                                    }
-
-                                    // Format first line (Title and Contributors)
-                                    $allContributors = array_merge(
-                                        $contributorsByRole['Author'],
-                                        $contributorsByRole['Co-Author'],
-                                        $contributorsByRole['Editor']
-                                    );
-                                    if (count($allContributors) > 1) {
-                                        $lastContributor = array_pop($allContributors);
-                                        $firstLineContributors = implode(', ', $allContributors) . ' and ' . $lastContributor;
-                                    } else {
-                                        $firstLineContributors = implode(', ', $allContributors);
-                                    }
-                                    $firstLine = htmlspecialchars($row['title']) . ' / ' . $firstLineContributors;
-
-                                    // Format second line (By Contributors)
-                                    $byLine = 'By ' . implode('; ', $contributors);
-                                    
-                                    // Format edition line with distinctive elements
-                                    $editionLine = '';
-                                    $editionParts = [];
-                                    if (!empty($row['edition'])) {
-                                        $editionParts[] = 'Edition: ' . htmlspecialchars($row['edition']);
-                                    }
-                                    if (!empty($row['series'])) {
-                                        $editionParts[] = 'Series: ' . htmlspecialchars($row['series']);
-                                    }
-                                    if (!empty($row['volume'])) {
-                                        $editionParts[] = 'Volume: ' . htmlspecialchars($row['volume']);
-                                    }
-                                    if (!empty($row['part'])) {
-                                        $editionParts[] = 'Part: ' . htmlspecialchars($row['part']);
-                                    }
-                                    if (!empty($row['ISBN'])) {
-                                        $editionParts[] = 'ISBN: ' . htmlspecialchars($row['ISBN']);
-                                    }
-                                    
-                                    if (!empty($editionParts)) {
-                                        $editionLine = implode(' | ', $editionParts);
-                                    }
-
-                                    // Create data attributes for book identification
-                                    $dataAttrs = 'data-title="' . htmlspecialchars($row['title']) . '"';
-                                    if (!empty($row['ISBN'])) {
-                                        $dataAttrs .= ' data-isbn="' . htmlspecialchars($row['ISBN']) . '"';
-                                    }
-                                    if (!empty($row['series'])) {
-                                        $dataAttrs .= ' data-series="' . htmlspecialchars($row['series']) . '"';
-                                    }
-                                    if (!empty($row['volume'])) {
-                                        $dataAttrs .= ' data-volume="' . htmlspecialchars($row['volume']) . '"';
-                                    }
-                                    if (!empty($row['part'])) {
-                                        $dataAttrs .= ' data-part="' . htmlspecialchars($row['part']) . '"';
-                                    }
-                                    if (!empty($row['edition'])) {
-                                        $dataAttrs .= ' data-edition="' . htmlspecialchars($row['edition']) . '"';
-                                    }
-                                    
-                                    // Generate URL for book details page with all identifying parameters
-                                    $bookDetailsUrl = 'view_book.php?title=' . urlencode($row['title']);
-                                    if (!empty($row['ISBN'])) {
-                                        $bookDetailsUrl .= '&isbn=' . urlencode($row['ISBN']);
-                                    }
-                                    if (!empty($row['series'])) {
-                                        $bookDetailsUrl .= '&series=' . urlencode($row['series']);
-                                    }
-                                    if (!empty($row['volume'])) {
-                                        $bookDetailsUrl .= '&volume=' . urlencode($row['volume']);
-                                    }
-                                    if (!empty($row['part'])) {
-                                        $bookDetailsUrl .= '&part=' . urlencode($row['part']);
-                                    }
-                                    if (!empty($row['edition'])) {
-                                        $bookDetailsUrl .= '&edition=' . urlencode($row['edition']);
-                                    }
-
-                                    echo "<tr class='clickable-row' data-href='$bookDetailsUrl'>
-                                        <td style='width: 5%; text-align: center;'>
-                                            <input type='checkbox' class='book-select' $dataAttrs>
-                                        </td>
-                                        <td style='width: 75%'>
-                                            <div class='book-entry'>
-                                                <p class='title-line'>" . $firstLine . "</p>
-                                                <p class='contributors-line'>" . $byLine . "</p>";
-                                                
-                                    if (!empty($editionLine)) {
-                                        echo "<p class='edition-line'>" . $editionLine . "</p>";
-                                    }
-                                                
-                                    echo "<p class='type-line'>Content type: " . htmlspecialchars($row['content_type']) .
-                                                " | Media type: " . htmlspecialchars($row['media_type']) .
-                                                " | Shelf Location: " . htmlspecialchars($row['shelf_location']) . "</p>
-                                                <p class='publication-line'>Publication Details: " .
-                                                htmlspecialchars($row['publisher']) . ", " .
-                                                htmlspecialchars($row['publication_year']) . "</p>
-                                                <p class='availability-line'>Availability: " .
-                                                "<span class='" . ($row['available_copies'] > 0 ? "text-success" : "text-danger") . "'>" .
-                                                htmlspecialchars($row['available_copies']) . " out of " .
-                                                htmlspecialchars($row['total_copies']) . " copies available</span></p>
-                                            </div>
-                                            <div class='action-buttons'>
-                                                <button class='btn btn-primary btn-sm add-to-cart' $dataAttrs 
-                                                    data-toggle='tooltip' 
-                                                    title='" . ($row['available_copies'] == 0 ? "Add to cart for when it becomes available" : "Add to cart") . "'>
-                                                    <i class='fas fa-cart-plus'></i> Add to Cart
-                                                </button>
-                                                <button class='btn " . ($row['available_copies'] > 0 ? "btn-success" : "btn-secondary") . " btn-sm borrow-book' $dataAttrs " .
-                                                ($row['available_copies'] == 0 ? "disabled" : "") . ">
-                                                    <i class='fas fa-book'></i> " . ($row['available_copies'] > 0 ? "Borrow Book" : "Unavailable") . "
-                                                </button>
-                                            </div>
-                                        </td>
-                                        <td style='width: 20%; vertical-align: middle; text-align: center;'>
-                                            <img src='" . (empty($row['front_image']) ? '../Admin/inc/upload/default-book.jpg' : $row['front_image']) . "'
-                                                 alt='Book Cover'
-                                                 style='max-width: 120px; max-height: 180px; object-fit: contain;'>
-                                        </td>
-                                    </tr>";
-                                }
-                                ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+    <!-- Hero Section -->
+    <div class="hero-section">
+        <div class="container text-center">
+            <h1 class="display-4">Library Catalog</h1>
+            <p class="lead">Search for books in our collection</p>
         </div>
     </div>
 
-    <!-- Footer -->
-    <?php include '../Admin/inc/footer.php' ?>
-
-    <!-- Scroll to Top Button-->
-    <a class="scroll-to-top rounded" href="#page-top">
-        <i class="fas fa-angle-up"></i>
-    </a>
-
-    <!-- Include SweetAlert JS -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
-    <script>
-    // Check login status
-    var isLoggedIn = <?php echo isset($_SESSION['user_id']) ? 'true' : 'false'; ?>;
-    
-$(document).ready(function() {
-    $('#dataTable').DataTable({
-        "dom": "<'row mb-3'<'col-sm-6'l><'col-sm-6 d-flex justify-content-end'f>>" +
-               "<'row'<'col-sm-12'tr>>" +
-               "<'row mt-3'<'col-sm-5'i><'col-sm-7 d-flex justify-content-end'p>>",
-        "language": {
-            "search": "_INPUT_",
-            "searchPlaceholder": "Search within results..."
-        },
-        "pageLength": 10,
-        "order": [[1, 'asc']], // Sort by book details column by default
-        "responsive": false,
-        "scrollX": true,
-        "autoWidth": false,
-        "columns": [
-            { "orderable": false, "width": "5%" },  // Select checkbox column
-            { "orderable": true, "width": "75%" },  // Book details column
-            { "orderable": false, "width": "20%" }  // Image column
-        ],
-        "initComplete": function() {
-            $('#dataTable_filter input').addClass('form-control form-control-sm');
-        }
-    });
-
-    // Add click event listener to table rows
-    $('#dataTable tbody').on('click', 'tr.clickable-row', function(event) {
-        // Prevent navigation if the click is on a checkbox or its parent cell
-        if ($(event.target).is('input[type="checkbox"], td:first-child')) {
-            return;
-        }
-        window.location.href = $(this).data('href');
-    });
-
-    // Helper function to format book details for display
-    function formatBookDetails(data) {
-        let details = [data.title];
-        let metaDetails = [];
-        
-        if (data.edition) metaDetails.push("Edition: " + data.edition);
-        if (data.series) metaDetails.push("Series: " + data.series);
-        if (data.volume) metaDetails.push("Volume: " + data.volume);
-        if (data.part) metaDetails.push("Part: " + data.part);
-        if (data.isbn) metaDetails.push("ISBN: " + data.isbn);
-        
-        if (metaDetails.length > 0) {
-            details.push(metaDetails.join(" | "));
-        }
-        
-        return details.join("<br>");
-    }
-
-    // Function to add book to cart
-    function addToCart(element) {
-        if (!isLoggedIn) {
-            Swal.fire({
-                title: 'Please Login',
-                text: 'You need to be logged in to add books to the cart.',
-                icon: 'warning',
-                confirmButtonText: 'OK'
-            });
-            return;
-        }
-
-        const data = {
-            title: element.dataset.title,
-            isbn: element.dataset.isbn || '',
-            series: element.dataset.series || '',
-            volume: element.dataset.volume || '',
-            part: element.dataset.part || '',
-            edition: element.dataset.edition || ''
-        };
-
-        Swal.fire({
-            title: 'Are you sure?',
-            html: 'Do you want to add this book to the cart?<br><br><strong>' + formatBookDetails(data) + '</strong>',
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Yes, add it!',
-            cancelButtonText: 'No, cancel'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                $.ajax({
-                    url: 'add_to_cart.php',
-                    type: 'POST',
-                    data: data,
-                    success: function(response) {
-                        var res = JSON.parse(response);
-
-                        if (res.success) {
-                            Swal.fire({
-                                title: 'Added!', 
-                                html: res.message,
-                                icon: 'success'
-                            }).then(() => {
-                                location.reload();
-                            });
-                        } else {
-                            // Show error with specific message
-                            Swal.fire({
-                                title: 'Failed!',
-                                html: res.message,
-                                icon: 'error',
-                                confirmButtonText: 'OK'
-                            });
-                        }
-                    },
-                    error: function() {
-                        Swal.fire('Failed!', 'Failed to add book to cart.', 'error');
-                    }
-                });
-            }
-        });
-    }
-
-    // Function to borrow book
-    function borrowBook(element) {
-        if (!isLoggedIn) {
-            Swal.fire({
-                title: 'Please Login',
-                text: 'You need to be logged in to reserve books.',
-                icon: 'warning',
-                confirmButtonText: 'OK'
-            });
-            return;
-        }
-
-        const data = {
-            title: element.dataset.title,
-            isbn: element.dataset.isbn || '',
-            series: element.dataset.series || '',
-            volume: element.dataset.volume || '',
-            part: element.dataset.part || '',
-            edition: element.dataset.edition || ''
-        };
-
-        Swal.fire({
-            title: 'Are you sure?',
-            html: 'Do you want to reserve this book?<br><br><strong>' + formatBookDetails(data) + '</strong>',
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Yes, reserve it!',
-            cancelButtonText: 'No, cancel'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                $.ajax({
-                    url: 'reserve_book.php',
-                    type: 'POST',
-                    data: data,
-                    success: function(response) {
-                        var res = JSON.parse(response);
-
-                        if (res.success) {
-                            Swal.fire({
-                                title: 'Reserved!',
-                                html: res.message,
-                                icon: 'success'
-                            }).then(() => {
-                                location.reload();
-                            });
-                        } else {
-                            // Show error with specific message
-                            Swal.fire({
-                                title: 'Failed!',
-                                html: res.message,
-                                icon: 'error',
-                                confirmButtonText: 'OK'
-                            });
-                        }
-                    },
-                    error: function() {
-                        Swal.fire('Failed!', 'Failed to reserve book.', 'error');
-                    }
-                });
-            }
-        });
-    }
-
-    // Add click event listener to 'Add to Cart' buttons
-    $('.add-to-cart').on('click', function(event) {
-        event.stopPropagation();
-        addToCart(this);
-    });
-
-    // Add click event listener to 'Borrow' buttons
-    $('.borrow-book').on('click', function(event) {
-        event.stopPropagation();
-        borrowBook(this);
-    });
-
-    // Handle checkbox clicks without triggering row click
-    $('.book-select').on('click', function(e) {
-        e.stopPropagation();
-        updateSelectedCount();
-    });
-
-    // Update the selected count and toggle bulk actions visibility
-    function updateSelectedCount() {
-        const selectedCount = $('.book-select:checked').length;
-        $('#selectedCount, #selectedCount2').text(selectedCount);
-        $('.bulk-actions').toggleClass('visible', selectedCount > 0);
-    }
-
-    // Bulk add to cart - enhanced version
-    $('#bulk-cart').on('click', function() {
-        const selectedBooks = [];
-        $('.book-select:checked').each(function() {
-            selectedBooks.push({
-                title: $(this).data('title'),
-                isbn: $(this).data('isbn') || '',
-                series: $(this).data('series') || '',
-                volume: $(this).data('volume') || '',
-                part: $(this).data('part') || '',
-                edition: $(this).data('edition') || ''
-            });
-        });
-
-        if (selectedBooks.length === 0) return;
-
-        if (!isLoggedIn) {
-            Swal.fire({
-                title: 'Please Login',
-                text: 'You need to be logged in to add books to the cart.',
-                icon: 'warning',
-                confirmButtonText: 'OK'
-            });
-            return;
-        }
-
-        Swal.fire({
-            title: 'Add to Cart',
-            html: 'Add these ' + selectedBooks.length + ' book(s) to cart?<br><br>' + 
-                  selectedBooks.map(book => '<strong>' + formatBookDetails(book) + '</strong>').join('<br><br>'),
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Yes, add them!',
-            cancelButtonText: 'Cancel'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                let successes = [];
-                let failures = [];
-                let processed = 0;
-
-                selectedBooks.forEach(book => {
-                    $.ajax({
-                        url: 'add_to_cart.php',
-                        type: 'POST',
-                        data: book,
-                        success: function(response) {
-                            processed++;
-                            var res = JSON.parse(response);
-
-                            if (res.success) {
-                                // Pass the entire book object instead of just the title
-                                successes.push(book);
-                            } else {
-                                failures.push({title: book.title, reason: res.message});
-                            }
-
-                            // When all requests are processed, show summary
-                            if (processed === selectedBooks.length) {
-                                showResultSummary(successes, failures, 'cart');
-                            }
-                        },
-                        error: function() {
-                            processed++;
-                            failures.push({title: book.title, reason: "Network error occurred"});
-
-                            if (processed === selectedBooks.length) {
-                                showResultSummary(successes, failures, 'cart');
-                            }
-                        }
-                    });
-                });
-            }
-        });
-    });
-
-    // Bulk reserve - updated version
-    $('#bulk-reserve').on('click', function() {
-        const selectedBooks = [];
-        $('.book-select:checked').each(function() {
-            selectedBooks.push({
-                title: $(this).data('title'),
-                isbn: $(this).data('isbn') || '',
-                series: $(this).data('series') || '',
-                volume: $(this).data('volume') || '',
-                part: $(this).data('part') || '',
-                edition: $(this).data('edition') || ''
-            });
-        });
-
-        if (selectedBooks.length === 0) return;
-
-        if (!isLoggedIn) {
-            Swal.fire({
-                title: 'Please Login',
-                text: 'You need to be logged in to reserve books.',
-                icon: 'warning',
-                confirmButtonText: 'OK'
-            });
-            return;
-        }
-
-        Swal.fire({
-            title: 'Reserve Books',
-            html: 'Reserve these ' + selectedBooks.length + ' book(s)?<br><br>' +
-                  selectedBooks.map(book => '<strong>' + formatBookDetails(book) + '</strong>').join('<br><br>'),
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Yes, reserve them!',
-            cancelButtonText: 'Cancel'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                let successes = [];
-                let failures = [];
-                let processed = 0;
-
-                selectedBooks.forEach(book => {
-                    $.ajax({
-                        url: 'reserve_book.php',
-                        type: 'POST',
-                        data: book,
-                        success: function(response) {
-                            processed++;
-                            var res = JSON.parse(response);
-
-                            if (res.success) {
-                                // Pass the entire book object instead of just the title
-                                successes.push(book);
-                            } else {
-                                failures.push({title: book.title, reason: res.message});
-                            }
-
-                            // When all requests are processed, show summary
-                            if (processed === selectedBooks.length) {
-                                showResultSummary(successes, failures, 'reserve');
-                            }
-                        },
-                        error: function() {
-                            processed++;
-                            failures.push({title: book.title, reason: "Network error occurred"});
-
-                            if (processed === selectedBooks.length) {
-                                showResultSummary(successes, failures, 'reserve');
-                            }
-                        }
-                    });
-                });
-            }
-        });
-    });
-
-    // Update showResultSummary function to show detailed book info
-    function showResultSummary(successes, failures, action) {
-        let actionText = action === 'cart' ? 'added to cart' : 'reserved';
-        let successText = '';
-        let failureText = '';
-
-        // Group failures by reason
-        const reasonGroups = {};
-        failures.forEach(failure => {
-            // Clean the reason message once before grouping
-            let cleanReason = failure.reason
-                .replace(/^You already have ".*" in your cart\./, 'Already in cart')
-                .replace(/^You already have a reservation for this book: .*/, 'Already reserved')
-                .replace(/^You already have an active reservation for: .*/, 'Already reserved')
-                .replace(/^You already have this book borrowed or reserved: .*/, 'Already borrowed/reserved')
-                .replace(/^You have reached the maximum limit of 3 books.*/, 'Maximum limit reached (3 books)');
-
-            if (!reasonGroups[cleanReason]) {
-                reasonGroups[cleanReason] = [];
-            }
-            reasonGroups[cleanReason].push(failure.title);
-        });
-
-        // Generate success message with detailed book information
-        if (successes.length > 0) {
-            successText = `<p><strong>${successes.length} book(s) successfully ${actionText}:</strong></p>
-                          <ul>${successes.map(book => `<li>${formatBookDetails(book)}</li>`).join('')}</ul>`;
-        }
-
-        // Generate failure messages by reason
-        if (failures.length > 0) {
-            failureText = `<p><strong>${failures.length} book(s) could not be ${actionText}:</strong></p>`;
-
-            for (const reason in reasonGroups) {
-                failureText += `<p class="text-danger">${reason}</p>`;
+    <div class="container">
+        <!-- Search Form Container -->
+        <div class="search-container">
+            <form method="GET" action="searchbook.php" class="row g-3">
+                <div class="col-md-12 mb-3">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0">
+                            <i class="fas fa-search text-primary"></i>
+                        </span>
+                        <input type="text" class="form-control border-start-0" name="search" value="<?php echo htmlspecialchars($searchTerm); ?>" placeholder="Search by title, accession, or author...">
+                    </div>
+                </div>
                 
-                // Skip listing redundant titles for common error types
-                if (!['Already in cart', 'Already reserved', 'Already borrowed/reserved', 'Maximum limit reached (3 books)'].includes(reason)) {
-                    failureText += `<ul>${reasonGroups[reason].map(title => `<li>${title}</li>`).join('')}</ul>`;
-                }
-            }
-        }
-        
-        // Show the summary
-        if (successes.length > 0) {
-            Swal.fire({
-                title: successes.length > 0 ? 'Operation Completed' : 'Operation Failed',
-                html: successText + failureText,
-                icon: failures.length === 0 ? 'success' : 'info',
-                confirmButtonText: 'OK'
-            }).then(() => {
-                if (successes.length > 0) {
-                    location.reload();
-                }
-            });
-        } else {
-            Swal.fire({
-                title: 'Operation Failed',
-                html: failureText,
-                icon: 'error',
-                confirmButtonText: 'OK'
-            });
-        }
-    }
+                <div class="col-md-5">
+                    <label for="program" class="filter-label">Program</label>
+                    <select class="form-select" name="program" id="program">
+                        <option value="">All Programs</option>
+                        <?php while ($row = $programsResult->fetch_assoc()): ?>
+                            <option value="<?php echo htmlspecialchars($row['program']); ?>" <?php if ($program === $row['program']) echo 'selected'; ?>>
+                                <?php echo htmlspecialchars($row['program']); ?>
+                            </option>
+                        <?php endwhile; ?>
+                    </select>
+                </div>
+                
+                <div class="col-md-5">
+                    <label for="category" class="filter-label">Category</label>
+                    <select class="form-select" name="category" id="category">
+                        <option value="">All Categories</option>
+                        <?php while ($row = $categoriesResult->fetch_assoc()): ?>
+                            <option value="<?php echo htmlspecialchars($row['subject_category']); ?>" <?php if ($category === $row['subject_category']) echo 'selected'; ?>>
+                                <?php echo htmlspecialchars($row['subject_category']); ?>
+                            </option>
+                        <?php endwhile; ?>
+                    </select>
+                </div>
+                
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-filter me-2"></i> Filter
+                    </button>
+                </div>
+            </form>
+        </div>
 
-    // Handle checkbox clicks and ensure the checkbox is toggled when clicking the cell
-    $('#dataTable tbody').on('click', 'td:first-child', function(event) {
-        const checkbox = $(this).find('input[type="checkbox"]');
-        checkbox.prop('checked', !checkbox.prop('checked'));
-        updateSelectedCount();
-        event.stopPropagation(); // Prevent triggering row navigation
-    });
+        <!-- Search Results -->
+        <div class="search-count">
+            <?php echo $searchResults->num_rows; ?> books found
+            <?php if (!empty($searchTerm) || !empty($program) || !empty($category)): ?>
+                <?php 
+                    $filterText = [];
+                    if (!empty($searchTerm)) $filterText[] = "\"" . htmlspecialchars($searchTerm) . "\"";
+                    if (!empty($program)) $filterText[] = "Program: " . htmlspecialchars($program);
+                    if (!empty($category)) $filterText[] = "Category: " . htmlspecialchars($category);
+                    if (!empty($filterText)) echo " for " . implode(", ", $filterText);
+                ?>
+            <?php endif; ?>
+        </div>
 
-    // Initialize tooltips
-    $('[data-toggle="tooltip"]').tooltip();
-});
-</script>
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4 mb-4">
+            <?php if ($searchResults->num_rows > 0): ?>
+                <?php while ($book = $searchResults->fetch_assoc()): ?>
+                    <div class="col">
+                        <div class="card result-card h-100">
+                            <?php if (!empty($book['front_image'])): ?>
+                                <img src="<?php echo htmlspecialchars($book['front_image']); ?>" class="card-img-top" alt="Book Cover">
+                            <?php else: ?>
+                                <div class="card-img-top d-flex align-items-center justify-content-center">
+                                    <i class="fas fa-book fa-3x text-muted"></i>
+                                </div>
+                            <?php endif; ?>
+                            
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="availability <?php echo ($book['available_copies'] > 0) ? 'available' : 'unavailable'; ?>">
+                                        <?php echo ($book['available_copies'] > 0) ? 'Available' : 'Unavailable'; ?>
+                                    </span>
+                                    <span class="badge bg-info text-white d-flex align-items-center justify-content-center">
+                                        <?php echo $book['available_copies']; ?>/<?php echo $book['total_copies']; ?> copies
+                                    </span>
+                                </div>
+                                
+                                <h5 class="card-title"><?php echo htmlspecialchars($book['title']); ?></h5>
+                                
+                                <p class="card-author">
+                                    <i class="fas fa-user-edit me-1"></i>
+                                    <?php 
+                                    if (!empty($book['firstname']) || !empty($book['lastname'])) {
+                                        echo htmlspecialchars($book['firstname'] . ' ' . 
+                                             ($book['middle_init'] ? $book['middle_init'] . '. ' : '') . 
+                                             $book['lastname']);
+                                    } else {
+                                        echo 'Unknown Author';
+                                    }
+                                    ?>
+                                </p>
+                                
+                                <!-- Book Edition Information -->
+                                <div class="book-edition-info mb-2">
+                                    <small class="text-muted">
+                                        <?php
+                                        $editionDetails = [];
+                                        
+                                        if (!empty($book['series'])) {
+                                            $editionDetails[] = '<span><i class="fas fa-bookmark me-1"></i> Series: ' . htmlspecialchars($book['series']) . '</span>';
+                                        }
+                                        
+                                        if (!empty($book['volume'])) {
+                                            $editionDetails[] = '<span><i class="fas fa-layer-group me-1"></i> Volume: ' . htmlspecialchars($book['volume']) . '</span>';
+                                        }
+                                        
+                                        if (!empty($book['part'])) {
+                                            $editionDetails[] = '<span><i class="fas fa-puzzle-piece me-1"></i> Part: ' . htmlspecialchars($book['part']) . '</span>';
+                                        }
+                                        
+                                        if (!empty($book['edition'])) {
+                                            $editionDetails[] = '<span><i class="fas fa-file-alt me-1"></i> Edition: ' . htmlspecialchars($book['edition']) . '</span>';
+                                        }
+                                        
+                                        if (!empty($editionDetails)) {
+                                            echo implode('<br>', $editionDetails);
+                                        }
+                                        ?>
+                                    </small>
+                                </div>
+                                
+                                <?php if (!empty($book['summary'])): ?>
+                                    <p class="card-text">
+                                        <?php echo htmlspecialchars(substr($book['summary'], 0, 120)) . (strlen($book['summary']) > 120 ? '...' : ''); ?>
+                                    </p>
+                                <?php endif; ?>
+                                
+                                <div class="card-details-row">
+                                    <div class="card-details">
+                                        <span>Program</span>
+                                        <span><?php echo htmlspecialchars($book['program'] ?: 'N/A'); ?></span>
+                                    </div>
+                                    <div class="card-details">
+                                        <span>Category</span>
+                                        <span><?php echo htmlspecialchars($book['subject_category'] ?: 'N/A'); ?></span>
+                                    </div>
+                                </div>
+                                
+                                <a href="view_book.php?book_id=<?php echo $book['id']; ?>&group=1" class="btn btn-outline-primary btn-view">
+                                    <i class="fas fa-eye me-1"></i> View Details
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                <?php endwhile; ?>
+            <?php else: ?>
+                <div class="col-12">
+                    <div class="alert alert-info" role="alert">
+                        <i class="fas fa-info-circle me-2"></i> No books found matching your search criteria. Try adjusting your filters or search terms.
+                    </div>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <?php include 'inc/footer.php'; ?>
+    
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <script>
+        $(document).ready(function() {
+            // Add trigger for mobile filters toggle
+            $('#filter-toggle').on('click', function() {
+                $('#filter-controls').toggleClass('show');
+            });
+            
+            // Auto-submit form when changing select fields
+            $('#program, #category').on('change', function() {
+                $(this).closest('form').submit();
+            });
+        });
+    </script>
 </body>
 </html>
