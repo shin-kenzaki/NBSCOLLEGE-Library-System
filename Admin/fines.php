@@ -60,17 +60,17 @@ if ($typeFilter) {
 
 // Fetch fines with related information
 $query = "SELECT f.id, f.type, f.amount, f.status, f.date, f.payment_date,
-          f.reminder_sent, f.invoice_sale, -- Include invoice_sale column
-          b.issue_date, b.due_date, b.return_date,
-          bk.title AS book_title,
-          CONCAT(u.firstname, ' ', u.lastname) AS borrower_name,
-          u.school_id
-          FROM fines f
-          JOIN borrowings b ON f.borrowing_id = b.id
-          JOIN books bk ON b.book_id = bk.id
-          JOIN users u ON b.user_id = u.id
-          $whereClause
-          ORDER BY f.date DESC";
+       f.reminder_sent, f.invoice_sale,
+       b.issue_date, b.due_date, b.return_date,
+       bk.title AS book_title, bk.accession,
+       CONCAT(u.firstname, ' ', u.lastname) AS borrower_name,
+       u.school_id, u.department, u.usertype -- Include department and usertype
+FROM fines f
+JOIN borrowings b ON f.borrowing_id = b.id
+JOIN books bk ON b.book_id = bk.id
+JOIN users u ON b.user_id = u.id
+$whereClause
+ORDER BY f.date DESC";
 
 // Run the query and store the result
 $result = $conn->query($query);
@@ -140,6 +140,17 @@ $totalPaidValue = $paidFinesRow['total_paid_value'] ?: 0;
     }
     .paid-card {
         border-left-color: #1cc88a;
+    }
+
+    .swal-wide {
+        width: 80% !important; /* Adjust the width as needed */
+        max-width: 1000px !important; /* Set a maximum width */
+    }
+
+    .swal-wide .swal2-html-container {
+        text-align: left; /* Ensure the content is left-aligned */
+        max-height: none !important; /* Remove height restrictions */
+        overflow: visible !important; /* Prevent scrolling */
     }
 </style>
 
@@ -255,77 +266,84 @@ $totalPaidValue = $paidFinesRow['total_paid_value'] ?: 0;
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table table-bordered" id="finesTable" width="100%" cellspacing="0">
-                        <thead>
+                    <thead>
+                        <tr>
+                            <th class="text-center">
+                                <input type="checkbox" id="selectAll" />
+                            </th>
+                            <th class="text-center">Borrower ID</th>
+                            <th class="text-center">Borrower</th>
+                            <th class="text-center">Book</th>
+                            <th class="text-center">Accession No</th> <!-- New Column -->
+                            <th class="text-center">Type</th>
+                            <th class="text-center">Amount</th>
+
+                            <th class="text-center">Issue Date</th>
+                            <th class="text-center">Date Due</th>
+                            <th class="text-center">Fine Date</th>
+                            <th class="text-center">Status</th>
+                            <th class="text-center">Payment Date</th>
+                            <th class="text-center">Invoice/OR</th>
+                            <th class="text-center">Reminder</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if ($result->num_rows > 0): ?>
+                            <?php while ($row = $result->fetch_assoc()): ?>
+                                <tr data-fine-id="<?php echo $row['id']; ?>"
+                                    data-amount="<?php echo $row['amount']; ?>"
+                                    data-borrower="<?php echo htmlspecialchars($row['borrower_name']); ?>"
+                                    data-course="<?php echo htmlspecialchars($row['department']); ?>"
+                                    data-user-type="<?php echo htmlspecialchars($row['usertype']); ?>"
+                                    data-status="<?php echo $row['status']; ?>">
+                                    <td class="text-center">
+                                        <input type="checkbox" class="fineCheckbox" value="<?php echo $row['id']; ?>" />
+                                    </td>
+                                    <td class="text-center"><?php echo htmlspecialchars($row['school_id']); ?></td>
+                                    <td class="text-left"><?php echo htmlspecialchars($row['borrower_name']); ?></td>
+                                    <td class="text-left"><?php echo htmlspecialchars($row['book_title']); ?></td>
+                                    <td class="text-center"><?php echo htmlspecialchars($row['accession']); ?></td> <!-- Accession No -->
+                                    <td class="text-center"><?php echo htmlspecialchars($row['type']); ?></td>
+                                    <td class="text-center">₱<?php echo number_format($row['amount'], 2); ?></td>
+                                    <td class="text-center"><?php echo date('Y-m-d', strtotime($row['issue_date'])); ?></td>
+                                    <td class="text-center">
+                                        <?php
+                                        echo ($row['due_date'] !== null && $row['due_date'] !== '0000-00-00')
+                                            ? date('Y-m-d', strtotime($row['due_date']))
+                                            : '-';
+                                        ?>
+                                    </td>
+                                    <td class="text-center"><?php echo date('Y-m-d', strtotime($row['date'])); ?></td>
+
+
+                                    <td class="text-center">
+                                        <?php if ($row['status'] === 'Unpaid'): ?>
+                                            <span class="badge badge-danger">Unpaid</span>
+                                        <?php else: ?>
+                                            <span class="badge badge-success">Paid</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-center">
+                                        <?php
+                                        echo ($row['payment_date'] !== null && $row['payment_date'] !== '0000-00-00')
+                                            ? date('Y-m-d', strtotime($row['payment_date']))
+                                            : '-';
+                                        ?>
+                                    </td>
+                                    <td class="text-center">
+                                        <?php echo ($row['invoice_sale'] !== null) ? htmlspecialchars($row['invoice_sale']) : '-'; ?>
+                                    </td>
+                                    <td class="text-center">
+                                        <?php echo ($row['reminder_sent'] == 1) ? '<span class="badge badge-success">Reminder Sent</span>' : '<span class="badge badge-warning">Not Reminded</span>'; ?>
+                                    </td>
+                                </tr>
+                            <?php endwhile; ?>
+                        <?php else: ?>
                             <tr>
-                                <th class="text-center">
-                                    <input type="checkbox" id="selectAll" />
-                                </th>
-                                <th class="text-center">Borrower ID</th>
-                                <th class="text-center">Borrower</th>
-                                <th class="text-center">Book</th>
-                                <th class="text-center">Type</th>
-                                <th class="text-center">Amount</th>
-                                <th class="text-center">Fine Date</th>
-                                <th class="text-center">Issue Date</th>
-                                <th class="text-center">Return Date</th>
-                                <th class="text-center">Status</th>
-                                <th class="text-center">Payment Date</th>
-                                <th class="text-center">Invoice/OR</th>
-                                <th class="text-center">Reminder</th>
+                                <td colspan="15" class="text-center text-muted">No records found</td>
                             </tr>
-                        </thead>
-                        <tbody>
-    <?php if ($result->num_rows > 0): ?>
-        <?php while ($row = $result->fetch_assoc()): ?>
-            <tr data-fine-id="<?php echo $row['id']; ?>"
-                data-amount="<?php echo $row['amount']; ?>"
-                data-borrower="<?php echo htmlspecialchars($row['borrower_name']); ?>"
-                data-status="<?php echo $row['status']; ?>">
-                <td class="text-center">
-                    <input type="checkbox" class="fineCheckbox" value="<?php echo $row['id']; ?>" />
-                </td>
-                <td class="text-center"><?php echo htmlspecialchars($row['school_id']); ?></td>
-                <td class="text-left"><?php echo htmlspecialchars($row['borrower_name']); ?></td>
-                <td class="text-left"><?php echo htmlspecialchars($row['book_title']); ?></td>
-                <td class="text-center"><?php echo htmlspecialchars($row['type']); ?></td>
-                <td class="text-center">₱<?php echo number_format($row['amount'], 2); ?></td>
-                <td class="text-center"><?php echo date('Y-m-d', strtotime($row['date'])); ?></td>
-                <td class="text-center"><?php echo date('Y-m-d', strtotime($row['issue_date'])); ?></td>
-                <td class="text-center">
-                    <?php
-                    echo ($row['return_date'] !== null && $row['return_date'] !== '0000-00-00')
-                        ? date('Y-m-d', strtotime($row['return_date']))
-                        : '-';
-                    ?>
-                </td>
-                <td class="text-center">
-                    <?php if ($row['status'] === 'Unpaid'): ?>
-                        <span class="badge badge-danger">Unpaid</span>
-                    <?php else: ?>
-                        <span class="badge badge-success">Paid</span>
-                    <?php endif; ?>
-                </td>
-                <td class="text-center">
-                    <?php
-                    echo ($row['payment_date'] !== null && $row['payment_date'] !== '0000-00-00')
-                        ? date('Y-m-d', strtotime($row['payment_date']))
-                        : '-';
-                    ?>
-                </td>
-                <td class="text-center">
-                    <?php echo ($row['invoice_sale'] !== null) ? htmlspecialchars($row['invoice_sale']) : '-'; ?>
-                </td>
-                <td class="text-center">
-                    <?php echo ($row['reminder_sent'] == 1) ? '<span class="badge badge-success">Reminder Sent</span>' : '<span class="badge badge-warning">Not Reminded</span>'; ?>
-                </td>
-            </tr>
-        <?php endwhile; ?>
-    <?php else: ?>
-        <tr>
-            <td colspan="13" class="text-center text-muted">No records found</td>
-        </tr>
-    <?php endif; ?>
-</tbody>
+                        <?php endif; ?>
+                    </tbody>
                     </table>
                 </div>
             </div>
@@ -705,9 +723,8 @@ else if (action === 'mark-unpaid') {
 
 <!-- generate receipt script -->
 <script>
-$(document).ready(function() {
-    // Handle "Generate Receipt" button click
-    $('#generateReceiptBtn').on('click', function() {
+$(document).ready(function () {
+    $('#generateReceiptBtn').on('click', function () {
         const selectedRows = $('.fineCheckbox:checked');
         if (selectedRows.length === 0) {
             Swal.fire({
@@ -719,60 +736,115 @@ $(document).ready(function() {
             return;
         }
 
-        // Check if all selected rows have the "Unpaid" status
-        let allUnpaid = true;
-        selectedRows.each(function() {
-            const status = $(this).closest('tr').data('status');
+        // Check if all selected rows have the status "Unpaid"
+        let hasInvalidStatus = false;
+        selectedRows.each(function () {
+            const row = $(this).closest('tr');
+            const status = row.find('td:nth-child(11)').text().trim(); // Status column
             if (status !== 'Unpaid') {
-                allUnpaid = false;
+                hasInvalidStatus = true;
+                return false; // Break the loop
             }
         });
 
-        if (!allUnpaid) {
+        if (hasInvalidStatus) {
             Swal.fire({
                 title: 'Error',
-                text: 'Receipts can only be generated for fines with an "Unpaid" status.',
+                text: 'Only fines with the status "Unpaid" can be generated for a temporary receipt.',
                 icon: 'error',
                 confirmButtonText: 'OK'
             });
             return;
         }
 
-        // Collect school IDs from selected rows
-        const schoolIds = [];
-        selectedRows.each(function() {
-            const schoolId = $(this).closest('tr').find('td:nth-child(2)').text().trim();
-            if (!schoolIds.includes(schoolId)) {
-                schoolIds.push(schoolId);
+        // Collect borrower details
+        const firstRow = selectedRows.first().closest('tr');
+        const borrowerName = firstRow.find('td:nth-child(3)').text().trim(); // Borrower Name column
+        const schoolId = firstRow.find('td:nth-child(2)').text().trim(); // Borrower ID column
+        const department = firstRow.data('course') || 'N/A'; // Get course from data attribute
+        const usertype = firstRow.data('user-type') || 'N/A'; // Get usertype from data attribute
+
+        // Format borrower info
+        const borrowerInfo = `
+            <strong> Borrower Details</strong> <br>
+            <strong>ID Number:</strong> ${schoolId} <span class="float-right"><strong>User Type:</strong> ${usertype}</span><br>
+            <strong>Name:</strong> ${borrowerName} <span class="float-right"><strong>Course:</strong> ${department}</span>
+        `;
+
+        let totalAmount = 0;
+        let fineDetails = `
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Accession</th>
+                        <th>Fine Type</th>
+                        <th>Status</th>
+                        <th>Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        selectedRows.each(function () {
+            const row = $(this).closest('tr');
+            let bookTitle = row.find('td:nth-child(4)').text().trim(); // Book Title column
+            const accession = row.find('td:nth-child(5)').text().trim(); // Accession column
+            const fineType = row.find('td:nth-child(6)').text().trim(); // Fine Type column
+            const status = row.find('td:nth-child(11)').text().trim(); // Status column
+            const amountText = row.find('td:nth-child(7)').text().replace('₱', '').replace(',', '').trim(); // Fine Amount column
+            const amount = parseFloat(amountText) || 0; // Parse amount or default to 0 if invalid
+            totalAmount += amount;
+
+            // Limit the book title to 50 characters
+            if (bookTitle.length > 50) {
+                bookTitle = bookTitle.substring(0, 50) + '...';
             }
+
+            fineDetails += `
+                <tr>
+                    <td>${bookTitle}</td>
+                    <td>${accession}</td>
+                    <td>${fineType}</td>
+                    <td>${status}</td>
+                    <td>₱${amount.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</td>
+                </tr>
+            `;
         });
 
-        // Check if all selected rows have the same school ID
-        if (schoolIds.length > 1) {
-            Swal.fire({
-                title: 'Error',
-                text: 'Cannot generate a receipt for fines with different borrowers.',
-                icon: 'error',
-                confirmButtonText: 'OK'
-            });
-            return;
-        }
-
-        // Collect the selected fine IDs
-        const fineIds = selectedRows.map(function() {
-            return $(this).val();
-        }).get();
+        fineDetails += `
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="4" class="text-right"><strong>Total:</strong></td>
+                        <td><strong>₱${totalAmount.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</strong></td>
+                    </tr>
+                </tfoot>
+            </table>
+        `;
 
         // Confirm with the user before generating the receipt
         Swal.fire({
-            title: 'Generate Receipt',
-            text: 'Are you sure you want to generate a receipt for the selected fines?',
-            icon: 'question',
+            title: 'Generate Temporary Receipt',
+            html: `
+                <div class="text-left">
+                    <p>${borrowerInfo}</p>
+                    ${fineDetails}
+                </div>
+            `,
+            imageUrl: '/Library-System/Admin/inc/img/horizontal-nbs-logo.png',
+            imageWidth: 300, // Adjust the width of the image
+            imageHeight: 150, // Adjust the height of the image
+            imageAlt: 'Receipt Icon', // Alt text for the image
             showCancelButton: true,
-            confirmButtonText: 'Yes, Generate',
+            confirmButtonText: 'Generate Receipt',
             cancelButtonText: 'Cancel',
             confirmButtonColor: '#28a745',
-            cancelButtonColor: '#dc3545'
+            cancelButtonColor: '#dc3545',
+            customClass: {
+                popup: 'swal-wide' // Add a custom class to the popup
+            },
+            width: 'auto', // Dynamically adjust the width based on content
         }).then((result) => {
             if (result.isConfirmed) {
                 // Redirect to fine-receipt.php with the selected fine IDs
@@ -782,11 +854,11 @@ $(document).ready(function() {
                     target: '_blank'
                 });
 
-                fineIds.forEach(fineId => {
+                selectedRows.each(function () {
                     form.append($('<input>', {
                         type: 'hidden',
                         name: 'fine_ids[]',
-                        value: fineId
+                        value: $(this).val()
                     }));
                 });
 
@@ -795,6 +867,9 @@ $(document).ready(function() {
             }
         });
     });
+
+
+
 
     // Handle "Select All" checkbox
     $('#selectAll').on('change', function() {
