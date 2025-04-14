@@ -15,61 +15,87 @@ $category = isset($_GET['category']) ? $_GET['category'] : '';
 
 // Prepare SQL query based on search parameters - modified to group books
 $sql = "SELECT 
-    MIN(books.id) as id, 
-    books.title, 
-    COUNT(books.id) as total_copies,
-    SUM(CASE WHEN books.status = 'Available' THEN 1 ELSE 0 END) as available_copies,
-    books.subject_category, 
-    books.program,
-    books.ISBN,
-    books.series,
-    books.volume,
-    books.part,
-    books.edition,
-    books.front_image,
-    books.summary,
+    book_counts.id, 
+    book_counts.title, 
+    book_counts.total_copies,
+    book_counts.available_copies,
+    book_counts.subject_category, 
+    book_counts.program,
+    book_counts.ISBN,
+    book_counts.series,
+    book_counts.volume,
+    book_counts.part,
+    book_counts.edition,
+    book_counts.front_image,
+    book_counts.summary,
     writers.firstname, 
     writers.middle_init, 
     writers.lastname 
-FROM books 
-LEFT JOIN contributors ON books.id = contributors.book_id 
-LEFT JOIN writers ON contributors.writer_id = writers.id 
-WHERE 1=1";
+FROM (
+    SELECT
+        MIN(id) as id,
+        title,
+        COUNT(*) as total_copies,
+        SUM(CASE WHEN status = 'Available' THEN 1 ELSE 0 END) as available_copies,
+        subject_category,
+        program,
+        ISBN,
+        series,
+        volume,
+        part,
+        edition,
+        front_image,
+        summary
+    FROM books
+    WHERE 1=1";
 
 $params = array();
 $types = "";
 
 if (!empty($searchTerm)) {
-    $sql .= " AND (books.title LIKE ? OR books.accession LIKE ? OR writers.firstname LIKE ? OR writers.lastname LIKE ?)";
+    $sql .= " AND (title LIKE ? OR accession LIKE ?)";
     $searchParam = "%$searchTerm%";
     $params[] = $searchParam;
     $params[] = $searchParam;
-    $params[] = $searchParam;
-    $params[] = $searchParam;
-    $types .= "ssss";
+    $types .= "ss";
 }
 
 if (!empty($program)) {
-    $sql .= " AND books.program = ?";
+    $sql .= " AND program = ?";
     $params[] = $program;
     $types .= "s";
 }
 
 if (!empty($category)) {
-    $sql .= " AND books.subject_category = ?";
+    $sql .= " AND subject_category = ?";
     $params[] = $category;
     $types .= "s";
 }
 
 // Group by the attributes that identify unique books
 $sql .= " GROUP BY 
-    books.title, 
-    IFNULL(books.ISBN, ''),
-    IFNULL(books.series, ''),
-    IFNULL(books.volume, ''),
-    IFNULL(books.part, ''),
-    IFNULL(books.edition, '')
-    ORDER BY books.title";
+        title, 
+        IFNULL(ISBN, ''),
+        IFNULL(series, ''),
+        IFNULL(volume, ''),
+        IFNULL(part, ''),
+        IFNULL(edition, '')
+) book_counts
+LEFT JOIN contributors ON book_counts.id = contributors.book_id 
+LEFT JOIN writers ON contributors.writer_id = writers.id";
+
+// Add author search if not already included
+if (!empty($searchTerm)) {
+    $sql .= " WHERE writers.firstname LIKE ? OR writers.lastname LIKE ?";
+    $searchParam = "%$searchTerm%";
+    $params[] = $searchParam;
+    $params[] = $searchParam;
+    $types .= "ss";
+}
+
+$sql .= " GROUP BY 
+    book_counts.id
+    ORDER BY book_counts.title";
 
 // Get all unique programs and categories for filter dropdowns
 $programsQuery = "SELECT DISTINCT program FROM books WHERE program IS NOT NULL AND program != '' ORDER BY program";
@@ -424,7 +450,7 @@ $searchResults = $stmt->get_result();
                                     </div>
                                 </div>
                                 
-                                <a href="view_book.php?book_id=<?php echo $book['id']; ?>&group=1" class="btn btn-outline-primary btn-view">
+                                <a href="view_book.php?book_id=<?php echo $book['id']; ?>&group=1&title=<?php echo urlencode($book['title']); ?>&isbn=<?php echo urlencode($book['ISBN']); ?>&series=<?php echo urlencode($book['series']); ?>&volume=<?php echo urlencode($book['volume']); ?>&part=<?php echo urlencode($book['part']); ?>&edition=<?php echo urlencode($book['edition']); ?>" class="btn btn-outline-primary btn-view">
                                     <i class="fas fa-eye me-1"></i> View Details
                                 </a>
                             </div>

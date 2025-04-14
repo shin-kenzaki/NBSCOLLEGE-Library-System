@@ -821,14 +821,21 @@ if ($bookId > 0) {
             $.ajax({
                 type: 'POST',
                 url: 'add_to_cart.php',
-                data: { book_id: bookId },
+                data: {
+                    title: '<?php echo addslashes($book['title']); ?>',
+                    isbn: '<?php echo addslashes($book['ISBN']); ?>',
+                    series: '<?php echo addslashes($book['series']); ?>',
+                    volume: '<?php echo addslashes($book['volume']); ?>',
+                    part: '<?php echo addslashes($book['part']); ?>',
+                    edition: '<?php echo addslashes($book['edition']); ?>'
+                },
                 dataType: 'json',
                 success: function(response) {
-                    if (response.status === 'success') {
+                    if (response.success) {
                         Swal.fire({
                             icon: 'success',
                             title: 'Added to Cart',
-                            text: response.message,
+                            html: response.message,
                             showConfirmButton: false,
                             timer: 1500
                         }).then(() => {
@@ -838,7 +845,7 @@ if ($bookId > 0) {
                         Swal.fire({
                             icon: 'error',
                             title: 'Error',
-                            text: response.message
+                            html: response.message
                         });
                     }
                 },
@@ -866,14 +873,21 @@ if ($bookId > 0) {
                     $.ajax({
                         type: 'POST',
                         url: 'reserve_book.php',
-                        data: { book_id: bookId },
+                        data: {
+                            title: '<?php echo addslashes($book['title']); ?>',
+                            isbn: '<?php echo addslashes($book['ISBN']); ?>',
+                            series: '<?php echo addslashes($book['series']); ?>',
+                            volume: '<?php echo addslashes($book['volume']); ?>',
+                            part: '<?php echo addslashes($book['part']); ?>',
+                            edition: '<?php echo addslashes($book['edition']); ?>'
+                        },
                         dataType: 'json',
                         success: function(response) {
-                            if (response.status === 'success') {
+                            if (response.success) {
                                 Swal.fire({
                                     icon: 'success',
                                     title: 'Book Reserved',
-                                    text: response.message,
+                                    html: response.message,
                                     showConfirmButton: true
                                 }).then(() => {
                                     location.reload();
@@ -882,7 +896,7 @@ if ($bookId > 0) {
                                 Swal.fire({
                                     icon: 'error',
                                     title: 'Error',
-                                    text: response.message
+                                    html: response.message
                                 });
                             }
                         },
