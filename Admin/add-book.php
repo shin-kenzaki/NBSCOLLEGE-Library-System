@@ -4134,20 +4134,21 @@ document.addEventListener("DOMContentLoaded", function() {
                     });
                     return;
                 }
-                
+
                 // Show loading state
                 Swal.fire({
                     title: 'Saving Authors',
-                    html: '<i class="fas fa-spinner fa-spin"></i> Please wait...',
+                    html: '<div class="d-flex justify-content-center align-items-center"><i class="fas fa-spinner fa-spin fa-2x mr-2"></i> Please wait...</div>',
                     allowOutsideClick: false,
                     showConfirmButton: false
                 });
-                
+
                 // AJAX request to save all authors
                 const xhr = new XMLHttpRequest();
                 xhr.open('POST', 'ajax/add_writers.php', true);
                 xhr.setRequestHeader('Content-Type', 'application/json');
                 xhr.onload = function() {
+                    Swal.close(); // Close loading indicator
                     if (this.status === 200) {
                         try {
                             const response = JSON.parse(this.responseText);
@@ -4174,37 +4175,64 @@ document.addEventListener("DOMContentLoaded", function() {
                                     // Trigger change event to update any dependent UI
                                     authorSelect.dispatchEvent(new Event('change'));
                                 }
-                                
+
+                                // Prepare list of added authors for the success message
+                                let addedAuthorsHtml = '<ul class="list-group list-group-flush text-center small mt-2" style="max-height: 150px; overflow-y: auto; display: inline-block;">'; // Centered list
+                                response.authors.forEach(author => {
+                                    addedAuthorsHtml += `<li class="list-group-item py-1">${author.name}</li>`;
+                                });
+                                addedAuthorsHtml += '</ul>';
+
                                 Swal.fire({
                                     icon: 'success',
-                                    title: 'Authors Added',
-                                    text: `Successfully added ${response.authors.length} author(s)!`,
+                                    title: '<span style="font-size: 1.2em;">Authors Added Successfully!</span>',
+                                    html: `
+                                        <div class="text-center"> <!-- Center align content -->
+                                            <p><strong>${response.authors.length}</strong> new author(s) have been added:</p>
+                                            ${addedAuthorsHtml}
+                                            <p class="small text-muted mb-0 mt-2">The author dropdowns have been updated.</p>
+                                        </div>
+                                    `,
+                                    confirmButtonText: '<i class="fas fa-check"></i> OK',
                                     confirmButtonColor: '#3085d6'
                                 });
                             } else {
                                 Swal.fire({
                                     icon: 'error',
-                                    title: 'Error',
-                                    text: response.message || 'Failed to add authors',
-                                    confirmButtonColor: '#3085d6'
+                                    title: 'Error Adding Authors',
+                                    html: `<p>An error occurred:</p><p class="text-danger">${response.message || 'Failed to add authors'}</p>`,
+                                    confirmButtonColor: '#d33',
+                                    confirmButtonText: '<i class="fas fa-times"></i> Close'
                                 });
                             }
                         } catch (e) {
                             Swal.fire({
                                 icon: 'error',
-                                title: 'Error',
-                                text: 'Error processing response: ' + e.message,
-                                confirmButtonColor: '#3085d6'
+                                title: 'Processing Error',
+                                html: `<p>Error processing server response:</p><p class="text-danger">${e.message}</p>`,
+                                confirmButtonColor: '#d33',
+                                confirmButtonText: '<i class="fas fa-times"></i> Close'
                             });
                         }
                     } else {
                         Swal.fire({
                             icon: 'error',
                             title: 'Server Error',
-                            text: 'Server error while adding authors',
-                            confirmButtonColor: '#3085d6'
+                            html: `<p>Failed to communicate with the server (Status: ${this.status}).</p>`,
+                            confirmButtonColor: '#d33',
+                            confirmButtonText: '<i class="fas fa-times"></i> Close'
                         });
                     }
+                };
+                xhr.onerror = function() { // Handle network errors
+                    Swal.close();
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Network Error',
+                        text: 'Could not connect to the server. Please check your network connection.',
+                        confirmButtonColor: '#d33',
+                        confirmButtonText: '<i class="fas fa-times"></i> Close'
+                    });
                 };
                 xhr.send(JSON.stringify(authorsData));
             }
@@ -4387,20 +4415,21 @@ document.addEventListener("DOMContentLoaded", function() {
                     });
                     return;
                 }
-                
+
                 // Show loading state
                 Swal.fire({
                     title: 'Saving Publishers',
-                    html: '<i class="fas fa-spinner fa-spin"></i> Please wait...',
+                    html: '<div class="d-flex justify-content-center align-items-center"><i class="fas fa-spinner fa-spin fa-2x mr-2"></i> Please wait...</div>',
                     allowOutsideClick: false,
                     showConfirmButton: false
                 });
-                
+
                 // AJAX request to save all publishers
                 const xhr = new XMLHttpRequest();
                 xhr.open('POST', 'ajax/add_publishers.php', true);
                 xhr.setRequestHeader('Content-Type', 'application/json');
                 xhr.onload = function() {
+                    Swal.close(); // Close loading indicator
                     if (this.status === 200) {
                         try {
                             const response = JSON.parse(this.responseText);
@@ -4423,43 +4452,70 @@ document.addEventListener("DOMContentLoaded", function() {
                                         publisherSelect.dispatchEvent(new Event('change'));
                                     }
                                 }
-                                
+
+                                // Prepare list of added publishers for the success message
+                                let addedPublishersHtml = '<ul class="list-group list-group-flush text-center small mt-2" style="max-height: 150px; overflow-y: auto; display: inline-block;">'; // Centered list
+                                response.publishers.forEach(pub => {
+                                    addedPublishersHtml += `<li class="list-group-item py-1">${pub.publisher} (${pub.place})</li>`;
+                                });
+                                addedPublishersHtml += '</ul>';
+
                                 Swal.fire({
                                     icon: 'success',
-                                    title: 'Publishers Added',
-                                    text: `Successfully added ${response.publishers.length} publisher(s)!`,
+                                    title: '<span style="font-size: 1.2em;">Publishers Added Successfully!</span>',
+                                    html: `
+                                        <div class="text-center"> <!-- Center align content -->
+                                            <p><strong>${response.publishers.length}</strong> new publisher(s) have been added:</p>
+                                            ${addedPublishersHtml}
+                                            <p class="small text-muted mb-0 mt-2">The publisher dropdown has been updated.</p>
+                                        </div>
+                                    `,
+                                    confirmButtonText: '<i class="fas fa-check"></i> OK',
                                     confirmButtonColor: '#3085d6'
                                 });
                             } else {
                                 Swal.fire({
                                     icon: 'error',
-                                    title: 'Error',
-                                    text: response.message || 'Failed to add publishers',
-                                    confirmButtonColor: '#3085d6'
+                                    title: 'Error Adding Publishers',
+                                    html: `<p>An error occurred:</p><p class="text-danger">${response.message || 'Failed to add publishers'}</p>`,
+                                    confirmButtonColor: '#d33',
+                                    confirmButtonText: '<i class="fas fa-times"></i> Close'
                                 });
                             }
                         } catch (e) {
                             Swal.fire({
                                 icon: 'error',
-                                title: 'Error',
-                                text: 'Invalid response from server: ' + e.message,
-                                confirmButtonColor: '#3085d6'
+                                title: 'Processing Error',
+                                html: `<p>Error processing server response:</p><p class="text-danger">${e.message}</p>`,
+                                confirmButtonColor: '#d33',
+                                confirmButtonText: '<i class="fas fa-times"></i> Close'
                             });
                         }
                     } else {
                         Swal.fire({
                             icon: 'error',
                             title: 'Server Error',
-                            text: 'Failed to add publishers - server returned an error',
-                            confirmButtonColor: '#3085d6'
+                            html: `<p>Failed to communicate with the server (Status: ${this.status}).</p>`,
+                            confirmButtonColor: '#d33',
+                            confirmButtonText: '<i class="fas fa-times"></i> Close'
                         });
                     }
+                };
+                xhr.onerror = function() { // Handle network errors
+                    Swal.close();
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Network Error',
+                        text: 'Could not connect to the server. Please check your network connection.',
+                        confirmButtonColor: '#d33',
+                        confirmButtonText: '<i class="fas fa-times"></i> Close'
+                    });
                 };
                 xhr.send(JSON.stringify(publishersData));
             }
         });
     };
-    
+
     // Set up event listeners for the "Add New" buttons
     const addNewAuthorBtn = document.getElementById('addNewAuthorBtn');
     if (addNewAuthorBtn) {
