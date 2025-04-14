@@ -165,8 +165,8 @@ if ($bookId > 0) {
                 $inCart = true;
             }
             
-            // Check if book is already reserved by the user
-            $checkReservationQuery = "SELECT id, status FROM reservations WHERE user_id = ? AND book_id = ? AND status IN ('Pending', 'Ready', 'Received')";
+            // Check if book is already reserved by the user - Modified here to only include 'Pending' and 'Ready'
+            $checkReservationQuery = "SELECT id, status FROM reservations WHERE user_id = ? AND book_id = ? AND status IN ('Pending', 'Ready')";
             $stmt = $conn->prepare($checkReservationQuery);
             $stmt->bind_param("ii", $_SESSION['user_id'], $copy['id']);
             $stmt->execute();
