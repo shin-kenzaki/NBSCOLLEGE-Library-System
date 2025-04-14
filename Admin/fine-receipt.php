@@ -57,20 +57,20 @@ class PDF extends FPDF {
         // Table Header
         $this->SetFont('Arial', 'B', 9);
         $this->Cell(170, 0, '', 'T', 1, 'C'); // Top border for the table
-        $this->Cell(80, 10, 'Title', 0, 0, 'L');
-        $this->Cell(40, 10, 'Fine Type', 0, 0, 'L');
-        $this->Cell(30, 10, 'Status', 0, 0, 'L');
+        $this->Cell(70, 10, 'Title', 0, 0, 'L');
+        $this->Cell(30, 10, 'Accession', 0, 0, 'L'); // Add Accession column
+        $this->Cell(30, 10, 'Fine Type', 0, 0, 'L');
+        $this->Cell(20, 10, 'Status', 0, 0, 'L');
         $this->Cell(30, 10, 'Amount', 0, 1, 'L');
 
         $this->SetFont('Arial', '', 8);
 
         $totalAmount = 0; // Initialize total amount
 
-
         while ($row = mysqli_fetch_assoc($result)) {
             $yPos = $this->GetY();
 
-            $titleWidth = 80;
+            $titleWidth = 70;
             $lineHeight = 3;
             $numLines = ceil($this->GetStringWidth($row['book_title']) / $titleWidth);
             $rowHeight = max($numLines * $lineHeight, 6);
@@ -84,8 +84,9 @@ class PDF extends FPDF {
 
             $this->SetXY($xPos + $titleWidth, $yPos);
 
-            $this->Cell(40, 3.5, $row['type'], 0, 0, 'L');
-            $this->Cell(30, 3.5, $row['status'], 0, 0, 'L'); // Status
+            $this->Cell(30, 3.5, $row['accession'], 0, 0, 'L'); // Add Accession
+            $this->Cell(30, 3.5, $row['type'], 0, 0, 'L');
+            $this->Cell(20, 3.5, $row['status'], 0, 0, 'L'); // Status
             $this->Cell(30, 3.5, number_format($row['amount'], 2), 0, 1, 'L'); // Amount
 
             // Add the amount to the total
@@ -97,7 +98,7 @@ class PDF extends FPDF {
         // Display Total Amount
         $this->SetFont('Arial', 'B', 10);
         $this->Cell(130, 6, '', 0, 0);
-        $this->Cell(20, 6, 'Total:', 0, 0, 'R');
+        $this->Cell(19, 6, 'Total:', 0, 0, 'R');
         $this->Cell(30, 6, number_format($totalAmount, 2), 0, 1, 'L');
 
         // Signature Section
@@ -113,7 +114,7 @@ if (isset($_POST['fine_ids'])) {
     $fine_ids = array_map('intval', $fine_ids); // Sanitize input
 
     // Fetch fines and borrower details
-    $sql = "SELECT f.type, f.amount, f.status, f.invoice_sale, bk.title AS book_title, u.school_id,
+    $sql = "SELECT f.type, f.amount, f.status, f.invoice_sale, bk.title AS book_title, bk.accession, u.school_id,
                    CONCAT(u.firstname, ' ', u.lastname) AS borrower, u.usertype
             FROM fines f
             JOIN borrowings b ON f.borrowing_id = b.id
