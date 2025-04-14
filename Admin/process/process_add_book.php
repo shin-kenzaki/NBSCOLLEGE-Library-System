@@ -369,18 +369,22 @@ if (isset($_POST['submit'])) {
                     
                     // 6. Process subject entries - insert for all copies
                     if (isset($_POST['subject_categories']) && is_array($_POST['subject_categories'])) {
-                        // Process all provided subject categories
                         foreach ($_POST['subject_categories'] as $i => $category) {
                             if (!empty($category)) {
                                 $category = mysqli_real_escape_string($conn, $category);
+                                $program = mysqli_real_escape_string($conn, $_POST['program'][$i] ?? '');
                                 $detail = mysqli_real_escape_string($conn, $_POST['subject_paragraphs'][$i] ?? '');
                                 
-                                // Update the book record with subject information
                                 $update_subject_query = "UPDATE books SET 
                                     subject_category = CASE 
                                         WHEN subject_category IS NULL OR subject_category = '' 
                                         THEN '$category' 
                                         ELSE CONCAT(subject_category, '; ', '$category') 
+                                    END,
+                                    program = CASE 
+                                        WHEN program IS NULL OR program = '' 
+                                        THEN '$program' 
+                                        ELSE CONCAT(program, '; ', '$program') 
                                     END,
                                     subject_detail = CASE 
                                         WHEN subject_detail IS NULL OR subject_detail = '' 

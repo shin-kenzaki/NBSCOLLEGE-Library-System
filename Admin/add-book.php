@@ -346,18 +346,28 @@ $accession_error = '';
                                 </div>
                                 <div class="form-group">
                                     <label>Subject Category</label>
-                                    <select class="form-control" name="subject_category">
+                                    <select class="form-control" name="subject_categories[]">
                                         <option value="">Select Subject Category</option>
                                         <?php foreach ($subject_options as $option): ?>
                                             <option value="<?php echo $option; ?>"><?php echo $option; ?></option>
                                         <?php endforeach; ?>
                                     </select>
-                                    <small class="form-text text-muted">Choose the category that best describes the book's subject.</small>
                                 </div>
                                 <div class="form-group">
-                                    <label>Subject Detail</label>
-                                    <textarea class="form-control" name="subject_detail" rows="3"></textarea>
-                                    <small class="form-text text-muted">Provide additional details or keywords related to the subject.</small>
+                                    <label>Program</label>
+                                    <select class="form-control" name="program[]">
+                                        <option value="">Select Program</option>
+                                        <option value="General Education">General Education</option>
+                                        <option value="Computer Science">Computer Science</option>
+                                        <option value="Accountancy">Accountancy</option>
+                                        <option value="Entrepreneurship">Entrepreneurship</option>
+                                        <option value="Accountancy Information System">Accountancy Information System</option>
+                                        <option value="Tourism Management">Tourism Management</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Details</label>
+                                    <textarea class="form-control" name="subject_paragraphs[]" rows="3"></textarea>
                                 </div>
                             </div>
                             <!-- Abstracts Tab -->
@@ -1622,7 +1632,19 @@ document.addEventListener("DOMContentLoaded", function() {
                 </select>
             </div>
             <div class="form-group">
-                <label>Subject Detail</label>
+                <label>Program</label>
+                <select class="form-control" name="program[]">
+                    <option value="">Select Program</option>
+                    <option value="General Education">General Education</option>
+                    <option value="Computer Science">Computer Science</option>
+                    <option value="Accountancy">Accountancy</option>
+                    <option value="Entrepreneurship">Entrepreneurship</option>
+                    <option value="Accountancy Information System">Accountancy Information System</option>
+                    <option value="Tourism Management">Tourism Management</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Details</label>
                 <textarea class="form-control" name="subject_paragraphs[]" rows="3"></textarea>
             </div>
         `;

@@ -143,24 +143,28 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 // Process subject entries for this copy
                 $subject_categories = isset($_POST['subject_categories']) ? $_POST['subject_categories'] : array();
                 $subject_paragraphs = isset($_POST['subject_paragraphs']) ? $_POST['subject_paragraphs'] : array();
+                $programs = isset($_POST['program']) ? $_POST['program'] : array();
 
                 // Combine all subject entries into strings for storage
                 $all_categories = array();
                 $all_details = array();
+                $all_programs = array();
 
                 for ($k = 0; $k < count($subject_categories); $k++) {
                     if (!empty($subject_categories[$k])) {
                         $all_categories[] = mysqli_real_escape_string($conn, $subject_categories[$k]);
                         $all_details[] = mysqli_real_escape_string($conn, $subject_paragraphs[$k]);
+                        $all_programs[] = mysqli_real_escape_string($conn, $programs[$k]);
                     }
                 }
 
                 $subject_category = implode('; ', $all_categories);
                 $subject_detail = implode('; ', $all_details);
+                $program = implode('; ', $all_programs);
 
                 $query = "INSERT INTO books (
                     accession, title, preferred_title, parallel_title, 
-                    subject_category, subject_detail,
+                    subject_category, subject_detail, program,
                     summary, contents, front_image, back_image, 
                     dimension, series, volume, part, edition, 
                     copy_number, total_pages, supplementary_contents, ISBN, content_type, 
@@ -169,7 +173,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     status, last_update
                 ) VALUES (
                     '$current_accession', '$title', '$preferred_title', '$parallel_title',
-                    '$subject_category', '$subject_detail',
+                    '$subject_category', '$subject_detail', '$program',
                     '$summary', '$contents', '$front_image', '$back_image',
                     '$dimension', '$current_series', '$current_volume', '$current_part', '$current_edition',
                     $current_copy_number, '$total_pages', '$supplementary_contents', '$current_isbn', '$content_type',
@@ -558,6 +562,20 @@ $accession_error = '';
                                                                 <?php echo htmlspecialchars($subject); ?>
                                                             </option>
                                                         <?php endforeach; ?>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-group">
+                                                    <label>Program</label>
+                                                    <select class="form-control" name="program[]">
+                                                        <option value="">Select Program</option>
+                                                        <option value="General Education">General Education</option>
+                                                        <option value="Computer Science">Computer Science</option>
+                                                        <option value="Accountancy">Accountancy</option>
+                                                        <option value="Entrepreneurship">Entrepreneurship</option>
+                                                        <option value="Accountancy Information System">Accountancy Information System</option>
+                                                        <option value="Tourism Management">Tourism Management</option>
                                                     </select>
                                                 </div>
                                             </div>

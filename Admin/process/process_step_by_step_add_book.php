@@ -59,6 +59,28 @@ if (isset($_POST['submit'])) {
             $author_id = intval($_POST['author'][0]);
             $book_title = mysqli_real_escape_string($conn, $_POST['title']);
             
+            // Extract subject and program before the copy loop
+            $subject_categories = $_POST['subject_categories'] ?? [];
+            $programs = $_POST['program'] ?? [];
+            $subject_details = $_POST['subject_paragraphs'] ?? [];
+
+            // Combine multiple categories, programs and details if present
+            $combined_subject_category = '';
+            $combined_program = '';
+            $combined_subject_detail = '';
+
+            foreach ($subject_categories as $i => $category) {
+                if (!empty($category)) {
+                    $category = mysqli_real_escape_string($conn, $category);
+                    $program = mysqli_real_escape_string($conn, $programs[$i] ?? '');
+                    $detail = mysqli_real_escape_string($conn, $subject_details[$i] ?? '');
+                    
+                    $combined_subject_category .= (!empty($combined_subject_category) ? '; ' : '') . $category;
+                    $combined_program .= (!empty($combined_program) ? '; ' : '') . $program;
+                    $combined_subject_detail .= (!empty($combined_subject_detail) ? '; ' : '') . $detail;
+                }
+            }
+
             for ($i = 0; $i < count($_POST['accession']); $i++) {
                 $base_accession = $_POST['accession'][$i];
                 $copies = intval($_POST['number_of_copies'][$i] ?? 1);
@@ -143,16 +165,15 @@ if (isset($_POST['submit'])) {
                         accession, title, preferred_title, parallel_title, 
                         summary, contents, dimension, series, volume, part, edition,
                         copy_number, total_pages, supplementary_contents, ISBN, content_type, 
-                        media_type, carrier_type, call_number, URL, 
-                        language, shelf_location, entered_by, date_added, 
-                        status, last_update
+                        media_type, carrier_type, call_number, URL, language, shelf_location, 
+                        entered_by, date_added, status, last_update, subject_category, program, subject_detail
                     ) VALUES (
                         '$accession', '$title', '$preferred_title', '$parallel_title',
                         '$summary', '$contents', '$dimension', '$series', '$volume', '$part', '$edition',
                         '$copy_number', '$total_pages', '$supplementary_contents', '$isbn', '$content_type',
                         '$media_type', '$carrier_type', '$formatted_call_number', '$url',
                         '$language', '$shelf_location', '$entered_by', '$date_added',
-                        '$status', '$last_update'
+                        '$status', '$last_update', '$combined_subject_category', '$combined_program', '$combined_subject_detail'
                     )";
                     
                     if (!mysqli_query($conn, $insert_book_query)) {
