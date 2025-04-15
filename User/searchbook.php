@@ -2,11 +2,8 @@
 session_start();
 include '../db.php';
 
-// Check if user is logged in
-if (!isset($_SESSION['user_id'])) {
-    header("Location: ../index.php");
-    exit();
-}
+// Determine if the user is logged in or a guest
+$isLoggedIn = isset($_SESSION['user_id']);
 
 // Get search parameters
 $searchTerm = isset($_GET['search']) ? $_GET['search'] : '';
@@ -116,6 +113,7 @@ $searchResults = $stmt->get_result();
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <?php if (!$isLoggedIn): ?>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Library Catalog Search</title>
@@ -125,6 +123,7 @@ $searchResults = $stmt->get_result();
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <!-- DataTables CSS -->
     <link href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <?php endif; ?>
     <!-- Custom styles -->
     <style>
         :root {
@@ -162,6 +161,8 @@ $searchResults = $stmt->get_result();
             border-radius: 0.5rem;
             overflow: hidden;
             height: 100%;
+            display: flex;
+            flex-direction: column;
         }
         
         .result-card:hover {
@@ -177,6 +178,9 @@ $searchResults = $stmt->get_result();
         
         .card-body {
             padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
         }
         
         .card-title {
@@ -280,6 +284,20 @@ $searchResults = $stmt->get_result();
             border-color: var(--secondary-color);
         }
         
+        /* Guest notification banner */
+        .guest-banner {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            border-radius: 0.25rem;
+            text-align: center;
+        }
+        
+        .guest-banner .btn {
+            margin-left: 0.5rem;
+        }
+        
         /* Responsive adjustments */
         @media (max-width: 767.98px) {
             .search-container {
@@ -294,10 +312,46 @@ $searchResults = $stmt->get_result();
                 height: 160px;
             }
         }
+        
+        /* Book action buttons */
+        .book-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: auto;
+        }
+        
+        .book-actions .btn {
+            flex: 1;
+        }
     </style>
 </head>
 <body>
-    <?php include 'inc/header.php'; ?>
+    <?php 
+    // Include the appropriate header based on login status
+    if ($isLoggedIn) {
+        include 'inc/header.php';
+    } else {
+        // Show guest notification banner
+        echo '<nav class="navbar navbar-expand-lg navbar-light bg-light shadow mb-4">
+                <div class="container">
+                    <a class="navbar-brand" href="#">NBS College Library</a>
+                    <div class="ml-auto">
+                        <a href="index.php" class="btn btn-primary btn-sm">Login</a>
+                        <a href="register.php" class="btn btn-outline-primary btn-sm ml-2">Register</a>
+                    </div>
+                </div>
+              </nav>';
+        
+        echo '<div class="container mt-3">
+              <div class="guest-banner">
+                You are browsing as a guest. 
+                <a href="index.php" class="btn btn-sm btn-outline-danger">Log In</a> or 
+                <a href="register.php" class="btn btn-sm btn-outline-danger">Register</a> 
+                to borrow or reserve books.
+              </div>
+            </div>';
+    }
+    ?>
 
     <!-- Hero Section -->
     <div class="hero-section">
@@ -450,9 +504,33 @@ $searchResults = $stmt->get_result();
                                     </div>
                                 </div>
                                 
-                                <a href="view_book.php?book_id=<?php echo $book['id']; ?>&group=1&title=<?php echo urlencode($book['title']); ?>&isbn=<?php echo urlencode($book['ISBN']); ?>&series=<?php echo urlencode($book['series']); ?>&volume=<?php echo urlencode($book['volume']); ?>&part=<?php echo urlencode($book['part']); ?>&edition=<?php echo urlencode($book['edition']); ?>" class="btn btn-outline-primary btn-view">
-                                    <i class="fas fa-eye me-1"></i> View Details
-                                </a>
+                                <?php if ($isLoggedIn): ?>
+                                    <!-- For logged in users: Show view details and add to cart buttons -->
+                                    <div class="book-actions">
+                                        <a href="view_book.php?book_id=<?php echo $book['id']; ?>&group=1" 
+                                           class="btn btn-outline-primary">
+                                            <i class="fas fa-eye"></i> View Details
+                                        </a>
+                                        <?php if ($book['available_copies'] > 0): ?>
+                                            <button class="btn btn-outline-success" 
+                                                    onclick="addToCart(<?php echo $book['id']; ?>, '<?php echo htmlspecialchars(addslashes($book['title'])); ?>')">
+                                                <i class="fas fa-cart-plus"></i> Add to Cart
+                                            </button>
+                                        <?php else: ?>
+                                            <button class="btn btn-outline-secondary" disabled>
+                                                <i class="fas fa-clock"></i> Unavailable
+                                            </button>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php else: ?>
+                                    <!-- For guests: Direct link to view details (no more warning) -->
+                                    <div class="book-actions">
+                                        <a href="view_book.php?book_id=<?php echo $book['id']; ?>&group=1" 
+                                           class="btn btn-outline-primary btn-view">
+                                            <i class="fas fa-eye me-1"></i> View Details
+                                        </a>
+                                    </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -467,12 +545,29 @@ $searchResults = $stmt->get_result();
         </div>
     </div>
 
-    <?php include 'inc/footer.php'; ?>
+    <?php 
+    // Include the appropriate footer based on login status
+    if ($isLoggedIn) {
+        include 'inc/footer.php';
+    } else {
+        echo '<footer class="bg-white py-4 mt-auto shadow-sm">
+                <div class="container">
+                    <div class="text-center small">
+                        <span>Copyright &copy; NBS College Library 2024</span>
+                    </div>
+                </div>
+              </footer>';
+    }
+    ?>
     
+    <?php if (!$isLoggedIn): ?>
     <!-- Bootstrap JS Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <?php endif; ?>
     
     <script>
         $(document).ready(function() {
@@ -486,6 +581,55 @@ $searchResults = $stmt->get_result();
                 $(this).closest('form').submit();
             });
         });
+        
+        // Function to add book to cart (for logged-in users)
+        function addToCart(bookId, bookTitle) {
+            // Show loading state
+            Swal.fire({
+                title: 'Adding to cart...',
+                text: 'Please wait',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            $.ajax({
+                type: "POST",
+                url: "add_to_cart.php",
+                data: { book_id: bookId }, // Send book_id parameter
+                dataType: "json",
+                success: function(response) {
+                    if (response.success) {
+                        Swal.fire({
+                            title: 'Success!',
+                            text: bookTitle + ' has been added to your cart',
+                            icon: 'success',
+                            confirmButtonText: 'View Cart',
+                            showCancelButton: true,
+                            cancelButtonText: 'Continue Browsing'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                window.location.href = 'cart.php';
+                            }
+                        });
+                    } else {
+                        Swal.fire({
+                            title: 'Error',
+                            text: response.message || 'There was a problem adding this book to your cart',
+                            icon: 'error'
+                        });
+                    }
+                },
+                error: function() {
+                    Swal.fire({
+                        title: 'Error',
+                        text: 'There was a problem connecting to the server',
+                        icon: 'error'
+                    });
+                }
+            });
+        }
     </script>
 </body>
 </html>

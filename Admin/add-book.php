@@ -539,7 +539,7 @@ $accession_error = '';
                                             <li>Avoid extra spaces at beginning or end of your call number</li>
                                             <li>Trailing spaces will be automatically removed</li>
                                             <li>The system adds proper spacing between components (shelf location, call number, year, volume, copy)</li>
-                                            <li>Example: "REF HD69.B7 W56 2024 vol1 c1" (shelf location + classification + author cutter + year + vol + copy)</li>
+                                            <li>Example: "REF HD69.B7 W56 c2024 vol1 c1" (shelf location + classification + author cutter + year + vol + copy)</li>
                                         </ul>
                                     </div>
                                     <div class="card-body">
@@ -881,7 +881,7 @@ $accession_error = '';
                             <div class="card-body">
                                 <ul>
                                     <li><strong>Accession Number</strong>: Enter a unique identifier for each physical copy.</li>
-                                    <li><strong>Call Number</strong>: Format should follow library standards (e.g., "TR Z936.98 L39 2023 c1").</li>
+                                    <li><strong>Call Number</strong>: Format should follow library standards (e.g., "TR Z936.98 L39 c2023 c1").</li>
                                     <li><strong>Multiple Copies</strong>: You can specify multiple copies, and the system will auto-increment accession numbers.</li>
                                 </ul>
                             </div>
@@ -1333,7 +1333,7 @@ function updateFormattedCallNumber(input) {
     
     // Build the formatted call number without modifying the base call number
     const elements = [shelf, baseCallNumber];
-    if (publishYear) elements.push(publishYear);
+    if (publishYear) elements.push('c' + publishYear);
     elements.push(copy);
     const formatted = elements.join(' ');
     
@@ -3247,7 +3247,8 @@ function formatCallNumberDisplay(callNumberInput) {
     // Add base call number as-is without splitting/trimming to preserve spaces
     formattedCallNumber.push(baseCallNumber);
     
-    if (publishYear) formattedCallNumber.push(publishYear);
+    // Add 'c' before year to indicate copyright
+    if (publishYear) formattedCallNumber.push('c' + publishYear);
     if (volume) formattedCallNumber.push(volume);
     if (part) formattedCallNumber.push(part); // Add part to call number if present
     formattedCallNumber.push('c.' + copyNumber);
@@ -3472,7 +3473,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         if (baseCallNumber) {
                             const shelf = shelfLocationSelect.value;
                             const volume = volumeValue ? ` vol${volumeValue}` : '';
-                            const year = publishYear ? ` ${publishYear}` : '';
+                            // Add 'c' before year to indicate copyright
+                            const year = publishYear ? ` c${publishYear}` : '';
                             const copy = ` c${copyNumberInput.value}`;
                             const formatted = `${shelf} ${baseCallNumber}${year}${volume}${copy}`;
                             callNumberPreview.textContent = `→ ${formatted}`;

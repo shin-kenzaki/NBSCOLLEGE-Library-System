@@ -113,11 +113,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                 // Format the call number - include volume information if present
                 if (!empty($current_volume)) {
-                    // With volume, format: [shelf_location] [call_number] [publish_year] vol[volume_number] c[copy_number]
+                    // With volume, format: [shelf_location] [call_number] c[publish_year] vol[volume_number] c[copy_number]
                     $publish_year = $_SESSION['book_shortcut']['publish_year'] ?? date('Y');
                     
                     // Build formatted call number with parts
-                    $formatted_call_number = $current_shelf_location . ' ' . $current_call_number . ' ' . $publish_year . ' vol.' . $current_volume;
+                    $formatted_call_number = $current_shelf_location . ' ' . $current_call_number . ' c' . $publish_year . ' vol.' . $current_volume;
                     
                     // Add part if present
                     if (!empty($current_part)) {
@@ -1375,7 +1375,7 @@ function formatCallNumber() {
         const formattedCallNumber = [
             shelfLocation,
             rawCallNumber,
-            publishYear,
+            publishYear ? 'c' + publishYear : '',
             `c${copyNumber}`
         ].filter(Boolean).join(' ');
         
@@ -1419,7 +1419,7 @@ function formatCallNumberDisplay(callNumberInput) {
     const formattedCallNumber = [
         shelfLocation,
         baseCallNumber,
-        publishYear
+        publishYear ? 'c' + publishYear : ''
     ].filter(Boolean).join(' ');
     
     // Get the volume and part if available

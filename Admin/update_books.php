@@ -133,6 +133,14 @@ if (isset($_POST['submit'])) {
         // Properly handle status with default value
         $status = isset($_POST['status']) ? (is_array($_POST['status']) ? $_POST['status'][0] : $_POST['status']) : 'Available';
 
+        // Get program value - safely handle string or array
+        $program = '';
+        if (isset($_POST['program']) && is_array($_POST['program'])) {
+            $program = mysqli_real_escape_string($conn, $_POST['program'][0]);
+        } elseif (isset($_POST['program']) && is_string($_POST['program'])) {
+            $program = mysqli_real_escape_string($conn, $_POST['program']);
+        }
+
         // Update each book copy
         foreach ($bookIds as $index => $bookId) {
             // Get original entered_by, date_added, and status for this specific copy
@@ -190,6 +198,7 @@ if (isset($_POST['submit'])) {
                 parallel_title = ?,
                 subject_category = ?,
                 subject_detail = ?,
+                program = ?, -- Added program field
                 summary = ?,
                 contents = ?,
                 front_image = ?,
@@ -221,12 +230,13 @@ if (isset($_POST['submit'])) {
             $stmt = $conn->prepare($update_query);
             
             // Bind parameters with copy-specific values including preserved entered_by/date_added
-            $stmt->bind_param("sssssssssssssssssssssssssssssssi", 
+            $stmt->bind_param("ssssssssssssssssssssssssssssssssi", 
                 $title, 
                 $preferred_title, 
                 $parallel_title,
                 $subject_category,
                 $subject_detail,
+                $program, // Added program parameter
                 $abstract,
                 $notes,
                 $front_image,
@@ -902,33 +912,7 @@ if ($first_book) {
                         <h4 class="mt-3 mb-1 w-100">Local Information</h4>
                         <div class="row">
                             <div class="col-md-6">
-                                <!-- Modified call numbers section -->
-                                <div class="form-group mt-4">
-                                    <div id="callNumberContainer">
-                                        <label>Classification Number and Author Cutter</label>
-                                        <input type="text" class="form-control" name="raw_call_number" 
-                                               placeholder="e.g. Z936.98 L39"
-                                               value="<?php 
-                                                   $call_number = $first_book['call_number'] ?? '';
-                                                   
-                                                   // Extract only the classification number and author cutter (parts 2 and 3)
-                                                   $parts = explode(' ', $call_number);
-                                                   
-                                                   // We need parts 2 and 3 (if they exist)
-                                                   $classification_and_cutter = '';
-                                                   if (count($parts) >= 3) {
-                                                       // Get the 2nd and 3rd parts
-                                                       $classification_and_cutter = $parts[1] . ' ' . $parts[2];
-                                                   } elseif (count($parts) >= 2) {
-                                                       // Just get the 2nd part if 3rd doesn't exist
-                                                       $classification_and_cutter = $parts[1];
-                                                   }
-                                                   
-                                                   echo htmlspecialchars($classification_and_cutter);
-                                               ?>">
-                                        <small class="text-muted">Enter only the classification number and author cutter (e.g., Z936.98 L39) without volume, part, or copy number</small>
-                                    </div>
-                                </div>
+                                <!-- Removed the call numbers section -->
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group mt-4">
@@ -1020,7 +1004,7 @@ if ($first_book) {
                                                         <th style="width: 120px; white-space: nowrap;">Copy Number</th>
                                                         <th style="width: 150px; white-space: nowrap;">Accession Number</th>
                                                         <th style="width: 150px; white-space: nowrap;">Shelf Location</th>
-                                                        <th style="width: 300px; white-space: nowrap;">Call Number</th>
+                                                        <th style="width: 300px; white-space: nowrap;">Call Number<br><small class="text-muted">Format: [Location] [Class] [Cutter] c[Year] [Vol] [Part] [Copy]</small></th>
                                                         <th style="width: 120px; white-space: nowrap;">Series</th>
                                                         <th style="width: 120px; white-space: nowrap;">Volume</th>
                                                         <th style="width: 120px; white-space: nowrap;">Edition</th>
@@ -1257,29 +1241,10 @@ document.addEventListener("DOMContentLoaded", function() {
     // Bootstrap 5 tab initialization
     const triggerTabList = [].slice.call(document.querySelectorAll('#formTabs a'));
     triggerTabList.forEach(function(triggerEl) {
-        const tabTrigger = new bootstrap.Tab(triggerEl);
-        
         triggerEl.addEventListener('click', function(event) {
             event.preventDefault();
-            
-            // Remove active class from all tabs and panes
-            triggerTabList.forEach(tab => {
-                tab.classList.remove('active');
-                const tabPane = document.querySelector(tab.getAttribute('href'));
-                if (tabPane) {
-                    tabPane.classList.remove('show', 'active');
-                }
-            });
-            
-            // Activate clicked tab and its pane
-            this.classList.add('active');
-            const targetPane = document.querySelector(this.getAttribute('href'));
-            if (targetPane) {
-                targetPane.classList.add('show', 'active');
-            }
-            
-            // Show tab
-            tabTrigger.show();
+            const tab = new bootstrap.Tab(triggerEl);
+            tab.show();
         });
     });
     
@@ -1290,107 +1255,131 @@ document.addEventListener("DOMContentLoaded", function() {
         firstTabTrigger.show();
     }
 
-    // Updated formatCallNumber function
-    function formatCallNumber() {
-        const rawCallNumber = document.querySelector('input[name="raw_call_number"]').value.trim();
-        const publishYear = document.querySelector('input[name="publish_date"]').value;
-        const copies = document.querySelectorAll('.book-copy');
+    // Enhanced function to automatically update call numbers when fields change
+    function updateCallNumber(copyElement) {
+        // Get all the elements for this specific row
+        const callNumberField = copyElement.querySelector('input[name="call_numbers[]"]');
+        const shelfLocation = copyElement.querySelector('select[name="shelf_location[]"]').value;
+        const volumeInput = copyElement.querySelector('input[name="volume[]"]').value.trim();
+        const partInput = copyElement.querySelector('input[name="part[]"]').value.trim();
+        const copyNumber = copyElement.querySelector('input[name="copy_number[]"]').value.trim();
+        const publishYear = document.querySelector('input[name="publish_date"]')?.value || '';
         
-        copies.forEach((copy) => {
-            const copyNumberInput = copy.querySelector('input[name="copy_number[]"]');
-            const shelfLocationSelect = copy.querySelector('select[name="shelf_location[]"]');
+        if (!callNumberField) return;
+        
+        // Extract classifier and cutter from current call number
+        let currentCallNum = callNumberField.value;
+        let classifierCutter = '';
+        
+        // Parse current call number to find classifier and cutter portions (e.g., "Z936.98 L39")
+        const parts = currentCallNum.split(' ');
+        
+        // First, try to detect the Location + Class + Cutter pattern
+        for (let i = 0; i < parts.length - 1; i++) {
+            // Look for patterns like "Z936.98 L39" where first part is class and second is cutter
+            if (i > 0 && /^[A-Z0-9]+(\.[0-9]+)?$/.test(parts[i]) && /^[A-Z][0-9]+/.test(parts[i+1])) {
+                classifierCutter = `${parts[i]} ${parts[i+1]}`;
+                break;
+            }
+        }
+        
+        // If we couldn't find it but have at least 3 parts, assume parts[1] and parts[2] are classifier and cutter
+        if (!classifierCutter && parts.length >= 3) {
+            // Try to use the middle part of the call number as the classifier+cutter
+            classifierCutter = `${parts[1]} ${parts[2]}`;
+        }
+        
+        // Build new call number components
+        const components = [];
+        
+        // Start with shelf location
+        if (shelfLocation) {
+            components.push(shelfLocation);
+        }
+        
+        // Add classifier and cutter if available
+        if (classifierCutter) {
+            components.push(classifierCutter);
+        }
+        
+        // Add publication year if available (with "c" prefix for copyright)
+        if (publishYear) {
+            components.push(`c${publishYear}`);
+        }
+        
+        // Add volume if available
+        if (volumeInput) {
+            components.push(`v.${volumeInput}`);
+        }
+        
+        // Add part if available
+        if (partInput) {
+            components.push(`pt.${partInput}`);
+        }
+        
+        // Add copy number if available
+        if (copyNumber) {
+            components.push(`c.${copyNumber}`);
+        }
+        
+        // Update the call number field with new formatted call number
+        if (components.length > 1) {
+            callNumberField.value = components.join(' ');
+        }
+    }
+
+    // Setup event listeners for fields that affect call numbers
+    function setupCallNumberEventListeners() {
+        const bookCopies = document.querySelectorAll('.book-copy');
+        
+        bookCopies.forEach(copy => {
+            // Get all relevant fields that should trigger call number updates
+            const shelfLocation = copy.querySelector('select[name="shelf_location[]"]');
             const volumeInput = copy.querySelector('input[name="volume[]"]');
             const partInput = copy.querySelector('input[name="part[]"]');
+            const copyNumberInput = copy.querySelector('input[name="copy_number[]"]');
+            const publishYear = document.querySelector('input[name="publish_date"]');
             
-            // Get values
-            const copyNum = copyNumberInput.value.replace(/^c/, '');
-            const shelfLocation = shelfLocationSelect.value;
-            const volumeText = volumeInput && volumeInput.value.trim() ? `v.${volumeInput.value.trim()}` : '';
-            const partText = partInput && partInput.value.trim() ? `pt.${partInput.value.trim()}` : '';
-            
-            // Validate raw call number format
-            if (rawCallNumber && !/^[A-Z0-9]+(\.[0-9]+)?\s[A-Z][0-9]+$/.test(rawCallNumber)) {
-                console.warn('Call number format should be like "Z936.98 L39"');
+            // Add event listeners to each field to update the call number when they change
+            if (shelfLocation) {
+                shelfLocation.addEventListener('change', () => updateCallNumber(copy));
             }
             
-            // Build call number
-            const formattedCallNumber = [
-                shelfLocation,         // Location code (e.g., TR)
-                rawCallNumber,         // Classification and cutter (e.g., Z936.98 L39)
-                publishYear            // Publication year
-            ].filter(Boolean).join(' ');
-            
-            // Build the final call number with all components
-            let finalCallNumber = formattedCallNumber;
-            
-            // Append volume number if present
-            if (volumeText) {
-                finalCallNumber += ` ${volumeText}`;
+            if (volumeInput) {
+                volumeInput.addEventListener('input', () => updateCallNumber(copy));
             }
             
-            // Append part number if present
-            if (partText) {
-                finalCallNumber += ` ${partText}`;
+            if (partInput) {
+                partInput.addEventListener('input', () => updateCallNumber(copy));
             }
             
-            // Append copy number
-            finalCallNumber += ` c.${copyNum}`;
-            
-            // Update call number field
-            const callNumberField = copy.querySelector('input[name="call_numbers[]"]');
-            if (callNumberField) {
-                callNumberField.value = finalCallNumber;
+            if (copyNumberInput) {
+                copyNumberInput.addEventListener('input', () => updateCallNumber(copy));
             }
-        });
-    }
-
-    // Add event listeners for copy number changes
-    document.querySelectorAll('input[name="copy_number[]"]').forEach(input => {
-        input.addEventListener('input', function() {
-            formatCallNumber();
-        });
-    });
-
-    // Single, unified updateCopyNumbers function
-    function updateCopyNumbers() {
-        formatCallNumber(); // Just update the call numbers without changing copy numbers
-    }
-
-    // Set up event listeners once
-    function setupEventListeners() {
-        const rawCallNumber = document.querySelector('input[name="raw_call_number"]');
-        const publishYear = document.querySelector('input[name="publish_date"]');
-        const shelfLocations = document.querySelectorAll('select[name="shelf_location[]"]');
-        const volumeInputs = document.querySelectorAll('input[name="volume[]"]');
-        const partInputs = document.querySelectorAll('input[name="part[]"]'); // Add part inputs
-
-        if (rawCallNumber) rawCallNumber.addEventListener('input', formatCallNumber);
-        if (publishYear) publishYear.addEventListener('input', formatCallNumber);
-        
-        shelfLocations.forEach(select => {
-            select.addEventListener('change', formatCallNumber);
         });
         
-        // Add event listeners to all volume inputs
-        volumeInputs.forEach(input => {
-            input.addEventListener('input', function() {
-                formatCallNumber(); // Update call numbers when volume changes
+        // Publication year update affects all call numbers
+        const publishYearInput = document.querySelector('input[name="publish_date"]');
+        if (publishYearInput) {
+            publishYearInput.addEventListener('input', () => {
+                document.querySelectorAll('.book-copy').forEach(copy => {
+                    updateCallNumber(copy);
+                });
             });
-        });
-        
-        // Add event listeners to all part inputs
-        partInputs.forEach(input => {
-            input.addEventListener('input', function() {
-                formatCallNumber(); // Update call numbers when part changes
-            });
-        });
+        }
     }
 
-    // Initialize on page load
-    setupEventListeners();
-    updateCopyNumbers();
+    // Initialize call number event listeners
+    setupCallNumberEventListeners();
 
-    // Replace the existing shelf location event listeners with this new implementation
+    // Update all call numbers once on page load to ensure consistency
+    setTimeout(() => {
+        document.querySelectorAll('.book-copy').forEach(copy => {
+            updateCallNumber(copy);
+        });
+    }, 500);
+
+    // Handle shelf location propagation (keep existing behavior)
     const shelfLocationSelects = document.querySelectorAll('select[name="shelf_location[]"]');
     shelfLocationSelects.forEach((select, index) => {
         select.addEventListener('change', function() {
@@ -1401,342 +1390,50 @@ document.addEventListener("DOMContentLoaded", function() {
             if (index === 0) {
                 for (let i = 1; i < totalSelects; i++) {
                     shelfLocationSelects[i].value = newValue;
+                    // Also update the call number for these rows
+                    updateCallNumber(shelfLocationSelects[i].closest('.book-copy'));
                 }
             } else {
                 // For any other copy, only update copies that come after it
                 for (let i = index + 1; i < totalSelects; i++) {
                     shelfLocationSelects[i].value = newValue;
+                    // Also update the call number for these rows
+                    updateCallNumber(shelfLocationSelects[i].closest('.book-copy'));
                 }
-                // Copies before this one remain unchanged
             }
-
-            // Trigger call number update after changing shelf locations
-            formatCallNumber();
         });
     });
 });
 
-// Add accession number validation
+// Add tooltip library for call number suggestions
 document.addEventListener('DOMContentLoaded', function() {
-    const accessionInputs = document.querySelectorAll('input[name="accession[]"]');
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/@popperjs/core@2';
+    script.onload = function() {
+        const tippyScript = document.createElement('script');
+        tippyScript.src = 'https://unpkg.com/tippy.js@6';
+        document.head.appendChild(tippyScript);
+    };
+    document.head.appendChild(script);
     
-    accessionInputs.forEach(input => {
-        input.addEventListener('change', async function() {
-            const bookId = this.closest('.book-copy').querySelector('input[name="book_ids[]"]').value;
-            const accession = this.value;
-            
-            try {
-                const response = await fetch('validate_accession.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        accession: accession,
-                        bookId: bookId
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (!data.valid) {
-                    alert('This accession number is already in use by another book.');
-                    this.value = this.defaultValue; // Reset to original value
-                    this.focus();
+    // Add confirmation when manually editing call numbers
+    document.querySelectorAll('input[name="call_numbers[]"]').forEach(input => {
+        input.addEventListener('focus', function() {
+            this.dataset.originalValue = this.value;
+        });
+        
+        input.addEventListener('blur', function() {
+            if (this.value !== this.dataset.originalValue) {
+                // Only show confirmation if the value actually changed
+                if (confirm("You've manually edited the call number. Would you like to keep this manual edit instead of auto-formatting?")) {
+                    this.dataset.manuallyEdited = "true";
                 } else {
-                    this.defaultValue = this.value; // Update original value if valid
-                }
-            } catch (error) {
-                console.error('Error validating accession:', error);
-            }
-        });
-    });
-});
-
-// Add this at the start of your existing script
-document.addEventListener('DOMContentLoaded', function() {
-    // Prevent form submission on enter key
-    document.getElementById('bookForm').addEventListener('keypress', function(e) {
-        if (e.keyCode === 13 || e.key === 'Enter') {
-            e.preventDefault();
-            return false;
-        }
-    });
-
-    // Only allow form submission via the submit button
-    document.getElementById('bookForm').onsubmit = function(e) {
-        if (e.submitter && e.submitter.type === 'submit') {
-            return validateForm(e);
-        }
-        e.preventDefault();
-        return false;
-    };
-
-    // ...rest of your existing script...
-});
-
-// Replace both existing delete event listener blocks with this single implementation
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.delete-copy').forEach(function(button) {
-        button.addEventListener('click', async function() {
-            const bookCopyRow = this.closest('.book-copy');
-            const bookId = bookCopyRow.getAttribute('data-book-id');
-            const bookTitle = document.querySelector('input[name="title"]').value;
-            
-            // Use SweetAlert2 for the confirmation dialog
-            const result = await Swal.fire({
-                title: 'Delete Confirmation',
-                text: 'Are you sure you want to delete this copy?',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Yes, delete it!'
-            });
-
-            if (result.isConfirmed) {
-                try {
-                    const response = await fetch('delete_copy.php', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ bookId: bookId })
-                    });
-                    
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        bookCopyRow.remove();
-                        
-                        await Swal.fire({
-                            title: 'Copy Deleted',
-                            text: data.message || 'Book copy deleted successfully.',
-                            icon: 'success',
-                            confirmButtonText: 'OK'
-                        });
-                        
-                        // Check if this was the last copy
-                        const remainingCopies = document.querySelectorAll('.book-copy').length;
-                        if (remainingCopies === 0) {
-                            await Swal.fire({
-                                title: 'Book Deleted',
-                                text: `All copies of "${bookTitle}" have been deleted.`,
-                                icon: 'success',
-                                confirmButtonText: 'OK'
-                            });
-                            // Redirect to book list page
-                            window.location.href = 'book_list.php';
-                        }
-                    } else {
-                        await Swal.fire({
-                            title: 'Cannot Delete Book',
-                            text: data.error || 'This book cannot be deleted because it is currently in use.',
-                            icon: 'error'
-                        });
-                    }
-                } catch (error) {
-                    console.error('Deletion error:', error);
-                    await Swal.fire({
-                        title: 'Error',
-                        text: 'An error occurred while deleting the copy.',
-                        icon: 'error'
-                    });
+                    // If they don't want to keep it, revert to auto-formatted
+                    const bookCopy = this.closest('.book-copy');
+                    updateCallNumber(bookCopy);
                 }
             }
         });
     });
 });
-
-// Add preview function for total pages
-document.addEventListener('DOMContentLoaded', function() {
-    // Get page input elements
-    const prefixPagesInput = document.querySelector('input[name="prefix_pages"]');
-    const mainPagesInput = document.querySelector('input[name="main_pages"]');
-    
-    // Create a display element for previewing total pages
-    const pageContainer = document.querySelector('.form-group label:contains("Pages")').closest('.form-group');
-    const previewElement = document.createElement('div');
-    previewElement.className = 'alert alert-info mt-2';
-    previewElement.style.display = 'none';
-    previewElement.innerHTML = '<strong>Total pages will appear as:</strong> <span id="pagesPreview"></span>';
-    pageContainer.appendChild(previewElement);
-    
-    // Update preview function
-    function updatePagesPreview() {
-        const prefix = prefixPagesInput.value.trim();
-        const main = mainPagesInput.value.trim();
-        const previewSpan = document.getElementById('pagesPreview');
-        
-        if (prefix && main) {
-            previewSpan.textContent = `${prefix} ${main}`; // Changed from comma to space
-            previewElement.style.display = 'block';
-        } else if (prefix) {
-            previewSpan.textContent = prefix;
-            previewElement.style.display = 'block';
-        } else if (main) {
-            previewSpan.textContent = main;
-            previewElement.style.display = 'block';
-        } else {
-            previewElement.style.display = 'none';
-        }
-    }
-    
-    // Add event listeners
-    if (prefixPagesInput) prefixPagesInput.addEventListener('input', updatePagesPreview);
-    if (mainPagesInput) mainPagesInput.addEventListener('input', updatePagesPreview);
-    
-    // Initialize preview
-    updatePagesPreview();
-});
-
-// Preview functionality for contributors
-function updateContributorPreviews() {
-    const authorSelect = document.getElementById('authorSelect');
-    const coAuthorSelect = document.getElementById('coAuthorSelect');
-    const editorSelect = document.getElementById('editorSelect');
-    const authorPreview = document.getElementById('authorPreview');
-    const coAuthorPreview = document.getElementById('coAuthorPreview');
-    const editorPreview = document.getElementById('editorPreview');
-
-    // Update author preview
-    let authorHtml = '';
-    for (const option of authorSelect.selectedOptions) {
-        if (option.value) {
-            authorHtml += `<span class="badge bg-secondary text-white me-1 mb-1" data-id="${option.value}" data-role="author">
-                           ${option.text} <i class="fa fa-times ms-1" style="cursor:pointer;" onclick="removeContributor(this)"></i></span> `;
-        }
-    }
-    authorPreview.innerHTML = authorHtml || '<em class="text-muted">No authors selected</em>';
-
-    // Update co-author preview
-    let coAuthorHtml = '';
-    for (const option of coAuthorSelect.selectedOptions) {
-        if (option.value) {
-            coAuthorHtml += `<span class="badge bg-secondary text-white me-1 mb-1" data-id="${option.value}" data-role="co-author">
-                            ${option.text} <i class="fa fa-times ms-1" style="cursor:pointer;" onclick="removeContributor(this)"></i></span> `;
-        }
-    }
-    coAuthorPreview.innerHTML = coAuthorHtml || '<em class="text-muted">No co-authors selected</em>';
-
-    // Update editor preview 
-    let editorHtml = '';
-    for (const option of editorSelect.selectedOptions) {
-        if (option.value) {
-            editorHtml += `<span class="badge bg-secondary text-white me-1 mb-1" data-id="${option.value}" data-role="editor">
-                          ${option.text} <i class="fa fa-times ms-1" style="cursor:pointer;" onclick="removeContributor(this)"></i></span> `;
-        }
-    }
-    editorPreview.innerHTML = editorHtml || '<em class="text-muted">No editors selected</em>';
-}
-
-// Function to remove contributor when X is clicked
-function removeContributor(element) {
-    const badge = element.parentElement;
-    const id = badge.dataset.id;
-    const role = badge.dataset.role;
-    
-    let selectId;
-    if (role === 'author') {
-        selectId = 'authorSelect';
-    } else if (role === 'co-author') {
-        selectId = 'coAuthorSelect';
-    } else if (role === 'editor') {
-        selectId = 'editorSelect';
-    }
-    
-    const select = document.getElementById(selectId);
-    if (select) {
-        for (let i = 0; i < select.options.length; i++) {
-            if (select.options[i].value === id) {
-                select.options[i].selected = false;
-                break;
-            }
-        }
-        // Trigger change event to update preview
-        select.dispatchEvent(new Event('change'));
-    }
-}
-
-// Set up event listeners for contributor select changes
-const contributorSelects = ['authorSelect', 'coAuthorSelect', 'editorSelect'];
-contributorSelects.forEach(id => {
-    const select = document.getElementById(id);
-    if (select) {
-        select.addEventListener('change', updateContributorPreviews);
-    }
-});
-
-// Initialize previews
-document.addEventListener('DOMContentLoaded', function() {
-    updateContributorPreviews();
-});
-
-// Add search functionality for contributor dropdowns
-document.addEventListener('DOMContentLoaded', function() {
-    // Filter function for contributor search
-    const searchContributors = function() {
-        const searchInput = this;
-        const searchTerm = searchInput.value.toLowerCase();
-        const selectId = searchInput.dataset.target;
-        const selectElement = document.getElementById(selectId);
-        
-        // Store selected options to maintain them
-        const selectedOptions = [];
-        for (const option of selectElement.selectedOptions) {
-            selectedOptions.push(option.value);
-        }
-        
-        // Loop through all options to filter
-        for (let i = 0; i < selectElement.options.length; i++) {
-            const option = selectElement.options[i];
-            const optionText = option.textContent.toLowerCase();
-            
-            // Skip the empty "Select" option
-            if (option.value === "") continue;
-            
-            // Check if option text contains search term
-            if (optionText.includes(searchTerm)) {
-                option.style.display = "";
-            } else {
-                option.style.display = "none";
-            }
-        }
-        
-        // Restore selected options
-        for (let i = 0; i < selectElement.options.length; i++) {
-            if (selectedOptions.includes(selectElement.options[i].value)) {
-                selectElement.options[i].selected = true;
-            }
-        }
-    };
-    
-    // Add event listeners to search inputs
-    const searchInputs = document.querySelectorAll('.contributor-search');
-    searchInputs.forEach(input => {
-        input.addEventListener('input', searchContributors);
-    });
-    
-    // Function to clear search and reset dropdown
-    const clearSearch = function(selectId) {
-        const searchInput = document.querySelector(`[data-target="${selectId}"]`);
-        if (searchInput) {
-            searchInput.value = '';
-            const event = new Event('input');
-            searchInput.dispatchEvent(event);
-        }
-    };
-    
-    // Clear search when dropdown changes to ensure all options are visible for next interaction
-    document.getElementById('authorSelect').addEventListener('change', function() {
-        clearSearch('authorSelect');
-    });
-    
-    document.getElementById('coAuthorSelect').addEventListener('change', function() {
-        clearSearch('coAuthorSelect');
-    });
-    
-    document.getElementById('editorSelect').addEventListener('change', function() {
-        clearSearch('editorSelect');
-    });
-});
-
 </script>

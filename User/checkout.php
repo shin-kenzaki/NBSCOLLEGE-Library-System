@@ -261,12 +261,6 @@ try {
         $stmt->bind_param('iis', $userId, $bookId, $currentTime);
         $stmt->execute();
         
-        // Update book status
-        $updateBookQuery = "UPDATE books SET status = 'Reserved' WHERE id = ?";
-        $stmt = $conn->prepare($updateBookQuery);
-        $stmt->bind_param('i', $bookId);
-        $stmt->execute();
-        
         // Remove from cart
         $deleteCartItemQuery = "DELETE FROM cart WHERE id = ?";
         $stmt = $conn->prepare($deleteCartItemQuery);

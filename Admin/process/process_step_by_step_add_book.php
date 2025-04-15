@@ -156,7 +156,7 @@ if (isset($_POST['submit'])) {
                         $part_text = !empty($part) ? " pt.$part" : '';
                         
                         $formatted_call_number = trim("$shelf_location $call_number" . 
-                                                    (!empty($publish_year) ? " $publish_year" : '') . 
+                                                    (!empty($publish_year) ? " c$publish_year" : '') . 
                                                     "$volume_text$part_text c.$copy_number");
                     }
                     

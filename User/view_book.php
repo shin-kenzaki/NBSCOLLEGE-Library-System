@@ -2,11 +2,9 @@
 session_start();
 include '../db.php';
 
-// Check if user is logged in
-if (!isset($_SESSION['user_id'])) {
-    header("Location: ../index.php");
-    exit();
-}
+// Check if user is logged in - MODIFIED: No longer redirects
+$isLoggedIn = isset($_SESSION['user_id']);
+$userId = $isLoggedIn ? $_SESSION['user_id'] : null;
 
 // Get the book ID from the query parameters
 $bookId = isset($_GET['book_id']) ? intval($_GET['book_id']) : 0;
@@ -154,36 +152,39 @@ if ($bookId > 0) {
         $isBorrowed = false;
         $reservationStatus = null;
         
-        foreach ($copies as $copy) {
-            // Check if book is in user's cart
-            $checkCartQuery = "SELECT id FROM cart WHERE user_id = ? AND book_id = ? AND status = 1";
-            $stmt = $conn->prepare($checkCartQuery);
-            $stmt->bind_param("ii", $_SESSION['user_id'], $copy['id']);
-            $stmt->execute();
-            $cartResult = $stmt->get_result();
-            if ($cartResult->num_rows > 0) {
-                $inCart = true;
-            }
-            
-            // Check if book is already reserved by the user - Modified here to only include 'Pending' and 'Ready'
-            $checkReservationQuery = "SELECT id, status FROM reservations WHERE user_id = ? AND book_id = ? AND status IN ('Pending', 'Ready')";
-            $stmt = $conn->prepare($checkReservationQuery);
-            $stmt->bind_param("ii", $_SESSION['user_id'], $copy['id']);
-            $stmt->execute();
-            $reservationResult = $stmt->get_result();
-            if ($reservationResult->num_rows > 0) {
-                $isReserved = true;
-                $reservationStatus = $reservationResult->fetch_assoc()['status'];
-            }
-            
-            // Check if book is currently borrowed by the user
-            $checkBorrowingQuery = "SELECT id FROM borrowings WHERE user_id = ? AND book_id = ? AND status = 'Borrowed'";
-            $stmt = $conn->prepare($checkBorrowingQuery);
-            $stmt->bind_param("ii", $_SESSION['user_id'], $copy['id']);
-            $stmt->execute();
-            $borrowingResult = $stmt->get_result();
-            if ($borrowingResult->num_rows > 0) {
-                $isBorrowed = true;
+        // Only check user-specific status if logged in
+        if ($isLoggedIn) {
+            foreach ($copies as $copy) {
+                // Check if book is in user's cart
+                $checkCartQuery = "SELECT id FROM cart WHERE user_id = ? AND book_id = ? AND status = 1";
+                $stmt = $conn->prepare($checkCartQuery);
+                $stmt->bind_param("ii", $userId, $copy['id']);
+                $stmt->execute();
+                $cartResult = $stmt->get_result();
+                if ($cartResult->num_rows > 0) {
+                    $inCart = true;
+                }
+                
+                // Check if book is already reserved by the user - Modified here to only include 'Pending' and 'Ready'
+                $checkReservationQuery = "SELECT id, status FROM reservations WHERE user_id = ? AND book_id = ? AND status IN ('Pending', 'Ready')";
+                $stmt = $conn->prepare($checkReservationQuery);
+                $stmt->bind_param("ii", $userId, $copy['id']);
+                $stmt->execute();
+                $reservationResult = $stmt->get_result();
+                if ($reservationResult->num_rows > 0) {
+                    $isReserved = true;
+                    $reservationStatus = $reservationResult->fetch_assoc()['status'];
+                }
+                
+                // Check if book is currently borrowed by the user
+                $checkBorrowingQuery = "SELECT id FROM borrowings WHERE user_id = ? AND book_id = ? AND status = 'Borrowed'";
+                $stmt = $conn->prepare($checkBorrowingQuery);
+                $stmt->bind_param("ii", $userId, $copy['id']);
+                $stmt->execute();
+                $borrowingResult = $stmt->get_result();
+                if ($borrowingResult->num_rows > 0) {
+                    $isBorrowed = true;
+                }
             }
         }
     } else {
@@ -517,7 +518,33 @@ if ($bookId > 0) {
     </style>
 </head>
 <body>
-    <?php include 'inc/header.php'; ?>
+    <?php 
+    // Include the appropriate header based on login status
+    if ($isLoggedIn) {
+        include 'inc/header.php';
+    } else {
+        // Show guest navigation bar
+        echo '<nav class="navbar navbar-expand-lg navbar-light bg-light shadow mb-4">
+                <div class="container">
+                    <a class="navbar-brand" href="#">NBS College Library</a>
+                    <div class="ml-auto">
+                        <a href="index.php" class="btn btn-primary btn-sm">Login</a>
+                        <a href="register.php" class="btn btn-outline-primary btn-sm ml-2">Register</a>
+                    </div>
+                </div>
+              </nav>';
+        
+        // Show guest notification banner
+        echo '<div class="container mt-3">
+              <div class="alert alert-warning">
+                <i class="fas fa-info-circle me-2"></i> You are viewing as a guest. 
+                <a href="index.php" class="btn btn-sm btn-outline-primary ms-2">Log In</a> or 
+                <a href="register.php" class="btn btn-sm btn-outline-primary ms-2">Register</a> 
+                to borrow or reserve books.
+              </div>
+            </div>';
+    }
+    ?>
 
     <?php if ($error): ?>
         <div class="container mt-5">
@@ -581,30 +608,42 @@ if ($bookId > 0) {
                         </div>
                         
                         <!-- Action Buttons -->
-                        <?php if ($availableCopies > 0 && !$isBorrowed && !$isReserved): ?>
+                        <?php if ($isLoggedIn): ?>
+                            <?php if ($availableCopies > 0 && !$isBorrowed && !$isReserved): ?>
+                                <div class="action-buttons">
+                                    <?php if (!$inCart): ?>
+                                        <button class="btn btn-primary" onclick="addToCart(<?php echo $book['id']; ?>)">
+                                            <i class="fas fa-cart-plus me-2"></i> Add to Cart
+                                        </button>
+                                    <?php else: ?>
+                                        <button class="btn btn-success" disabled>
+                                            <i class="fas fa-check me-2"></i> In Your Cart
+                                        </button>
+                                    <?php endif; ?>
+                                    
+                                    <button class="btn btn-outline-primary" onclick="reserveBook(<?php echo $book['id']; ?>)">
+                                        <i class="fas fa-bookmark me-2"></i> Reserve Book
+                                    </button>
+                                </div>
+                            <?php elseif ($isReserved): ?>
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i> This book is currently reserved by you.
+                                    <br>Status: <strong><?php echo htmlspecialchars($reservationStatus); ?></strong>
+                                </div>
+                            <?php elseif ($isBorrowed): ?>
+                                <div class="alert alert-info">
+                                    <i class="fas fa-book-reader me-2"></i> You currently have this book borrowed.
+                                </div>
+                            <?php endif; ?>
+                        <?php else: ?>
+                            <!-- Guest user action area -->
                             <div class="action-buttons">
-                                <?php if (!$inCart): ?>
-                                    <button class="btn btn-primary" onclick="addToCart(<?php echo $book['id']; ?>)">
-                                        <i class="fas fa-cart-plus me-2"></i> Add to Cart
-                                    </button>
-                                <?php else: ?>
-                                    <button class="btn btn-success" disabled>
-                                        <i class="fas fa-check me-2"></i> In Your Cart
-                                    </button>
-                                <?php endif; ?>
-                                
-                                <button class="btn btn-outline-primary" onclick="reserveBook(<?php echo $book['id']; ?>)">
-                                    <i class="fas fa-bookmark me-2"></i> Reserve Book
+                                <button class="btn btn-primary" onclick="loginPrompt()">
+                                    <i class="fas fa-sign-in-alt me-2"></i> Login to Borrow
                                 </button>
-                            </div>
-                        <?php elseif ($isReserved): ?>
-                            <div class="alert alert-info">
-                                <i class="fas fa-info-circle me-2"></i> This book is currently reserved by you.
-                                <br>Status: <strong><?php echo htmlspecialchars($reservationStatus); ?></strong>
-                            </div>
-                        <?php elseif ($isBorrowed): ?>
-                            <div class="alert alert-info">
-                                <i class="fas fa-book-reader me-2"></i> You currently have this book borrowed.
+                                <button class="btn btn-outline-primary" onclick="registerPrompt()">
+                                    <i class="fas fa-user-plus me-2"></i> Register
+                                </button>
                             </div>
                         <?php endif; ?>
                         
@@ -648,7 +687,7 @@ if ($bookId > 0) {
                                             <span class="copy-status <?php echo ($copy['status'] == 'Available') ? 'copy-available' : 'copy-unavailable'; ?>">
                                                 <?php echo htmlspecialchars($copy['status']); ?>
                                             </span>
-                                            <?php if ($copy['status'] == 'Available' && !$inCart && !$isReserved && !$isBorrowed): ?>
+                                            <?php if ($isLoggedIn && $copy['status'] == 'Available' && !$inCart && !$isReserved && !$isBorrowed): ?>
                                             <div class="copy-actions ms-3">
                                                 <button class="btn btn-sm btn-outline-primary" onclick="addToCart(<?php echo $copy['id']; ?>)">
                                                     <i class="fas fa-cart-plus"></i>
@@ -809,7 +848,20 @@ if ($bookId > 0) {
         </div>
     <?php endif; ?>
 
-    <?php include 'inc/footer.php'; ?>
+    <?php 
+    // Include the appropriate footer based on login status
+    if ($isLoggedIn) {
+        include 'inc/footer.php';
+    } else {
+        echo '<footer class="bg-white py-4 mt-auto shadow-sm">
+                <div class="container">
+                    <div class="text-center small">
+                        <span>Copyright &copy; NBS College Library 2024</span>
+                    </div>
+                </div>
+              </footer>';
+    }
+    ?>
     
     <!-- Bootstrap JS Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -817,17 +869,43 @@ if ($bookId > 0) {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     
     <script>
+        function loginPrompt() {
+            Swal.fire({
+                title: 'Login Required',
+                text: 'Please login to borrow or reserve this book',
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonText: 'Login',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = 'index.php';
+                }
+            });
+        }
+        
+        function registerPrompt() {
+            Swal.fire({
+                title: 'Create an Account',
+                text: 'Register to access borrowing and reservation features',
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonText: 'Register',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = 'register.php';
+                }
+            });
+        }
+        
+        <?php if ($isLoggedIn): ?>
         function addToCart(bookId) {
             $.ajax({
                 type: 'POST',
                 url: 'add_to_cart.php',
                 data: {
-                    title: '<?php echo addslashes($book['title']); ?>',
-                    isbn: '<?php echo addslashes($book['ISBN']); ?>',
-                    series: '<?php echo addslashes($book['series']); ?>',
-                    volume: '<?php echo addslashes($book['volume']); ?>',
-                    part: '<?php echo addslashes($book['part']); ?>',
-                    edition: '<?php echo addslashes($book['edition']); ?>'
+                    book_id: bookId
                 },
                 dataType: 'json',
                 success: function(response) {
@@ -874,12 +952,7 @@ if ($bookId > 0) {
                         type: 'POST',
                         url: 'reserve_book.php',
                         data: {
-                            title: '<?php echo addslashes($book['title']); ?>',
-                            isbn: '<?php echo addslashes($book['ISBN']); ?>',
-                            series: '<?php echo addslashes($book['series']); ?>',
-                            volume: '<?php echo addslashes($book['volume']); ?>',
-                            part: '<?php echo addslashes($book['part']); ?>',
-                            edition: '<?php echo addslashes($book['edition']); ?>'
+                            book_id: bookId
                         },
                         dataType: 'json',
                         success: function(response) {
@@ -911,6 +984,7 @@ if ($bookId > 0) {
                 }
             });
         }
+        <?php endif; ?>
     </script>
 </body>
 </html>

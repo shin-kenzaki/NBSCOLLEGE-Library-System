@@ -11,181 +11,142 @@ if (!isset($_SESSION['user_id']) && !isset($_SESSION['id'])) {
 // Get user ID - check both possible session variables
 $userId = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : $_SESSION['id'];
 
-// Get parameters
-$title = isset($_POST['title']) ? $_POST['title'] : '';
-$isbn = isset($_POST['isbn']) ? $_POST['isbn'] : '';
-$series = isset($_POST['series']) ? $_POST['series'] : '';
-$volume = isset($_POST['volume']) ? $_POST['volume'] : '';
-$part = isset($_POST['part']) ? $_POST['part'] : '';
-$edition = isset($_POST['edition']) ? $_POST['edition'] : '';
+// Get book_id parameter
+$bookId = isset($_POST['book_id']) ? intval($_POST['book_id']) : 0;
 
-// Validate if book title is provided
-if (empty($title)) {
-    echo json_encode(array('success' => false, 'message' => 'Invalid book information provided.'));
+// Validate if book_id is provided
+if ($bookId <= 0) {
+    echo json_encode(array('success' => false, 'message' => 'Invalid book ID provided.'));
     exit;
 }
 
-// Format book details for messages
-function formatBookDetails($title, $isbn, $series, $volume, $part, $edition) {
-    $details = [$title];
-    $metaDetails = [];
-    
-    if (!empty($edition)) $metaDetails[] = "Edition: $edition";
-    if (!empty($series)) $metaDetails[] = "Series: $series";
-    if (!empty($volume)) $metaDetails[] = "Volume: $volume";
-    if (!empty($part)) $metaDetails[] = "Part: $part";
-    if (!empty($isbn)) $metaDetails[] = "ISBN: $isbn";
-    
-    if (!empty($metaDetails)) {
-        $details[] = implode(" | ", $metaDetails);
-    }
-    
-    return implode("<br>", $details);
-}
-
-// Build the WHERE clause based on parameters
-$whereClause = "title = ?";
-$queryParams = [$title];
-$types = "s";
-
-if (!empty($isbn)) {
-    $whereClause .= " AND ISBN = ?";
-    $queryParams[] = $isbn;
-    $types .= "s";
-} else {
-    $whereClause .= " AND (ISBN IS NULL OR ISBN = '')";
-}
-
-if (!empty($series)) {
-    $whereClause .= " AND series = ?";
-    $queryParams[] = $series;
-    $types .= "s";
-} else {
-    $whereClause .= " AND (series IS NULL OR series = '')";
-}
-
-if (!empty($volume)) {
-    $whereClause .= " AND volume = ?";
-    $queryParams[] = $volume;
-    $types .= "s";
-} else {
-    $whereClause .= " AND (volume IS NULL OR volume = '')";
-}
-
-if (!empty($part)) {
-    $whereClause .= " AND part = ?";
-    $queryParams[] = $part;
-    $types .= "s";
-} else {
-    $whereClause .= " AND (part IS NULL OR part = '')";
-}
-
-if (!empty($edition)) {
-    $whereClause .= " AND edition = ?";
-    $queryParams[] = $edition;
-    $types .= "s";
-} else {
-    $whereClause .= " AND (edition IS NULL OR edition = '')";
-}
-
-// Check if user already has a reservation for this book
-$reservationCheckQuery = "SELECT r.id FROM reservations r 
-                         JOIN books b ON r.book_id = b.id 
-                         WHERE r.user_id = ? AND b.$whereClause 
-                         AND r.status IN ('Pending', 'Reserved', 'Ready')";
-
-$stmt = $conn->prepare($reservationCheckQuery);
-$bindParams = array_merge([$userId], $queryParams);
-$stmt->bind_param("i" . $types, ...$bindParams);
+// Check for overdue books
+$overdueCheckQuery = "SELECT COUNT(*) AS overdue_count 
+                     FROM borrowings 
+                     WHERE user_id = ? 
+                     AND status = 'Borrowed' 
+                     AND due_date < CURRENT_DATE()";
+$stmt = $conn->prepare($overdueCheckQuery);
+$stmt->bind_param('i', $userId);
 $stmt->execute();
-$reservationResult = $stmt->get_result();
+$overdueResult = $stmt->get_result();
+$overdueCount = $overdueResult->fetch_assoc()['overdue_count'];
 
-if ($reservationResult->num_rows > 0) {
-    $formattedDetails = formatBookDetails($title, $isbn, $series, $volume, $part, $edition);
-    echo json_encode(array('success' => false, 'message' => 'You already have an active reservation for:<br><strong>' . $formattedDetails . '</strong>'));
+if ($overdueCount > 0) {
+    echo json_encode(array(
+        'success' => false, 
+        'message' => "You have $overdueCount overdue book(s). Please return them before making new reservations."
+    ));
     exit;
 }
 
-// Check if user already has borrowed this book
-$borrowingCheckQuery = "SELECT br.id FROM borrowings br 
-                       JOIN books b ON br.book_id = b.id 
-                       WHERE br.user_id = ? AND b.$whereClause 
-                       AND br.status = 'Active'";
-
-$stmt = $conn->prepare($borrowingCheckQuery);
-$bindParams = array_merge([$userId], $queryParams);
-$stmt->bind_param("i" . $types, ...$bindParams);
+// Check if the book exists and is available
+$bookQuery = "SELECT id, title, status FROM books WHERE id = ?";
+$stmt = $conn->prepare($bookQuery);
+$stmt->bind_param("i", $bookId);
 $stmt->execute();
-$borrowingResult = $stmt->get_result();
+$bookResult = $stmt->get_result();
 
-if ($borrowingResult->num_rows > 0) {
-    echo json_encode(array('success' => false, 'message' => 'You already have an active borrowing for: ' . $title));
+if ($bookResult->num_rows == 0) {
+    echo json_encode(array('success' => false, 'message' => 'Sorry, this book does not exist in our database.'));
     exit;
 }
 
-// Check current active borrowings count
+$book = $bookResult->fetch_assoc();
+if ($book['status'] !== 'Available') {
+    echo json_encode(array('success' => false, 'message' => 'Sorry, "' . $book['title'] . '" is currently not available for reservation.'));
+    exit;
+}
+
+// Check if user has reached the maximum limit of active borrowings and reservations
 $activeBorrowingsQuery = "SELECT COUNT(*) as count FROM borrowings 
                          WHERE user_id = ? AND status = 'Active'";
 $stmt = $conn->prepare($activeBorrowingsQuery);
-$stmt->bind_param("i", $userId);
+$stmt->bind_param('i', $userId);
 $stmt->execute();
 $activeBorrowingsResult = $stmt->get_result();
 $activeBorrowings = $activeBorrowingsResult->fetch_assoc()['count'];
 
-// Limit to 3 active borrowings only (not combined with reservations)
-if ($activeBorrowings >= 3) {
-    echo json_encode(array('success' => false, 'message' => 'You have reached the maximum limit of 3 active borrowings.'));
-    exit;
-}
-
-// Find available copy of the book
-$availableBookQuery = "SELECT id FROM books 
-                      WHERE $whereClause AND status = 'Available' 
-                      ORDER BY id ASC LIMIT 1";
-
-$stmt = $conn->prepare($availableBookQuery);
-$stmt->bind_param($types, ...$queryParams);
+// Get active reservations count
+$activeReservationsQuery = "SELECT COUNT(*) as count FROM reservations 
+                          WHERE user_id = ? AND status IN ('Pending', 'Reserved', 'Ready')";
+$stmt = $conn->prepare($activeReservationsQuery);
+$stmt->bind_param('i', $userId);
 $stmt->execute();
-$availableBookResult = $stmt->get_result();
+$activeReservationsResult = $stmt->get_result();
+$activeReservations = $activeReservationsResult->fetch_assoc()['count'];
 
-if ($availableBookResult->num_rows == 0) {
-    $formattedDetails = formatBookDetails($title, $isbn, $series, $volume, $part, $edition);
-    echo json_encode(array('success' => false, 'message' => 'Sorry, this book is not available at the moment:<br><strong>' . $formattedDetails . '</strong>'));
+// Check if adding this item would exceed the limit
+if ($activeBorrowings + $activeReservations + 1 > 3) {
+    $currentTotal = $activeBorrowings + $activeReservations;
+    $remainingSlots = 3 - $currentTotal;
+    
+    if ($remainingSlots <= 0) {
+        echo json_encode(array(
+            'success' => false, 
+            'message' => "You can have a maximum of 3 active items (borrowed or reserved). You currently have $currentTotal active items."
+        ));
+    } else {
+        echo json_encode(array(
+            'success' => false, 
+            'message' => "You can have a maximum of 3 active items (borrowed or reserved). You currently have $currentTotal active items, so you can only checkout $remainingSlots more items."
+        ));
+    }
     exit;
 }
 
-$bookId = $availableBookResult->fetch_assoc()['id'];
-$currentTime = date('Y-m-d H:i:s');
+// Check if book is already reserved by the user
+$checkReservationQuery = "SELECT id FROM reservations WHERE user_id = ? AND book_id = ? AND status IN ('Pending', 'Reserved', 'Ready')";
+$stmt = $conn->prepare($checkReservationQuery);
+$stmt->bind_param("ii", $userId, $bookId);
+$stmt->execute();
+$reservationResult = $stmt->get_result();
 
-// Start transaction for consistency
+if ($reservationResult->num_rows > 0) {
+    echo json_encode(array('success' => false, 'message' => 'You have already reserved this book.'));
+    exit;
+}
+
+// Check if book is already borrowed by the user
+$checkBorrowingQuery = "SELECT id FROM borrowings WHERE user_id = ? AND book_id = ? AND status = 'Borrowed'";
+$stmt = $conn->prepare($checkBorrowingQuery);
+$stmt->bind_param("ii", $userId, $bookId);
+$stmt->execute();
+$borrowingResult = $stmt->get_result();
+
+if ($borrowingResult->num_rows > 0) {
+    echo json_encode(array('success' => false, 'message' => 'You already have this book borrowed.'));
+    exit;
+}
+
+// Start transaction
 $conn->begin_transaction();
 
 try {
-    // Create reservation with status "Pending" instead of "Reserved"
-    $createReservationQuery = "INSERT INTO reservations 
+    $currentTime = date('Y-m-d H:i:s');
+    
+    // Create reservation
+    $insertReservationQuery = "INSERT INTO reservations 
                              (user_id, book_id, reserve_date, status) 
                              VALUES (?, ?, ?, 'Pending')";
-    $stmt = $conn->prepare($createReservationQuery);
-    $stmt->bind_param("iis", $userId, $bookId, $currentTime);
+    $stmt = $conn->prepare($insertReservationQuery);
+    $stmt->bind_param('iis', $userId, $bookId, $currentTime);
     $stmt->execute();
     
-    // Remove book status update - we no longer update the book's status when borrowing
-    /* 
-    // This code has been removed to maintain book status
-    $updateBookQuery = "UPDATE books SET status = 'Reserved' WHERE id = ?";
-    $stmt = $conn->prepare($updateBookQuery);
-    $stmt->bind_param("i", $bookId);
-    $stmt->execute();
-    */
-    
-    // Commit the transaction
+    // Commit transaction
     $conn->commit();
     
-    $formattedDetails = formatBookDetails($title, $isbn, $series, $volume, $part, $edition);
-    echo json_encode(array('success' => true, 'message' => 'Book reserved successfully:<br><strong>' . $formattedDetails . '</strong>'));
+    echo json_encode(array(
+        'success' => true, 
+        'message' => 'Book "' . $book['title'] . '" has been reserved successfully. You will be notified when it\'s ready for pickup.'
+    ));
+    
 } catch (Exception $e) {
-    // Rollback in case of error
+    // Roll back transaction on error
     $conn->rollback();
-    echo json_encode(array('success' => false, 'message' => 'Error creating reservation. Please try again.'));
+    echo json_encode(array(
+        'success' => false, 
+        'message' => 'Error during reservation: ' . $e->getMessage()
+    ));
 }
 ?>

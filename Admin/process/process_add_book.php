@@ -134,11 +134,6 @@ if (isset($_POST['submit'])) {
                     $copy_number = max(1, $copy_number);
                     
                     // Format total_pages by combining prefix pages and main pages
-                    $prefix_pages = isset($_POST['prefix_pages']) ? $_POST['prefix_pages'] : '';
-                    $main_pages = isset($_POST['main_pages']) ? $_POST['main_pages'] : '';
-                    $total_pages = $prefix_pages . " " . $main_pages; // Combine prefix and main pages
-
-                    // Replace with this new code:
                     $prefix_pages = isset($_POST['prefix_pages']) ? trim($_POST['prefix_pages']) : '';
                     $main_pages = isset($_POST['main_pages']) ? trim($_POST['main_pages']) : '';
                     $total_pages = trim($prefix_pages . " " . $main_pages); // Combine and trim spaces
@@ -146,10 +141,6 @@ if (isset($_POST['submit'])) {
                     // Remove " pages" or "pages" from the end if present
                     $total_pages = preg_replace('/ ?pages$/i', '', $total_pages);
 
-                    // Remove the following lines as they're no longer needed:
-                    // if (!empty($total_pages) && strpos($total_pages, 'pages') !== 0) {
-                    //     $total_pages = 'pages ' . $total_pages;
-                    // }
                     $supplementary_contents = isset($_POST['supplementary_content']) ? 
                         mysqli_real_escape_string($conn, implode(', ', $_POST['supplementary_content'])) : '';
                     
@@ -170,18 +161,28 @@ if (isset($_POST['submit'])) {
                             $call_number = $formatted_call_number;
                         }
                     }
+
+                    // Format call number with 'c' before the year and proper copy number
+                    $formatted_call_number = '';
+                    if (isset($call_numbers[$current_index])) {
+                        $base_call_number = $call_numbers[$current_index];
+                        $shelf_location = $shelf_locations[$current_index] ?? 'CIR';
+                        $publish_year = isset($_POST['publish_date']) ? $_POST['publish_date'] : date('Y');
+                        
+                        if (!empty($volume)) {
+                            $formatted_call_number = $shelf_location . ' ' . $base_call_number . ' c' . $publish_year . ' vol.' . $volume;
+                            if (!empty($part)) {
+                                $formatted_call_number .= ' pt.' . $part;
+                            }
+                            $formatted_call_number .= ' c.' . $copy_number;
+                        } else {
+                            $formatted_call_number = $shelf_location . ' ' . $base_call_number . ' c' . $publish_year . ' c.' . $copy_number;
+                        }
+                    }
                     
                     // Get shelf location for this copy
                     $shelf_location = isset($shelf_locations[$current_index]) ? 
                         mysqli_real_escape_string($conn, $shelf_locations[$current_index]) : 'CIR';
-                    
-                    // Get copy number for this copy
-                    $copy_number = isset($copy_numbers[$current_index]) && !empty($copy_numbers[$current_index]) 
-                        ? intval($copy_numbers[$current_index]) 
-                        : ($current_index + 1);
-                    
-                    // Ensure copy number is at least 1
-                    $copy_number = max(1, $copy_number);
                     
                     $status = mysqli_real_escape_string($conn, $_POST['status'] ?? 'Available');
                     $entered_by = intval($_SESSION['admin_id']);
