@@ -11,6 +11,23 @@ if (!isset($_SESSION['user_id']) && !isset($_SESSION['id'])) {
 // Get user ID - check both possible session variables
 $userId = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : $_SESSION['id'];
 
+// Get user type to determine borrowing limit
+$userTypeQuery = "SELECT usertype FROM users WHERE id = ?";
+$stmt = $conn->prepare($userTypeQuery);
+$stmt->bind_param('i', $userId);
+$stmt->execute();
+$userTypeResult = $stmt->get_result();
+$userType = 'Student'; // Default to student (3 limit)
+$maxItems = 3; // Default limit
+
+if ($userTypeResult->num_rows > 0) {
+    $userType = $userTypeResult->fetch_assoc()['usertype'];
+    // If user is faculty or staff, set limit to 5
+    if (strtolower($userType) == 'faculty' || strtolower($userType) == 'staff') {
+        $maxItems = 5;
+    }
+}
+
 // Get book_id parameter
 $bookId = isset($_POST['book_id']) ? intval($_POST['book_id']) : 0;
 
@@ -76,20 +93,20 @@ $stmt->execute();
 $activeReservationsResult = $stmt->get_result();
 $activeReservations = $activeReservationsResult->fetch_assoc()['count'];
 
-// Check if adding this item would exceed the limit
-if ($activeBorrowings + $activeReservations + 1 > 3) {
+// Check if adding this item would exceed the limit (based on user type)
+if ($activeBorrowings + $activeReservations + 1 > $maxItems) {
     $currentTotal = $activeBorrowings + $activeReservations;
-    $remainingSlots = 3 - $currentTotal;
+    $remainingSlots = $maxItems - $currentTotal;
     
     if ($remainingSlots <= 0) {
         echo json_encode(array(
             'success' => false, 
-            'message' => "You can have a maximum of 3 active items (borrowed or reserved). You currently have $currentTotal active items."
+            'message' => "As a $userType, you can have a maximum of $maxItems active items (borrowed or reserved). You currently have $currentTotal active items."
         ));
     } else {
         echo json_encode(array(
             'success' => false, 
-            'message' => "You can have a maximum of 3 active items (borrowed or reserved). You currently have $currentTotal active items, so you can only checkout $remainingSlots more items."
+            'message' => "As a $userType, you can have a maximum of $maxItems active items (borrowed or reserved). You currently have $currentTotal active items, so you can only checkout $remainingSlots more items."
         ));
     }
     exit;

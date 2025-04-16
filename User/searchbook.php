@@ -10,6 +10,9 @@ $searchTerm = isset($_GET['search']) ? $_GET['search'] : '';
 $program = isset($_GET['program']) ? $_GET['program'] : '';
 $category = isset($_GET['category']) ? $_GET['category'] : '';
 
+// Check if this is an AJAX request
+$isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
+
 // Prepare SQL query based on search parameters - modified to group books
 $sql = "SELECT 
     book_counts.id, 
@@ -30,69 +33,62 @@ $sql = "SELECT
     writers.lastname 
 FROM (
     SELECT
-        MIN(id) as id,
-        title,
+        b.id as id,
+        b.title,
         COUNT(*) as total_copies,
-        SUM(CASE WHEN status = 'Available' THEN 1 ELSE 0 END) as available_copies,
-        subject_category,
-        program,
-        ISBN,
-        series,
-        volume,
-        part,
-        edition,
-        front_image,
-        summary
-    FROM books
+        SUM(CASE WHEN b.status = 'Available' THEN 1 ELSE 0 END) as available_copies,
+        b.subject_category,
+        b.program,
+        b.ISBN,
+        b.series,
+        b.volume,
+        b.part,
+        b.edition,
+        b.front_image,
+        b.summary
+    FROM books b
+    LEFT JOIN contributors c ON b.id = c.book_id
+    LEFT JOIN writers w ON c.writer_id = w.id
     WHERE 1=1";
 
 $params = array();
 $types = "";
 
 if (!empty($searchTerm)) {
-    $sql .= " AND (title LIKE ? OR accession LIKE ?)";
+    $sql .= " AND (b.title LIKE ? OR b.accession LIKE ? OR w.firstname LIKE ? OR w.lastname LIKE ?)";
     $searchParam = "%$searchTerm%";
     $params[] = $searchParam;
     $params[] = $searchParam;
-    $types .= "ss";
+    $params[] = $searchParam;
+    $params[] = $searchParam;
+    $types .= "ssss";
 }
 
 if (!empty($program)) {
-    $sql .= " AND program = ?";
+    $sql .= " AND b.program = ?";
     $params[] = $program;
     $types .= "s";
 }
 
 if (!empty($category)) {
-    $sql .= " AND subject_category = ?";
+    $sql .= " AND b.subject_category = ?";
     $params[] = $category;
     $types .= "s";
 }
 
 // Group by the attributes that identify unique books
 $sql .= " GROUP BY 
-        title, 
-        IFNULL(ISBN, ''),
-        IFNULL(series, ''),
-        IFNULL(volume, ''),
-        IFNULL(part, ''),
-        IFNULL(edition, '')
+        b.title, 
+        IFNULL(b.ISBN, ''),
+        IFNULL(b.series, ''),
+        IFNULL(b.volume, ''),
+        IFNULL(b.part, ''),
+        IFNULL(b.edition, '')
 ) book_counts
 LEFT JOIN contributors ON book_counts.id = contributors.book_id 
-LEFT JOIN writers ON contributors.writer_id = writers.id";
-
-// Add author search if not already included
-if (!empty($searchTerm)) {
-    $sql .= " WHERE writers.firstname LIKE ? OR writers.lastname LIKE ?";
-    $searchParam = "%$searchTerm%";
-    $params[] = $searchParam;
-    $params[] = $searchParam;
-    $types .= "ss";
-}
-
-$sql .= " GROUP BY 
-    book_counts.id
-    ORDER BY book_counts.title";
+LEFT JOIN writers ON contributors.writer_id = writers.id
+GROUP BY book_counts.id
+ORDER BY book_counts.title";
 
 // Get all unique programs and categories for filter dropdowns
 $programsQuery = "SELECT DISTINCT program FROM books WHERE program IS NOT NULL AND program != '' ORDER BY program";
@@ -108,6 +104,23 @@ if (!empty($params)) {
 }
 $stmt->execute();
 $searchResults = $stmt->get_result();
+
+// If this is an AJAX request, return JSON results instead of HTML
+if ($isAjax) {
+    $books = [];
+    while ($book = $searchResults->fetch_assoc()) {
+        $books[] = $book;
+    }
+    header('Content-Type: application/json');
+    echo json_encode([
+        'count' => count($books),
+        'books' => $books,
+        'searchTerm' => $searchTerm,
+        'program' => $program,
+        'category' => $category
+    ]);
+    exit;
+}
 ?>
 
 <!DOCTYPE html>
@@ -192,6 +205,7 @@ $searchResults = $stmt->get_result();
             overflow: hidden;
             display: -webkit-box;
             -webkit-line-clamp: 2;
+            line-clamp: 2;
             -webkit-box-orient: vertical;
         }
         
@@ -210,6 +224,7 @@ $searchResults = $stmt->get_result();
             overflow: hidden;
             display: -webkit-box;
             -webkit-line-clamp: 3;
+            line-clamp: 3;
             -webkit-box-orient: vertical;
         }
         
@@ -351,200 +366,193 @@ $searchResults = $stmt->get_result();
               </div>
             </div>';
     }
-    ?>
-
-    <!-- Hero Section -->
-    <div class="hero-section">
-        <div class="container text-center">
-            <h1 class="display-4">Library Catalog</h1>
-            <p class="lead">Search for books in our collection</p>
-        </div>
-    </div>
-
-    <div class="container">
-        <!-- Search Form Container -->
-        <div class="search-container">
-            <form method="GET" action="searchbook.php" class="row g-3">
-                <div class="col-md-12 mb-3">
-                    <div class="input-group">
-                        <span class="input-group-text bg-white border-end-0">
-                            <i class="fas fa-search text-primary"></i>
-                        </span>
-                        <input type="text" class="form-control border-start-0" name="search" value="<?php echo htmlspecialchars($searchTerm); ?>" placeholder="Search by title, accession, or author...">
-                    </div>
-                </div>
-                
-                <div class="col-md-5">
-                    <label for="program" class="filter-label">Program</label>
-                    <select class="form-select" name="program" id="program">
-                        <option value="">All Programs</option>
-                        <?php while ($row = $programsResult->fetch_assoc()): ?>
-                            <option value="<?php echo htmlspecialchars($row['program']); ?>" <?php if ($program === $row['program']) echo 'selected'; ?>>
-                                <?php echo htmlspecialchars($row['program']); ?>
-                            </option>
-                        <?php endwhile; ?>
-                    </select>
-                </div>
-                
-                <div class="col-md-5">
-                    <label for="category" class="filter-label">Category</label>
-                    <select class="form-select" name="category" id="category">
-                        <option value="">All Categories</option>
-                        <?php while ($row = $categoriesResult->fetch_assoc()): ?>
-                            <option value="<?php echo htmlspecialchars($row['subject_category']); ?>" <?php if ($category === $row['subject_category']) echo 'selected'; ?>>
-                                <?php echo htmlspecialchars($row['subject_category']); ?>
-                            </option>
-                        <?php endwhile; ?>
-                    </select>
-                </div>
-                
-                <div class="col-md-2 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="fas fa-filter me-2"></i> Filter
-                    </button>
-                </div>
-            </form>
+    ?><div id="content" class="d-flex flex-column min-vh-100">
+        <!-- Hero Section -->
+        <div class="hero-section">
+            <div class="container text-center">
+                <h1 class="display-4">Library Catalog</h1>
+                <p class="lead">Search for books in our collection</p>
+            </div>
         </div>
 
-        <!-- Search Results -->
-        <div class="search-count">
-            <?php echo $searchResults->num_rows; ?> books found
-            <?php if (!empty($searchTerm) || !empty($program) || !empty($category)): ?>
-                <?php 
-                    $filterText = [];
-                    if (!empty($searchTerm)) $filterText[] = "\"" . htmlspecialchars($searchTerm) . "\"";
-                    if (!empty($program)) $filterText[] = "Program: " . htmlspecialchars($program);
-                    if (!empty($category)) $filterText[] = "Category: " . htmlspecialchars($category);
-                    if (!empty($filterText)) echo " for " . implode(", ", $filterText);
-                ?>
-            <?php endif; ?>
-        </div>
-
-        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4 mb-4">
-            <?php if ($searchResults->num_rows > 0): ?>
-                <?php while ($book = $searchResults->fetch_assoc()): ?>
-                    <div class="col">
-                        <div class="card result-card h-100">
-                            <?php if (!empty($book['front_image'])): ?>
-                                <img src="<?php echo htmlspecialchars($book['front_image']); ?>" class="card-img-top" alt="Book Cover">
-                            <?php else: ?>
-                                <div class="card-img-top d-flex align-items-center justify-content-center">
-                                    <i class="fas fa-book fa-3x text-muted"></i>
-                                </div>
-                            <?php endif; ?>
-                            
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span class="availability <?php echo ($book['available_copies'] > 0) ? 'available' : 'unavailable'; ?>">
-                                        <?php echo ($book['available_copies'] > 0) ? 'Available' : 'Unavailable'; ?>
-                                    </span>
-                                    <span class="badge bg-info text-white d-flex align-items-center justify-content-center">
-                                        <?php echo $book['available_copies']; ?>/<?php echo $book['total_copies']; ?> copies
-                                    </span>
-                                </div>
-                                
-                                <h5 class="card-title"><?php echo htmlspecialchars($book['title']); ?></h5>
-                                
-                                <p class="card-author">
-                                    <i class="fas fa-user-edit me-1"></i>
-                                    <?php 
-                                    if (!empty($book['firstname']) || !empty($book['lastname'])) {
-                                        echo htmlspecialchars($book['firstname'] . ' ' . 
-                                             ($book['middle_init'] ? $book['middle_init'] . '. ' : '') . 
-                                             $book['lastname']);
-                                    } else {
-                                        echo 'Unknown Author';
-                                    }
-                                    ?>
-                                </p>
-                                
-                                <!-- Book Edition Information -->
-                                <div class="book-edition-info mb-2">
-                                    <small class="text-muted">
-                                        <?php
-                                        $editionDetails = [];
-                                        
-                                        if (!empty($book['series'])) {
-                                            $editionDetails[] = '<span><i class="fas fa-bookmark me-1"></i> Series: ' . htmlspecialchars($book['series']) . '</span>';
-                                        }
-                                        
-                                        if (!empty($book['volume'])) {
-                                            $editionDetails[] = '<span><i class="fas fa-layer-group me-1"></i> Volume: ' . htmlspecialchars($book['volume']) . '</span>';
-                                        }
-                                        
-                                        if (!empty($book['part'])) {
-                                            $editionDetails[] = '<span><i class="fas fa-puzzle-piece me-1"></i> Part: ' . htmlspecialchars($book['part']) . '</span>';
-                                        }
-                                        
-                                        if (!empty($book['edition'])) {
-                                            $editionDetails[] = '<span><i class="fas fa-file-alt me-1"></i> Edition: ' . htmlspecialchars($book['edition']) . '</span>';
-                                        }
-                                        
-                                        if (!empty($editionDetails)) {
-                                            echo implode('<br>', $editionDetails);
-                                        }
-                                        ?>
-                                    </small>
-                                </div>
-                                
-                                <?php if (!empty($book['summary'])): ?>
-                                    <p class="card-text">
-                                        <?php echo htmlspecialchars(substr($book['summary'], 0, 120)) . (strlen($book['summary']) > 120 ? '...' : ''); ?>
-                                    </p>
-                                <?php endif; ?>
-                                
-                                <div class="card-details-row">
-                                    <div class="card-details">
-                                        <span>Program</span>
-                                        <span><?php echo htmlspecialchars($book['program'] ?: 'N/A'); ?></span>
-                                    </div>
-                                    <div class="card-details">
-                                        <span>Category</span>
-                                        <span><?php echo htmlspecialchars($book['subject_category'] ?: 'N/A'); ?></span>
-                                    </div>
-                                </div>
-                                
-                                <?php if ($isLoggedIn): ?>
-                                    <!-- For logged in users: Show view details and add to cart buttons -->
-                                    <div class="book-actions">
-                                        <a href="view_book.php?book_id=<?php echo $book['id']; ?>&group=1" 
-                                           class="btn btn-outline-primary">
-                                            <i class="fas fa-eye"></i> View Details
-                                        </a>
-                                        <?php if ($book['available_copies'] > 0): ?>
-                                            <button class="btn btn-outline-success" 
-                                                    onclick="addToCart(<?php echo $book['id']; ?>, '<?php echo htmlspecialchars(addslashes($book['title'])); ?>')">
-                                                <i class="fas fa-cart-plus"></i> Add to Cart
-                                            </button>
-                                        <?php else: ?>
-                                            <button class="btn btn-outline-secondary" disabled>
-                                                <i class="fas fa-clock"></i> Unavailable
-                                            </button>
-                                        <?php endif; ?>
-                                    </div>
-                                <?php else: ?>
-                                    <!-- For guests: Direct link to view details (no more warning) -->
-                                    <div class="book-actions">
-                                        <a href="view_book.php?book_id=<?php echo $book['id']; ?>&group=1" 
-                                           class="btn btn-outline-primary btn-view">
-                                            <i class="fas fa-eye me-1"></i> View Details
-                                        </a>
-                                    </div>
-                                <?php endif; ?>
-                            </div>
+        <div class="container">
+            <!-- Search Form Container -->
+            <div class="search-container">
+                <form method="GET" action="searchbook.php" class="row g-3" id="searchForm">
+                    <div class="col-md-12 mb-3">
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0">
+                                <i class="fas fa-search text-primary"></i>
+                            </span>
+                            <input type="text" class="form-control border-start-0" id="searchInput" name="search" value="<?php echo htmlspecialchars($searchTerm); ?>" placeholder="Search by title, accession, or author...">
                         </div>
                     </div>
-                <?php endwhile; ?>
-            <?php else: ?>
-                <div class="col-12">
-                    <div class="alert alert-info" role="alert">
-                        <i class="fas fa-info-circle me-2"></i> No books found matching your search criteria. Try adjusting your filters or search terms.
+                    
+                    <div class="col-md-6">
+                        <label for="program" class="filter-label">Program</label>
+                        <select class="form-select" name="program" id="program">
+                            <option value="">All Programs</option>
+                            <?php while ($row = $programsResult->fetch_assoc()): ?>
+                                <option value="<?php echo htmlspecialchars($row['program']); ?>" <?php if ($program === $row['program']) echo 'selected'; ?>>
+                                    <?php echo htmlspecialchars($row['program']); ?>
+                                </option>
+                            <?php endwhile; ?>
+                        </select>
                     </div>
-                </div>
-            <?php endif; ?>
+                    
+                    <div class="col-md-6">
+                        <label for="category" class="filter-label">Category</label>
+                        <select class="form-select" name="category" id="category">
+                            <option value="">All Categories</option>
+                            <?php while ($row = $categoriesResult->fetch_assoc()): ?>
+                                <option value="<?php echo htmlspecialchars($row['subject_category']); ?>" <?php if ($category === $row['subject_category']) echo 'selected'; ?>>
+                                    <?php echo htmlspecialchars($row['subject_category']); ?>
+                                </option>
+                            <?php endwhile; ?>
+                        </select>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Search Results -->
+            <div class="search-count" id="resultCount">
+                <?php echo $searchResults->num_rows; ?> books found
+                <?php if (!empty($searchTerm) || !empty($program) || !empty($category)): ?>
+                    <?php 
+                        $filterText = [];
+                        if (!empty($searchTerm)) $filterText[] = "\"" . htmlspecialchars($searchTerm) . "\"";
+                        if (!empty($program)) $filterText[] = "Program: " . htmlspecialchars($program);
+                        if (!empty($category)) $filterText[] = "Category: " . htmlspecialchars($category);
+                        if (!empty($filterText)) echo " for " . implode(", ", $filterText);
+                    ?>
+                <?php endif; ?>
+            </div>
+
+            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4 mb-4" id="searchResults">
+                <?php if ($searchResults->num_rows > 0): ?>
+                    <?php while ($book = $searchResults->fetch_assoc()): ?>
+                        <div class="col">
+                            <div class="card result-card h-100">
+                                <?php if (!empty($book['front_image'])): ?>
+                                    <img src="<?php echo htmlspecialchars($book['front_image']); ?>" class="card-img-top" alt="Book Cover">
+                                <?php else: ?>
+                                    <div class="card-img-top d-flex align-items-center justify-content-center">
+                                        <i class="fas fa-book fa-3x text-muted"></i>
+                                    </div>
+                                <?php endif; ?>
+                                
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="availability <?php echo ($book['available_copies'] > 0) ? 'available' : 'unavailable'; ?>">
+                                            <?php echo ($book['available_copies'] > 0) ? 'Available' : 'Unavailable'; ?>
+                                        </span>
+                                        <span class="badge bg-info text-white d-flex align-items-center justify-content-center">
+                                            <?php echo $book['available_copies']; ?>/<?php echo $book['total_copies']; ?> copies
+                                        </span>
+                                    </div>
+                                    
+                                    <h5 class="card-title"><?php echo htmlspecialchars($book['title']); ?></h5>
+                                    
+                                    <p class="card-author">
+                                        <i class="fas fa-user-edit me-1"></i>
+                                        <?php 
+                                        if (!empty($book['firstname']) || !empty($book['lastname'])) {
+                                            echo htmlspecialchars($book['firstname'] . ' ' . 
+                                                ($book['middle_init'] ? $book['middle_init'] . '. ' : '') . 
+                                                $book['lastname']);
+                                        } else {
+                                            echo 'Unknown Author';
+                                        }
+                                        ?>
+                                    </p>
+                                    
+                                    <!-- Book Edition Information -->
+                                    <div class="book-edition-info mb-2">
+                                        <small class="text-muted">
+                                            <?php
+                                            $editionDetails = [];
+                                            
+                                            if (!empty($book['series'])) {
+                                                $editionDetails[] = '<span><i class="fas fa-bookmark me-1"></i> Series: ' . htmlspecialchars($book['series']) . '</span>';
+                                            }
+                                            
+                                            if (!empty($book['volume'])) {
+                                                $editionDetails[] = '<span><i class="fas fa-layer-group me-1"></i> Volume: ' . htmlspecialchars($book['volume']) . '</span>';
+                                            }
+                                            
+                                            if (!empty($book['part'])) {
+                                                $editionDetails[] = '<span><i class="fas fa-puzzle-piece me-1"></i> Part: ' . htmlspecialchars($book['part']) . '</span>';
+                                            }
+                                            
+                                            if (!empty($book['edition'])) {
+                                                $editionDetails[] = '<span><i class="fas fa-file-alt me-1"></i> Edition: ' . htmlspecialchars($book['edition']) . '</span>';
+                                            }
+                                            
+                                            if (!empty($editionDetails)) {
+                                                echo implode('<br>', $editionDetails);
+                                            }
+                                            ?>
+                                        </small>
+                                    </div>
+                                    
+                                    <?php if (!empty($book['summary'])): ?>
+                                        <p class="card-text">
+                                            <?php echo htmlspecialchars(substr($book['summary'], 0, 120)) . (strlen($book['summary']) > 120 ? '...' : ''); ?>
+                                        </p>
+                                    <?php endif; ?>
+                                    
+                                    <div class="card-details-row">
+                                        <div class="card-details">
+                                            <span>Program</span>
+                                            <span><?php echo htmlspecialchars($book['program'] ?: 'N/A'); ?></span>
+                                        </div>
+                                        <div class="card-details">
+                                            <span>Category</span>
+                                            <span><?php echo htmlspecialchars($book['subject_category'] ?: 'N/A'); ?></span>
+                                        </div>
+                                    </div>
+                                    
+                                    <?php if ($isLoggedIn): ?>
+                                        <!-- For logged in users: Show view details and add to cart buttons -->
+                                        <div class="book-actions">
+                                            <a href="view_book.php?book_id=<?php echo $book['id']; ?>&group=1" 
+                                            class="btn btn-outline-primary">
+                                                <i class="fas fa-eye"></i> View Details
+                                            </a>
+                                            <?php if ($book['available_copies'] > 0): ?>
+                                                <button class="btn btn-outline-success" 
+                                                        onclick="addToCart(<?php echo $book['id']; ?>, '<?php echo htmlspecialchars(addslashes($book['title'])); ?>')">
+                                                    <i class="fas fa-cart-plus"></i> Add to Cart
+                                                </button>
+                                            <?php else: ?>
+                                                <button class="btn btn-outline-secondary" disabled>
+                                                    <i class="fas fa-clock"></i> Unavailable
+                                                </button>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php else: ?>
+                                        <!-- For guests: Direct link to view details (no more warning) -->
+                                        <div class="book-actions">
+                                            <a href="view_book.php?book_id=<?php echo $book['id']; ?>&group=1" 
+                                            class="btn btn-outline-primary btn-view">
+                                                <i class="fas fa-eye me-1"></i> View Details
+                                            </a>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endwhile; ?>
+                <?php else: ?>
+                    <div class="col-12">
+                        <div class="alert alert-info" role="alert">
+                            <i class="fas fa-info-circle me-2"></i> No books found matching your search criteria. Try adjusting your filters or search terms.
+                        </div>
+                    </div>
+                <?php endif; ?>
+            </div>
         </div>
     </div>
-
     <?php 
     // Include the appropriate footer based on login status
     if ($isLoggedIn) {
@@ -578,7 +586,203 @@ $searchResults = $stmt->get_result();
             
             // Auto-submit form when changing select fields
             $('#program, #category').on('change', function() {
-                $(this).closest('form').submit();
+                performSearch();
+            });
+
+            // Debounce function to limit how often a function can run
+            function debounce(func, wait) {
+                let timeout;
+                return function() {
+                    const context = this;
+                    const args = arguments;
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => func.apply(context, args), wait);
+                };
+            }
+
+            // Function to perform AJAX search
+            function performSearch() {
+                const searchTerm = $('#searchInput').val();
+                const program = $('#program').val();
+                const category = $('#category').val();
+                
+                // Show loading spinner or indicator
+                $('#searchResults').html('<div class="col-12 text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>');
+                
+                $.ajax({
+                    url: 'searchbook.php',
+                    type: 'GET',
+                    dataType: 'json',
+                    data: {
+                        search: searchTerm,
+                        program: program,
+                        category: category
+                    },
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    success: function(response) {
+                        // Update the result count
+                        let countText = response.count + ' books found';
+                        
+                        const filterTexts = [];
+                        if (response.searchTerm) filterTexts.push('"' + response.searchTerm + '"');
+                        if (response.program) filterTexts.push('Program: ' + response.program);
+                        if (response.category) filterTexts.push('Category: ' + response.category);
+                        
+                        if (filterTexts.length > 0) {
+                            countText += ' for ' + filterTexts.join(', ');
+                        }
+                        
+                        $('#resultCount').text(countText);
+                        
+                        // Clear the results container
+                        $('#searchResults').empty();
+                        
+                        if (response.books.length > 0) {
+                            // Render each book
+                            $.each(response.books, function(index, book) {
+                                let bookHtml = `
+                                <div class="col">
+                                    <div class="card result-card h-100">
+                                        ${book.front_image ? 
+                                            `<img src="${book.front_image}" class="card-img-top" alt="Book Cover">` : 
+                                            `<div class="card-img-top d-flex align-items-center justify-content-center">
+                                                <i class="fas fa-book fa-3x text-muted"></i>
+                                            </div>`
+                                        }
+                                        
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <span class="availability ${book.available_copies > 0 ? 'available' : 'unavailable'}">
+                                                    ${book.available_copies > 0 ? 'Available' : 'Unavailable'}
+                                                </span>
+                                                <span class="badge bg-info text-white d-flex align-items-center justify-content-center">
+                                                    ${book.available_copies}/${book.total_copies} copies
+                                                </span>
+                                            </div>
+                                            
+                                            <h5 class="card-title">${book.title}</h5>
+                                            
+                                            <p class="card-author">
+                                                <i class="fas fa-user-edit me-1"></i>
+                                                ${book.firstname || book.lastname ? 
+                                                    `${book.firstname} ${book.middle_init ? book.middle_init + '. ' : ''}${book.lastname}` : 
+                                                    'Unknown Author'
+                                                }
+                                            </p>`;
+                                            
+                                // Book Edition Information
+                                bookHtml += `<div class="book-edition-info mb-2"><small class="text-muted">`;
+                                
+                                let editionDetails = [];
+                                if (book.series) {
+                                    editionDetails.push(`<span><i class="fas fa-bookmark me-1"></i> Series: ${book.series}</span>`);
+                                }
+                                if (book.volume) {
+                                    editionDetails.push(`<span><i class="fas fa-layer-group me-1"></i> Volume: ${book.volume}</span>`);
+                                }
+                                if (book.part) {
+                                    editionDetails.push(`<span><i class="fas fa-puzzle-piece me-1"></i> Part: ${book.part}</span>`);
+                                }
+                                if (book.edition) {
+                                    editionDetails.push(`<span><i class="fas fa-file-alt me-1"></i> Edition: ${book.edition}</span>`);
+                                }
+                                
+                                if (editionDetails.length > 0) {
+                                    bookHtml += editionDetails.join('<br>');
+                                }
+                                
+                                bookHtml += `</small></div>`;
+                                
+                                // Summary if available
+                                if (book.summary) {
+                                    bookHtml += `<p class="card-text">
+                                        ${book.summary.length > 120 ? book.summary.substring(0, 120) + '...' : book.summary}
+                                    </p>`;
+                                }
+                                
+                                bookHtml += `
+                                    <div class="card-details-row">
+                                        <div class="card-details">
+                                            <span>Program</span>
+                                            <span>${book.program || 'N/A'}</span>
+                                        </div>
+                                        <div class="card-details">
+                                            <span>Category</span>
+                                            <span>${book.subject_category || 'N/A'}</span>
+                                        </div>
+                                    </div>`;
+                                    
+                                const isLoggedIn = <?php echo $isLoggedIn ? 'true' : 'false'; ?>;
+                                
+                                if (isLoggedIn) {
+                                    bookHtml += `
+                                    <div class="book-actions">
+                                        <a href="view_book.php?book_id=${book.id}&group=1" class="btn btn-outline-primary">
+                                            <i class="fas fa-eye"></i> View Details
+                                        </a>`;
+                                        
+                                    if (book.available_copies > 0) {
+                                        bookHtml += `
+                                        <button class="btn btn-outline-success" 
+                                                onclick="addToCart(${book.id}, '${book.title.replace(/'/g, "\\'")}')">
+                                            <i class="fas fa-cart-plus"></i> Add to Cart
+                                        </button>`;
+                                    } else {
+                                        bookHtml += `
+                                        <button class="btn btn-outline-secondary" disabled>
+                                            <i class="fas fa-clock"></i> Unavailable
+                                        </button>`;
+                                    }
+                                    
+                                    bookHtml += `</div>`;
+                                } else {
+                                    bookHtml += `
+                                    <div class="book-actions">
+                                        <a href="view_book.php?book_id=${book.id}&group=1" 
+                                           class="btn btn-outline-primary btn-view">
+                                            <i class="fas fa-eye me-1"></i> View Details
+                                        </a>
+                                    </div>`;
+                                }
+                                
+                                bookHtml += `
+                                        </div>
+                                    </div>
+                                </div>`;
+                                
+                                $('#searchResults').append(bookHtml);
+                            });
+                        } else {
+                            // No results found
+                            $('#searchResults').html(`
+                                <div class="col-12">
+                                    <div class="alert alert-info" role="alert">
+                                        <i class="fas fa-info-circle me-2"></i> No books found matching your search criteria. Try adjusting your filters or search terms.
+                                    </div>
+                                </div>
+                            `);
+                        }
+                    },
+                    error: function() {
+                        $('#searchResults').html(`
+                            <div class="col-12">
+                                <div class="alert alert-danger" role="alert">
+                                    <i class="fas fa-exclamation-circle me-2"></i> Error loading search results. Please try again.
+                                </div>
+                            </div>
+                        `);
+                    }
+                });
+            }
+            
+            // Set up debounced search for search input
+            const debouncedSearch = debounce(performSearch, 500);
+            
+            // Event listener for search input
+            $('#searchInput').on('keyup', function() {
+                debouncedSearch();
             });
         });
         

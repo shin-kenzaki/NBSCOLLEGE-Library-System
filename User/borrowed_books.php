@@ -11,6 +11,43 @@ if (!isset($_SESSION['user_id']) && !isset($_SESSION['id']) || !in_array($_SESSI
 // Get user ID - check both possible session variables
 $user_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : $_SESSION['id'];
 
+// Get user type to determine borrowing limit
+$userTypeQuery = "SELECT usertype FROM users WHERE id = ?";
+$stmt = $conn->prepare($userTypeQuery);
+$stmt->bind_param('i', $user_id);
+$stmt->execute();
+$userTypeResult = $stmt->get_result();
+$userType = 'Student'; // Default to student (3 limit)
+$maxItems = 3; // Default limit
+
+if ($userTypeResult->num_rows > 0) {
+    $userType = $userTypeResult->fetch_assoc()['usertype'];
+    // If user is faculty or staff, set limit to 5
+    if (strtolower($userType) == 'faculty' || strtolower($userType) == 'staff') {
+        $maxItems = 5;
+    }
+}
+
+// Get active borrowings and reservations count
+$activeBorrowingsQuery = "SELECT COUNT(*) as count FROM borrowings 
+                         WHERE user_id = ? AND status = 'Active'";
+$stmt = $conn->prepare($activeBorrowingsQuery);
+$stmt->bind_param('i', $user_id);
+$stmt->execute();
+$activeBorrowingsResult = $stmt->get_result();
+$activeBorrowings = $activeBorrowingsResult->fetch_assoc()['count'];
+
+$activeReservationsQuery = "SELECT COUNT(*) as count FROM reservations 
+                          WHERE user_id = ? AND status IN ('Pending', 'Ready', 'Reserved')";
+$stmt = $conn->prepare($activeReservationsQuery);
+$stmt->bind_param('i', $user_id);
+$stmt->execute();
+$activeReservationsResult = $stmt->get_result();
+$activeReservations = $activeReservationsResult->fetch_assoc()['count'];
+
+$currentTotal = $activeBorrowings + $activeReservations;
+$remainingSlots = $maxItems - $currentTotal;
+
 // Updated query to include ISBN, Series, Volume, Part, and Edition
 $query = "SELECT 
     br.id, 
@@ -129,6 +166,22 @@ include 'inc/header.php';
 <!-- Main Content -->
 <div id="content" class="d-flex flex-column min-vh-100">
     <div class="container-fluid">
+        <div class="d-sm-flex align-items-center justify-content-between mb-4">
+            <h1 class="h3 mb-0 text-gray-800">My Borrowings</h1>
+        </div>
+
+        <!-- Borrowing Limit Alert -->
+        <div class="alert alert-info" role="alert">
+            <i class="fas fa-info-circle me-2"></i> 
+            As a <?php echo $userType; ?>, you can borrow or reserve up to <?php echo $maxItems; ?> items at once.
+            You currently have <?php echo $currentTotal; ?> active item(s) (borrowed or reserved).
+            <?php if ($remainingSlots > 0): ?>
+                You can borrow up to <?php echo $remainingSlots; ?> more item(s).
+            <?php else: ?>
+                You cannot borrow any more items until you return some.
+            <?php endif; ?>
+        </div>
+
         <div class="card shadow mb-4">
             <div class="card-header py-3 d-flex justify-content-between align-items-center">
                 <h6 class="m-0 font-weight-bold text-primary">Current Borrowings</h6>

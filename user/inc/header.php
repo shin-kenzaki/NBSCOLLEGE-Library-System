@@ -93,17 +93,17 @@
 
             <!-- Nav Item - Book Reservation -->
             <li class="nav-item">
-                <a class="nav-link" href="book_reservations.php">
+                <a class="nav-link" href="reserved_books.php">
                     <i class="fas fa-fw fa-bookmark"></i>
-                    <span>Book Reservation</span>
+                    <span>Reserved Books</span>
                 </a>
             </li>
 
-            <!-- Nav Item - Book Borrowing -->
+            <!-- Nav Item - Borrowed Books -->
             <li class="nav-item">
-                <a class="nav-link" href="book_borrowing.php">
+                <a class="nav-link" href="borrowed_books.php">
                     <i class="fas fa-fw fa-book"></i>
-                    <span>Book Borrowing</span>
+                    <span>Borrowed Books</span>
                 </a>
             </li>
 
