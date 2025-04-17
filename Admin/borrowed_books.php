@@ -231,7 +231,7 @@ while ($row = $overdueEmailResult->fetch_assoc()) {
 
         if (count($bookTitles) == 1) {
             $bookTitle = htmlspecialchars($bookTitles[0]);
-            $mail->Subject = "Overdue Book Notification - $dueDate";
+            $mail->Subject = "Overdue Book Reminder - $dueDate";
             $mail->Body = "
                 Dear $borrowerName,<br><br>
                 The book you borrowed, <b>$bookTitle</b>, is overdue as of <b>$dueDate</b>.<br>
@@ -246,7 +246,7 @@ while ($row = $overdueEmailResult->fetch_assoc()) {
             }
             $bookList .= "</ul>";
 
-            $mail->Subject = "Overdue Book Notification - $dueDate";
+            $mail->Subject = "Overdue Book Reminder - $dueDate";
             $mail->Body = "
                 Dear $borrowerName,<br><br>
                 The following books you borrowed are overdue as of <b>$dueDate</b>:<br>
@@ -366,12 +366,12 @@ if (isset($_SESSION['emails_sent']) && $_SESSION['emails_sent']) {
     #dataTable.table-striped tbody tr:hover {
         background-color: rgba(0, 123, 255, 0.05);
     }
-    
+
     /* Add selected row styles */
     #dataTable tbody tr.selected {
         background-color: rgba(0, 123, 255, 0.1) !important;
     }
-    
+
     /* Ensure selected rows override striped styles */
     #dataTable.table-striped tbody tr.selected:nth-of-type(odd),
     #dataTable.table-striped tbody tr.selected:nth-of-type(even) {
@@ -1185,12 +1185,12 @@ if (isset($_SESSION['emails_sent']) && $_SESSION['emails_sent']) {
                     const results = result.value;
                     const successful = results.filter(r => r.success).length;
                     const failed = results.filter(r => !r.success).length;
-                    
+
                     let message = `Successfully returned ${successful} books.`;
                     if (failed > 0) {
                         message += ` Failed to return ${failed} books.`;
                     }
-                    
+
                     Swal.fire({
                         title: 'Process Complete',
                         text: message,
@@ -1295,7 +1295,7 @@ if (isset($_SESSION['emails_sent']) && $_SESSION['emails_sent']) {
                         }
                     }
                 });
-                
+
                 // Update the button states
                 const totalChecked = $('.borrow-checkbox:checked').length;
                 $('#selectedCount, #selectedCountDueDate').text(totalChecked);
@@ -1309,7 +1309,7 @@ if (isset($_SESSION['emails_sent']) && $_SESSION['emails_sent']) {
                 } else {
                     $row.removeClass('selected');
                 }
-                
+
                 const totalEligible = $('.borrow-checkbox').filter(function() {
                     const status = $(this).closest('tr').find('td:eq(8) span').text().trim();
                     return status === 'Active' || status === 'Overdue';
@@ -1344,7 +1344,7 @@ if (isset($_SESSION['emails_sent']) && $_SESSION['emails_sent']) {
             // Find the checkbox within this row and toggle it
             var checkbox = $(this).find('.borrow-checkbox');
             checkbox.prop('checked', !checkbox.prop('checked')).trigger('change');
-            
+
             // Update row selection visualization
             if (checkbox.prop('checked')) {
                 $(this).addClass('selected');
@@ -1372,7 +1372,7 @@ if (isset($_SESSION['emails_sent']) && $_SESSION['emails_sent']) {
     function updateRowSelectionState() {
         // First, remove the selected class from all rows
         $('#dataTable tbody tr').removeClass('selected');
-        
+
         // Then add it to rows with checked checkboxes
         $('#dataTable tbody tr').each(function() {
             const checkbox = $(this).find('.borrow-checkbox');
@@ -1380,7 +1380,7 @@ if (isset($_SESSION['emails_sent']) && $_SESSION['emails_sent']) {
                 $(this).addClass('selected');
             }
         });
-        
+
         // Update button states based on selection count
         const count = $('.borrow-checkbox:checked').length;
         $('#selectedCount, #selectedCountDueDate').text(count);
