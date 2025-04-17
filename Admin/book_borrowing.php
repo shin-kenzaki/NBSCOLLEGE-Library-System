@@ -146,28 +146,77 @@ if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Lib
                                     </div>
                                     <div class="mb-3">
                                         <label for="book_id" class="form-label">
-                                            <i class="fas fa-books mr-2"></i>Select Books
+                                            <i class="fas fa-book mr-2"></i>Select Book
                                         </label>
-                                        <select class="form-control" id="book_id" name="book_id[]" multiple required>
-                                            <option value="" disabled selected>Choose a book...</option>
-                                            <?php
-                                            $books_query = "SELECT id, title, accession, shelf_location FROM books WHERE status = 'Available'";
-                                            $books_result = $conn->query($books_query);
-                                            while($book = $books_result->fetch_assoc()): ?>
-                                                <option value="<?php echo $book['id']; ?>">
-                                                    <?php echo htmlspecialchars($book['accession'] . ' (' . $book['shelf_location'] . ') - ' . $book['title']); ?>
-                                                </option>
-                                            <?php endwhile; ?>
-                                        </select>
-                                        <small class="text-muted">
-                                            <i class="fas fa-info-circle mr-1"></i>
-                                            Hold Ctrl/Cmd to select multiple books
-                                        </small>
+                                        <div class="input-group">
+                                            <select class="form-control" id="book_id">
+                                                <option value="" disabled selected>Choose a book...</option>
+                                                <?php
+                                                // Enhanced query to fetch additional book details
+                                                $books_query = "SELECT b.id, b.title, b.accession, b.shelf_location, 
+                                                                b.series, b.volume, b.part, b.edition, b.copy_number, 
+                                                                b.content_type, b.media_type, b.call_number, 
+                                                                GROUP_CONCAT(DISTINCT CONCAT(w.firstname, ' ', w.middle_init, ' ', w.lastname) SEPARATOR ', ') AS authors,
+                                                                GROUP_CONCAT(DISTINCT p.publisher SEPARATOR ', ') AS publishers,
+                                                                MAX(pub.publish_date) AS publish_year
+                                                                FROM books b
+                                                                LEFT JOIN contributors c ON b.id = c.book_id
+                                                                LEFT JOIN writers w ON c.writer_id = w.id
+                                                                LEFT JOIN publications pub ON b.id = pub.book_id
+                                                                LEFT JOIN publishers p ON pub.publisher_id = p.id
+                                                                WHERE b.status = 'Available'
+                                                                GROUP BY b.id, b.title, b.accession, b.shelf_location
+                                                                ORDER BY b.accession";
+                                                $books_result = $conn->query($books_query);
+                                                while($book = $books_result->fetch_assoc()): 
+                                                    // Prepare book details with enhanced information for display
+                                                    $bookDisplay = $book['accession'] . ' (' . $book['shelf_location'] . ') - ' . $book['title'];
+                                                    
+                                                    // Add additional details like series, volume, part to the display text
+                                                    $additionalDetails = [];
+                                                    if (!empty($book['series'])) $additionalDetails[] = "Series: " . $book['series'];
+                                                    if (!empty($book['volume'])) $additionalDetails[] = "Vol. " . $book['volume'];
+                                                    if (!empty($book['part'])) $additionalDetails[] = "Pt. " . $book['part'];
+                                                    if (!empty($book['edition'])) $additionalDetails[] = $book['edition'] . " Ed.";
+                                                    if (!empty($book['copy_number'])) $additionalDetails[] = "Copy " . $book['copy_number'];
+                                                    
+                                                    // Add the additional details to display text if available
+                                                    if (!empty($additionalDetails)) {
+                                                        $bookDisplay .= ' [' . implode(' | ', $additionalDetails) . ']';
+                                                    }
+                                                ?>
+                                                    <option value="<?php echo $book['id']; ?>"
+                                                            data-accession="<?php echo $book['accession']; ?>"
+                                                            data-title="<?php echo htmlspecialchars($book['title']); ?>"
+                                                            data-location="<?php echo $book['shelf_location']; ?>"
+                                                            data-series="<?php echo htmlspecialchars($book['series'] ?? ''); ?>"
+                                                            data-volume="<?php echo htmlspecialchars($book['volume'] ?? ''); ?>"
+                                                            data-part="<?php echo htmlspecialchars($book['part'] ?? ''); ?>"
+                                                            data-edition="<?php echo htmlspecialchars($book['edition'] ?? ''); ?>"
+                                                            data-copy="<?php echo htmlspecialchars($book['copy_number'] ?? ''); ?>"
+                                                            data-call-number="<?php echo htmlspecialchars($book['call_number'] ?? ''); ?>"
+                                                            data-content-type="<?php echo htmlspecialchars($book['content_type'] ?? ''); ?>"
+                                                            data-media-type="<?php echo htmlspecialchars($book['media_type'] ?? ''); ?>"
+                                                            data-authors="<?php echo htmlspecialchars($book['authors'] ?? ''); ?>"
+                                                            data-publishers="<?php echo htmlspecialchars($book['publishers'] ?? ''); ?>"
+                                                            data-year="<?php echo htmlspecialchars($book['publish_year'] ?? ''); ?>">
+                                                        <?php echo htmlspecialchars($bookDisplay); ?>
+                                                    </option>
+                                                <?php endwhile; ?>
+                                            </select>
+                                            <div class="input-group-append">
+                                                <button type="button" id="addBookBtn" class="btn btn-success">
+                                                    <i class="fas fa-plus"></i> Add
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <!-- Hidden input to store selected book IDs -->
+                                        <div id="selectedBooksInputs"></div>
                                     </div>
                                     <!-- Selected Books Preview -->
                                     <div class="mt-3">
-                                        <h6 class="text-muted mb-2">Selected Books</h6>
-                                        <div id="selectedBooksPreview" class="border rounded p-2 min-height-100">
+                                        <h6 class="text-muted mb-2">Selected Books <span class="badge badge-info" id="bookCount">0</span></h6>
+                                        <div id="selectedBooksPreview" class="border rounded p-2" style="min-height: 150px; max-height: 300px; overflow-y: auto;">
                                             <div class="text-muted text-center" id="noBooksSelected">
                                                 No books selected
                                             </div>
@@ -194,10 +243,20 @@ $(document).ready(function() {
     // Focus on book search by default
     $('#bookSearch').focus();
 
+    // To store selected books
+    let selectedBooks = [];
+
     // Initialize barcode scanner handling
     let lastChar = Date.now();
     let barcodeString = '';
     const delay = 50;
+
+    // Prevent form submission on Enter key press
+    $(document).on('keydown', function(e) {
+        if (e.which === 13 && !$(e.target).is('textarea')) {
+            e.preventDefault();
+        }
+    });
 
     $(document).on('keypress', function(e) {
         const currentTime = Date.now();
@@ -241,7 +300,24 @@ $(document).ready(function() {
                     try {
                         const res = JSON.parse(response);
                         if (res.status === 'success') {
-                            $('#book_id').val(res.book.id);
+                            // Add the book to our selection with all available details
+                            addBookToSelection({
+                                id: res.book.id,
+                                title: res.book.title,
+                                accession: res.book.accession,
+                                location: res.book.shelf_location,
+                                series: res.book.series,
+                                volume: res.book.volume,
+                                part: res.book.part,
+                                edition: res.book.edition,
+                                copy: res.book.copy_number,
+                                callNumber: res.book.call_number,
+                                contentType: res.book.content_type,
+                                mediaType: res.book.media_type,
+                                authors: res.book.authors,
+                                publishers: res.book.publishers,
+                                year: res.book.publish_year
+                            });
                             
                             Swal.fire({
                                 title: 'Book Found',
@@ -257,7 +333,6 @@ $(document).ready(function() {
                                 icon: 'error'
                             });
                             $('#bookSearch').val('');
-                            $('#book_id').val('');
                         }
                     } catch (e) {
                         console.error(e);
@@ -281,12 +356,185 @@ $(document).ready(function() {
         }
     });
 
+    // Add Book button click handler
+    $('#addBookBtn').on('click', function() {
+        const bookSelect = $('#book_id');
+        const selectedOption = bookSelect.find('option:selected');
+        
+        if (bookSelect.val()) {
+            const bookData = {
+                id: bookSelect.val(),
+                title: selectedOption.data('title'),
+                accession: selectedOption.data('accession'),
+                location: selectedOption.data('location'),
+                // Add additional book details
+                series: selectedOption.data('series'),
+                volume: selectedOption.data('volume'),
+                part: selectedOption.data('part'),
+                edition: selectedOption.data('edition'),
+                copy: selectedOption.data('copy'),
+                callNumber: selectedOption.data('call-number'),
+                contentType: selectedOption.data('content-type'),
+                mediaType: selectedOption.data('media-type'),
+                authors: selectedOption.data('authors'),
+                publishers: selectedOption.data('publishers'),
+                year: selectedOption.data('year')
+            };
+            
+            addBookToSelection(bookData);
+            
+            // Reset the dropdown
+            bookSelect.val('');
+        } else {
+            Swal.fire({
+                title: 'No Book Selected',
+                text: 'Please select a book to add',
+                icon: 'warning'
+            });
+        }
+    });
+
+    // Function to add a book to the selection
+    function addBookToSelection(bookData) {
+        // Check if book is already in the selection
+        if (selectedBooks.some(book => book.id === bookData.id)) {
+            Swal.fire({
+                title: 'Already Added',
+                text: 'This book is already in your selection',
+                icon: 'info',
+                timer: 1500,
+                showConfirmButton: false
+            });
+            return;
+        }
+        
+        // Check borrowing limits for students
+        const userType = $('#user_id option:selected').data('usertype');
+        if (userType === 'Student' && selectedBooks.length >= 3) {
+            Swal.fire({
+                title: 'Limit Exceeded',
+                text: 'Students can only borrow up to 3 books at a time',
+                icon: 'warning'
+            });
+            return;
+        }
+        
+        // Add to our collection
+        selectedBooks.push(bookData);
+        
+        // Update the UI
+        updateSelectedBooksUI();
+    }
+
+    // Function to remove a book from selection
+    function removeBookFromSelection(bookId) {
+        selectedBooks = selectedBooks.filter(book => book.id !== bookId);
+        updateSelectedBooksUI();
+    }
+
+    // Update the UI to reflect the current selection
+    function updateSelectedBooksUI() {
+        const previewContainer = $('#selectedBooksPreview');
+        const noBooks = $('#noBooksSelected');
+        const inputsContainer = $('#selectedBooksInputs');
+        
+        // Update book count
+        $('#bookCount').text(selectedBooks.length);
+        
+        // Clear existing content
+        previewContainer.find('.book-item').remove();
+        inputsContainer.empty();
+        
+        if (selectedBooks.length > 0) {
+            noBooks.hide();
+            
+            // Add each book to the preview
+            selectedBooks.forEach((book, index) => {
+                // Construct detailed description
+                let detailsHtml = '';
+                if (book.authors) detailsHtml += `<div><strong>Author(s):</strong> ${book.authors}</div>`;
+                
+                let identifiers = [];
+                if (book.series) identifiers.push(`<span class="text-primary">Series: ${book.series}</span>`);
+                if (book.volume) identifiers.push(`<span class="text-primary">Vol. ${book.volume}</span>`);
+                if (book.part) identifiers.push(`<span class="text-primary">Pt. ${book.part}</span>`);
+                if (book.edition) identifiers.push(`<span class="text-primary">${book.edition} Ed.</span>`);
+                if (book.copy) identifiers.push(`<span class="text-primary">Copy ${book.copy}</span>`);
+                
+                if (identifiers.length > 0) {
+                    detailsHtml += `<div class="small mt-1">${identifiers.join(' | ')}</div>`;
+                }
+                
+                let publishInfo = [];
+                if (book.publishers) publishInfo.push(book.publishers);
+                if (book.year) publishInfo.push(book.year);
+                
+                if (publishInfo.length > 0) {
+                    detailsHtml += `<div class="small text-muted">${publishInfo.join(', ')}</div>`;
+                }
+                
+                if (book.callNumber) {
+                    detailsHtml += `<div class="small"><strong>Call Number:</strong> ${book.callNumber}</div>`;
+                }
+                
+                let mediaInfo = [];
+                if (book.contentType) mediaInfo.push(book.contentType);
+                if (book.mediaType) mediaInfo.push(book.mediaType);
+                
+                if (mediaInfo.length > 0) {
+                    detailsHtml += `<div class="small text-muted">${mediaInfo.join(' | ')}</div>`;
+                }
+                
+                const bookElement = $(`
+                    <div class="book-item card mb-2">
+                        <div class="card-header py-2 px-3 bg-light">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong class="text-primary">ACC# ${book.accession}</strong>
+                                    <span class="badge badge-${getLocationBadgeClass(book.location)} ml-2">${book.location}</span>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-danger remove-book" data-id="${book.id}">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body py-2 px-3">
+                            <h6 class="mb-1">${book.title}</h6>
+                            ${detailsHtml}
+                        </div>
+                    </div>
+                `);
+                
+                previewContainer.append(bookElement);
+                
+                // Add hidden input for form submission
+                inputsContainer.append(`<input type="hidden" name="book_id[]" value="${book.id}">`);
+            });
+        } else {
+            noBooks.show();
+        }
+    }
+    
+    // Helper function to get badge class based on location
+    function getLocationBadgeClass(location) {
+        switch(location) {
+            case 'REF': return 'danger';
+            case 'RES': return 'warning';
+            case 'TR': return 'info';
+            case 'CIR': return 'success';
+            default: return 'secondary';
+        }
+    }
+
+    // Handle removal of selected books
+    $(document).on('click', '.remove-book', function() {
+        const bookId = $(this).data('id');
+        removeBookFromSelection(bookId);
+    });
+
     // Filter book dropdown based on search input
     $('#bookSearch').on('input', function() {
         const searchTerm = $(this).val().toLowerCase();
-        
-        // Store currently selected values
-        const selectedValues = $('#book_id').val() || [];
         
         // Reset and hide all options first
         $('#book_id option:not(:first)').hide();
@@ -298,68 +546,14 @@ $(document).ready(function() {
             }
         });
 
-        // Re-select previously selected values
-        $('#book_id').val(selectedValues);
+        // Auto-select if exact match found
+        const exactMatch = $('#book_id option').filter(function() {
+            return $(this).text().toLowerCase().startsWith(searchTerm);
+        }).first();
 
-        // Auto-select if exact match found (only if no books are currently selected)
-        if (selectedValues.length === 0) {
-            const exactMatch = $('#book_id option').filter(function() {
-                return $(this).text().toLowerCase().startsWith(searchTerm);
-            }).first();
-
-            if (exactMatch.length) {
-                $('#book_id').val([exactMatch.val()]);
-                updateSelectedBooksPreview();
-            }
+        if (exactMatch.length) {
+            $('#book_id').val(exactMatch.val());
         }
-    });
-
-    // Function to update the preview section
-    function updateSelectedBooksPreview() {
-        const selectedOptions = $('#book_id option:selected');
-        const previewList = $('#selectedBooksPreview');
-        previewList.empty();
-        
-        selectedOptions.each(function() {
-            const book = $(this).text();
-            previewList.append(`
-                <div class="badge bg-secondary p-2 m-1">
-                    <span class="text-white">${book}</span>
-                    <i class="fas fa-times ml-2 remove-book" style="cursor:pointer" data-value="${book}"></i>
-                </div>
-            `);
-        });
-    }
-
-    // Update preview when dropdown selection changes
-    $('#book_id').on('change', function() {
-        const selectedCount = $(this).val() ? $(this).val().length : 0;
-        const userType = $('#user_id option:selected').data('usertype');
-        
-        // Check book limit for students
-        if (userType === 'Student' && selectedCount > 3) {
-            Swal.fire({
-                title: 'Limit Exceeded',
-                text: 'Students can only borrow up to 3 books at a time',
-                icon: 'warning'
-            });
-            // Reset selection
-            $(this).val($(this).val().slice(0, 3));
-        }
-        
-        // Update preview after validation
-        updateSelectedBooksPreview();
-    });
-
-    // Handle removal of selected books
-    $(document).on('click', '.remove-book', function() {
-        const bookText = $(this).data('value');
-        const bookOption = $('#book_id option').filter(function() {
-            return $(this).text().trim() === bookText;
-        });
-        
-        bookOption.prop('selected', false);
-        updateSelectedBooksPreview();
     });
 
     // Filter user dropdown based on search input
@@ -391,29 +585,7 @@ $(document).ready(function() {
         }
     });
 
-    // Update text inputs when dropdowns change
-    $('#book_id').on('change', function() {
-        const selectedOptions = $(this).find('option:selected');
-        const selectedBooks = selectedOptions.map(function() {
-            return $(this).text();
-        }).get();
-
-        // Update the book search input with the first selected book's accession number
-        if (selectedBooks.length > 0) {
-            const firstSelectedBook = selectedBooks[0].split(' - ')[0];
-            $('#bookSearch').val(firstSelectedBook);
-        } else {
-            $('#bookSearch').val('');
-        }
-
-        // Update the preview section
-        const previewList = $('#selectedBooksPreview');
-        previewList.empty();
-        selectedBooks.forEach(function(book) {
-            previewList.append('<span class="badge bg-secondary mr-1 text-white">' + book + ' <i class="fas fa-times remove-book" data-value="' + book + '"></i></span>');
-        });
-    });
-
+    // Update user search input when dropdown changes
     $('#user_id').on('change', function() {
         const selectedOption = $(this).find('option:selected');
         const schoolId = selectedOption.data('school-id');
@@ -424,24 +596,31 @@ $(document).ready(function() {
     $('#borrowingForm').on('submit', function(e) {
         e.preventDefault();
         
-        const selectedBooks = $('#book_id option:selected').map(function() {
-            return $(this).text();
-        }).get().join(', ');
-        const selectedBorrower = $('#user_id option:selected').text();
-
-        if (!$('#book_id').val() || !$('#user_id').val()) {
+        if (!$('#user_id').val()) {
             Swal.fire({
                 title: 'Error!',
-                text: 'Please select both a book and a borrower',
+                text: 'Please select a borrower',
+                icon: 'error'
+            });
+            return;
+        }
+        
+        if (selectedBooks.length === 0) {
+            Swal.fire({
+                title: 'Error!',
+                text: 'Please add at least one book',
                 icon: 'error'
             });
             return;
         }
 
+        const selectedBorrower = $('#user_id option:selected').text();
+        const booksText = selectedBooks.map(book => `${book.accession} - ${book.title}`).join('<br>');
+        
         Swal.fire({
             title: 'Confirm Borrowing',
-            html: `Are you sure you want to lend:<br>
-                  <b>${selectedBooks}</b><br>
+            html: `Are you sure you want to lend:<br><br>
+                  <b>${booksText}</b><br><br>
                   to<br>
                   <b>${selectedBorrower}</b>?`,
             icon: 'question',
@@ -489,9 +668,10 @@ $(document).ready(function() {
                                         window.location.href = 'borrowed_books.php';
                                     } else {
                                         // Stay on the current page but reset the form
-                                        $('#book_id').val('');
                                         $('#bookSearch').val('');
-                                        updateSelectedBooksPreview();
+                                        $('#book_id').val('');
+                                        selectedBooks = [];
+                                        updateSelectedBooksUI();
                                     }
                                 });
                             } else {
@@ -522,6 +702,11 @@ $(document).ready(function() {
                 });
             }
         });
+    });
+
+    // Add explicit button click handler for the submit button
+    $('button[type="submit"]').on('click', function() {
+        $('#borrowingForm').submit();
     });
 });
 </script>
