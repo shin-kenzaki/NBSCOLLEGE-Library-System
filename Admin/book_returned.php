@@ -23,21 +23,21 @@ $conn->begin_transaction();
 
 try {
     // Get borrowing information
-    $getBorrowingQuery = "SELECT b.id as borrow_id, b.user_id, bk.title, bk.shelf_location, b.due_date 
-                        FROM borrowings b 
-                        JOIN books bk ON b.book_id = bk.id 
-                        WHERE b.book_id = ? AND (b.status = 'Active' OR b.status = 'Overdue') 
-                        AND b.return_date IS NULL 
+    $getBorrowingQuery = "SELECT b.id as borrow_id, b.user_id, bk.title, bk.shelf_location, b.due_date
+                        FROM borrowings b
+                        JOIN books bk ON b.book_id = bk.id
+                        WHERE b.book_id = ? AND (b.status = 'Active' OR b.status = 'Overdue')
+                        AND b.return_date IS NULL
                         LIMIT 1";
     $stmt = $conn->prepare($getBorrowingQuery);
     $stmt->bind_param("i", $bookId);
     $stmt->execute();
     $result = $stmt->get_result();
-    
+
     if ($result->num_rows === 0) {
         throw new Exception("No active borrowing found for this book");
     }
-    
+
     $borrowing = $result->fetch_assoc();
     $borrowId = $borrowing['borrow_id'];
     $userId = $borrowing['user_id'];
@@ -56,32 +56,32 @@ try {
         }
 
         // Insert fine into fines table
-        $insertFineQuery = "INSERT INTO fines (borrowing_id, type, amount, status, date) 
-                            VALUES (?, 'Overdue', ?, 'Unpaid', ?)";
+        $insertFineQuery = "INSERT INTO fines (borrowing_id, type, amount, status, date, reminder_sent)
+                            VALUES (?, 'Overdue', ?, 'Unpaid', ?, 0)";
         $stmt = $conn->prepare($insertFineQuery);
         $stmt->bind_param("ids", $borrowId, $fineAmount, $currentDate);
         $stmt->execute();
     }
 
     // Update borrowing record
-    $updateBorrowingQuery = "UPDATE borrowings 
-                          SET status = 'Returned', 
-                              return_date = ?, 
-                              recieved_by = ? 
+    $updateBorrowingQuery = "UPDATE borrowings
+                          SET status = 'Returned',
+                              return_date = ?,
+                              recieved_by = ?
                           WHERE id = ?";
     $stmt = $conn->prepare($updateBorrowingQuery);
     $stmt->bind_param("sii", $currentDate, $adminId, $borrowId);
     $stmt->execute();
-    
+
     // Update book status
     $updateBookQuery = "UPDATE books SET status = 'Available' WHERE id = ?";
     $stmt = $conn->prepare($updateBookQuery);
     $stmt->bind_param("i", $bookId);
     $stmt->execute();
-    
+
     // Commit transaction
     $conn->commit();
-    
+
     // Return success response for API calls
     if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
         header('Content-Type: application/json');
@@ -90,11 +90,11 @@ try {
         // For direct browser access, redirect back
         header("Location: borrowed_books.php?success=Book has been returned successfully");
     }
-    
+
 } catch (Exception $e) {
     // Rollback transaction on error
     $conn->rollback();
-    
+
     // Return error response for API calls
     if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
         header('Content-Type: application/json');
