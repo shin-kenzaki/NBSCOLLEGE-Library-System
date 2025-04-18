@@ -55,13 +55,56 @@ $params = array();
 $types = "";
 
 if (!empty($searchTerm)) {
-    $sql .= " AND (b.title LIKE ? OR b.accession LIKE ? OR w.firstname LIKE ? OR w.lastname LIKE ?)";
-    $searchParam = "%$searchTerm%";
-    $params[] = $searchParam;
-    $params[] = $searchParam;
-    $params[] = $searchParam;
-    $params[] = $searchParam;
-    $types .= "ssss";
+    // Clean and prepare search term for better handling of special characters
+    // Normalize spaces - replace multiple spaces with a single space and trim
+    $searchTerm = trim(preg_replace('/\s+/', ' ', $searchTerm));
+    
+    // Create search tokens for more flexible matching
+    $searchTokens = explode(' ', $searchTerm);
+    
+    // Start building the search condition
+    $sql .= " AND (";
+    $searchConditions = [];
+    
+    // For the complete search term
+    $searchConditions[] = "b.title LIKE ?";
+    $params[] = "%" . $searchTerm . "%";
+    $types .= "s";
+    
+    $searchConditions[] = "b.accession LIKE ?";
+    $params[] = "%" . $searchTerm . "%";
+    $types .= "s";
+    
+    // For individual tokens in the search term (for multi-word searches)
+    if (count($searchTokens) > 1) {
+        foreach ($searchTokens as $token) {
+            if (strlen($token) >= 3) { // Only consider tokens of sufficient length
+                $searchConditions[] = "b.title LIKE ?";
+                $params[] = "%" . $token . "%";
+                $types .= "s";
+            }
+        }
+    }
+    
+    // Author name searches
+    $searchConditions[] = "w.firstname LIKE ?";
+    $params[] = "%" . $searchTerm . "%";
+    $types .= "s";
+    
+    $searchConditions[] = "w.lastname LIKE ?";
+    $params[] = "%" . $searchTerm . "%";
+    $types .= "s";
+    
+    $searchConditions[] = "CONCAT(w.firstname, ' ', w.lastname) LIKE ?";
+    $params[] = "%" . $searchTerm . "%";
+    $types .= "s";
+    
+    $searchConditions[] = "CONCAT(w.firstname, ' ', w.middle_init, ' ', w.lastname) LIKE ?";
+    $params[] = "%" . $searchTerm . "%";
+    $types .= "s";
+    
+    // Join all search conditions with OR
+    $sql .= implode(" OR ", $searchConditions) . ")";
 }
 
 if (!empty($program)) {
@@ -88,7 +131,7 @@ $sql .= " GROUP BY
 LEFT JOIN contributors ON book_counts.id = contributors.book_id 
 LEFT JOIN writers ON contributors.writer_id = writers.id
 GROUP BY book_counts.id
-ORDER BY book_counts.title";
+ORDER BY book_counts.id DESC, book_counts.title";
 
 // Get all unique programs and categories for filter dropdowns
 $programsQuery = "SELECT DISTINCT program FROM books WHERE program IS NOT NULL AND program != '' ORDER BY program";
@@ -109,6 +152,12 @@ $searchResults = $stmt->get_result();
 if ($isAjax) {
     $books = [];
     while ($book = $searchResults->fetch_assoc()) {
+        // Sanitize output for JSON to ensure special characters are handled properly
+        foreach ($book as $key => $value) {
+            if (is_string($value)) {
+                $book[$key] = htmlspecialchars_decode($value, ENT_QUOTES);
+            }
+        }
         $books[] = $book;
     }
     header('Content-Type: application/json');
@@ -642,6 +691,9 @@ if ($isAjax) {
                         if (response.books.length > 0) {
                             // Render each book
                             $.each(response.books, function(index, book) {
+                                // Properly escape book title for JavaScript string
+                                const escapedTitle = book.title.replace(/[\/\\"']/g, '\\$&');
+                                
                                 let bookHtml = `
                                 <div class="col">
                                     <div class="card result-card h-100">
@@ -667,7 +719,7 @@ if ($isAjax) {
                                             <p class="card-author">
                                                 <i class="fas fa-user-edit me-1"></i>
                                                 ${book.firstname || book.lastname ? 
-                                                    `${book.firstname} ${book.middle_init ? book.middle_init + '. ' : ''}${book.lastname}` : 
+                                                    `${book.firstname || ''} ${book.middle_init ? book.middle_init + '. ' : ''}${book.lastname || ''}` : 
                                                     'Unknown Author'
                                                 }
                                             </p>`;
@@ -726,7 +778,7 @@ if ($isAjax) {
                                     if (book.available_copies > 0) {
                                         bookHtml += `
                                         <button class="btn btn-outline-success" 
-                                                onclick="addToCart(${book.id}, '${book.title.replace(/'/g, "\\'")}')">
+                                                onclick="addToCart(${book.id}, '${escapedTitle}')">
                                             <i class="fas fa-cart-plus"></i> Add to Cart
                                         </button>`;
                                     } else {
@@ -801,7 +853,7 @@ if ($isAjax) {
             $.ajax({
                 type: "POST",
                 url: "add_to_cart.php",
-                data: { book_id: bookId }, // Send book_id parameter
+                data: { book_id: bookId },
                 dataType: "json",
                 success: function(response) {
                     if (response.success) {

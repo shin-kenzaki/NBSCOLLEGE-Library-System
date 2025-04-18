@@ -226,6 +226,9 @@ $checkboxStyles = "margin: 0; vertical-align: middle;";
         <div class="card-header py-3 d-flex justify-content-between align-items-center">
             <h6 class="m-0 font-weight-bold text-primary">Book Reservations List</h6>
             <div class="d-flex">
+                <a href="borrowed_books.php" class="btn btn-info btn-sm mr-2">
+                    <i class="fas fa-list"></i> View Issued Books
+                </a>
                 <button id="bulkReadyBtn" class="btn btn-info btn-sm mr-2" disabled>
                     <i class="fas fa-check"></i> Mark as Ready (<span id="selectedCountReady">0</span>)
                 </button>
@@ -295,6 +298,158 @@ $checkboxStyles = "margin: 0; vertical-align: middle;";
                 .table-responsive table td.book-details {
                     white-space: normal;
                 }
+                
+                /* Make sure all table cells are vertically centered */
+                #dataTable th, 
+                #dataTable td {
+                    vertical-align: middle !important;
+                }
+                
+                /* Enhanced Status Styles */
+                .status-badge {
+                    width: 100%;
+                    padding: 8px 5px;
+                    border-radius: 4px;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    transition: all 0.2s;
+                }
+                .status-badge:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+                }
+                .status-badge .status-icon {
+                    font-size: 1.2rem;
+                    margin-bottom: 5px;
+                    position: relative;
+                }
+                .status-badge .status-text {
+                    font-weight: bold;
+                    margin: 0;
+                }
+                .status-badge .status-subtext {
+                    font-size: 0.75rem;
+                    opacity: 0.8;
+                    margin: 2px 0 0 0;
+                }
+                .status-badge .time-indicator {
+                    margin-top: 6px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 0.7rem;
+                    padding: 2px 5px;
+                    border-radius: 3px;
+                    background-color: rgba(0,0,0,0.1);
+                }
+                
+                /* Status-specific styling */
+                .status-pending {
+                    background-color: #fff3cd;
+                    border: 1px solid #ffeeba;
+                    color: #856404;
+                }
+                .status-pending .time-indicator {
+                    background-color: rgba(133, 100, 4, 0.15);
+                }
+                .status-ready {
+                    background-color: #d1ecf1;
+                    border: 1px solid #bee5eb;
+                    color: #0c5460;
+                }
+                .status-ready .time-indicator {
+                    background-color: rgba(12, 84, 96, 0.15);
+                }
+                
+                /* Progress bar for better time visualization */
+                .progress-container {
+                    width: 100%;
+                    height: 4px;
+                    background-color: rgba(0,0,0,0.1);
+                    border-radius: 2px;
+                    overflow: hidden;
+                    margin-top: 6px;
+                }
+                .progress-bar {
+                    height: 100%;
+                    transition: width 0.5s ease;
+                }
+                .progress-normal {
+                    background-color: #28a745;
+                }
+                .progress-warning {
+                    background-color: #ffc107;
+                }
+                .progress-alert {
+                    background-color: #dc3545;
+                }
+                
+                /* Time thresholds */
+                .time-normal {
+                    color: #495057;
+                }
+                .time-warning {
+                    color: #856404;
+                    font-weight: bold;
+                }
+                .time-alert {
+                    color: #721c24;
+                    font-weight: bold;
+                }
+                .time-critical {
+                    color: #721c24;
+                    font-weight: bold;
+                    animation: blink 1.5s infinite;
+                }
+                
+                /* Priority badge */
+                .priority-badge {
+                    position: absolute;
+                    top: -8px;
+                    right: -8px;
+                    font-size: 0.65rem;
+                    padding: 2px 4px;
+                    border-radius: 10px;
+                    font-weight: bold;
+                }
+                .priority-normal {
+                    background-color: #28a745;
+                    color: white;
+                }
+                .priority-medium {
+                    background-color: #ffc107;
+                    color: #212529;
+                }
+                .priority-high {
+                    background-color: #dc3545;
+                    color: white;
+                }
+                .priority-critical {
+                    background-color: #dc3545;
+                    color: white;
+                    animation: blink 1.5s infinite;
+                }
+                
+                @keyframes blink {
+                    0% { opacity: 1; }
+                    50% { opacity: 0.6; }
+                    100% { opacity: 1; }
+                }
+                
+                /* Enhanced tooltip styling */
+                .tooltip-wide {
+                    max-width: 300px !important;
+                }
+                
+                .tooltip-inner {
+                    text-align: left !important;
+                    padding: 10px !important;
+                    max-width: 300px;
+                    font-size: 0.8rem;
+                    line-height: 1.4;
+                }
             </style>
             
             <div class="table-responsive" style="<?php echo $tableResponsiveStyles; ?>">
@@ -304,11 +459,11 @@ $checkboxStyles = "margin: 0; vertical-align: middle;";
                             <th class="text-center" id="checkboxHeader" style="width: 5%;">
                                 <input type="checkbox" id="selectAll" title="Select/Unselect All">
                             </th>
-                            <th style="width: 15%;">User</th>
-                            <th style="width: 40%;">Book</th>
-                            <th style="width: 15%;">Reserve Date</th>
-                            <th style="width: 10%;">Status</th>
-                            <th style="width: 15%;">Actions</th>
+                            <th class="text-center" style="width: 15%;">User</th>
+                            <th class="text-center" style="width: 40%;">Book</th>
+                            <th class="text-center" style="width: 15%;">Reserve Date</th>
+                            <th class="text-center" style="width: 10%;">Status</th>
+                            <th class="text-center" style="width: 15%;">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -356,14 +511,210 @@ $checkboxStyles = "margin: 0; vertical-align: middle;";
                                     <small><?= date('h:i A', strtotime($row['reserve_date'])) ?></small>
                                 </td>
                                 <td>
-                                    <?php if ($row['status'] === 'Pending'): ?>
-                                        <span class="badge badge-warning p-2 w-100">Pending</span>
-                                    <?php elseif ($row['status'] === 'Ready'): ?>
-                                        <span class="badge badge-info p-2 w-100" 
-                                              data-toggle="tooltip" 
-                                              title="Made ready by: <?= htmlspecialchars($row['ready_by_name']) ?> on <?= date('Y-m-d h:i A', strtotime($row['ready_date'])) ?>">
-                                            Ready for Pickup
-                                        </span>
+                                    <?php 
+                                    // Calculate time differences with more precision
+                                    $now = new DateTime();
+                                    $reserveDate = new DateTime($row['reserve_date']);
+                                    $interval = $now->diff($reserveDate);
+                                    
+                                    $diffInDays = $interval->days;
+                                    $diffInHours = $interval->h + ($interval->days * 24);
+                                    $diffInMinutes = $interval->i + ($diffInHours * 60);
+                                    
+                                    // Generate exact timestamp and waiting duration
+                                    $exactTimestamp = $reserveDate->format('l, F j, Y \a\t h:i:s A');
+                                    
+                                    // Format wait duration in readable format
+                                    $waitDuration = '';
+                                    if ($diffInDays > 0) {
+                                        $waitDuration .= $diffInDays . ' day' . ($diffInDays > 1 ? 's ' : ' ');
+                                    }
+                                    if ($interval->h > 0) {
+                                        $waitDuration .= $interval->h . ' hour' . ($interval->h > 1 ? 's ' : ' ');
+                                    }
+                                    if ($interval->i > 0) {
+                                        $waitDuration .= $interval->i . ' minute' . ($interval->i > 1 ? 's ' : ' ');
+                                    }
+                                    $waitDuration = trim($waitDuration) ?: 'less than a minute';
+                                    
+                                    // Calculate progress percentage based on max wait time (72 hours = 100%)
+                                    $maxWaitHours = 72; // Consider 3 days as maximum normal wait time
+                                    $waitProgressPercent = min(100, ($diffInHours / $maxWaitHours) * 100);
+                                    
+                                    // Determine priority level and time display format
+                                    $priority = '';
+                                    $priorityClass = '';
+                                    $timeThreshold = 'time-normal';
+                                    $progressClass = 'progress-normal';
+                                    
+                                    if ($diffInHours >= 72) { // 3+ days
+                                        $priority = 'URGENT';
+                                        $priorityClass = 'priority-critical';
+                                        $timeThreshold = 'time-critical';
+                                        $progressClass = 'progress-alert';
+                                    } else if ($diffInHours >= 48) { // 2-3 days
+                                        $priority = 'HIGH';
+                                        $priorityClass = 'priority-high';
+                                        $timeThreshold = 'time-alert';
+                                        $progressClass = 'progress-alert';
+                                    } else if ($diffInHours >= 24) { // 1-2 days
+                                        $priority = 'MEDIUM';
+                                        $priorityClass = 'priority-medium';
+                                        $timeThreshold = 'time-warning';
+                                        $progressClass = 'progress-warning';
+                                    } else {
+                                        $priority = 'NEW';
+                                        $priorityClass = 'priority-normal';
+                                    }
+                                    
+                                    // Format time ago display with more precision
+                                    if ($diffInDays > 1) {
+                                        $timeAgo = $diffInDays . ' days ago';
+                                    } else if ($diffInDays == 1) {
+                                        $timeAgo = 'Yesterday';
+                                    } else if ($diffInHours > 0) {
+                                        if ($diffInHours == 1) {
+                                            // Handle case for 1 hour with additional minutes
+                                            $remainingMinutes = $diffInMinutes - 60;
+                                            if ($remainingMinutes > 0) {
+                                                $timeAgo = '1 hour ' . $remainingMinutes . ' minute' . ($remainingMinutes > 1 ? 's' : '') . ' ago';
+                                            } else {
+                                                $timeAgo = '1 hour ago';
+                                            }
+                                        } else {
+                                            $timeAgo = $diffInHours . ' hours ago';
+                                        }
+                                    } else if ($diffInMinutes > 0) {
+                                        $timeAgo = $diffInMinutes . ' minute' . ($diffInMinutes > 1 ? 's' : '') . ' ago';
+                                    } else {
+                                        $timeAgo = 'Just now';
+                                    }
+                                    
+                                    if ($row['status'] === 'Pending'): 
+                                        // For pending reservations, remove tooltip content
+                                    ?>
+                                        <div class="status-badge status-pending">
+                                            <span class="status-icon">
+                                                <i class="fas fa-clock"></i>
+                                                <?php if (!empty($priority)): ?>
+                                                    <span class="priority-badge <?= $priorityClass ?>"><?= $priority ?></span>
+                                                <?php endif; ?>
+                                            </span>
+                                            <p class="status-text">PENDING</p>
+                                            <p class="status-subtext">Awaiting processing</p>
+                                            <span class="time-indicator <?= $timeThreshold ?>">
+                                                <i class="far fa-calendar-alt mr-1"></i> <?= $timeAgo ?>
+                                            </span>
+                                            <div class="progress-container">
+                                                <div class="progress-bar <?= $progressClass ?>" style="width: <?= $waitProgressPercent ?>%"></div>
+                                            </div>
+                                        </div>
+                                    <?php elseif ($row['status'] === 'Ready'):
+                                        // Calculate time differences for ready status
+                                        $readyDate = new DateTime($row['ready_date']);
+                                        $readyInterval = $now->diff($readyDate);
+                                        $readyDiffInDays = $readyInterval->days;
+                                        $readyDiffInHours = $readyInterval->h + ($readyInterval->days * 24);
+                                        $readyDiffInMinutes = $readyInterval->i + ($readyDiffInHours * 60);
+                                        
+                                        // Format ready state duration
+                                        $readyDuration = '';
+                                        if ($readyDiffInDays > 0) {
+                                            $readyDuration .= $readyDiffInDays . ' day' . ($readyDiffInDays > 1 ? 's ' : ' ');
+                                        }
+                                        if ($readyInterval->h > 0) {
+                                            $readyDuration .= $readyInterval->h . ' hour' . ($readyInterval->h > 1 ? 's ' : ' ');
+                                        }
+                                        if ($readyInterval->i > 0) {
+                                            $readyDuration .= $readyInterval->i . ' minute' . ($readyInterval->i > 1 ? 's ' : ' ');
+                                        }
+                                        $readyDuration = trim($readyDuration) ?: 'less than a minute';
+                                        
+                                        // Calculate processing time (from reservation to ready)
+                                        $processInterval = $reserveDate->diff($readyDate);
+                                        $processHours = $processInterval->h + ($processInterval->days * 24);
+                                        $processDuration = '';
+                                        
+                                        if ($processInterval->days > 0) {
+                                            $processDuration .= $processInterval->days . ' day' . ($processInterval->days > 1 ? 's ' : ' ');
+                                        }
+                                        if ($processInterval->h > 0) {
+                                            $processDuration .= $processInterval->h . ' hour' . ($processInterval->h > 1 ? 's ' : ' ');
+                                        }
+                                        if ($processInterval->i > 0) {
+                                            $processDuration .= $processInterval->i . ' minute' . ($processInterval->i > 1 ? 's ' : ' ');
+                                        }
+                                        $processDuration = trim($processDuration) ?: 'less than a minute';
+                                        
+                                        // Ready threshold and display
+                                        $readyThreshold = 'time-normal';
+                                        $readyProgressClass = 'progress-normal';
+                                        $readyPriority = '';
+                                        $readyPriorityClass = '';
+                                        
+                                        // Calculate wait time for pickup
+                                        if ($readyDiffInHours >= 72) { // 3+ days in ready state
+                                            $readyPriority = 'URGENT';
+                                            $readyPriorityClass = 'priority-critical';
+                                            $readyThreshold = 'time-critical';
+                                            $readyProgressClass = 'progress-alert';
+                                        } else if ($readyDiffInHours >= 48) { // 2-3 days in ready state
+                                            $readyPriority = 'LONG WAIT';
+                                            $readyPriorityClass = 'priority-high';
+                                            $readyThreshold = 'time-alert';
+                                            $readyProgressClass = 'progress-alert';
+                                        } else if ($readyDiffInHours >= 24) { // 1-2 days in ready state
+                                            $readyPriority = 'PICK UP';
+                                            $readyPriorityClass = 'priority-medium';
+                                            $readyThreshold = 'time-warning';
+                                            $readyProgressClass = 'progress-warning';
+                                        } else {
+                                            $readyPriority = 'NEW';
+                                            $readyPriorityClass = 'priority-normal';
+                                        }
+                                        
+                                        // Format ready time ago display
+                                        if ($readyDiffInDays > 1) {
+                                            $readyTimeAgo = $readyDiffInDays . ' days ago';
+                                        } else if ($readyDiffInDays == 1) {
+                                            $readyTimeAgo = 'Yesterday';
+                                        } else if ($readyDiffInHours > 0) {
+                                            if ($readyDiffInHours == 1) {
+                                                // Handle case for 1 hour with additional minutes
+                                                $remainingMinutes = $readyDiffInMinutes - 60;
+                                                if ($remainingMinutes > 0) {
+                                                    $readyTimeAgo = '1 hour ' . $remainingMinutes . ' minute' . ($remainingMinutes > 1 ? 's' : '') . ' ago';
+                                                } else {
+                                                    $readyTimeAgo = '1 hour ago';
+                                                }
+                                            } else {
+                                                $readyTimeAgo = $readyDiffInHours . ' hours ago';
+                                            }
+                                        } else if ($readyDiffInMinutes > 0) {
+                                            $readyTimeAgo = $readyDiffInMinutes . ' minute' . ($readyDiffInMinutes > 1 ? 's' : '') . ' ago';
+                                        } else {
+                                            $readyTimeAgo = 'Just now';
+                                        }
+                                        
+                                        $exactReadyTimestamp = $readyDate->format('l, F j, Y \a\t h:i:s A');
+                                        
+                                    ?>
+                                        <div class="status-badge status-ready">
+                                            <span class="status-icon">
+                                                <i class="fas fa-check"></i>
+                                                <?php if (!empty($readyPriority)): ?>
+                                                    <span class="priority-badge <?= $readyPriorityClass ?>"><?= $readyPriority ?></span>
+                                                <?php endif; ?>
+                                            </span>
+                                            <p class="status-text">READY</p>
+                                            <p class="status-subtext">For pickup</p>
+                                            <span class="time-indicator <?= $readyThreshold ?>">
+                                                <i class="far fa-calendar-check mr-1"></i> <?= $readyTimeAgo ?>
+                                            </span>
+                                            <div class="progress-container">
+                                                <div class="progress-bar <?= $readyProgressClass ?>" style="width: <?= min(100, ($readyDiffInHours / 72) * 100) ?>%"></div>
+                                            </div>
+                                        </div>
                                     <?php endif; ?>
                                 </td>
                                 <td class="text-center">
@@ -373,6 +724,13 @@ $checkboxStyles = "margin: 0; vertical-align: middle;";
                                                     data-id="<?= $row['reservation_id'] ?>"
                                                     title="Mark as Ready">
                                                 <i class="fas fa-check"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-success direct-issue-btn"
+                                                    data-id="<?= $row['reservation_id'] ?>"
+                                                    data-user-id="<?= $row['user_id'] ?>"
+                                                    data-book-id="<?= $row['book_id'] ?>"
+                                                    title="Direct Issue Book">
+                                                <i class="fas fa-book"></i>
                                             </button>
                                         <?php elseif ($row['status'] === 'Ready'): ?>
                                             <button class="btn btn-sm btn-success issue-book-btn"
@@ -535,6 +893,7 @@ endif;
 <div class="context-menu" style="display: none; position: absolute; z-index: 1000; background: white; border: 1px solid #ddd; border-radius: 4px; box-shadow: 2px 2px 5px rgba(0,0,0,0.1);">
     <ul class="list-group">
         <li class="list-group-item" data-action="ready" style="cursor: pointer; padding: 8px 20px;">Mark as Ready</li>
+        <li class="list-group-item" data-action="direct-issue" style="cursor: pointer; padding: 8px 20px;">Direct Issue Book</li>
         <li class="list-group-item" data-action="received" style="cursor: pointer; padding: 8px 20px;">Issue Book</li>
         <li class="list-group-item" data-action="cancel" style="cursor: pointer; padding: 8px 20px;">Cancel Reservation</li>
     </ul>
@@ -601,7 +960,6 @@ endif;
                 },
                 "initComplete": function() {
                     $('#dataTable_filter input').addClass('form-control form-control-sm');
-                    $('[data-toggle="tooltip"]').tooltip();
                     updateRowSelectionState();
                 }
             });
@@ -638,6 +996,27 @@ endif;
             }).then((result) => {
                 if (result.isConfirmed) {
                     window.location.href = `reservation_ready.php?id=${reservationId}`;
+                }
+            });
+        });
+
+        // Handle Direct Issue Book button clicks for pending books
+        $(document).on('click', '.direct-issue-btn', function(e) {
+            e.preventDefault();
+            const reservationId = $(this).data('id');
+            
+            Swal.fire({
+                title: 'Direct Issue Book?',
+                text: 'Do you want to directly issue this book to the user without marking it ready first?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, Issue Book',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = `reservation_receive.php?id=${reservationId}&direct=1`;
                 }
             });
         });
@@ -717,11 +1096,11 @@ endif;
             
             $('#selectedCount').text(total);
             $('#selectedCountReady').text(totalPending);
-            $('#selectedCountReceive').text(totalReady);
+            $('#selectedCountReceive').text(total); // Changed to allow all selections for issue
             
             $('#bulkCancelBtn').prop('disabled', total === 0);
             $('#bulkReadyBtn').prop('disabled', totalPending === 0);
-            $('#bulkReceiveBtn').prop('disabled', totalReady === 0);
+            $('#bulkReceiveBtn').prop('disabled', total === 0); // Allow issuing any status
             
             // Log for debugging
             console.log(`Total selected: ${total}, Pending: ${totalPending}, Ready: ${totalReady}`);
@@ -907,40 +1286,52 @@ endif;
             });
         });
 
-        // Handle bulk receive button
+        // Handle bulk receive button - Modified to allow direct issuing of pending books
         $('#bulkReceiveBtn').click(function() {
             const selectedIds = [];
             const selectedBooks = [];
             
             $('.reservation-checkbox:checked').each(function() {
                 const status = $(this).data('status');
-                if (status === 'Ready') {
-                    selectedIds.push($(this).data('id'));
-                    const $row = $(this).closest('tr');
-                    const bookTitle = $row.find('.book-details-title').text().trim();
-                    const userName = $row.find('td:eq(1) strong').text().trim();
-                    selectedBooks.push({ title: bookTitle, borrower: userName });
-                }
+                selectedIds.push($(this).data('id'));
+                const $row = $(this).closest('tr');
+                const bookTitle = $row.find('.book-details-title').text().trim();
+                const userName = $row.find('td:eq(1) strong').text().trim();
+                selectedBooks.push({ 
+                    title: bookTitle, 
+                    borrower: userName,
+                    status: status
+                });
             });
             
             if (selectedIds.length === 0) {
                 Swal.fire({
-                    title: 'No Eligible Reservations',
-                    text: 'Please select reservations with "Ready" status.',
+                    title: 'No Reservations Selected',
+                    text: 'Please select at least one reservation.',
                     icon: 'info'
                 });
                 return;
             }
             
+            // Count pending items that will be directly issued
+            const pendingCount = selectedBooks.filter(book => book.status === 'Pending').length;
+            let directIssueWarning = '';
+            if (pendingCount > 0) {
+                directIssueWarning = `<p class="text-warning"><strong>Note:</strong> ${pendingCount} pending book(s) will be directly issued without being marked ready first.</p>`;
+            }
+            
             let booksListHtml = '<ul class="text-left mt-3">';
             selectedBooks.forEach(book => {
-                booksListHtml += `<li>${book.title} - ${book.borrower}</li>`;
+                const statusBadge = book.status === 'Pending' ? 
+                    '<span class="badge badge-warning">Direct Issue</span>' : 
+                    '<span class="badge badge-info">Ready</span>';
+                booksListHtml += `<li>${book.title} - ${book.borrower} ${statusBadge}</li>`;
             });
             booksListHtml += '</ul>';
             
             Swal.fire({
                 title: 'Issue Books to Users?',
-                html: `Are you sure you want to issue ${selectedIds.length} book(s) to the users?${booksListHtml}`,
+                html: `Are you sure you want to issue ${selectedIds.length} book(s) to the users?${directIssueWarning}${booksListHtml}`,
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonText: 'Yes, Issue Books',
@@ -954,7 +1345,10 @@ endif;
                         url: 'reservation_receive.php',
                         type: 'POST',
                         contentType: 'application/json',
-                        data: JSON.stringify({ ids: selectedIds }),
+                        data: JSON.stringify({ 
+                            ids: selectedIds,
+                            direct: true // Add flag for direct issuing
+                        }),
                         success: function(response) {
                             try {
                                 const result = typeof response === 'object' ? response : JSON.parse(response);
@@ -1001,6 +1395,61 @@ endif;
         // Initialize row selection state on page load
         updateRowSelectionState();
         updateBulkButtons();
+        
+        // Context menu handling
+        $(document).on('contextmenu', '#dataTable tbody tr', function(e) {
+            e.preventDefault();
+            
+            // Position menu
+            const contextMenu = $('.context-menu');
+            contextMenu.css({
+                left: e.pageX,
+                top: e.pageY
+            });
+            
+            // Store reference to clicked row
+            $selectedRow = $(this);
+            const status = $selectedRow.data('status');
+            
+            // Show/hide options based on status
+            contextMenu.find('[data-action="ready"]').toggle(status === 'Pending');
+            contextMenu.find('[data-action="direct-issue"]').toggle(status === 'Pending');
+            contextMenu.find('[data-action="received"]').toggle(status === 'Ready');
+            
+            // Show menu
+            contextMenu.show();
+        });
+        
+        // Hide context menu on document click
+        $(document).on('click', function() {
+            $('.context-menu').hide();
+        });
+        
+        // Context menu actions
+        $('.context-menu').on('click', '[data-action]', function() {
+            const action = $(this).data('action');
+            const id = $selectedRow.data('reservation-id');
+            
+            switch(action) {
+                case 'ready':
+                    window.location.href = `reservation_ready.php?id=${id}`;
+                    break;
+                case 'direct-issue':
+                    window.location.href = `reservation_receive.php?id=${id}&direct=1`;
+                    break;
+                case 'received':
+                    window.location.href = `reservation_receive.php?id=${id}`;
+                    break;
+                case 'cancel':
+                    window.location.href = `reservation_cancel.php?id=${id}&admin=1`;
+                    break;
+            }
+            
+            $('.context-menu').hide();
+        });
+        
+        // Initialize the DataTable without tooltips
+        initializeDataTable();
     });
 </script>
 </body>

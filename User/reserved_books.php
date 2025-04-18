@@ -184,23 +184,134 @@ include 'inc/header.php';
     .details-column {
         width: 35% !important;
     }
+
+    /* Enhanced Status Styles */
+    .status-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        border-radius: 8px;
+        padding: 10px;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
     
-    /* Status badges styling */
-    .badge {
-        display: inline-block;
-        white-space: normal;
+    .status-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .status-icon {
+        font-size: 1.8rem;
+        margin-bottom: 8px;
+    }
+    
+    .status-title {
+        font-weight: bold;
+        margin-bottom: 5px;
+        font-size: 0.9rem;
+    }
+    
+    .status-subtitle {
+        font-size: 0.8rem;
+        margin-bottom: 8px;
         text-align: center;
-        line-height: 1.2;
-        padding: 8px;
     }
     
-    .badge br {
-        display: block;
+    .time-indicator {
+        background-color: rgba(0, 0, 0, 0.05);
+        font-size: 0.7rem;
+        padding: 3px 8px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-top: 8px;
     }
     
-    .badge small {
-        display: block;
-        margin-top: 3px;
+    /* Add progress bar for time indication */
+    .progress-container {
+        width: 100%;
+        background-color: rgba(0, 0, 0, 0.1);
+        border-radius: 4px;
+        height: 4px;
+        margin-top: 6px;
+        overflow: hidden;
+    }
+    
+    .progress-bar {
+        height: 100%;
+        border-radius: 4px;
+    }
+    
+    /* Progress bar colors */
+    .progress-normal {
+        background-color: #28a745;
+    }
+    
+    .progress-warning {
+        background-color: #ffc107;
+    }
+    
+    .progress-alert {
+        background-color: #dc3545;
+    }
+    
+    /* Improved time thresholds */
+    .time-normal {
+        color: #28a745;
+    }
+    
+    .time-warning {
+        color: #ffc107;
+        font-weight: bold;
+    }
+    
+    .time-alert {
+        color: #dc3545;
+        font-weight: bold;
+    }
+    
+    .time-critical {
+        color: #dc3545;
+        font-weight: bold;
+        animation: pulse 1.5s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.7; }
+        100% { opacity: 1; }
+    }
+    
+    /* Time badge styles */
+    .time-badge {
+        display: inline-block;
+        padding: 2px 6px;
+        border-radius: 10px;
+        font-size: 0.65rem;
+        font-weight: bold;
+        margin-left: 4px;
+    }
+    
+    .time-badge-normal {
+        background-color: rgba(40, 167, 69, 0.2);
+        color: #28a745;
+    }
+    
+    .time-badge-warning {
+        background-color: rgba(255, 193, 7, 0.2);
+        color: #856404;
+    }
+    
+    .time-badge-alert {
+        background-color: rgba(220, 53, 69, 0.2);
+        color: #721c24;
+    }
+    
+    .time-badge-critical {
+        background-color: rgba(220, 53, 69, 0.3);
+        color: #721c24;
+        animation: pulse 1.5s infinite;
     }
     
     /* Table responsive style */
@@ -319,7 +430,7 @@ include 'inc/header.php';
                                     <input class="form-check-input" type="checkbox" id="selectAll">
                                 </th>
                                 <th width="8%" class="text-center">ID</th>
-                                <th class="details-column">Book Details</th>
+                                <th class="text-center details-column">Book Details</th>
                                 <th width="20%" class="text-center date-column">Reserved On</th>
                                 <th width="25%" class="text-center status-column">Status</th>
                             </tr>
@@ -354,18 +465,183 @@ include 'inc/header.php';
                                         <small><?php echo date('h:i A', strtotime($row['reserve_date'])); ?></small>
                                     </td>
                                     <td class="text-center status-column">
-                                        <?php if ($row["status"] == 'Ready'): ?>
-                                            <span class="badge badge-success" 
-                                                  data-toggle="tooltip" 
-                                                  title="Made ready by: <?php echo htmlspecialchars($row["ready_by_name"]); ?> on <?php echo date('Y-m-d h:i A', strtotime($row["ready_date"])); ?>">
-                                                <i class="fas fa-check"></i> READY FOR PICKUP
-                                                <small>Please proceed to the library</small>
-                                            </span>
-                                        <?php elseif ($row["status"] == 'Pending'): ?>
-                                            <span class="badge badge-warning">
-                                                <i class="fas fa-clock"></i> PENDING
-                                                <small>Waiting for librarian to process</small>
-                                            </span>
+                                        <?php 
+                                            // Calculate time differences with more precision
+                                            $now = new DateTime();
+                                            $reserveDate = new DateTime($row['reserve_date']);
+                                            $interval = $now->diff($reserveDate);
+                                            $diffInDays = $interval->days;
+                                            $diffInHours = $interval->h + ($interval->days * 24);
+                                            $diffInMinutes = $interval->i + ($diffInHours * 60);
+                                            $diffInSeconds = $interval->s + ($diffInMinutes * 60);
+                                            
+                                            // Determine wait progress percentage (72 hours = 100%)
+                                            $maxWaitHours = 72; // 3 days is considered max normal wait time
+                                            $waitProgressPercent = min(100, ($diffInHours / $maxWaitHours) * 100);
+                                            
+                                            // Determine time threshold class with more granularity
+                                            $timeThreshold = 'time-normal';
+                                            $progressClass = 'progress-normal';
+                                            
+                                            if ($diffInHours >= 72) {
+                                                $timeThreshold = 'time-critical';
+                                                $progressClass = 'progress-alert';
+                                                $timeBadgeClass = 'time-badge-critical';
+                                            } else if ($diffInHours >= 48) {
+                                                $timeThreshold = 'time-alert';
+                                                $progressClass = 'progress-alert';
+                                                $timeBadgeClass = 'time-badge-alert';
+                                            } else if ($diffInHours >= 24) {
+                                                $timeThreshold = 'time-warning';
+                                                $progressClass = 'progress-warning';
+                                                $timeBadgeClass = 'time-badge-warning';
+                                            } else {
+                                                $timeBadgeClass = 'time-badge-normal';
+                                            }
+                                            
+                                            // Format time ago display with more precision
+                                            if ($diffInDays > 1) {
+                                                $timeAgo = $diffInDays . ' days ago';
+                                                $timePriority = 'Long wait';
+                                            } else if ($diffInDays == 1) {
+                                                $timeAgo = 'Yesterday';
+                                                $timePriority = '24h+ wait';
+                                            } else if ($diffInHours > 0) {
+                                                if ($diffInHours == 1) {
+                                                    // Handle case for 1 hour with additional minutes
+                                                    $remainingMinutes = $diffInMinutes - 60;
+                                                    if ($remainingMinutes > 0) {
+                                                        $timeAgo = '1 hour ' . $remainingMinutes . ' minute' . ($remainingMinutes > 1 ? 's' : '') . ' ago';
+                                                    } else {
+                                                        $timeAgo = '1 hour ago';
+                                                    }
+                                                    $timePriority = '1h wait';
+                                                } else {
+                                                    $timeAgo = $diffInHours . ' hours ago';
+                                                    $timePriority = $diffInHours . 'h wait';
+                                                }
+                                            } else if ($diffInMinutes > 0) {
+                                                $timeAgo = $diffInMinutes . ' minute' . ($diffInMinutes > 1 ? 's' : '') . ' ago';
+                                                $timePriority = 'New';
+                                            } else {
+                                                $timeAgo = 'Just now';
+                                                $timePriority = 'New';
+                                            }
+                                            
+                                            // Generate detailed timestamp for tooltip
+                                            $exactTimestamp = $reserveDate->format('M j, Y \a\t h:i:s A');
+                                            $waitDuration = '';
+                                            
+                                            if ($diffInDays > 0) {
+                                                $waitDuration .= $diffInDays . ' day' . ($diffInDays > 1 ? 's ' : ' ');
+                                            }
+                                            if ($interval->h > 0) {
+                                                $waitDuration .= $interval->h . ' hour' . ($interval->h > 1 ? 's ' : ' ');
+                                            }
+                                            if ($interval->i > 0) {
+                                                $waitDuration .= $interval->i . ' minute' . ($interval->i > 1 ? 's ' : ' ');
+                                            }
+                                            
+                                            $waitDuration = trim($waitDuration) ?: '0 minutes';
+                                            
+                                            if ($row["status"] == 'Ready'): 
+                                                // Calculate ready time with more precision
+                                                $readyDate = new DateTime($row['ready_date']);
+                                                $readyInterval = $now->diff($readyDate);
+                                                $readyDiffInDays = $readyInterval->days;
+                                                $readyDiffInHours = $readyInterval->h + ($readyInterval->days * 24);
+                                                $readyDiffInMinutes = $readyInterval->i + ($readyDiffInHours * 60);
+                                                
+                                                // Format ready time ago with more precision
+                                                if ($readyDiffInDays > 1) {
+                                                    $readyTimeAgo = $readyDiffInDays . ' days';
+                                                    $readyPriority = 'Pick up soon';
+                                                } else if ($readyDiffInDays == 1) {
+                                                    $readyTimeAgo = '1 day';
+                                                    $readyPriority = 'Pick up soon';
+                                                } else if ($readyDiffInHours > 0) {
+                                                    if ($readyDiffInHours == 1) {
+                                                        // Handle case for 1 hour with additional minutes
+                                                        $remainingMinutes = $readyDiffInMinutes - 60;
+                                                        if ($remainingMinutes > 0) {
+                                                            $readyTimeAgo = '1 hour ' . $remainingMinutes . ' minute' . ($remainingMinutes > 1 ? 's' : '');
+                                                        } else {
+                                                            $readyTimeAgo = '1 hour';
+                                                        }
+                                                        $readyPriority = 'Recent';
+                                                    } else {
+                                                        $readyTimeAgo = $readyDiffInHours . ' hours';
+                                                        $readyPriority = 'Recent';
+                                                    }
+                                                } else if ($readyDiffInMinutes > 0) {
+                                                    $readyTimeAgo = $readyDiffInMinutes . ' minute' . ($readyDiffInMinutes > 1 ? 's' : '');
+                                                    $readyPriority = 'Just ready';
+                                                } else {
+                                                    $readyTimeAgo = 'Just now';
+                                                    $readyPriority = 'Just ready';
+                                                }
+                                                
+                                                // Generate detailed ready timestamp for tooltip
+                                                $exactReadyTimestamp = $readyDate->format('M j, Y \a\t h:i:s A');
+                                                
+                                                // Calculate time since reservation was created until marked ready
+                                                $reserveToReadyInterval = $readyDate->diff($reserveDate);
+                                                $processTime = '';
+                                                
+                                                if ($reserveToReadyInterval->days > 0) {
+                                                    $processTime .= $reserveToReadyInterval->days . ' day' . ($reserveToReadyInterval->days > 1 ? 's ' : ' ');
+                                                }
+                                                if ($reserveToReadyInterval->h > 0) {
+                                                    $processTime .= $reserveToReadyInterval->h . ' hour' . ($reserveToReadyInterval->h > 1 ? 's ' : ' ');
+                                                }
+                                                if ($reserveToReadyInterval->i > 0) {
+                                                    $processTime .= $reserveToReadyInterval->i . ' minute' . ($reserveToReadyInterval->i > 1 ? 's ' : ' ');
+                                                }
+                                                
+                                                $processTime = trim($processTime) ?: '0 minutes';
+                                                
+                                                $tooltipContent = 'Reserved on: ' . $exactTimestamp . 
+                                                                 '<br>Made ready by: ' . htmlspecialchars($row["ready_by_name"]) . 
+                                                                 '<br>Ready on: ' . $exactReadyTimestamp .
+                                                                 '<br>Processing time: ' . $processTime;
+                                        ?>
+                                            <div class="status-card status-ready">
+                                                <div class="status-icon">
+                                                    <i class="fas fa-check-circle"></i>
+                                                    <span class="time-badge <?= ($readyDiffInDays > 3) ? 'time-badge-warning' : 'time-badge-normal' ?>">
+                                                        <?= $readyPriority ?>
+                                                    </span>
+                                                </div>
+                                                <div class="status-title">READY FOR PICKUP</div>
+                                                <div class="status-subtitle">Please proceed to the library</div>
+                                                <div class="time-indicator">
+                                                    <i class="far fa-clock"></i> Ready for <?= $readyTimeAgo ?>
+                                                </div>
+                                                <div class="progress-container" title="Book has been ready for <?= $readyTimeAgo ?>">
+                                                    <div class="progress-bar <?= ($readyDiffInDays > 3) ? 'progress-warning' : 'progress-normal' ?>" 
+                                                         style="width: <?= min(100, ($readyDiffInHours / 72) * 100) ?>%"></div>
+                                                </div>
+                                            </div>
+                                        <?php elseif ($row["status"] == 'Pending'): 
+                                            $tooltipContent = 'Reserved on: ' . $exactTimestamp . 
+                                                             '<br>Waiting time: ' . $waitDuration;
+                                        ?>
+                                            <div class="status-card status-pending">
+                                                <div class="status-icon">
+                                                    <i class="fas fa-hourglass-half"></i>
+                                                    <span class="time-badge <?= $timeBadgeClass ?>">
+                                                        <?= $timePriority ?>
+                                                    </span>
+                                                </div>
+                                                <div class="status-title">PENDING</div>
+                                                <div class="status-subtitle">Waiting for librarian</div>
+                                                <div class="time-indicator <?= $timeThreshold ?>">
+                                                    <i class="far fa-clock"></i> Reserved <?= $timeAgo ?>
+                                                </div>
+                                                <div class="progress-container" title="Waiting for <?= $waitDuration ?>">
+                                                    <div class="progress-bar <?= $progressClass ?>" style="width: <?= $waitProgressPercent ?>%"></div>
+                                                </div>
+                                            </div>
                                         <?php endif; ?>
                                     </td>
                                 </tr>
@@ -623,7 +899,25 @@ $(document).ready(function() {
     updateCancelButtonState();
     updateSelectAllState();
     
-    // Initialize tooltips
-    $('[data-toggle="tooltip"]').tooltip();
+    // Initialize tooltips with HTML support and more options
+    $('[data-toggle="tooltip"]').tooltip({
+        html: true,
+        container: 'body',
+        boundary: 'window',
+        template: '<div class="tooltip" role="tooltip"><div class="arrow"></div><div class="tooltip-inner p-2"></div></div>'
+    });
+    
+    // Initialize tooltips for status cards with enhanced content
+    $('.status-card').each(function() {
+        $(this).attr('data-toggle', 'tooltip');
+        $(this).attr('data-html', 'true');
+        $(this).attr('title', $(this).find('.time-indicator').text());
+        
+        // Set tooltip content from PHP-generated content if available
+        const tooltipContent = '<?= isset($tooltipContent) ? addslashes($tooltipContent) : "" ?>';
+        if (tooltipContent) {
+            $(this).attr('data-original-title', tooltipContent);
+        }
+    });
 });
 </script>

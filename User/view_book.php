@@ -12,7 +12,7 @@ $isGroup = isset($_GET['group']) && $_GET['group'] == 1;
 $error = null;
 
 if ($bookId > 0) {
-    // First get the details of the selected book
+    // First get the details of the selected book - this is the exact copy the user clicked on
     $query = "SELECT * FROM books WHERE id = ?";
     $stmt = $conn->prepare($query);
     $stmt->bind_param("i", $bookId);
@@ -23,6 +23,7 @@ if ($bookId > 0) {
         $selectedBook = $result->fetch_assoc();
         
         // Now fetch all copies with the same attributes (ISBN, series, volume, part, edition)
+        // But make sure to prioritize the selected book in display
         $copiesQuery = "SELECT * FROM books WHERE title = ?";
         $params = array($selectedBook['title']);
         $types = "s";
@@ -72,7 +73,10 @@ if ($bookId > 0) {
             $copiesQuery .= " AND (edition IS NULL OR edition = '')";
         }
         
-        $copiesQuery .= " ORDER BY copy_number";
+        // Modified: Order by the specific book ID first to ensure it appears prominently
+        $copiesQuery .= " ORDER BY (id = ?) DESC, copy_number";
+        $params[] = $bookId;
+        $types .= "i";
         
         $stmt = $conn->prepare($copiesQuery);
         $stmt->bind_param($types, ...$params);
@@ -88,62 +92,157 @@ if ($bookId > 0) {
             }
         }
         
-        // Use the selected book as the representative book
+        // IMPORTANT CHANGE: Always use the selected book for display rather than first found copy
         $book = $selectedBook;
         $totalCopies = count($copies);
         
-        // Get primary author
-        $contributorsQuery = "SELECT c.*, w.firstname, w.middle_init, w.lastname, c.role 
-                             FROM contributors c 
-                             JOIN writers w ON c.writer_id = w.id 
-                             WHERE c.book_id = ? AND c.role = 'Author'
-                             LIMIT 1";
-        $stmt = $conn->prepare($contributorsQuery);
-        $stmt->bind_param("i", $bookId);
-        $stmt->execute();
-        $contributorResult = $stmt->get_result();
-        $primaryAuthor = 'N/A';
-
-        if ($contributorResult && $contributorResult->num_rows > 0) {
-            $author = $contributorResult->fetch_assoc();
-            $primaryAuthor = $author['firstname'] . ' ' .
-                            ($author['middle_init'] ? $author['middle_init'] . '. ' : '') .
-                            $author['lastname'];
-        }
-
-        // Fetch all contributors
-        $allContributorsQuery = "SELECT c.*, w.firstname, w.middle_init, w.lastname, c.role 
+        // Modified: Get contributors from all copies of the book
+        // First collect all book IDs from the copies
+        $copyBookIds = array_column($copies, 'id');
+        
+        // Only proceed if we have book IDs
+        if (!empty($copyBookIds)) {
+            // Join the IDs with commas for the IN clause
+            $bookIdsStr = implode(',', $copyBookIds);
+            
+            // Get all contributors for these book copies
+            // Modified: Order by the specific book ID first to ensure its contributors appear first
+            $contributorsQuery = "SELECT c.*, w.firstname, w.middle_init, w.lastname, c.role, c.book_id
                                 FROM contributors c 
                                 JOIN writers w ON c.writer_id = w.id 
-                                WHERE c.book_id = ?";
-        $stmt = $conn->prepare($allContributorsQuery);
-        $stmt->bind_param("i", $bookId);
-        $stmt->execute();
-        $contributorsResult = $stmt->get_result();
-        $contributors = [];
-        
-        while ($row = $contributorsResult->fetch_assoc()) {
-            $contributors[] = [
-                'name' => $row['firstname'] . ' ' . 
-                         ($row['middle_init'] ? $row['middle_init'] . '. ' : '') . 
-                         $row['lastname'],
-                'role' => $row['role']
+                                WHERE c.book_id IN ($bookIdsStr)
+                                ORDER BY (c.book_id = $bookId) DESC, FIELD(c.role, 'Author', 'Co-Author', 'Editor'), w.lastname";
+            $contributorsResult = $conn->query($contributorsQuery);
+            
+            // Initialize contributors arrays
+            $contributors = [];
+            $contributorsByRole = [
+                'Author' => [],
+                'Co-Author' => [],
+                'Editor' => [],
+                'Other' => []
             ];
+            
+            // Avoid duplicate contributors by tracking them with a hash map
+            $seenContributors = [];
+            
+            // Process all contributors and organize by role
+            while ($row = $contributorsResult->fetch_assoc()) {
+                $contributorName = $row['firstname'] . ' ' . 
+                                ($row['middle_init'] ? $row['middle_init'] . '. ' : '') . 
+                                $row['lastname'];
+                
+                // Create a unique key to avoid duplicates based on name and role
+                $contributorKey = $contributorName . '|' . $row['role'];
+                
+                // Only add if we haven't seen this contributor with this role before
+                if (!isset($seenContributors[$contributorKey])) {
+                    $contributors[] = [
+                        'name' => $contributorName,
+                        'role' => $row['role'],
+                        'book_id' => $row['book_id']  // Save the book ID to identify primary contributors
+                    ];
+                    
+                    // Group by role
+                    if (array_key_exists($row['role'], $contributorsByRole)) {
+                        $contributorsByRole[$row['role']][] = [
+                            'name' => $contributorName,
+                            'book_id' => $row['book_id']  // Save the book ID to identify primary contributors
+                        ];
+                    } else {
+                        $contributorsByRole['Other'][] = [
+                            'name' => $contributorName,
+                            'role' => $row['role'],
+                            'book_id' => $row['book_id']  // Save the book ID to identify primary contributors
+                        ];
+                    }
+                    
+                    // Mark this contributor as seen
+                    $seenContributors[$contributorKey] = true;
+                }
+            }
+            
+            // Get primary display contributors - prioritize those from the selected book
+            $primaryAuthorArray = !empty($contributorsByRole['Author']) ? 
+                                 array_filter($contributorsByRole['Author'], function($author) use ($bookId) {
+                                     return $author['book_id'] == $bookId;
+                                 }) : [];
+            
+            // If no contributor from selected book, use the first one
+            if (empty($primaryAuthorArray) && !empty($contributorsByRole['Author'])) {
+                $primaryAuthorArray = [$contributorsByRole['Author'][0]];
+            }
+            
+            $primaryAuthor = !empty($primaryAuthorArray) ? reset($primaryAuthorArray)['name'] : 'N/A';
+            
+            // Get co-authors and editors
+            $coAuthors = array_filter(!empty($contributorsByRole['Co-Author']) ? 
+                                   array_column($contributorsByRole['Co-Author'], 'name') : [], 'strlen');
+            $editors = array_filter(!empty($contributorsByRole['Editor']) ? 
+                                 array_column($contributorsByRole['Editor'], 'name') : [], 'strlen');
+            
+            // Create a formatted contributor string for display
+            $contributorDisplay = '';
+            if ($primaryAuthor !== 'N/A') {
+                $contributorDisplay = $primaryAuthor;
+                
+                if (count($contributorsByRole['Author']) > 1) {
+                    $contributorDisplay .= ' et al.';
+                } 
+                else if (!empty($coAuthors)) {
+                    $contributorDisplay .= ' with ' . implode(', ', $coAuthors);
+                }
+            }
+        } else {
+            // Initialize empty arrays if no books found
+            $contributors = [];
+            $contributorsByRole = [
+                'Author' => [],
+                'Co-Author' => [],
+                'Editor' => [],
+                'Other' => []
+            ];
+            $primaryAuthor = 'N/A';
+            $coAuthors = [];
+            $editors = [];
+            $contributorDisplay = '';
         }
 
-        // Fetch publications
+        // Fetch publications - IMPORTANT: Get publication details for the specific book copy
         $publicationsQuery = "SELECT p.*, pub.publisher, pub.place 
                              FROM publications p 
                              JOIN publishers pub ON p.publisher_id = pub.id 
                              WHERE p.book_id = ?";
         $stmt = $conn->prepare($publicationsQuery);
-        $stmt->bind_param("i", $bookId);
+        $stmt->bind_param("i", $bookId);  // Use the selected book ID
         $stmt->execute();
         $publicationsResult = $stmt->get_result();
         $publications = [];
         
         while ($row = $publicationsResult->fetch_assoc()) {
             $publications[] = $row;
+        }
+        
+        // If no publications found for this specific copy, try to find publications from other copies
+        if (count($publications) == 0 && count($copyBookIds) > 1) {
+            // Remove the current book ID from the array
+            $otherCopyIds = array_filter($copyBookIds, function($id) use ($bookId) {
+                return $id != $bookId;
+            });
+            
+            if (!empty($otherCopyIds)) {
+                $otherIdsStr = implode(',', $otherCopyIds);
+                $otherPublicationsQuery = "SELECT p.*, pub.publisher, pub.place 
+                                          FROM publications p 
+                                          JOIN publishers pub ON p.publisher_id = pub.id 
+                                          WHERE p.book_id IN ($otherIdsStr)
+                                          LIMIT 1";
+                $otherPublicationsResult = $conn->query($otherPublicationsQuery);
+                
+                while ($row = $otherPublicationsResult->fetch_assoc()) {
+                    $publications[] = $row;
+                }
+            }
         }
         
         // Check if any of the copies are in user's cart, reserved, or borrowed
@@ -212,6 +311,7 @@ if ($bookId > 0) {
         :root {
             --primary-color: #4e73df;
             --secondary-color: #2e59d9;
+            --tertiary-color: #36b9cc; /* Added tertiary color variable */
             --light-bg: #f8f9fc;
             --card-border: rgba(0, 0, 0, 0.125);
         }
@@ -243,7 +343,7 @@ if ($bookId > 0) {
         }
         
         .breadcrumb-item a {
-            color: rgba(255, 255, 255, 0.8);
+            color: var(--tertiary-color); /* Changed from rgba(255, 255, 255, 0.8) to tertiary color */
             text-decoration: none;
         }
         
@@ -375,12 +475,38 @@ if ($bookId > 0) {
         }
         
         .contributor-role {
-            background-color: var(--primary-color);
-            color: white;
             padding: 0.25rem 0.75rem;
             border-radius: 50px;
             font-size: 0.8rem;
             font-weight: 500;
+            color: white;
+        }
+        
+        .role-author {
+            background-color: #4e73df;
+        }
+        
+        .role-coauthor {
+            background-color: #36b9cc;
+        }
+        
+        .role-editor {
+            background-color: #1cc88a;
+        }
+        
+        .role-other {
+            background-color: #f6c23e;
+        }
+        
+        .contributor-section {
+            margin-bottom: 2rem;
+        }
+        
+        .contributor-role-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #4e73df;
         }
         
         .back-to-search {
@@ -476,6 +602,14 @@ if ($bookId > 0) {
             color: #0056b3;
             font-weight: 500;
             text-align: center;
+        }
+        
+        .additional-contributors {
+            font-size: 0.9rem;
+            font-style: italic;
+            margin-top: -1rem;
+            margin-bottom: 1.5rem;
+            color: rgba(255, 255, 255, 0.8);
         }
         
         /* Responsive adjustments */
@@ -601,6 +735,27 @@ if ($bookId > 0) {
                             <?php echo htmlspecialchars($primaryAuthor); ?>
                         </p>
                         
+                        <?php if (!empty($coAuthors) || !empty($editors)): ?>
+                        <div class="additional-contributors">
+                            <?php 
+                            $additionalInfo = [];
+                            if (count($contributorsByRole['Author']) > 1) {
+                                $additionalInfo[] = (count($contributorsByRole['Author']) - 1) . " more author" . 
+                                    (count($contributorsByRole['Author']) > 2 ? "s" : "");
+                            }
+                            if (!empty($coAuthors)) {
+                                $additionalInfo[] = count($coAuthors) . " co-author" . (count($coAuthors) > 1 ? "s" : "");
+                            }
+                            if (!empty($editors)) {
+                                $additionalInfo[] = count($editors) . " editor" . (count($editors) > 1 ? "s" : "");
+                            }
+                            if (!empty($additionalInfo)) {
+                                echo "With " . implode(", ", $additionalInfo);
+                            }
+                            ?>
+                        </div>
+                        <?php endif; ?>
+                        
                         <!-- Copy Summary -->
                         <div class="copy-summary">
                             <i class="fas fa-book-reader me-2"></i>
@@ -664,7 +819,7 @@ if ($bookId > 0) {
                                     <i class="fas fa-align-left me-1"></i> Description
                                 </button>
                             </li>
-                            <?php if (count($contributors) > 1): ?>
+                            <?php if (count($contributors) > 0): ?>
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link" id="contributors-tab" data-bs-toggle="tab" data-bs-target="#contributors" type="button" role="tab" aria-controls="contributors" aria-selected="false">
                                     <i class="fas fa-users me-1"></i> Contributors
@@ -712,7 +867,7 @@ if ($bookId > 0) {
                                     </div>
                                     
                                     <div class="detail-item">
-                                        <span class="detail-label">Author</span>
+                                        <span class="detail-label">Main Author</span>
                                         <span class="detail-value"><?php echo htmlspecialchars($primaryAuthor); ?></span>
                                     </div>
                                 </div>
@@ -827,14 +982,63 @@ if ($bookId > 0) {
                             </div>
                             
                             <!-- Contributors Tab -->
-                            <?php if (count($contributors) > 1): ?>
+                            <?php if (count($contributors) > 0): ?>
                             <div class="tab-pane fade" id="contributors" role="tabpanel" aria-labelledby="contributors-tab">
-                                <?php foreach ($contributors as $contributor): ?>
-                                <div class="contributor-item">
-                                    <span class="contributor-name"><?php echo htmlspecialchars($contributor['name']); ?></span>
-                                    <span class="contributor-role"><?php echo htmlspecialchars($contributor['role']); ?></span>
+                                <?php if (!empty($contributorsByRole['Author'])): ?>
+                                <div class="contributor-section">
+                                    <h4 class="contributor-role-title">
+                                        <i class="fas fa-pen-fancy me-2"></i> Authors
+                                    </h4>
+                                    <?php foreach ($contributorsByRole['Author'] as $author): ?>
+                                    <div class="contributor-item">
+                                        <span class="contributor-name"><?php echo htmlspecialchars($author['name']); ?></span>
+                                        <span class="contributor-role role-author">Author</span>
+                                    </div>
+                                    <?php endforeach; ?>
                                 </div>
-                                <?php endforeach; ?>
+                                <?php endif; ?>
+                                
+                                <?php if (!empty($contributorsByRole['Co-Author'])): ?>
+                                <div class="contributor-section">
+                                    <h4 class="contributor-role-title">
+                                        <i class="fas fa-user-friends me-2"></i> Co-Authors
+                                    </h4>
+                                    <?php foreach ($contributorsByRole['Co-Author'] as $coAuthor): ?>
+                                    <div class="contributor-item">
+                                        <span class="contributor-name"><?php echo htmlspecialchars($coAuthor['name']); ?></span>
+                                        <span class="contributor-role role-coauthor">Co-Author</span>
+                                    </div>
+                                    <?php endforeach; ?>
+                                </div>
+                                <?php endif; ?>
+                                
+                                <?php if (!empty($contributorsByRole['Editor'])): ?>
+                                <div class="contributor-section">
+                                    <h4 class="contributor-role-title">
+                                        <i class="fas fa-edit me-2"></i> Editors
+                                    </h4>
+                                    <?php foreach ($contributorsByRole['Editor'] as $editor): ?>
+                                    <div class="contributor-item">
+                                        <span class="contributor-name"><?php echo htmlspecialchars($editor['name']); ?></span>
+                                        <span class="contributor-role role-editor">Editor</span>
+                                    </div>
+                                    <?php endforeach; ?>
+                                </div>
+                                <?php endif; ?>
+                                
+                                <?php if (!empty($contributorsByRole['Other'])): ?>
+                                <div class="contributor-section">
+                                    <h4 class="contributor-role-title">
+                                        <i class="fas fa-users me-2"></i> Other Contributors
+                                    </h4>
+                                    <?php foreach ($contributorsByRole['Other'] as $other): ?>
+                                    <div class="contributor-item">
+                                        <span class="contributor-name"><?php echo htmlspecialchars($other['name']); ?></span>
+                                        <span class="contributor-role role-other"><?php echo htmlspecialchars($other['role']); ?></span>
+                                    </div>
+                                    <?php endforeach; ?>
+                                </div>
+                                <?php endif; ?>
                             </div>
                             <?php endif; ?>
                         </div>

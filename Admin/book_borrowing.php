@@ -14,14 +14,6 @@ if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Lib
     <div class="container-fluid px-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1 class="h3 mb-0 text-gray-800">Book Borrowing</h1>
-            <div>
-                <a href="borrowed_books.php" class="btn btn-info mr-2">
-                    <i class="fas fa-list mr-1"></i> View Issued Books
-                </a>
-                <button type="submit" form="borrowingForm" class="btn btn-primary">
-                    <i class="fas fa-check-circle mr-2"></i>Process Borrowing
-                </button>
-            </div>
         </div>
         
         <!-- Instructions Card -->
@@ -65,6 +57,14 @@ if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Lib
         <div class="card shadow">
             <div class="card-header py-3 d-flex justify-content-between align-items-center">
                 <h6 class="m-0 font-weight-bold text-primary">Book Borrowing Form</h6>
+                <div>
+                    <a href="borrowed_books.php" class="btn btn-info mr-2">
+                        <i class="fas fa-list mr-1"></i> View Issued Books
+                    </a>
+                    <button type="submit" form="borrowingForm" class="btn btn-primary">
+                        <i class="fas fa-check-circle mr-2"></i>Process Borrowing
+                    </button>
+                </div>
             </div>
             <div class="card-body">
                 <form id="borrowingForm" method="POST" action="process_borrowing.php">

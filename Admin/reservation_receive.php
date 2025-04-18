@@ -12,19 +12,28 @@ $admin_id = $_SESSION['admin_id'];
 
 // Get input data - either from GET for single or POST for bulk
 $ids = [];
+$direct_issue = false;
+
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['id'])) {
     $ids[] = intval($_GET['id']);
+    $direct_issue = isset($_GET['direct']) && $_GET['direct'] === '1';
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $json = file_get_contents('php://input');
     $data = json_decode($json, true);
     if (isset($data['ids']) && !empty($data['ids'])) {
         $ids = array_map('intval', $data['ids']);
+        $direct_issue = isset($data['direct']) && $data['direct'] === true;
     }
 }
 
 if (empty($ids)) {
-    echo json_encode(['success' => false, 'message' => 'No reservations selected']);
-    exit();
+    if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+        header("Location: book_reservations.php?error=No reservations selected");
+        exit();
+    } else {
+        echo json_encode(['success' => false, 'message' => 'No reservations selected']);
+        exit();
+    }
 }
 
 // Start transaction
@@ -33,7 +42,8 @@ $conn->begin_transaction();
 try {
     $ids_string = implode(',', $ids);
     
-    // Get reservations that are in ACTIVE or READY status and include shelf_location
+    // Get reservations that are in PENDING, ACTIVE or READY status and include shelf_location
+    // Modified to include 'Pending' status
     $query = "SELECT r.id, r.book_id, r.user_id, b.title, u.firstname, u.lastname, b.shelf_location, r.status
               FROM reservations r
               JOIN books b ON r.book_id = b.id
@@ -41,7 +51,7 @@ try {
               WHERE r.id IN ($ids_string)
               AND r.recieved_date IS NULL 
               AND r.cancel_date IS NULL
-              AND r.status IN ('Active', 'Ready')";
+              AND r.status IN ('Pending', 'Active', 'Ready')";
     
     $result = $conn->query($query);
     
@@ -49,12 +59,18 @@ try {
         throw new Exception("No valid reservations found to process");
     }
 
-    // Remove the READY status validation since we now accept PENDING too
-    $result->data_seek(0);
+    $success_count = 0;
+    $errors = [];
 
     while ($row = $result->fetch_assoc()) {
-        // Check if book is available when reservation is in PENDING status
+        // For pending reservations, check if direct issue is allowed
         if ($row['status'] === 'Pending') {
+            if (!$direct_issue) {
+                $errors[] = "Reservation for '{$row['title']}' is pending and not ready for pickup. Mark as ready first.";
+                continue;
+            }
+            
+            // Check if book is available for direct issue
             $check_book = "SELECT status FROM books WHERE id = ?";
             $stmt = $conn->prepare($check_book);
             $stmt->bind_param("i", $row['book_id']);
@@ -63,7 +79,21 @@ try {
             $book_status = $book_result->fetch_assoc();
             
             if ($book_status['status'] !== 'Available') {
-                throw new Exception("Book '{$row['title']}' is not available for immediate borrowing");
+                $errors[] = "Book '{$row['title']}' is not available for immediate borrowing";
+                continue;
+            }
+            
+            // For direct issue, first mark as ready
+            $ready_sql = "UPDATE reservations 
+                         SET status = 'Ready',
+                             ready_date = NOW(),
+                             ready_by = ?
+                         WHERE id = ?";
+            $stmt = $conn->prepare($ready_sql);
+            $stmt->bind_param("ii", $admin_id, $row['id']);
+            if (!$stmt->execute()) {
+                $errors[] = "Error updating reservation status for '{$row['title']}'";
+                continue;
             }
         }
 
@@ -86,7 +116,8 @@ try {
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("ii", $admin_id, $row['id']);
         if (!$stmt->execute()) {
-            throw new Exception("Error updating reservation");
+            $errors[] = "Error updating reservation for '{$row['title']}'";
+            continue;
         }
 
         // Update book status
@@ -96,7 +127,8 @@ try {
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("i", $row['book_id']);
         if (!$stmt->execute()) {
-            throw new Exception("Error updating book status");
+            $errors[] = "Error updating book status for '{$row['title']}'";
+            continue;
         }
 
         // Create borrowing record using adjusted allowed_days
@@ -106,17 +138,52 @@ try {
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("iiii", $row['user_id'], $row['book_id'], $admin_id, $allowed_days);
         if (!$stmt->execute()) {
-            throw new Exception("Error creating borrowing record");
+            $errors[] = "Error creating borrowing record for '{$row['title']}'";
+            continue;
         }
 
-        // Removed user statistics update since borrowed_books column no longer exists
+        $success_count++;
     }
 
-    $conn->commit();
-    echo json_encode(['success' => true]);
+    if (!empty($errors) && $success_count === 0) {
+        // If nothing succeeded, roll back and return error
+        $conn->rollback();
+        $error_message = implode("\n", $errors);
+        
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            header("Location: book_reservations.php?error=" . urlencode($error_message));
+            exit();
+        } else {
+            echo json_encode(['success' => false, 'message' => $error_message]);
+            exit();
+        }
+    } else {
+        // Commit successful transactions
+        $conn->commit();
+        
+        $message = "$success_count book(s) issued successfully";
+        if (!empty($errors)) {
+            $message .= ". However, there were some errors: " . implode("; ", $errors);
+        }
+        
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            header("Location: book_reservations.php?success=" . urlencode($message));
+            exit();
+        } else {
+            echo json_encode(['success' => true, 'message' => $message, 'errors' => $errors]);
+            exit();
+        }
+    }
 } catch (Exception $e) {
     $conn->rollback();
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    
+    if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+        header("Location: book_reservations.php?error=" . urlencode($e->getMessage()));
+        exit();
+    } else {
+        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        exit();
+    }
 }
 
 $conn->close();
