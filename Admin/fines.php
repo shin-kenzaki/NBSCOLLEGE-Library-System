@@ -257,8 +257,7 @@ $totalPaidValue = $paidFinesRow['total_paid_value'] ?: 0;
                         <span class="text-primary font-weight-bold">Filter applied:</span>
                         Showing <span id="totalResults"><?= $totalRecords ?></span> result<span id="pluralSuffix"><?= $totalRecords != 1 ? 's' : '' ?></span>
                     </span>
-                    <button id="generateReceiptBtn" class="btn btn-primary btn-sm mr-2">Generate Receipt</button>
-                    <button id="remindAllBtn" class="btn btn-warning btn-sm mr-2">Remind All</button>
+                    <button id="generateReceiptBtn" class="btn btn-primary btn-sm" disabled>Generate Receipt</button>                    <button id="remindAllBtn" class="btn btn-warning btn-sm mr-2">Remind All</button>
                     <button id="exportPaidFinesBtn" class="btn btn-success btn-sm mr-2">Export Paid Fines</button>
                     <button id="exportUnpaidFinesBtn" class="btn btn-danger btn-sm">Export Unpaid Fines</button>
                 </div>
@@ -724,6 +723,35 @@ else if (action === 'mark-unpaid') {
 <!-- generate receipt script -->
 <script>
 $(document).ready(function () {
+    // Function to update the "Generate Receipt" button text and state
+    function updateGenerateReceiptButton() {
+        const selectedCount = $('.fineCheckbox:checked').length; // Count selected checkboxes
+        const button = $('#generateReceiptBtn'); // Reference to the button
+
+        if (selectedCount > 0) {
+            button.text(`Generate Receipt (${selectedCount})`); // Update button text with count
+            button.prop('disabled', false); // Enable the button
+        } else {
+            button.text('Generate Receipt'); // Reset button text
+            button.prop('disabled', true); // Disable the button
+        }
+    }
+
+    // Call the function on page load to initialize the button state
+    updateGenerateReceiptButton();
+
+    // Update the button text and state when a checkbox is clicked
+    $('.fineCheckbox').on('change', function () {
+        updateGenerateReceiptButton();
+    });
+
+    // Update the button text and state when the "Select All" checkbox is clicked
+    $('#selectAll').on('change', function () {
+        $('.fineCheckbox').prop('checked', $(this).prop('checked')); // Check/uncheck all checkboxes
+        updateGenerateReceiptButton(); // Update the button text and state
+    });
+
+    // Generate Receipt button click handler
     $('#generateReceiptBtn').on('click', function () {
         const selectedRows = $('.fineCheckbox:checked');
         if (selectedRows.length === 0) {
@@ -740,7 +768,7 @@ $(document).ready(function () {
         let hasInvalidStatus = false;
         selectedRows.each(function () {
             const row = $(this).closest('tr');
-            const status = row.find('td:nth-child(11)').text().trim(); // Status column
+            const status = row.find('td:nth-child(11)').text().trim(); // Adjust column index if needed
             if (status !== 'Unpaid') {
                 hasInvalidStatus = true;
                 return false; // Break the loop
@@ -833,18 +861,18 @@ $(document).ready(function () {
                 </div>
             `,
             imageUrl: '/Library-System/Admin/inc/img/horizontal-nbs-logo.png',
-            imageWidth: 300, // Adjust the width of the image
-            imageHeight: 150, // Adjust the height of the image
-            imageAlt: 'Receipt Icon', // Alt text for the image
+            imageWidth: 300,
+            imageHeight: 150,
+            imageAlt: 'Receipt Icon',
             showCancelButton: true,
             confirmButtonText: 'Generate Receipt',
             cancelButtonText: 'Cancel',
             confirmButtonColor: '#28a745',
             cancelButtonColor: '#dc3545',
             customClass: {
-                popup: 'swal-wide' // Add a custom class to the popup
+                popup: 'swal-wide'
             },
-            width: 'auto', // Dynamically adjust the width based on content
+            width: 'auto',
         }).then((result) => {
             if (result.isConfirmed) {
                 // Redirect to fine-receipt.php with the selected fine IDs
