@@ -257,7 +257,10 @@ $totalPaidValue = $paidFinesRow['total_paid_value'] ?: 0;
                         <span class="text-primary font-weight-bold">Filter applied:</span>
                         Showing <span id="totalResults"><?= $totalRecords ?></span> result<span id="pluralSuffix"><?= $totalRecords != 1 ? 's' : '' ?></span>
                     </span>
-                    <button id="generateReceiptBtn" class="btn btn-primary btn-sm" disabled>Generate Receipt</button>                    <button id="remindAllBtn" class="btn btn-warning btn-sm mr-2">Remind All</button>
+                    <button id="markAsPaidBtn" class="btn btn-success btn-sm" disabled>Mark as Paid</button>
+                    <button id="markAsUnpaidBtn" class="btn btn-danger btn-sm" disabled>Mark as Unpaid</button>
+                    <button id="generateReceiptBtn" class="btn btn-primary btn-sm" disabled>Generate Receipt</button>
+                    <button id="remindAllBtn" class="btn btn-warning btn-sm mr-2">Remind All</button>
                     <button id="exportPaidFinesBtn" class="btn btn-success btn-sm mr-2">Export Paid Fines</button>
                     <button id="exportUnpaidFinesBtn" class="btn btn-danger btn-sm">Export Unpaid Fines</button>
                 </div>
@@ -1037,6 +1040,301 @@ $(document).ready(function () {
     });
 });
 
+
+
+
+</script>
+
+<script>
+
+$(document).ready(function () {
+    // Function to update the state of buttons and their text
+    function updateActionButtons() {
+        const selectedRows = $('.fineCheckbox:checked');
+        const selectedCount = selectedRows.length; // Count selected checkboxes
+        const markPaidBtn = $('#markAsPaidBtn');
+        const markUnpaidBtn = $('#markAsUnpaidBtn');
+        const statusFilter = $('#status').val(); // Get the current filter status
+
+        // Update button text with the count
+        markPaidBtn.text(`Mark as Paid (${selectedCount})`);
+        markUnpaidBtn.text(`Mark as Unpaid (${selectedCount})`);
+
+        // Enable or disable buttons based on the selected count and filter status
+        if (selectedCount > 0) {
+            if (statusFilter === 'Paid') {
+                markPaidBtn.prop('disabled', true); // Disable "Mark as Paid" if filter is "Paid"
+                markUnpaidBtn.prop('disabled', false); // Enable "Mark as Unpaid"
+            } else if (statusFilter === 'Unpaid') {
+                markPaidBtn.prop('disabled', false); // Enable "Mark as Paid"
+                markUnpaidBtn.prop('disabled', true); // Disable "Mark as Unpaid"
+            } else {
+                // If no specific filter is applied, enable both buttons
+                markPaidBtn.prop('disabled', false);
+                markUnpaidBtn.prop('disabled', false);
+            }
+        } else {
+            // Disable both buttons if no rows are selected
+            markPaidBtn.prop('disabled', true);
+            markUnpaidBtn.prop('disabled', true);
+        }
+    }
+
+    // Call the function on page load to initialize the button state
+    updateActionButtons();
+
+    // Update the button state when a checkbox is clicked
+    $('.fineCheckbox').on('change', function () {
+        updateActionButtons();
+    });
+
+    // Update the button state when the "Select All" checkbox is clicked
+    $('#selectAll').on('change', function () {
+        $('.fineCheckbox').prop('checked', $(this).prop('checked')); // Check/uncheck all checkboxes
+        updateActionButtons(); // Update the button state
+    });
+
+    // Update the button state when the filter status changes
+    $('#status').on('change', function () {
+        updateActionButtons(); // Recalculate button states based on the new filter
+    });
+
+
+    $('#markAsPaidBtn').on('click', function () {
+    const selectedRows = $('.fineCheckbox:checked');
+    const fineIds = selectedRows.map(function () {
+        return $(this).val();
+    }).get();
+
+    if (fineIds.length === 0) {
+        Swal.fire({
+            title: 'Error',
+            text: 'Please select at least one fine to mark as paid.',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+        return;
+    }
+
+    // Check if any selected row already has the status "Paid"
+    let hasInvalidStatus = false;
+    selectedRows.each(function () {
+        const status = $(this).closest('tr').data('status');
+        if (status === 'Paid') {
+            hasInvalidStatus = true;
+            return false; // Break the loop
+        }
+    });
+
+    if (hasInvalidStatus) {
+        Swal.fire({
+            title: 'Error',
+            text: 'Cannot mark fines as paid that are already paid.',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+        return;
+    }
+
+    // Collect borrower names and total amount
+    const borrowerNames = [];
+    let totalAmount = 0;
+    selectedRows.each(function () {
+        const borrower = $(this).closest('tr').data('borrower');
+        const amount = parseFloat($(this).closest('tr').data('amount'));
+        if (!borrowerNames.includes(borrower)) {
+            borrowerNames.push(borrower);
+        }
+        totalAmount += amount;
+    });
+
+    if (borrowerNames.length > 1) {
+        Swal.fire({
+            title: 'Error',
+            text: 'Cannot mark as paid for fines with different borrowers.',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+        return;
+    }
+
+    const borrower = borrowerNames[0];
+
+    Swal.fire({
+        title: 'Confirm Payment',
+        html: `
+            <div class="text-left">
+                <p class="mb-2"><strong>Borrower:</strong> ${borrower}</p>
+                <p class="mb-2"><strong>Total Amount:</strong> ₱${totalAmount.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</p>
+
+                <div class="form-group mt-3">
+                    <label for="payment_date" class="float-left"><strong>Payment Date:</strong></label>
+                    <input type="date" id="payment_date" class="form-control" value="${new Date().toISOString().split('T')[0]}">
+                </div>
+
+                <div class="form-group mt-3">
+                    <label for="invoice_sale" class="float-left"><strong>Invoice/OR Number:</strong></label>
+                    <input type="text" id="invoice_sale" class="form-control" placeholder="Enter invoice or OR number">
+                </div>
+            </div>
+        `,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: `<i class="fas fa-check"></i> Confirm Payment`,
+        cancelButtonText: '<i class="fas fa-times"></i> Cancel',
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#dc3545',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showLoaderOnConfirm: true,
+        customClass: {
+            confirmButton: 'btn btn-success',
+            cancelButton: 'btn btn-danger'
+        },
+        preConfirm: () => {
+            const paymentDate = document.getElementById('payment_date').value;
+            const invoiceSale = document.getElementById('invoice_sale').value;
+
+            // Validate inputs
+            if (!paymentDate) {
+                Swal.showValidationMessage('Payment date is required');
+                return false;
+            }
+            if (!invoiceSale) {
+                Swal.showValidationMessage('Invoice/OR number is required');
+                return false;
+            }
+
+            // Submit the form to generate the receipt
+            const form = $('<form>', {
+                method: 'POST',
+                action: 'mark_fine_paid.php',
+                target: '_blank'
+            });
+
+            form.append($('<input>', {
+                type: 'hidden',
+                name: 'fine_ids',
+                value: JSON.stringify(fineIds)
+            }));
+            form.append($('<input>', {
+                type: 'hidden',
+                name: 'payment_date',
+                value: paymentDate
+            }));
+            form.append($('<input>', {
+                type: 'hidden',
+                name: 'invoice_sale',
+                value: invoiceSale
+            }));
+
+            $('body').append(form);
+            form.submit();
+            form.remove();
+
+            return true; // Resolve the SweetAlert promise
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Payment Recorded!',
+                text: 'The fines have been successfully marked as paid.',
+                confirmButtonColor: '#28a745',
+                confirmButtonText: 'OK'
+            }).then(() => {
+                window.location.reload();
+            });
+        }
+    });
+});
+
+    // Handle "Mark as Unpaid" button click
+    $('#markAsUnpaidBtn').on('click', function () {
+        const selectedRows = $('.fineCheckbox:checked');
+        const fineIds = selectedRows.map(function () {
+            return $(this).val();
+        }).get();
+
+        if (fineIds.length === 0) {
+            Swal.fire({
+                title: 'Error',
+                text: 'Please select at least one fine to mark as unpaid.',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+
+        // Check if any selected row already has the status "Unpaid"
+        let hasInvalidStatus = false;
+        selectedRows.each(function () {
+            const status = $(this).closest('tr').data('status');
+            if (status === 'Unpaid') {
+                hasInvalidStatus = true;
+                return false; // Break the loop
+            }
+        });
+
+        if (hasInvalidStatus) {
+            Swal.fire({
+                title: 'Error',
+                text: 'Cannot mark fines as unpaid that are already unpaid.',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+
+        Swal.fire({
+            title: 'Confirm Action',
+            text: 'Are you sure you want to mark the selected fines as unpaid?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: `<i class="fas fa-check"></i> Yes, Mark as Unpaid`,
+            cancelButtonText: '<i class="fas fa-times"></i> Cancel',
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#dc3545',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showLoaderOnConfirm: true,
+            preConfirm: () => {
+                return fetch('mark_fine_unpaid.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `fine_ids=${encodeURIComponent(JSON.stringify(fineIds))}`
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'error') {
+                            throw new Error(data.message);
+                        }
+                        return data;
+                    })
+                    .catch(error => {
+                        Swal.showValidationMessage(`Error: ${error.message}`);
+                    });
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Status Updated!',
+                    text: 'The fines have been successfully marked as unpaid.',
+                    confirmButtonColor: '#28a745',
+                    confirmButtonText: 'OK'
+                }).then(() => {
+                    window.location.reload();
+                });
+            }
+        });
+    });
+});
+
+
+// filter for disbabling paid and unpaid button
 
 
 
