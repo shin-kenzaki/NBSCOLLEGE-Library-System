@@ -299,16 +299,8 @@ $accession_error = '';
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <h4 class="mb-0">Title Information</h4>
                                     <div class="btn-group">
-                                        <!-- Previous button if not first tab -->
-                                        <button type="button" class="btn btn-outline-secondary btn-sm prev-tab me-2" data-prev="title-tab">
-                                            <i class="fas fa-chevron-left"></i> Previous
-                                        </button>
                                         <button type="button" class="btn btn-outline-secondary btn-sm clear-tab-btn" data-tab-id="title-proper">
                                             <i class="fas fa-eraser"></i> Clear Tab
-                                        </button>
-                                        <!-- Next button if not last tab -->
-                                        <button type="button" class="btn btn-outline-primary btn-sm next-tab ms-2" data-next="subject-tab">
-                                            Next <i class="fas fa-chevron-right"></i>
                                         </button>
                                     </div>
                                 </div>
@@ -333,14 +325,8 @@ $accession_error = '';
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <h4 class="mb-0">Subject Entry</h4>
                                     <div class="btn-group">
-                                        <button type="button" class="btn btn-outline-secondary btn-sm prev-tab" data-prev="title-tab">
-                                            <i class="fas fa-chevron-left"></i> Previous
-                                        </button>
                                         <button type="button" class="btn btn-outline-secondary btn-sm clear-tab-btn" data-tab-id="subject-entry">
                                             <i class="fas fa-eraser"></i> Clear Tab
-                                        </button>
-                                        <button type="button" class="btn btn-outline-primary btn-sm next-tab" data-next="abstracts-tab">
-                                            Next <i class="fas fa-chevron-right"></i>
                                         </button>
                                     </div>
                                 </div>
@@ -375,16 +361,8 @@ $accession_error = '';
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <h4 class="mb-0">Abstract & Notes</h4>
                                     <div class="btn-group">
-                                        <!-- Previous button if not first tab -->
-                                        <button type="button" class="btn btn-outline-secondary btn-sm prev-tab me-2" data-prev="subject-tab">
-                                            <i class="fas fa-chevron-left"></i> Previous
-                                        </button>
                                         <button type="button" class="btn btn-outline-secondary btn-sm clear-tab-btn" data-tab-id="abstracts">
                                             <i class="fas fa-eraser"></i> Clear Tab
-                                        </button>
-                                        <!-- Next button if not last tab -->
-                                        <button type="button" class="btn btn-outline-primary btn-sm next-tab ms-2" data-next="description-tab">
-                                            Next <i class="fas fa-chevron-right"></i>
                                         </button>
                                     </div>
                                 </div>
@@ -404,16 +382,8 @@ $accession_error = '';
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <h4 class="mb-0">Description</h4>
                                     <div class="btn-group">
-                                        <!-- Previous button if not first tab -->
-                                        <button type="button" class="btn btn-outline-secondary btn-sm prev-tab me-2" data-prev="abstracts-tab">
-                                            <i class="fas fa-chevron-left"></i> Previous
-                                        </button>
                                         <button type="button" class="btn btn-outline-secondary btn-sm clear-tab-btn" data-tab-id="description">
                                             <i class="fas fa-eraser"></i> Clear Tab
-                                        </button>
-                                        <!-- Next button if not last tab -->
-                                        <button type="button" class="btn btn-outline-primary btn-sm next-tab ms-2" data-next="local-info-tab">
-                                            Next <i class="fas fa-chevron-right"></i>
                                         </button>
                                     </div>
                                 </div>
@@ -480,16 +450,8 @@ $accession_error = '';
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <h4 class="mb-0">Local Information</h4>
                                     <div class="btn-group">
-                                        <!-- Previous button if not first tab -->
-                                        <button type="button" class="btn btn-outline-secondary btn-sm prev-tab me-2" data-prev="description-tab">
-                                            <i class="fas fa-chevron-left"></i> Previous
-                                        </button>
                                         <button type="button" class="btn btn-outline-secondary btn-sm clear-tab-btn" data-tab-id="local-info">
                                             <i class="fas fa-eraser"></i> Clear Tab
-                                        </button>
-                                        <!-- Next button if not last tab -->
-                                        <button type="button" class="btn btn-outline-primary btn-sm next-tab ms-2" data-next="publication-tab">
-                                            Next <i class="fas fa-chevron-right"></i>
                                         </button>
                                     </div>
                                 </div>
@@ -606,10 +568,6 @@ $accession_error = '';
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <h4 class="mb-0">Publication Details</h4>
                                     <div class="btn-group">
-                                        <!-- Previous button if not first tab -->
-                                        <button type="button" class="btn btn-outline-secondary btn-sm prev-tab me-2" data-prev="local-info-tab">
-                                            <i class="fas fa-chevron-left"></i> Previous
-                                        </button>
                                         <button type="button" class="btn btn-outline-secondary btn-sm clear-tab-btn" data-tab-id="publication">
                                             <i class="fas fa-eraser"></i> Clear Tab
                                         </button>
@@ -866,14 +824,13 @@ $accession_error = '';
                                     <li>This form is divided into multiple tabs for easier data entry.</li>
                                     <li>Complete each tab before proceeding to the next.</li>
                                     <li>Required fields are marked with an asterisk (*).</li>
-                                    <li>Use the tab navigation or the Previous/Next buttons to move between sections.</li>
+                                    <li>Use the tab navigation to move between sections.</li>
                                 </ul>
                             </div>
                         </div>
                     </div>
                     
                     <div class="tab-pane fade" id="accession" role="tabpanel" aria-labelledby="accession-tab">
-                        <!-- Existing accession content -->
                         <div class="card mb-3">
                             <div class="card-header bg-light">
                                 <h6 class="m-0 font-weight-bold">Accession and Call Numbers</h6>
@@ -889,7 +846,6 @@ $accession_error = '';
                     </div>
                     
                     <div class="tab-pane fade" id="author" role="tabpanel" aria-labelledby="author-tab">
-                        <!-- Existing author content -->
                         <div class="card mb-3">
                             <div class="card-header bg-light">
                                 <h6 class="m-0 font-weight-bold">Author, Publisher, and Subject Information</h6>
@@ -1157,207 +1113,6 @@ $accession_error = '';
 <!-- Include JavaScript Files -->
 <script src="js/form-validation.js"></script>
 <script>
-/**
- * Fallback for call number generation in case the main implementation fails
- */
-document.addEventListener('DOMContentLoaded', function() {
-    // Wait for DOM to be fully loaded
-    setTimeout(function() {
-        const callNumberContainer = document.getElementById('callNumberContainer');
-        const accessionContainer = document.getElementById('accessionContainer');
-        
-        // Only run if call number container exists and is empty
-        if (callNumberContainer && callNumberContainer.children.length === 0 && accessionContainer) {
-            console.log('Call number fallback mechanism activated');
-            
-            // Save any existing copy numbers from another container if present
-            const existingCopyNumbers = {};
-            document.querySelectorAll('.copy-number-input').forEach((input, index) => {
-                existingCopyNumbers[index] = input.value;
-            });
-            
-            // Try to create call numbers manually
-            const accessionGroups = accessionContainer.querySelectorAll('.accession-group');
-            
-            // Track total copies for continuous numbering
-            let totalCopiesCount = 0;
-            
-            if (accessionGroups.length > 0) {
-                accessionGroups.forEach((group, groupIndex) => {
-                    const accessionInput = group.querySelector('.accession-input');
-                    const copiesInput = group.querySelector('.copies-input');
-                    
-                    if (accessionInput && copiesInput) {
-                        const accessionValue = accessionInput.value || `ACC-${groupIndex + 1}`;
-                        const copiesCount = parseInt(copiesInput.value) || 1;
-                        
-                        // Create heading for this group
-                        const groupHeader = document.createElement('div');
-                        groupHeader.className = 'mb-2 text-muted small font-weight-bold';
-                        groupHeader.innerHTML = `Accession Group ${groupIndex + 1}: ${accessionValue}`;
-                        callNumberContainer.appendChild(groupHeader);
-                        
-                        // Create call number entries for each copy
-                        for (let i = 0; i < copiesCount; i++) {
-                            // Calculate accession with increment if possible
-                            let currentAccession = accessionValue;
-                            if (i > 0) {
-                                // Simple increment logic
-                                if (/\d+$/.test(accessionValue)) {
-                                    const base = accessionValue.replace(/\d+$/, '');
-                                    const num = parseInt(accessionValue.match(/\d+$/)[0]);
-                                    currentAccession = base + (num + i).toString().padStart(accessionValue.match(/\d+$/)[0].length, '0');
-                                }
-                            }
-                            
-                            // Create call number input group
-                            const callNumberDiv = document.createElement('div');
-                            callNumberDiv.className = 'input-group mb-2';
-                            
-                            const accessionLabel = document.createElement('span');
-                            accessionLabel.className = 'input-group-text';
-                            accessionLabel.textContent = `Accession ${currentAccession}`;
-                            
-                            const callNumberInput = document.createElement('input');
-                            callNumberInput.type = 'text';
-                            callNumberInput.className = 'form-control call-number-input';
-                            callNumberInput.name = 'call_number[]';
-                            callNumberInput.placeholder = 'Enter call number';
-                            
-                            // Add a formatter function for this input
-                            callNumberInput.addEventListener('input', function() {
-                                updateFormattedCallNumber(this);
-                            });
-                            
-                            const copyNumberLabel = document.createElement('span');
-                            copyNumberLabel.className = 'input-group-text';
-                            copyNumberLabel.textContent = 'Copy Number';
-                            
-                            // Use saved copy number if available, otherwise use continuous numbering
-                            const copyIndex = totalCopiesCount + i;
-                            const copyNumberValue = existingCopyNumbers[copyIndex] || (totalCopiesCount + i + 1);
-                            
-                            const copyNumberInput = document.createElement('input');
-                            copyNumberInput.type = 'number';
-                            copyNumberInput.className = 'form-control copy-number-input';
-                            copyNumberInput.name = 'copy_number[]';
-                            copyNumberInput.min = '1';
-                            copyNumberInput.value = copyNumberValue;
-                            copyNumberInput.style.width = '70px';
-                            
-                            const shelfLocationSelect = document.createElement('select');
-                            shelfLocationSelect.className = 'form-control shelf-location-select';
-                            shelfLocationSelect.name = 'shelf_locations[]';
-                            
-                            // Add shelf location options
-                            const shelfOptions = [
-                                ['TR', 'Teachers Reference'],
-                                ['FIL', 'Filipiniana'],
-                                ['CIR', 'Circulation'],
-                                ['REF', 'Reference'],
-                                ['SC', 'Special Collection'],
-                                ['BIO', 'Biography'],
-                                ['RES', 'Reserve'],
-                                ['FIC', 'Fiction']
-                            ];
-                            
-                            shelfOptions.forEach(([value, text]) => {
-                                const option = document.createElement('option');
-                                option.value = value;
-                                option.textContent = text;
-                                if (value === 'CIR') option.selected = true;
-                                shelfLocationSelect.appendChild(option);
-                            });
-                            
-                            // Assemble the input group
-                            callNumberDiv.appendChild(accessionLabel);
-                            callNumberDiv.appendChild(callNumberInput);
-                            callNumberDiv.appendChild(copyNumberLabel);
-                            callNumberDiv.appendChild(copyNumberInput);
-                            callNumberDiv.appendChild(shelfLocationSelect);
-                            callNumberContainer.appendChild(callNumberDiv);
-                        }
-                        
-                        // Update the total count for next group
-                        totalCopiesCount += copiesCount;
-                    }
-                });
-                
-                console.log('Fallback successfully created call number fields');
-            }
-        }
-    }, 1000); // Wait 1 second to ensure other scripts have run
-    
-    // Listen for changes on accession inputs and update call numbers if needed
-    document.addEventListener('input', function(e) {
-        if (e.target && (e.target.classList.contains('accession-input') || e.target.classList.contains('copies-input'))) {
-            setTimeout(function() {
-                const callNumberContainer = document.getElementById('callNumberContainer');
-                if (callNumberContainer && callNumberContainer.children.length === 0) {
-                    console.log('Accession input changed, call number container empty - activating fallback');
-                    
-                    // Try direct generator first
-                    if (typeof generateCallNumbersDirectly === 'function') {
-                        generateCallNumbersDirectly();
-                    } else {
-                        // Otherwise use fallback generation logic
-                        const accessionContainer = document.getElementById('accessionContainer');
-                        const accessionGroups = accessionContainer.querySelectorAll('.accession-group');
-                        
-                        if (accessionGroups.length > 0) {
-                            // Use the existing fallback logic...
-                            console.log('Using fallback logic to generate call numbers');
-                        }
-                    }
-                }
-            }, 500);
-        }
-    });
-});
-
-// Add this helper function at the end of the file
-function updateFormattedCallNumber(input) {
-    const container = input.closest('.input-group');
-    if (!container) return;
-    
-    const baseCallNumber = input.value; // Don't trim to preserve spaces
-    if (!baseCallNumber) return;
-    
-    const shelfSelect = container.querySelector('.shelf-location-select');
-    const copyInput = container.querySelector('.copy-number-input');
-    if (!shelfSelect || !copyInput) return;
-    
-    const publishYear = document.getElementById('publish_date')?.value || '';
-    const shelf = shelfSelect.value;
-    const copy = 'c' + copyInput.value;
-    
-    // Build the formatted call number without modifying the base call number
-    const elements = [shelf, baseCallNumber];
-    if (publishYear) elements.push('c' + publishYear);
-    elements.push(copy);
-    const formatted = elements.join(' ');
-    
-    // Store in data attribute for form submission
-    input.dataset.formattedCallNumber = formatted;
-    
-    // Create or update preview element
-    let preview = container.querySelector('.call-number-preview');
-    if (!preview) {
-        preview = document.createElement('small');
-        preview.className = 'call-number-preview text-muted';
-        preview.style.position = 'absolute';
-        preview.style.right = '120px';
-        preview.style.top = '50%';
-        preview.style.transform = 'translateY(-50%)';
-        input.parentNode.style.position = 'relative';
-        input.parentNode.appendChild(preview);
-    }
-    
-    preview.textContent = `→ ${formatted}`;
-}
-</script>
-
-<script>
 // Form clear functionality integrated directly
 document.addEventListener('DOMContentLoaded', function() {
     // Clear individual tab sections
@@ -1421,6 +1176,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 field.value = field.getAttribute('value');
             }
         });
+        
+        // Remove 'completed' marker from this tab if exists
+        const tabLink = document.querySelector(`a[href="#${tabId}"]`);
+        if (tabLink) {
+            tabLink.classList.remove('completed');
+        }
+        
+        // Update progress bar if needed
+        updateFormProgress();
     }
 
     function clearAllTabs() {
@@ -1436,7 +1200,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Reset to first tab
         const firstTab = document.querySelector('#formTabs .nav-link');
-        if (firstTab) {
+        if (firstTab && typeof $(firstTab).tab === 'function') {
             $(firstTab).tab('show');
         }
 
@@ -1445,35 +1209,56 @@ document.addEventListener('DOMContentLoaded', function() {
             tab.classList.remove('completed');
         });
 
-        // Reset current tab index
-        window.currentTabIndex = 0;
-    }
-});
-</script>
+        // Reset current tab index if it's being tracked
+        if (typeof window.currentTabIndex !== 'undefined') {
+            window.currentTabIndex = 0;
+        }
 
-<script>
-/**
- * Form navigation and tab handling
- */
-document.addEventListener("DOMContentLoaded", function() {
-    // Variables to track form completion
-    const totalTabs = document.querySelectorAll('#formTabs .nav-link').length;
-    let completedTabs = 0;
-    let currentTabIndex = 0;
+        const accessionContainer = document.getElementById('accessionContainer');
+        if (accessionContainer) {
+            const firstGroup = accessionContainer.querySelector('.accession-group');
+            if (firstGroup) {
+                // Clear inputs
+                const accessionInput = firstGroup.querySelector('.accession-input');
+                const copiesInput = firstGroup.querySelector('.copies-input');
+                if (accessionInput) accessionInput.value = '';
+                if (copiesInput) copiesInput.value = '1';
+                
+                // Keep only the first group
+                accessionContainer.innerHTML = '';
+                accessionContainer.appendChild(firstGroup);
+            }
+        }
+        
+        // Clear call number container
+        const callNumberContainer = document.getElementById('callNumberContainer');
+        if (callNumberContainer) {
+            callNumberContainer.innerHTML = '';
+        }
+        
+        // Reset the form element
+        document.getElementById('bookForm').reset();
+        
+        // Refresh the form state in localStorage if autosave is enabled
+        if (typeof saveFormData === 'function') {
+            saveFormData();
+        }
+    }
     
-    const tabs = document.querySelectorAll('#formTabs .nav-link');
-    const tabContents = document.querySelectorAll('.tab-pane');
-    const progressBar = document.getElementById('formProgressBar');
-    
-    // Function to update progress bar
-    function updateProgressBar() {
-        const progressPercentage = (currentTabIndex / (totalTabs - 1)) * 100;
+    // Helper function to recalculate progress
+    function updateFormProgress() {
+        const totalTabs = document.querySelectorAll('#formTabs .nav-link').length;
+        const completedTabs = document.querySelectorAll('#formTabs .nav-link.completed').length;
+        
+        // Update progress bar
+        const progressBar = document.getElementById('formProgressBar');
         if (progressBar) {
+            const progressPercentage = totalTabs > 0 ? (completedTabs / totalTabs) * 100 : 0;
             progressBar.style.width = progressPercentage + '%';
             progressBar.setAttribute('aria-valuenow', progressPercentage);
         }
     }
-    
+
     // Function to validate current tab
     function validateCurrentTab() {
         const currentTab = tabs[currentTabIndex];
@@ -1585,31 +1370,15 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     });
     
-    // Disable direct tab clicking (completely prevent it)
+    // Modified: Allow direct tab clicking without restriction
     tabs.forEach((tab) => {
         tab.addEventListener('click', function(e) {
-            // Always prevent the default tab switching behavior first
-            e.preventDefault();
-            e.stopPropagation();
-            
             const clickedTabIndex = Array.from(tabs).indexOf(this);
+            currentTabIndex = clickedTabIndex;
+            updateProgressBar();
             
-            // Only allow clicking on completed tabs or the current tab
-            if (tab.classList.contains('completed')) {
-                // If it's a completed tab, allow navigation to it
-                currentTabIndex = clickedTabIndex;
-                updateProgressBar();
-                
-                // Use Bootstrap's tab method to show the tab
-                $(this).tab('show');
-            } else if (this === tabs[currentTabIndex]) {
-                // Clicking on current tab - do nothing but allow it
-                return false;
-            } else {
-                // Prevent navigation to any uncompleted tab
-                alert('Please complete the current section before skipping ahead.');
-            }
-            return false;
+            // Use Bootstrap's tab method to show the tab
+            $(this).tab('show');
         });
     });
     
@@ -1665,7 +1434,6 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 </script>
 
-<!-- Form Reset Handler -->
 <script>
 // Check if we need to reset the form (after successful submission)
 <?php if ($resetForm): ?>
@@ -1883,6 +1651,52 @@ document.addEventListener("DOMContentLoaded", function() {
         // Remove completed status from tab
         const tabButton = document.querySelector(`[href="#${tabId}"]`);
         if (tabButton) tabButton.classList.remove('completed');
+
+        // Special handling for Local Information tab
+        if (tabId === 'local-info') {
+            console.log('Clearing Local Information tab - resetting accession and call numbers');
+            // Clear accession groups, keeping only the first one and resetting its values
+            const accessionContainer = document.getElementById('accessionContainer');
+            if (accessionContainer) {
+                const firstGroup = accessionContainer.querySelector('.accession-group');
+                if (firstGroup) {
+                    // Clear inputs in the first group
+                    const accessionInput = firstGroup.querySelector('.accession-input');
+                    const copiesInput = firstGroup.querySelector('.copies-input');
+                    if (accessionInput) accessionInput.value = '';
+                    if (copiesInput) copiesInput.value = '1'; // Reset copies to 1
+
+                    // Remove all other groups
+                    Array.from(accessionContainer.children).forEach((child, index) => {
+                        if (index > 0) child.remove();
+                    });
+
+                    // Clear details within the first group if they exist
+                    const detailsSection = firstGroup.querySelector('.accession-details');
+                    if (detailsSection) {
+                        detailsSection.innerHTML = ''; // Clear details
+                    }
+                }
+            }
+
+            // Clear call numbers
+            const callNumberContainer = document.getElementById('callNumberContainer');
+            if (callNumberContainer) {
+                callNumberContainer.innerHTML = '';
+            }
+
+            // Clear ISBN container (if it exists and is separate)
+            const isbnContainer = document.getElementById('isbnContainer');
+            if (isbnContainer) {
+                isbnContainer.innerHTML = '';
+            }
+
+            // Optionally, re-run the function that generates the initial fields if needed
+            if (typeof updateISBNFields === 'function') {
+                 // Delay slightly to ensure DOM is updated before regenerating
+                 setTimeout(updateISBNFields, 50);
+            }
+        }
 
         // If this is the form-wide clear
         if (tabId === 'all') {
