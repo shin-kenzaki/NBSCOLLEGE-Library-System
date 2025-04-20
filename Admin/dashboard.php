@@ -21,7 +21,7 @@ $row = mysqli_fetch_assoc($result);
 $active_borrowings = $row['count'];
 
 // Total overdue books
-$result = mysqli_query($conn, "SELECT COUNT(*) as count FROM borrowings WHERE status = 'Active' AND due_date < '$today'");
+$result = mysqli_query($conn, "SELECT COUNT(*) as count FROM borrowings WHERE status = 'Overdue' AND due_date < '$today'");
 $row = mysqli_fetch_assoc($result);
 $overdue_books = $row['count'];
 
@@ -350,7 +350,7 @@ include '../admin/inc/header.php';
                                         </div>
                                     </div>
                                     <p class="text-muted mb-3">Currently borrowed books that have not been returned yet.</p>
-                                    <a href="borrowed_books.php" class="btn btn-primary btn-block">
+                                    <a href="borrowed_books.php?status=Active" class="btn btn-primary btn-block">
                                         <i class="fas fa-search mr-2"></i>View All Borrowings
                                     </a>
                                     <i class="fas fa-book-reader action-icon text-primary"></i>
