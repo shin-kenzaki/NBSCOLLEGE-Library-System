@@ -1415,6 +1415,8 @@ endif;
             contextMenu.find('[data-action="ready"]').toggle(status === 'Pending');
             contextMenu.find('[data-action="direct-issue"]').toggle(status === 'Pending');
             contextMenu.find('[data-action="received"]').toggle(status === 'Ready');
+            // Only show cancel for Pending or Ready
+            contextMenu.find('[data-action="cancel"]').toggle(status === 'Pending' || status === 'Ready');
             
             // Show menu
             contextMenu.show();
@@ -1429,7 +1431,9 @@ endif;
         $('.context-menu').on('click', '[data-action]', function() {
             const action = $(this).data('action');
             const id = $selectedRow.data('reservation-id');
-            
+            const bookTitle = $selectedRow.find('.book-details-title').text().trim();
+            const userName = $selectedRow.find('td:eq(1) strong').text().trim();
+
             switch(action) {
                 case 'ready':
                     window.location.href = `reservation_ready.php?id=${id}`;
@@ -1441,13 +1445,26 @@ endif;
                     window.location.href = `reservation_receive.php?id=${id}`;
                     break;
                 case 'cancel':
-                    window.location.href = `reservation_cancel.php?id=${id}&admin=1`;
+                    Swal.fire({
+                        title: 'Cancel Reservation?',
+                        html: `<p>Do you want to cancel this reservation?</p><div><strong>${bookTitle}</strong> (${userName})</div>`,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Yes, Cancel It',
+                        cancelButtonText: 'No, Keep It',
+                        confirmButtonColor: '#dc3545',
+                        cancelButtonColor: '#6c757d'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            window.location.href = `reservation_cancel.php?id=${id}&admin=1`;
+                        }
+                    });
                     break;
             }
             
             $('.context-menu').hide();
         });
-        
+
         // Initialize the DataTable without tooltips
         initializeDataTable();
     });

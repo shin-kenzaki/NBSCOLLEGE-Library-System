@@ -12,8 +12,10 @@ $admin_id = $_SESSION['admin_id'];
 
 // Get input data - either from GET for single or POST for bulk
 $ids = [];
+$is_get = false;
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['id'])) {
     $ids[] = intval($_GET['id']);
+    $is_get = true;
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $json = file_get_contents('php://input');
     $data = json_decode($json, true);
@@ -23,8 +25,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['id'])) {
 }
 
 if (empty($ids)) {
-    echo json_encode(['success' => false, 'message' => 'No reservations selected']);
-    exit();
+    if ($is_get) {
+        header('Location: book_reservations.php?error=No reservations selected');
+        exit();
+    } else {
+        echo json_encode(['success' => false, 'message' => 'No reservations selected']);
+        exit();
+    }
 }
 
 // Start transaction
@@ -77,10 +84,21 @@ try {
     }
 
     $conn->commit();
-    echo json_encode(['success' => true]);
+
+    if ($is_get) {
+        header('Location: book_reservations.php?success=Reservation cancelled successfully');
+        exit();
+    } else {
+        echo json_encode(['success' => true]);
+    }
 } catch (Exception $e) {
     $conn->rollback();
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    if ($is_get) {
+        header('Location: book_reservations.php?error=' . urlencode($e->getMessage()));
+        exit();
+    } else {
+        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    }
 }
 
 $conn->close();

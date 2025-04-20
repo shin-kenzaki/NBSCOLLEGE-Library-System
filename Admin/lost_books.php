@@ -359,9 +359,13 @@ $(document).ready(function() {
             table.columns.adjust().draw();
         });
         
-        // Right-click handler for table rows - Moved inside initializeDataTable
+        // Right-click handler for table rows
         $(document).off('contextmenu', '#dataTable tbody tr');
         $(document).on('contextmenu', '#dataTable tbody tr', function(e) {
+            // Prevent context menu on empty placeholder rows (e.g., "No matching users found")
+            if ($(this).find('td').length === 1 && $(this).find('td').attr('colspan')) {
+                return; // Do nothing if it's a placeholder row
+            }
             e.preventDefault();
             $selectedRow = $(this);
             

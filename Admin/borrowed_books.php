@@ -801,93 +801,27 @@ if (isset($_SESSION['emails_sent']) && $_SESSION['emails_sent']) {
         const contextMenu = $('.context-menu');
         let $selectedRow = null;
 
-        // Add CSS to hide sorting icons for checkbox column BEFORE initializing DataTable
-        $('<style>')
-            .text(`
-                #dataTable thead th:first-child.sorting::before,
-                #dataTable thead th:first-child.sorting::after,
-                #dataTable thead th:first-child.sorting_asc::before,
-                #dataTable thead th:first-child.sorting_asc::after,
-                #dataTable thead th:first-child.sorting_desc::before,
-                #dataTable thead th:first-child.sorting_desc::after {
-                    display: none !important;
+        // Only enable right-click handler if table is not empty
+        if ($('#dataTable tbody tr').length > 0) {
+            // Right-click handler for table rows
+            $('#dataTable tbody').on('contextmenu', 'tr', function(e) {
+                e.preventDefault();
+
+                $selectedRow = $(this);
+                const status = $selectedRow.find('td:last').text().trim();
+
+                // Don't show menu for books already marked as returned, lost, or damaged
+                if (['Returned', 'Lost', 'Damaged'].includes(status)) {
+                    return;
                 }
-            `)
-            .appendTo('head');
 
-        // Initialize DataTable
-        const table = $('#dataTable').DataTable({
-            "dom": "<'row mb-3'<'col-sm-6'l><'col-sm-6 d-flex justify-content-end'f>>" +
-                   "<'row'<'col-sm-12'tr>>" +
-                   "<'row mt-3'<'col-sm-5'i><'col-sm-7 d-flex justify-content-end'p>>",
-            "pagingType": "simple_numbers",
-            "pageLength": 10,
-            "lengthMenu": [[10, 25, 50, 100, 500], [10, 25, 50, 100, 500]],
-            "responsive": false,
-            "scrollY": "60vh",
-            "scrollCollapse": true,
-            "fixedHeader": true,
-            "order": [[1, 'asc']], // Start with sorting on the second column
-            "columnDefs": [
-                // Disable sorting for checkbox column and set minimal width
-                { "orderable": false, "targets": 0, "searchable": false, "width": "30px" },
-                // Accession No. - 10%
-                { "targets": 1, "width": "10%" },
-                // Book Title - 40%
-                { "targets": 2, "width": "40%" },
-                // Borrower's Name - 20%
-                { "targets": 3, "width": "20%" },
-                // ID Number - auto width
-                { "targets": 4 },
-                // Borrow Date - 10%
-                { "targets": 5, "width": "10%" },
-                // Due Date - 10%
-                { "targets": 6, "width": "10%" },
-                // Shelf Location - auto width
-                { "targets": 7 },
-                // Status - 10%
-                { "targets": 8, "width": "10%" }
-            ],
-            "language": {
-                "search": "_INPUT_",
-                "searchPlaceholder": "Search..."
-            },
-            "initComplete": function() {
-                $('#dataTable_filter input').addClass('form-control form-control-sm');
-                $('#dataTable_filter').addClass('d-flex align-items-center');
-                $('#dataTable_filter label').append('<i class="fas fa-search ml-2"></i>');
-                $('#dataTable_paginate .paginate_button').addClass('btn btn-sm btn-outline-primary mx-1');
-
-                // Force re-apply the CSS for checkbox column icons
-                setTimeout(function() {
-                    $('#dataTable thead th:first-child').removeClass('sorting').addClass('sorting_disabled');
-                }, 0);
-            }
-        });
-
-        // Add window resize handler
-        $(window).on('resize', function() {
-            table.columns.adjust().draw();
-        });
-
-        // Right-click handler for table rows
-        $('#dataTable tbody').on('contextmenu', 'tr', function(e) {
-            e.preventDefault();
-
-            $selectedRow = $(this);
-            const status = $selectedRow.find('td:last').text().trim();
-
-            // Don't show menu for books already marked as returned, lost, or damaged
-            if (['Returned', 'Lost', 'Damaged'].includes(status)) {
-                return;
-            }
-
-            contextMenu.css({
-                top: e.pageY + "px",
-                left: e.pageX + "px",
-                display: "block"
+                contextMenu.css({
+                    top: e.pageY + "px",
+                    left: e.pageX + "px",
+                    display: "block"
+                });
             });
-        });
+        }
 
         // Hide context menu on document click
         $(document).on('click', function() {

@@ -425,7 +425,6 @@ $(document).ready(function() {
         "language": {
             "search": "_INPUT_",
             "searchPlaceholder": "Search...",
-            "emptyTable": "No users found in the database",
             "zeroRecords": "No matching users found"
         },
         "columnDefs": [
@@ -483,6 +482,10 @@ $(document).ready(function() {
     $(document).off('click', '#contextMenu a');
     
     $(document).on('contextmenu', '#usersTable tbody tr', function(e) {
+        // Prevent context menu on empty placeholder rows (e.g., "No matching users found")
+        if ($(this).find('td').length === 1 && $(this).find('td').attr('colspan')) {
+            return; // Do nothing if it's a placeholder row
+        }
         e.preventDefault();
         selectedUserRow = $(this);
         selectedUserId = $(this).find('td:eq(1)').text().trim();
@@ -1233,42 +1236,6 @@ function copyPassword() {
         background-color: rgba(0, 123, 255, 0.05);
     }
     
-    #usersTable.table-striped tbody tr:nth-of-type(odd) {
-        background-color: rgba(0, 0, 0, 0.03);
-    }
-    
-    #usersTable.table-striped tbody tr:hover {
-        background-color: rgba(0, 123, 255, 0.05) !important;
-    }
-    
-    #usersTable tbody tr td:first-child:hover,
-    #usersTable thead tr th:first-child:hover {
-        background-color: rgba(0, 123, 255, 0.15) !important;
-    }
-    
-    #usersTable thead th {
-        background-color: #f8f9fc;
-        border-bottom: 2px solid #e3e6f0;
-    }
-    
-    #usersTable tbody tr.selected {
-        background-color: rgba(0, 123, 255, 0.1) !important;
-    }
-    
-    #usersTable tbody tr.selected td {
-        background-color: rgba(0, 123, 255, 0.05);
-    }
-    
-    #usersTable.table-striped tbody tr.selected:nth-of-type(odd),
-    #usersTable.table-striped tbody tr.selected:nth-of-type(even) {
-        background-color: rgba(0, 123, 255, 0.1) !important;
-    }
-    
-    #usersTable tbody tr:hover {
-        background-color: rgba(0, 123, 255, 0.05);
-        cursor: pointer;
-    }
-    
     #usersTable tbody tr {
         cursor: pointer;
     }
@@ -1296,14 +1263,5 @@ function copyPassword() {
         width: 18px;
         height: 18px;
         cursor: pointer;
-    }
-    
-    .dataTables_empty {
-        padding: 50px 0 !important;
-        text-align: center !important;
-        font-weight: 500 !important;
-        color: #6c757d !important;
-        background-color: #f8f9fc !important;
-        border-bottom: none !important;
     }
 </style>
