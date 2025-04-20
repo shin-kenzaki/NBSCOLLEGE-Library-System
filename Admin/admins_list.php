@@ -591,6 +591,10 @@ $(document).ready(function() {
     var selectedAdminId;
 
     $('#adminsTable tbody').on('contextmenu', 'tr', function(e) {
+        // Prevent context menu on empty placeholder rows (e.g., "No admin accounts found")
+        if ($(this).find('td').length === 1 && $(this).find('td').attr('colspan')) {
+            return; // Do nothing if it's a placeholder row
+        }
         e.preventDefault();
         $('#adminsTable tbody tr').removeClass('context-menu-active');
         $(this).addClass('context-menu-active');
