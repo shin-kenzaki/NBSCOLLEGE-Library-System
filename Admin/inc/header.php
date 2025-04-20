@@ -71,23 +71,23 @@
     function getPageTitle($filename) {
         switch($filename) {
             case 'dashboard.php': return 'Dashboard';
-            case 'reports.php': return 'Reports';
-            case 'admins_list.php': return 'Admin Users';
-            case 'users_list.php': return 'Users';
-            case 'book_list.php': return 'Books List';
-            case 'writers_list.php': return 'Writers List';
-            case 'publisher_list.php': return 'Publisher List';
-            case 'publications_list.php': return 'Publications List';
-            case 'contributors_list.php': return 'Contributors List';
-            case 'book_borrowing.php': return 'Book Borrowing';
-            case 'book_reservations.php': return 'Book Reservations';
-            case 'borrowed_books.php': return 'Borrowed Books';
+            case 'reports.php': return 'Library Reports';
+            case 'admins_list.php': return 'Admin Accounts';
+            case 'users_list.php': return 'Library Users';
+            case 'book_list.php': return 'Books Catalog';
+            case 'writers_list.php': return 'Authors & Writers';
+            case 'publisher_list.php': return 'Publishers';
+            case 'publications_list.php': return 'Book Publications';
+            case 'contributors_list.php': return 'Book Contributors';
+            case 'book_borrowing.php': return 'Walk-in Book Borrowing';
+            case 'book_reservations.php': return 'Online Book Reservations';
+            case 'borrowed_books.php': return 'Issued Books';
             case 'borrowing_history.php': return 'Borrowing History';
-            case 'fines.php': return 'Manage Fines';
+            case 'fines.php': return 'Fines Management';
             case 'lost_books.php': return 'Lost Book Records';
             case 'damaged_books.php': return 'Damaged Book Records';
-            case 'profile.php': return 'Profile';
-            default: return 'Library System';
+            case 'profile.php': return 'My Profile';
+            default: return 'NBS College Library System';
         }
     }
     
@@ -158,7 +158,7 @@
             <li class="nav-item <?php echo $currentPage == 'reports.php' ? 'active-page' : ''; ?>">
                 <a class="nav-link" href="reports.php">
                     <i class="fas fa-chart-bar icon-reports"></i>
-                    <span>Reports</span>
+                    <span>Library Reports</span>
                 </a>
             </li>
             <?php endif; ?>
@@ -166,11 +166,11 @@
             <!-- Divider -->
             <hr class="sidebar-divider">
 
-            <!-- Admin Operation Section -->
+            <!-- Admin Operations Section -->
             <?php if($_SESSION['role'] !== 'Encoder'): ?>
             <!-- Heading -->
             <div class="sidebar-heading">
-                Admin Operation
+                Admin Operations
             </div>
 
             <?php if($_SESSION['role'] === 'Admin'): ?>
@@ -178,7 +178,7 @@
             <li class="nav-item <?php echo $currentPage == 'admins_list.php' ? 'active-page' : ''; ?>">
                 <a class="nav-link" href="admins_list.php">
                     <i class="fas fa-user-shield icon-admin"></i>
-                    <span>Admin Users</span>
+                    <span>Admin Accounts</span>
                 </a>
             </li>
             <?php endif; ?>
@@ -187,7 +187,7 @@
             <li class="nav-item <?php echo $currentPage == 'users_list.php' ? 'active-page' : ''; ?>">
                 <a class="nav-link" href="users_list.php">
                     <i class="fas fa-users icon-admin"></i>
-                    <span>Users</span>
+                    <span>Library Users</span>
                 </a>
             </li>
             
@@ -205,61 +205,61 @@
             <li class="nav-item <?php echo $currentPage == 'book_list.php' ? 'active-page' : ''; ?>">
                 <a class="nav-link" href="book_list.php">
                     <i class="fas fa-book icon-book"></i>
-                    <span>Books List</span>
+                    <span>Books Catalog</span>
                 </a>
             </li>
             <li class="nav-item <?php echo $currentPage == 'writers_list.php' ? 'active-page' : ''; ?>">
                 <a class="nav-link" href="writers_list.php">
                     <i class="fas fa-pen-nib icon-book"></i>
-                    <span>Writers List</span>
+                    <span>Authors & Writers</span>
                 </a>
             </li>
             <li class="nav-item <?php echo $currentPage == 'publisher_list.php' ? 'active-page' : ''; ?>">
                 <a class="nav-link" href="publisher_list.php">
                     <i class="fas fa-building icon-book"></i>
-                    <span>Publisher List</span>
+                    <span>Publishers</span>
                 </a>
             </li>
             <li class="nav-item <?php echo $currentPage == 'publications_list.php' ? 'active-page' : ''; ?>">
                 <a class="nav-link" href="publications_list.php">
                     <i class="fas fa-newspaper icon-book"></i>
-                    <span>Publications List</span>
+                    <span>Book Publications</span>
                 </a>
             </li>
             <li class="nav-item <?php echo $currentPage == 'contributors_list.php' ? 'active-page' : ''; ?>">
                 <a class="nav-link" href="contributors_list.php">
                     <i class="fas fa-users icon-book"></i>
-                    <span>Contributors List</span>
+                    <span>Book Contributors</span>
                 </a>
             </li>
 
-            <!-- Borrowing Section - Not for encoders -->
+            <!-- Borrowing Operations Section - Not for encoders -->
             <?php if($_SESSION['role'] !== 'Encoder'): ?>
             <!-- Divider -->
             <hr class="sidebar-divider">
 
             <!-- Heading -->
             <div class="sidebar-heading">
-                Borrowing Operation
+                Borrowing Operations
             </div>
 
             <!-- Borrowing management items -->
             <li class="nav-item <?php echo $currentPage == 'book_borrowing.php' ? 'active-page' : ''; ?>">
                 <a class="nav-link" href="book_borrowing.php">
                     <i class="fas fa-hand-holding-heart icon-borrow"></i>
-                    <span>Book Borrowing</span>
+                    <span>Walk-in Book Borrowing</span>
                 </a>
             </li>
             <li class="nav-item <?php echo $currentPage == 'book_reservations.php' ? 'active-page' : ''; ?>">
                 <a class="nav-link" href="book_reservations.php">
                     <i class="fas fa-bookmark icon-borrow"></i>
-                    <span>Book Reservations</span>
+                    <span>Online Book Reservations</span>
                 </a>
             </li>
             <li class="nav-item <?php echo $currentPage == 'borrowed_books.php' ? 'active-page' : ''; ?>">
                 <a class="nav-link" href="borrowed_books.php">
                     <i class="fas fa-book-reader icon-borrow"></i>
-                    <span>Borrowed Books</span>
+                    <span>Issued Books</span>
                 </a>
             </li>
             <li class="nav-item <?php echo $currentPage == 'borrowing_history.php' ? 'active-page' : ''; ?>">
@@ -271,7 +271,7 @@
             <li class="nav-item <?php echo $currentPage == 'fines.php' ? 'active-page' : ''; ?>">
                 <a class="nav-link" href="fines.php">
                     <i class="fas fa-money-bill-wave icon-borrow"></i>
-                    <span>Manage Fines</span>
+                    <span>Fines Management</span>
                 </a>
             </li>
             <li class="nav-item <?php echo $currentPage == 'lost_books.php' ? 'active-page' : ''; ?>">

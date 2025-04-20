@@ -13,7 +13,7 @@ if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Lib
 <!-- Main Content -->
     <div class="container-fluid px-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1 class="h3 mb-0 text-gray-800">Book Borrowing</h1>
+            <h1 class="h3 mb-0 text-gray-800">Walk-in Book Borrowing</h1>
         </div>
         
         <!-- Instructions Card -->
@@ -24,7 +24,7 @@ if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Lib
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-6">
-                        <h6 class="font-weight-bold text-primary">Borrowing Rules:</h6>
+                        <h6 class="font-weight-bold text-primary">Walk-in Borrowing Rules:</h6>
                         <ul class="mb-3">
                             <li><strong>Students:</strong> Maximum of 3 books at a time</li>
                             <li><strong>Faculty/Staff:</strong> Maximum of 5 books at a time</li>
@@ -38,14 +38,14 @@ if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Lib
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <h6 class="font-weight-bold text-primary">How to Process a Loan:</h6>
+                        <h6 class="font-weight-bold text-primary">How to Process a Walk-in Loan:</h6>
                         <ol class="mb-0">
                             <li>Enter borrower's ID number in the "Search Borrower" field or scan their ID card</li>
                             <li>Verify borrower's information is correct after selection</li>
                             <li>Scan book barcode or search by title/accession number</li>
                             <li>Select multiple books as needed (respecting borrower limits)</li>
                             <li>Verify all information is correct in the preview section</li>
-                            <li>Click "Process Borrowing" to complete the transaction</li>
+                            <li>Click "Process Walk-in Borrowing" to complete the transaction</li>
                             <li>Print receipt for the borrower if needed</li>
                         </ol>
                     </div>
@@ -56,13 +56,13 @@ if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Lib
         <!-- Main Card -->
         <div class="card shadow">
             <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                <h6 class="m-0 font-weight-bold text-primary">Book Borrowing Form</h6>
+                <h6 class="m-0 font-weight-bold text-primary">Walk-in Book Borrowing Form</h6>
                 <div>
                     <a href="borrowed_books.php" class="btn btn-info mr-2">
                         <i class="fas fa-list mr-1"></i> View Issued Books
                     </a>
                     <button type="submit" form="borrowingForm" class="btn btn-primary">
-                        <i class="fas fa-check-circle mr-2"></i>Process Borrowing
+                        <i class="fas fa-check-circle mr-2"></i>Process Walk-in Borrowing
                     </button>
                 </div>
             </div>
