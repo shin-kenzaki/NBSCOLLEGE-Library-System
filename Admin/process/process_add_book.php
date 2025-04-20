@@ -141,8 +141,26 @@ if (isset($_POST['submit'])) {
                     // Remove " pages" or "pages" from the end if present
                     $total_pages = preg_replace('/ ?pages$/i', '', $total_pages);
 
-                    $supplementary_contents = isset($_POST['supplementary_content']) ? 
-                        mysqli_real_escape_string($conn, implode(', ', $_POST['supplementary_content'])) : '';
+                    // Format supplementary_contents based on selected items
+                    $supplementary_contents = '';
+                    if (isset($_POST['supplementary_content']) && is_array($_POST['supplementary_content']) && count($_POST['supplementary_content']) > 0) {
+                        $items = array_map(function($item) use ($conn) {
+                            return mysqli_real_escape_string($conn, $item);
+                        }, $_POST['supplementary_content']);
+                        
+                        $count = count($items);
+                        if ($count === 1) {
+                            $supplementary_contents = "incudes " . $items[0];
+                        } elseif ($count === 2) {
+                            $supplementary_contents = "incudes " . $items[0] . " and " . $items[1];
+                        } else {
+                            $last_item = array_pop($items);
+                            $supplementary_contents = "incudes " . implode(', ', $items) . ", and " . $last_item;
+                        }
+                    } else {
+                        // Handle case where no supplementary content is selected
+                        $supplementary_contents = ''; // Or set to NULL if the column allows
+                    }
                     
                     $content_type = mysqli_real_escape_string($conn, $_POST['content_type'] ?? 'text');
                     $media_type = mysqli_real_escape_string($conn, $_POST['media_type'] ?? 'unmediated');

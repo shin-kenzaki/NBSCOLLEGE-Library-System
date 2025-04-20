@@ -74,8 +74,21 @@ if (isset($_POST['submit'])) {
         $main_pages = $_POST['main_pages'] ?? '';
         
         // Process supplementary contents
-        $supplementary_content = isset($_POST['supplementary_content']) && is_array($_POST['supplementary_content']) ? 
-            implode(', ', $_POST['supplementary_content']) : '';
+        $supplementary_contents = '';
+        if (isset($_POST['supplementary_content']) && is_array($_POST['supplementary_content']) && count($_POST['supplementary_content']) > 0) {
+            $items = array_map('trim', $_POST['supplementary_content']);
+            $count = count($items);
+            if ($count === 1) {
+                $supplementary_contents = "includes " . $items[0];
+            } elseif ($count === 2) {
+                $supplementary_contents = "includes " . $items[0] . " and " . $items[1];
+            } else {
+                $last_item = array_pop($items);
+                $supplementary_contents = "includes " . implode(', ', $items) . ", and " . $last_item;
+            }
+        } else {
+            $supplementary_contents = '';
+        }
         
         $entered_by = $_POST['entered_by'] ?? array();
         $date_added = $_POST['date_added'] ?? array();
@@ -188,7 +201,7 @@ if (isset($_POST['submit'])) {
             }
             
             // Use same supplementary content for all copies
-            $supplementary_content_value = mysqli_real_escape_string($conn, $supplementary_content);
+            $supplementary_content_value = mysqli_real_escape_string($conn, $supplementary_contents);
 
             $status_value = isset($statuses[$index]) ? mysqli_real_escape_string($conn, $statuses[$index]) : 'Available';
 
@@ -870,36 +883,13 @@ if ($first_book) {
                                 <div class="col-md-4">
                                     <label class="small">Supplementary Contents</label>
                                     <select class="form-control" name="supplementary_content[]" multiple>
-                                        <?php
-                                        // Create array of supplementary content options
-                                        $supplementary_options = [
-                                            "includes bibliography",
-                                            "includes index",
-                                            "includes glossary",
-                                            "includes appendix",
-                                            "includes notes",
-                                            "includes references",
-                                            "includes bibliography index",
-                                            "includes bibliography notes",
-                                            "includes bibliography references",
-                                            "includes index glossary",
-                                            "includes appendices index",
-                                            "includes bibliographical references",
-                                            "includes bibliography index glossary",
-                                            "includes bibliography index notes",
-                                            "includes bibliography references index"
-                                        ];
-                                        
-                                        // Get existing supplementary contents as array
-                                        $existing_supplementary = explode(', ', $first_book['supplementary_contents'] ?? '');
-                                        
-                                        // Output each option with selected state if applicable
-                                        foreach ($supplementary_options as $option) {
-                                            $selected = in_array($option, $existing_supplementary) ? 'selected' : '';
-                                            echo "<option value=\"" . htmlspecialchars($option) . "\" $selected>" . 
-                                                 htmlspecialchars(ucfirst($option)) . "</option>";
-                                        }
-                                        ?>
+                                        <option value="Appendix" <?php echo (strpos($first_book['supplementary_contents'] ?? '', 'Appendix') !== false) ? 'selected' : ''; ?>>Appendix</option>
+                                        <option value="Bibliography" <?php echo (strpos($first_book['supplementary_contents'] ?? '', 'Bibliography') !== false) ? 'selected' : ''; ?>>Bibliography</option>
+                                        <option value="Glossary" <?php echo (strpos($first_book['supplementary_contents'] ?? '', 'Glossary') !== false) ? 'selected' : ''; ?>>Glossary</option>
+                                        <option value="Index" <?php echo (strpos($first_book['supplementary_contents'] ?? '', 'Index') !== false) ? 'selected' : ''; ?>>Index</option>
+                                        <option value="Illustrations" <?php echo (strpos($first_book['supplementary_contents'] ?? '', 'Illustrations') !== false) ? 'selected' : ''; ?>>Illustrations</option>
+                                        <option value="Maps" <?php echo (strpos($first_book['supplementary_contents'] ?? '', 'Maps') !== false) ? 'selected' : ''; ?>>Maps</option>
+                                        <option value="Tables" <?php echo (strpos($first_book['supplementary_contents'] ?? '', 'Tables') !== false) ? 'selected' : ''; ?>>Tables</option>
                                     </select>
                                     <small class="text-muted">Hold Ctrl/Cmd to select multiple items</small>
                                 </div>

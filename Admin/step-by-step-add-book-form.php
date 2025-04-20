@@ -82,7 +82,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $total_pages = trim("$prefix_pages $main_pages");
         
         // Prepare supplementary_contents for storage
-        $supplementary_contents = !empty($supplementary_content) ? implode('; ', $supplementary_content) : '';
+        if (!empty($supplementary_content)) {
+            if (count($supplementary_content) === 1) {
+                $supplementary_contents = "includes {$supplementary_content[0]}";
+            } elseif (count($supplementary_content) === 2) {
+                $supplementary_contents = "includes {$supplementary_content[0]} and {$supplementary_content[1]}";
+            } else {
+                $last = array_pop($supplementary_content);
+                $supplementary_contents = "includes " . implode(", ", $supplementary_content) . ", and " . $last;
+            }
+        } else {
+            $supplementary_contents = '';
+        }
 
         $success_count = 0;
         $error_messages = array();
@@ -637,26 +648,13 @@ $accession_error = '';
                                         <div class="col-md-6">
                                             <label class="small">Supplementary Contents</label>
                                             <select class="form-control" name="supplementary_content[]" multiple>
-                                                <!-- Standard Library Terms -->
-                                                <option value="includes bibliography">Includes bibliography</option>
-                                                <option value="includes index">Includes index</option>
-                                                <option value="includes glossary">Includes glossary</option>
-                                                <option value="includes appendix">Includes appendix</option>
-                                                <option value="includes notes">Includes notes</option>
-                                                <option value="includes references">Includes references</option>
-                                                
-                                                <!-- Common Library Combinations -->
-                                                <option value="includes bibliography index">Includes bibliography and index</option>
-                                                <option value="includes bibliography notes">Includes bibliography and notes</option>
-                                                <option value="includes bibliography references">Includes bibliography and references</option>
-                                                <option value="includes index glossary">Includes index and glossary</option>
-                                                <option value="includes appendices index">Includes appendices and index</option>
-                                                <option value="includes bibliographical references">Includes bibliographical references</option>
-                                                
-                                                <!-- Standard Multi-component Options -->
-                                                <option value="includes bibliography index glossary">Includes bibliography, index, and glossary</option>
-                                                <option value="includes bibliography index notes">Includes bibliography, index, and notes</option>
-                                                <option value="includes bibliography references index">Includes bibliography, references, and index</option>
+                                                <option value="Appendix">Appendix</option>
+                                                <option value="Bibliography">Bibliography</option>
+                                                <option value="Glossary">Glossary</option>
+                                                <option value="Index">Index</option>
+                                                <option value="Illustrations">Illustrations</option>
+                                                <option value="Maps">Maps</option>
+                                                <option value="Tables">Tables</option>
                                             </select>
                                             <small class="text-muted">Hold Ctrl/Cmd to select multiple items</small>
                                         </div>
