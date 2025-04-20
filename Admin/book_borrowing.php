@@ -535,24 +535,30 @@ $(document).ready(function() {
     // Filter book dropdown based on search input
     $('#bookSearch').on('input', function() {
         const searchTerm = $(this).val().toLowerCase();
-        
-        // Reset and hide all options first
+
+        // Hide all options except the first
         $('#book_id option:not(:first)').hide();
-        
+
         // Show matching options
         $('#book_id option').each(function() {
-            if ($(this).text().toLowerCase().includes(searchTerm)) {
+            const text = $(this).text().toLowerCase();
+            const accession = $(this).data('accession') ? $(this).data('accession').toString().toLowerCase() : '';
+            if (text.includes(searchTerm) || accession.includes(searchTerm)) {
                 $(this).show();
             }
         });
 
-        // Auto-select if exact match found
+        // Auto-select if exact match found (by accession or title start)
         const exactMatch = $('#book_id option').filter(function() {
-            return $(this).text().toLowerCase().startsWith(searchTerm);
+            const text = $(this).text().toLowerCase();
+            const accession = $(this).data('accession') ? $(this).data('accession').toString().toLowerCase() : '';
+            return text.startsWith(searchTerm) || accession === searchTerm;
         }).first();
 
         if (exactMatch.length) {
             $('#book_id').val(exactMatch.val());
+        } else {
+            $('#book_id').val(''); // Reset selection if no exact match
         }
     });
 
