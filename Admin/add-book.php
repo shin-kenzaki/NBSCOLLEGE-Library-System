@@ -73,30 +73,30 @@ $accession_error = '';
     .input-group {
         flex-wrap: wrap;
     }
-    
+
     .input-group > * {
         flex: 0 0 100%;
         margin-bottom: 5px;
         width: 100% !important;
     }
-    
+
     .input-group .input-group-text {
         border-radius: 0.25rem 0.25rem 0 0;
         justify-content: center;
     }
-    
+
     .input-group input.form-control,
     .input-group select.form-control {
         border-radius: 0 0 0.25rem 0.25rem;
     }
-    
+
     /* Call number and copy number inputs */
     .input-group .call-number-input,
     .input-group .copy-number-input {
         min-width: 100% !important;
         flex: 0 0 100% !important;
     }
-    
+
     /* Preview elements positioning */
     .call-number-preview {
         position: static !important;
@@ -106,13 +106,13 @@ $accession_error = '';
         text-align: center;
         width: 100%;
     }
-    
+
     /* Improve modal display on small screens */
     .swal2-popup {
         width: 90% !important;
         padding: 1em !important;
     }
-    
+
     /* Tab navigation scrollable */
     #formTabs {
         flex-wrap: nowrap;
@@ -122,37 +122,37 @@ $accession_error = '';
         display: flex;
         padding-bottom: 5px;
     }
-    
+
     #formTabs .nav-item {
         float: none;
         display: inline-block;
     }
-    
+
     /* Button spacing on mobile */
     .btn {
         margin-bottom: 5px;
     }
-    
+
     .d-flex {
         flex-wrap: wrap;
     }
-    
+
     /* Tab navigation buttons visibility */
     .tab-navigation-buttons {
         width: 100%;
         justify-content: space-between;
         margin-top: 10px;
     }
-    
+
     /* Accession group layout improvements */
     .accession-group .row {
         margin-bottom: 10px;
     }
-    
+
     .accession-group .col-md-2 {
         margin-top: 10px;
     }
-    
+
     /* Fix modal overflow */
     .modal-dialog {
         max-width: 95%;
@@ -171,22 +171,22 @@ $accession_error = '';
         padding-left: 10px;
         padding-right: 10px;
     }
-    
+
     .row [class^="col-"] {
         padding-left: 5px;
         padding-right: 5px;
     }
-    
+
     .card {
         margin-bottom: 15px;
     }
-    
+
     /* Fix spacing in accession-group sections */
     .accession-details .row {
         margin-left: -5px;
         margin-right: -5px;
     }
-    
+
     /* Adjust small preview text */
     small {
         display: inline-block;
@@ -211,7 +211,7 @@ $accession_error = '';
     <div id="content" class="flex-grow-1">
         <div class="container-fluid">
             <!-- Fix: Remove enctype if not needed -->
-            <form id="bookForm" action="add-book.php" method="POST" enctype="multipart/form-data" class="h-100" 
+            <form id="bookForm" action="add-book.php" method="POST" enctype="multipart/form-data" class="h-100"
                   onkeydown="return event.key != 'Enter';">
                 <div class="container-fluid d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
                     <h1 class="h3 mb-2 text-gray-800">Add Book</h1>
@@ -290,7 +290,7 @@ $accession_error = '';
                                 </li>
                             </ul>
                         </div>
-                        
+
                         <!-- Tab content with responsive styling -->
                         <div class="tab-content card border-0 shadow-sm p-3 p-md-4 mt-3" id="formTabsContent">
                             <!-- Tab content remains the same -->
@@ -467,7 +467,7 @@ $accession_error = '';
                                                     <div class="col-md-7">
                                                         <div class="form-group">
                                                             <label>Accession (Copy 1)</label>
-                                                            <input type="text" class="form-control accession-input" name="accession[]" 
+                                                            <input type="text" class="form-control accession-input" name="accession[]"
                                                                 placeholder="e.g., 2023-0001" required>
                                                             <small class="text-muted">Format: YYYY-NNNN</small>
                                                         </div>
@@ -599,7 +599,7 @@ $accession_error = '';
                                     <div class="col-md-4">
                                         <div class="form-group">
                                             <label for="publish_date">Publication Year</label>
-                                            <input type="number" class="form-control" id="publish_date" name="publish_date" 
+                                            <input type="number" class="form-control" id="publish_date" name="publish_date"
                                                 min="1800" max="<?php echo date('Y'); ?>" value="<?php echo date('Y'); ?>" required>
                                         </div>
                                     </div>
@@ -680,14 +680,14 @@ $accession_error = '';
                                             <div class="col-md-6">
                                                 <div class="form-group">
                                                     <label for="entered_by">Entered By</label>
-                                                    <input type="text" class="form-control" id="entered_by" name="entered_by" 
+                                                    <input type="text" class="form-control" id="entered_by" name="entered_by"
                                                         value="<?php echo $_SESSION['admin_id']; ?>" readonly>
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="form-group">
                                                     <label for="date_added">Date Added</label>
-                                                    <input type="text" class="form-control" id="date_added" name="date_added" 
+                                                    <input type="text" class="form-control" id="date_added" name="date_added"
                                                         value="<?php echo date('Y-m-d'); ?>" readonly>
                                                 </div>
                                             </div>
@@ -706,7 +706,7 @@ $accession_error = '';
                                             <div class="col-md-6">
                                                 <div class="form-group">
                                                     <label for="last_update">Last Update</label>
-                                                    <input type="text" class="form-control" id="last_update" name="last_update" 
+                                                    <input type="text" class="form-control" id="last_update" name="last_update"
                                                         value="<?php echo date('Y-m-d H:i:s'); ?>" readonly>
                                                 </div>
                                             </div>
@@ -751,7 +751,7 @@ $accession_error = '';
                         <a class="nav-link" id="author-tab" data-toggle="tab" href="#author" role="tab" aria-controls="author" aria-selected="false">Author & Publisher Information</a>
                     </li>
                 </ul>
-                
+
                 <div class="tab-content" id="instructionTabsContent">
                     <!-- New Tab: Book Entry Methods -->
                     <div class="tab-pane fade show active" id="methods" role="tabpanel" aria-labelledby="methods-tab">
@@ -811,7 +811,7 @@ $accession_error = '';
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Existing Tabs -->
                     <div class="tab-pane fade" id="navigation" role="tabpanel" aria-labelledby="navigation-tab">
                         <!-- Existing navigation content -->
@@ -829,7 +829,7 @@ $accession_error = '';
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="tab-pane fade" id="accession" role="tabpanel" aria-labelledby="accession-tab">
                         <div class="card mb-3">
                             <div class="card-header bg-light">
@@ -844,7 +844,7 @@ $accession_error = '';
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="tab-pane fade" id="author" role="tabpanel" aria-labelledby="author-tab">
                         <div class="card mb-3">
                             <div class="card-header bg-light">
@@ -1016,7 +1016,7 @@ $accession_error = '';
 }
 
 /* Form styling inside SweetAlert */
-#sweetAlertAuthorContainer, 
+#sweetAlertAuthorContainer,
 #sweetAlertPublisherContainer {
     max-height: 400px;
     overflow-y: auto;
@@ -1176,13 +1176,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 field.value = field.getAttribute('value');
             }
         });
-        
+
         // Remove 'completed' marker from this tab if exists
         const tabLink = document.querySelector(`a[href="#${tabId}"]`);
         if (tabLink) {
             tabLink.classList.remove('completed');
         }
-        
+
         // Update progress bar if needed
         updateFormProgress();
     }
@@ -1223,33 +1223,33 @@ document.addEventListener('DOMContentLoaded', function() {
                 const copiesInput = firstGroup.querySelector('.copies-input');
                 if (accessionInput) accessionInput.value = '';
                 if (copiesInput) copiesInput.value = '1';
-                
+
                 // Keep only the first group
                 accessionContainer.innerHTML = '';
                 accessionContainer.appendChild(firstGroup);
             }
         }
-        
+
         // Clear call number container
         const callNumberContainer = document.getElementById('callNumberContainer');
         if (callNumberContainer) {
             callNumberContainer.innerHTML = '';
         }
-        
+
         // Reset the form element
         document.getElementById('bookForm').reset();
-        
+
         // Refresh the form state in localStorage if autosave is enabled
         if (typeof saveFormData === 'function') {
             saveFormData();
         }
     }
-    
+
     // Helper function to recalculate progress
     function updateFormProgress() {
         const totalTabs = document.querySelectorAll('#formTabs .nav-link').length;
         const completedTabs = document.querySelectorAll('#formTabs .nav-link.completed').length;
-        
+
         // Update progress bar
         const progressBar = document.getElementById('formProgressBar');
         if (progressBar) {
@@ -1264,9 +1264,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const currentTab = tabs[currentTabIndex];
         const currentTabId = currentTab.getAttribute('href').substring(1);
         const currentTabPane = document.getElementById(currentTabId);
-        
+
         let isValid = true;
-        
+
         // Check required fields in the current tab
         const requiredFields = currentTabPane.querySelectorAll('input[required], select[required], textarea[required]');
         requiredFields.forEach(field => {
@@ -1277,18 +1277,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 field.classList.remove('is-invalid');
             }
         });
-        
+
         // If valid, mark tab as completed
         if (isValid) {
             currentTab.classList.add('completed');
-            
+
             // Count completed tabs
             completedTabs = document.querySelectorAll('#formTabs .nav-link.completed').length;
         }
-        
+
         return isValid;
     }
-    
+
     // Function to navigate to the next tab
     function goToNextTab() {
         if (validateCurrentTab()) {
@@ -1307,7 +1307,7 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('Please fill in all required fields before proceeding.');
         }
     }
-    
+
     // Function to navigate to the previous tab
     function goToPrevTab() {
         if (currentTabIndex > 0) {
@@ -1316,24 +1316,24 @@ document.addEventListener('DOMContentLoaded', function() {
             updateProgressBar();
         }
     }
-    
+
     // Next button click handler
     document.querySelectorAll('.next-tab').forEach(button => {
         button.addEventListener('click', function() {
             if (validateCurrentTab()) {
                 const nextTabId = this.getAttribute('data-next');
                 const nextTab = document.getElementById(nextTabId);
-                
+
                 // Find the index of the next tab
                 tabs.forEach((tab, index) => {
                     if (tab.id === nextTabId) {
                         currentTabIndex = index;
                     }
                 });
-                
+
                 // Update progress bar
                 updateProgressBar();
-                
+
                 // Activate the tab with Bootstrap
                 $(nextTab).tab('show');
             } else {
@@ -1348,40 +1348,40 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
-    
+
     // Previous button click handler
     document.querySelectorAll('.prev-tab').forEach(button => {
         button.addEventListener('click', function() {
             const prevTabId = this.getAttribute('data-prev');
             const prevTab = document.getElementById(prevTabId);
-            
+
             // Find the index of the previous tab
             tabs.forEach((tab, index) => {
                 if (tab.id === prevTabId) {
                     currentTabIndex = index;
                 }
             });
-            
+
             // Update progress bar
             updateProgressBar();
-            
+
             // Trigger click on the previous tab
             $(prevTab).tab('show');
         });
     });
-    
+
     // Modified: Allow direct tab clicking without restriction
     tabs.forEach((tab) => {
         tab.addEventListener('click', function(e) {
             const clickedTabIndex = Array.from(tabs).indexOf(this);
             currentTabIndex = clickedTabIndex;
             updateProgressBar();
-            
+
             // Use Bootstrap's tab method to show the tab
             $(this).tab('show');
         });
     });
-    
+
     // Add subject entry
     document.getElementById('add-subject').addEventListener('click', function() {
         const subjectEntries = document.getElementById('subject-entries');
@@ -1419,7 +1419,7 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         subjectEntries.appendChild(newEntry);
     });
-    
+
     // Remove subject entry
     document.addEventListener('click', function(e) {
         if (e.target && e.target.classList.contains('remove-subject')) {
@@ -1439,15 +1439,15 @@ document.addEventListener('DOMContentLoaded', function() {
 <?php if ($resetForm): ?>
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Resetting form data after successful submission');
-    
+
     // Clear all localStorage data related to the form
     localStorage.removeItem('bookFormData');
     localStorage.removeItem('formProgress');
     localStorage.removeItem('completedTabs');
-    
+
     // Reset the form element
     document.getElementById('bookForm').reset();
-    
+
     // Reset accession container to initial state
     const accessionContainer = document.getElementById('accessionContainer');
     if (accessionContainer) {
@@ -1458,38 +1458,38 @@ document.addEventListener('DOMContentLoaded', function() {
             const copiesInput = firstGroup.querySelector('.copies-input');
             if (accessionInput) accessionInput.value = '';
             if (copiesInput) copiesInput.value = '1';
-            
+
             // Remove any additional accession groups
             Array.from(accessionContainer.children).forEach((child, index) => {
                 if (index > 0) child.remove();
             });
         }
     }
-    
+
     // Clear call number container
     const callNumberContainer = document.getElementById('callNumberContainer');
     if (callNumberContainer) {
         callNumberContainer.innerHTML = '';
     }
-    
+
     // Clear ISBN details container
     const isbnContainer = document.getElementById('isbnContainer');
     if (isbnContainer) {
         isbnContainer.innerHTML = '';
     }
-    
+
     // Reset the progress bar
     const progressBar = document.getElementById('formProgressBar');
     if (progressBar) {
         progressBar.style.width = '0%';
         progressBar.setAttribute('aria-valuenow', 0);
     }
-    
+
     // Remove 'completed' class from all tabs
     document.querySelectorAll('#formTabs .nav-link.completed').forEach(tab => {
         tab.classList.remove('completed');
     });
-    
+
     // Activate the first tab
     const firstTab = document.querySelector('#formTabs .nav-link');
     if (firstTab) {
@@ -1506,17 +1506,17 @@ document.addEventListener('DOMContentLoaded', function() {
     // Debug call number container
     const callNumberContainer = document.getElementById('callNumberContainer');
     console.log('Call number container:', callNumberContainer);
-    
+
     // Force call number generation after a delay if not already present
     setTimeout(function() {
         if (callNumberContainer && callNumberContainer.children.length === 0) {
             console.log('No call numbers found, manually triggering generation');
-            
+
             // Check if accession inputs exist and have values
             const accessionInputs = document.querySelectorAll('.accession-input');
             if (accessionInputs.length > 0) {
                 console.log(`Found ${accessionInputs.length} accession inputs`);
-                
+
                 // If updateISBNFields function exists, call it
                 if (typeof updateISBNFields === 'function') {
                     updateISBNFields();
@@ -1543,11 +1543,11 @@ document.addEventListener("DOMContentLoaded", function() {
     const formId = 'bookForm';
     const storageKey = 'bookFormData';
     const form = document.getElementById(formId);
-    
+
     // Function to save form data to localStorage
     function saveFormData() {
         const formData = {};
-        
+
         // Save text inputs, textareas, and selects
         form.querySelectorAll('input:not([type="file"]), textarea, select').forEach(input => {
             if (input.type === 'checkbox' || input.type === 'radio') {
@@ -1558,7 +1558,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 formData[input.name] = input.value;
             }
         });
-        
+
         // Save accession groups data with more details
         const accessionGroups = [];
         document.querySelectorAll('.accession-group').forEach(group => {
@@ -1569,7 +1569,7 @@ document.addEventListener("DOMContentLoaded", function() {
             const volumeInput = group.querySelector('input[name^="volume"]');
             const editionInput = group.querySelector('input[name^="edition"]');
             const partInput = group.querySelector('input[name^="part"]');
-            
+
             if (accessionInput && copiesInput) {
                 accessionGroups.push({
                     accession: accessionInput.value,
@@ -1592,7 +1592,7 @@ document.addEventListener("DOMContentLoaded", function() {
             const shelfLocationSelect = container.querySelector('.shelf-location-select');
             const copyNumberInput = container.querySelector('.copy-number-input');
             const accessionLabel = container.querySelector('.input-group-text');
-            
+
             if (callNumberInput && shelfLocationSelect) {
                 callNumberData.push({
                     callNumber: callNumberInput.value,
@@ -1603,21 +1603,21 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         });
         formData['callNumberData'] = callNumberData;
-        
+
         // Save current active tab
         const activeTab = document.querySelector('#formTabs .nav-link.active');
         if (activeTab) {
             formData['activeTab'] = activeTab.id;
         }
-        
+
         // Save progress bar state
         const progressBar = document.getElementById('formProgressBar');
         formData['progressValue'] = progressBar.style.width;
-        
+
         // Save completed tabs
         const completedTabs = Array.from(document.querySelectorAll('#formTabs .nav-link.completed')).map(tab => tab.id);
         formData['completedTabs'] = completedTabs;
-        
+
         localStorage.setItem(storageKey, JSON.stringify(formData));
     }
 
@@ -1703,7 +1703,7 @@ document.addEventListener("DOMContentLoaded", function() {
             // Clear progress data
             localStorage.removeItem('formProgress');
             localStorage.removeItem('completedTabs');
-            
+
             // Reset UI progress
             const progressBar = document.getElementById('formProgressBar');
             if (progressBar) {
@@ -1744,14 +1744,14 @@ document.addEventListener("DOMContentLoaded", function() {
             clearTabData(tabId);
         });
     });
-    
+
     // Function to restore form data from localStorage
     function restoreFormData() {
         const savedData = localStorage.getItem(storageKey);
         if (!savedData) return;
-        
+
         const formData = JSON.parse(savedData);
-        
+
         // Restore text inputs, textareas, and selects
         form.querySelectorAll('input:not([type="file"]), textarea, select').forEach(input => {
             if (input.type === 'checkbox' || input.type === 'radio') {
@@ -1763,7 +1763,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 Array.from(input.options).forEach(option => {
                     option.selected = values.includes(option.value);
                 });
-                
+
                 // Update the preview for multi-selects
                 if (input.id === 'authorSelect') updatePreview('authorSelect', 'authorPreview');
                 if (input.id === 'coAuthorsSelect') updatePreview('coAuthorsSelect', 'coAuthorsPreview');
@@ -1784,11 +1784,11 @@ document.addEventListener("DOMContentLoaded", function() {
                     groupElement.querySelector('.copies-input').value = group.copies;
                     accessionContainer.appendChild(groupElement);
                 });
-                
+
                 // After creating all groups, update ISBN fields
                 if (typeof updateISBNFields === 'function') {
                     updateISBNFields();
-                    
+
                     // Then restore the saved values for the detail fields
                     setTimeout(() => {
                         const groups = document.querySelectorAll('.accession-group');
@@ -1800,7 +1800,7 @@ document.addEventListener("DOMContentLoaded", function() {
                                 const volumeInput = group.querySelector('input[name^="volume"]');
                                 const editionInput = group.querySelector('input[name^="edition"]');
                                 const partInput = group.querySelector('input[name^="part"]');
-                                
+
                                 if (isbnInput) isbnInput.value = groupData.isbn || '';
                                 if (seriesInput) seriesInput.value = groupData.series || '';
                                 if (volumeInput) volumeInput.value = groupData.volume || '';
@@ -1821,23 +1821,23 @@ document.addEventListener("DOMContentLoaded", function() {
                 formData['callNumberData'].forEach(data => {
                     const callNumberDiv = document.createElement('div');
                     callNumberDiv.className = 'input-group mb-2';
-                    
+
                     const accessionLabel = document.createElement('span');
                     accessionLabel.className = 'input-group-text';
                     accessionLabel.textContent = data.accessionLabel || 'Accession';
-                    
+
                     const callNumberInput = document.createElement('input');
                     callNumberInput.type = 'text';
                     callNumberInput.className = 'form-control call-number-input';
                     callNumberInput.name = 'call_number[]';
                     callNumberInput.value = data.callNumber || '';
                     callNumberInput.placeholder = 'Enter call number';
-                    
+
                     // Create copy number label and input
                     const copyNumberLabel = document.createElement('span');
                     copyNumberLabel.className = 'input-group-text';
                     copyNumberLabel.textContent = 'Copy Number';
-                    
+
                     const copyNumberInput = document.createElement('input');
                     copyNumberInput.type = 'number';
                     copyNumberInput.className = 'form-control copy-number-input';
@@ -1845,11 +1845,11 @@ document.addEventListener("DOMContentLoaded", function() {
                     copyNumberInput.min = '1';
                     copyNumberInput.value = data.copyNumber || '';
                     copyNumberInput.style.width = '70px';
-                    
+
                     const shelfLocationSelect = document.createElement('select');
                     shelfLocationSelect.className = 'form-control shelf-location-select';
                     shelfLocationSelect.name = 'shelf_locations[]';
-                    
+
                     // Add shelf location options
                     const shelfOptions = [
                         ['TR', 'Teachers Reference'],
@@ -1861,7 +1861,7 @@ document.addEventListener("DOMContentLoaded", function() {
                         ['RES', 'Reserve'],
                         ['FIC', 'Fiction']
                     ];
-                    
+
                     shelfOptions.forEach(([value, text]) => {
                         const option = document.createElement('option');
                         option.value = value;
@@ -1871,7 +1871,7 @@ document.addEventListener("DOMContentLoaded", function() {
                         }
                         shelfLocationSelect.appendChild(option);
                     });
-                    
+
                     // Apply the new order of elements
                     callNumberDiv.appendChild(accessionLabel);
                     callNumberDiv.appendChild(callNumberInput);
@@ -1890,7 +1890,7 @@ document.addEventListener("DOMContentLoaded", function() {
                             const callNumberInput = container.querySelector('.call-number-input');
                             const shelfLocationSelect = container.querySelector('.shelf-location-select');
                             const copyNumberInput = container.querySelector('.copy-number-input');
-                            
+
                             if (callNumberInput) callNumberInput.value = data.callNumber || '';
                             if (shelfLocationSelect) shelfLocationSelect.value = data.shelfLocation || '';
                             if (copyNumberInput) copyNumberInput.value = data.copyNumber || '';
@@ -1899,7 +1899,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 }, 200);
             }
         }
-        
+
         // Restore custom file input labels
         document.querySelectorAll('.custom-file-input').forEach(input => {
             const label = input.nextElementSibling;
@@ -1909,7 +1909,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 }
             }
         });
-        
+
         // Restore active tab
         if (formData['activeTab']) {
             const tabToActivate = document.getElementById(formData['activeTab']);
@@ -1917,7 +1917,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 $(tabToActivate).tab('show');
             }
         }
-        
+
         // Restore progress bar
         if (formData['progressValue']) {
             const progressBar = document.getElementById('formProgressBar');
@@ -1926,7 +1926,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 progressBar.setAttribute('aria-valuenow', parseInt(formData['progressValue']));
             }
         }
-        
+
         // Restore completed tabs with improved selector handling
         if (formData['completedTabs'] && Array.isArray(formData['completedTabs'])) {
             formData['completedTabs'].forEach(tabId => {
@@ -1936,38 +1936,38 @@ document.addEventListener("DOMContentLoaded", function() {
                 if (!tab) tab = document.querySelector(`#formTabs .nav-link[href="#${tabId.replace('tab', 'proper')}"]`);
                 if (!tab) tab = document.querySelector(`#formTabs .nav-link[href="#${tabId}"]`);
                 if (!tab) tab = document.querySelector(`#formTabs .nav-link[id="${tabId}"]`);
-                
+
                 if (tab) {
                     tab.classList.add('completed');
                 }
             });
         }
-        
+
         // Validate all tabs on initial load to mark them as completed if needed
         validateAllTabs();
     }
 
-    // Function to completely clear all form data from localStorage 
+    // Function to completely clear all form data from localStorage
     window.clearAllFormData = function() {
         localStorage.removeItem(storageKey);
         localStorage.removeItem('formProgress');
         localStorage.removeItem('completedTabs');
-        
+
         // Reset the form element
         if (form) form.reset();
-        
+
         // Reset progress bar
         const progressBar = document.getElementById('formProgressBar');
         if (progressBar) {
             progressBar.style.width = '0%';
             progressBar.setAttribute('aria-valuenow', 0);
         }
-        
+
         // Remove completed status from all tabs
         document.querySelectorAll('#formTabs .nav-link').forEach(tab => {
             tab.classList.remove('completed');
         });
-        
+
         // Reset accession groups
         const accessionContainer = document.getElementById('accessionContainer');
         if (accessionContainer) {
@@ -1978,52 +1978,52 @@ document.addEventListener("DOMContentLoaded", function() {
                 const copiesInput = firstGroup.querySelector('.copies-input');
                 if (accessionInput) accessionInput.value = '';
                 if (copiesInput) copiesInput.value = '1';
-                
+
                 // Keep only the first group
                 accessionContainer.innerHTML = '';
                 accessionContainer.appendChild(firstGroup);
             }
         }
-        
+
         // Clear call numbers and ISBN fields
         const callNumberContainer = document.getElementById('callNumberContainer');
         if (callNumberContainer) {
             callNumberContainer.innerHTML = '';
         }
-        
+
         const isbnContainer = document.getElementById('isbnContainer');
         if (isbnContainer) {
             isbnContainer.innerHTML = '';
         }
-        
+
         // Activate first tab
         const firstTab = document.querySelector('#formTabs .nav-link');
         if (firstTab && typeof $(firstTab).tab === 'function') {
             $(firstTab).tab('show');
         }
-        
+
         console.log('All form data has been cleared');
     };
 
     // Function to validate all tabs and mark them as completed if all required fields are filled
     function validateAllTabs() {
         const tabPanes = document.querySelectorAll('.tab-pane');
-        
+
         tabPanes.forEach(pane => {
             const tabId = pane.id;
             const tab = document.querySelector(`a[href="#${tabId}"]`);
             if (!tab) return;
-            
+
             // Check if all required fields in this tab are filled
             const requiredFields = pane.querySelectorAll('input[required], select[required], textarea[required]');
             let allFilled = true;
-            
+
             requiredFields.forEach(field => {
                 if (!field.value.trim()) {
                     allFilled = false;
                 }
             });
-            
+
             // If all required fields are filled, mark tab as completed
             if (allFilled && requiredFields.length > 0) {
                 tab.classList.add('completed');
@@ -2033,18 +2033,18 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // Save form data periodically
     const autoSaveInterval = setInterval(saveFormData, 1000);
-    
+
     // Save on input changes
     form.addEventListener('input', saveFormData);
-    
+
     // Save on tab changes
     document.querySelectorAll('#formTabs .nav-link').forEach(tab => {
         tab.addEventListener('shown.bs.tab', saveFormData);
     });
-    
+
     // Restore form data on page load
     restoreFormData();
-    
+
     // Validate tabs after a short delay to ensure all fields are properly loaded
     setTimeout(validateAllTabs, 500);
 
@@ -2053,7 +2053,7 @@ document.addEventListener("DOMContentLoaded", function() {
         const select = document.getElementById(selectId);
         const preview = document.getElementById(previewId);
         if (!select || !preview) return;
-        
+
         const selectedOptions = Array.from(select.selectedOptions).map(option => {
             return `<span class="badge bg-secondary mr-1 text-white">${option.text} <i class="fas fa-times remove-icon" data-value="${option.value}"></i></span>`;
         });
@@ -2069,7 +2069,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 <div class="col-md-7">
                     <div class="form-group">
                         <label>Accession (Copy ${copyNumber})</label>
-                        <input type="text" class="form-control accession-input" name="accession[]" 
+                        <input type="text" class="form-control accession-input" name="accession[]"
                             placeholder="e.g., 2023-0001" required>
                         <small class="text-muted">Format: YYYY-NNNN</small>
                     </div>
@@ -2085,7 +2085,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     ${copyNumber > 1 ? '<button type="button" class="btn btn-danger btn-sm remove-accession"><i class="fas fa-trash"></i> Remove</button>' : ''}
                 </div>
             </div>
-            
+
             <!-- Details section will be populated by updateISBNFields -->
             <div class="accession-details"></div>
         `;
@@ -2108,13 +2108,13 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('Call number generation functions not found. Please refresh the page.');
         }
     });
-    
+
     // Also trigger when clicking on the Local Information tab
     document.getElementById('local-info-tab').addEventListener('shown.bs.tab', function() {
         console.log('Local Info tab activated, checking call numbers');
         setTimeout(function() {
             const callNumberContainer = document.getElementById('callNumberContainer');
-            if (callNumberContainer && (!callNumberContainer.children.length || 
+            if (callNumberContainer && (!callNumberContainer.children.length ||
                 (callNumberContainer.children.length === 1 && callNumberContainer.querySelector('.alert')))) {
                 console.log('Call numbers not found or only alert message present');
                 // Try both methods
@@ -2126,14 +2126,14 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }, 200);
     });
-    
+
     // Initial check - if accession inputs have values but no call numbers, generate them
     setTimeout(function() {
         const accessionInputs = document.querySelectorAll('.accession-input');
         const callNumberContainer = document.getElementById('callNumberContainer');
-        
-        if (accessionInputs.length > 0 && accessionInputs[0].value && 
-            callNumberContainer && (!callNumberContainer.children.length || 
+
+        if (accessionInputs.length > 0 && accessionInputs[0].value &&
+            callNumberContainer && (!callNumberContainer.children.length ||
             (callNumberContainer.children.length === 1 && callNumberContainer.querySelector('.alert')))) {
             console.log('Detected accession input with value but no call numbers');
             // Try direct function call
@@ -2152,18 +2152,18 @@ document.addEventListener('DOMContentLoaded', function() {
 document.getElementById('bookForm').addEventListener('submit', function(e) {
     const callNumberInputs = document.querySelectorAll('.call-number-input');
     const previewElements = document.querySelectorAll('.call-number-preview');
-    
+
     if (callNumberInputs.length > 0 && previewElements.length > 0) {
         // Always use formatted call numbers for submission
         callNumberInputs.forEach((input, index) => {
             const preview = previewElements[index]?.textContent?.replace('→ ', '') || '';
             // Get formatted call number from data attribute or preview text
             const formattedCallNumber = input.dataset.formattedCallNumber || preview;
-            
+
             if (formattedCallNumber) {
                 // Always replace the input value with the formatted version that includes shelf location
                 input.value = formattedCallNumber;
-                
+
                 // Also create a hidden input for backward compatibility
                 const hiddenInput = document.createElement('input');
                 hiddenInput.type = 'hidden';
@@ -2172,7 +2172,7 @@ document.getElementById('bookForm').addEventListener('submit', function(e) {
                 this.appendChild(hiddenInput);
             }
         });
-        
+
         console.log('Formatted call numbers with shelf location applied for submission');
     }
 });
@@ -2186,7 +2186,7 @@ document.getElementById('bookForm').addEventListener('submit', function(e) {
 document.addEventListener("DOMContentLoaded", function() {
     // Initialize call number container on page load
     updateISBNFields();
-    
+
     // Consolidated event delegation for buttons
     document.addEventListener('click', function(e) {
         // Handle add accession button click
@@ -2194,7 +2194,7 @@ document.addEventListener("DOMContentLoaded", function() {
             addAccessionGroup();
             return;
         }
-        
+
         // Handle remove accession button click
         const removeButton = e.target.closest('.remove-accession');
         if (removeButton) {
@@ -2219,7 +2219,7 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         }
     });
-    
+
     // Add event listener for copy number input changes
     document.addEventListener('input', function(e) {
         if (e.target && e.target.classList.contains('copy-number-input')) {
@@ -2228,54 +2228,54 @@ document.addEventListener("DOMContentLoaded", function() {
                 setTimeout(saveFormData, 100);
             }
         }
-        
+
         // Existing event listeners for accession changes
-        if (e.target && (e.target.classList.contains('copies-input') || 
+        if (e.target && (e.target.classList.contains('copies-input') ||
                         e.target.classList.contains('accession-input'))) {
             updateISBNFields();
         }
-        
+
         // Add input validation for numbers only
         if (e.target && e.target.classList.contains('accession-input')) {
             e.target.value = e.target.value.replace(/\D/g, ''); // Remove non-digits
         }
-        
+
         // Validate ISBN format if needed
         if (e.target && e.target.name === 'isbn[]') {
             // Optional: Add ISBN validation logic here
             // e.target.value = e.target.value.replace(/[^\d-]/g, '');
         }
     });
-    
+
     // Add event listener for cascading updates for call numbers
     document.addEventListener('input', function(e) {
         if (e.target && e.target.classList.contains('call-number-input')) {
             const callNumberInputs = document.querySelectorAll('.call-number-input');
             const index = Array.from(callNumberInputs).indexOf(e.target);
-            
+
             // Get the base call number
             const baseCallNumber = e.target.value;
-            
+
             // Format and update all subsequent call numbers
             for (let i = index; i < callNumberInputs.length; i++) {
                 // Format will be applied by the formatCallNumberDisplay function
                 callNumberInputs[i].value = baseCallNumber;
-                
+
                 // Format the complete call number display for this input
                 formatCallNumberDisplay(callNumberInputs[i]);
             }
         }
     });
-    
+
     // Ensure call numbers are formatted when shelf location changes
     document.addEventListener('change', function(e) {
         if (e.target && e.target.classList.contains('shelf-location-select')) {
             const shelfLocationSelects = document.querySelectorAll('.shelf-location-select');
             const index = Array.from(shelfLocationSelects).indexOf(e.target);
-            
+
             for (let i = index; i < shelfLocationSelects.length; i++) {
                 shelfLocationSelects[i].value = shelfLocationSelects[index].value;
-                
+
                 // Update call number format when shelf location changes
                 const callNumberInput = shelfLocationSelects[i].closest('.input-group').querySelector('.call-number-input');
                 if (callNumberInput) {
@@ -2284,7 +2284,7 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         }
     });
-    
+
     // Add event listeners for publication year, volume, and copy number changes
     document.addEventListener('change', function(e) {
         if (e.target && (e.target.id === 'publish_date' || e.target.name === 'volume[]' || e.target.classList.contains('copy-number-input'))) {
@@ -2294,17 +2294,17 @@ document.addEventListener("DOMContentLoaded", function() {
             });
         }
     });
-    
+
     // Check if we need to manually trigger the call number creation on initial page load
     setTimeout(function() {
         // If call number container is empty but we have accession groups, update the call numbers
         const callNumberContainer = document.getElementById('callNumberContainer');
         const accessionGroups = document.querySelectorAll('.accession-group');
-        
+
         if (callNumberContainer && callNumberContainer.children.length === 0 && accessionGroups.length > 0) {
             console.log('Manually triggering call number creation for initial load');
             updateISBNFields();
-            
+
             // If that fails, try the direct generator
             setTimeout(function() {
                 if (callNumberContainer.children.length === 0 && typeof generateCallNumbersDirectly === 'function') {
@@ -2318,59 +2318,59 @@ document.addEventListener("DOMContentLoaded", function() {
 // Create data attributes for easier form processing
 function updateISBNFields() {
     console.log('Running updateISBNFields function with direct DOM manipulation');
-    
+
     // Save existing values first
     const valuesMap = saveDetailValues();
-    
+
     // IMPORTANT: Save copy number values before regenerating
     const copyNumberValues = {};
     document.querySelectorAll('.copy-number-input').forEach((input, index) => {
         copyNumberValues[index] = input.value;
     });
-    
+
     const isbnContainer = document.getElementById('isbnContainer');
     const callNumberContainer = document.getElementById('callNumberContainer');
-    
+
     if (!callNumberContainer) {
         console.error('Call number container not found!');
         alert('Error: Call number container not found. Please refresh the page.');
         return;
     }
-    
+
     // Always clear the containers to ensure fresh content
     console.log('Clearing containers...');
     isbnContainer.innerHTML = '';
     callNumberContainer.innerHTML = '';
-    
+
     // Get all accession groups
     const accessionGroups = document.querySelectorAll('.accession-group');
     console.log(`Found ${accessionGroups.length} accession groups`);
-    
+
     if (accessionGroups.length === 0) {
         callNumberContainer.innerHTML = '<div class="alert alert-warning">No accession groups found. Please add an accession number first.</div>';
         return;
     }
-    
+
     // Track details across groups for comparison
     let detailsGroups = [];
     let totalCopiesByDetails = {};
     let startingCopyNumber = {};
-    
+
     // First pass: collect all details
     accessionGroups.forEach((group, groupIndex) => {
         const accessionInput = group.querySelector('.accession-input').value;
         const copiesCount = parseInt(group.querySelector('.copies-input').value) || 1;
-        
+
         // First remove any existing details section
         const existingDetails = group.querySelector('.accession-details');
         if (existingDetails) {
             existingDetails.remove();
         }
-        
+
         // Create details section under each accession group
         const detailsDiv = document.createElement('div');
         detailsDiv.className = 'accession-details mt-3';
-        
+
         // Add heading for the details
         const detailsLabel = document.createElement('h6');
         detailsLabel.className = 'text-muted mb-3';
@@ -2384,19 +2384,19 @@ function updateISBNFields() {
         // Create ISBN input
         const isbnDiv = document.createElement('div');
         isbnDiv.className = 'col-md-3';
-        
+
         const isbnLabel = document.createElement('small');
         isbnLabel.className = 'form-text text-muted';
         isbnLabel.textContent = 'ISBN';
         isbnDiv.appendChild(isbnLabel);
-        
+
         const isbnInput = document.createElement('input');
         isbnInput.type = 'text';
         isbnInput.className = 'form-control';
         isbnInput.name = 'isbn[]';
         isbnInput.placeholder = `ISBN`;
         isbnInput.dataset.groupIndex = groupIndex; // Add data attribute for identification
-        
+
         isbnDiv.appendChild(isbnInput);
         rowDiv.appendChild(isbnDiv);
 
@@ -2408,14 +2408,14 @@ function updateISBNFields() {
         seriesLabel.className = 'form-text text-muted';
         seriesLabel.textContent = 'Series';
         seriesDiv.appendChild(seriesLabel);
-        
+
         const seriesInput = document.createElement('input');
         seriesInput.type = 'text';
         seriesInput.className = 'form-control';
         seriesInput.name = 'series[]';
         seriesInput.placeholder = `Series`;
         seriesInput.dataset.groupIndex = groupIndex; // Add data attribute for identification
-        
+
         seriesDiv.appendChild(seriesInput);
         rowDiv.appendChild(seriesDiv);
 
@@ -2427,14 +2427,14 @@ function updateISBNFields() {
         volumeLabel.className = 'form-text text-muted';
         volumeLabel.textContent = 'Volume';
         volumeDiv.appendChild(volumeLabel);
-        
+
         const volumeInput = document.createElement('input');
         volumeInput.type = 'text';
         volumeInput.className = 'form-control';
         volumeInput.name = 'volume[]';
         volumeInput.placeholder = `Volume`;
         volumeInput.dataset.groupIndex = groupIndex; // Add data attribute for identification
-        
+
         volumeDiv.appendChild(volumeInput);
         rowDiv.appendChild(volumeDiv);
 
@@ -2446,14 +2446,14 @@ function updateISBNFields() {
         partLabel.className = 'form-text text-muted';
         partLabel.textContent = 'Part';
         partDiv.appendChild(partLabel);
-        
+
         const partInput = document.createElement('input');
         partInput.type = 'text';
         partInput.className = 'form-control';
         partInput.name = 'part[]';
         partInput.placeholder = `Part`;
         partInput.dataset.groupIndex = groupIndex; // Add data attribute for identification
-        
+
         partDiv.appendChild(partInput);
         rowDiv.appendChild(partDiv);
 
@@ -2465,23 +2465,23 @@ function updateISBNFields() {
         editionLabel.className = 'form-text text-muted';
         editionLabel.textContent = 'Edition';
         editionDiv.appendChild(editionLabel);
-        
+
         const editionInput = document.createElement('input');
         editionInput.type = 'text';
         editionInput.className = 'form-control';
         editionInput.name = 'edition[]';
         editionInput.placeholder = `Edition`;
         editionInput.dataset.groupIndex = groupIndex; // Add data attribute for identification
-        
+
         editionDiv.appendChild(editionInput);
         rowDiv.appendChild(editionDiv);
 
         detailsDiv.appendChild(rowDiv);
-        
+
         // Add the details section after the accession group's row
         const accessionRow = group.querySelector('.row');
         accessionRow.after(detailsDiv);
-        
+
         // Store this group's details for later comparison
         detailsGroups.push({
             groupIndex,
@@ -2494,58 +2494,58 @@ function updateISBNFields() {
             copies: copiesCount
         });
     });
-    
+
     // Track overall copy index across all groups
     let globalCopyIndex = 0;
-    
+
     // Second pass: determine copy numbers and create call number inputs
     detailsGroups.forEach((groupDetails, index) => {
         // Create a key for this group's details
         const detailsKey = `${groupDetails.isbn}|${groupDetails.series}|${groupDetails.volume}|${groupDetails.edition}|${groupDetails.part}`;
-        
+
         // Check if we've seen this set of details before
         if (totalCopiesByDetails[detailsKey] === undefined) {
             // First time seeing these details, start copy number at 1
             totalCopiesByDetails[detailsKey] = 0;
             startingCopyNumber[detailsKey] = 1;
         }
-        
+
         // Get the starting copy number for this group
         const startCopy = startingCopyNumber[detailsKey] + totalCopiesByDetails[detailsKey];
-        
+
         // Update the total copies for this set of details
         totalCopiesByDetails[detailsKey] += groupDetails.copies;
-        
+
         // Create heading for this accession group's call numbers
         const groupHeader = document.createElement('div');
         groupHeader.className = 'mb-2 text-muted small font-weight-bold';
         groupHeader.innerHTML = `Accession Group ${index + 1}: ${groupDetails.accession}`;
         callNumberContainer.appendChild(groupHeader);
-        
+
         // Create call number inputs for this group
         for (let i = 0; i < groupDetails.copies; i++) {
             const currentAccession = calculateAccession(groupDetails.accession, i);
             // Use saved copy number if available, otherwise use incremental global index
             const copyNumber = copyNumberValues[globalCopyIndex] || (globalCopyIndex + 1);
-            
+
             const callNumberDiv = document.createElement('div');
             callNumberDiv.className = 'input-group mb-2';
             callNumberDiv.dataset.accessionGroup = index;
-            
+
             const accessionLabel = document.createElement('span');
             accessionLabel.className = 'input-group-text';
             accessionLabel.textContent = `Accession ${currentAccession}`;
-            
+
             const callNumberInput = document.createElement('input');
             callNumberInput.type = 'text';
             callNumberInput.className = 'form-control call-number-input';
             callNumberInput.name = 'call_number[]';
             callNumberInput.placeholder = 'Enter call number';
-            
+
             const shelfLocationSelect = document.createElement('select');
             shelfLocationSelect.className = 'form-control shelf-location-select';
             shelfLocationSelect.name = 'shelf_locations[]';
-            
+
             // Add shelf location options
             const shelfOptions = [
                 ['TR', 'Teachers Reference'],
@@ -2557,19 +2557,19 @@ function updateISBNFields() {
                 ['RES', 'Reserve'],
                 ['FIC', 'Fiction']
             ];
-            
+
             shelfOptions.forEach(([value, text]) => {
                 const option = document.createElement('option');
                 option.value = value;
                 option.textContent = text;
                 shelfLocationSelect.appendChild(option);
             });
-            
+
             // Create copy number label and input (positioned between call number and shelf location)
             const copyNumberLabel = document.createElement('span');
             copyNumberLabel.className = 'input-group-text';
             copyNumberLabel.textContent = 'Copy Number';
-            
+
             const copyNumberInput = document.createElement('input');
             copyNumberInput.type = 'number';
             copyNumberInput.className = 'form-control copy-number-input';
@@ -2577,7 +2577,7 @@ function updateISBNFields() {
             copyNumberInput.min = '1';
             copyNumberInput.value = copyNumber;
             copyNumberInput.style.width = '70px';
-            
+
             // New order of elements in the input group
             callNumberDiv.appendChild(accessionLabel);
             callNumberDiv.appendChild(callNumberInput); // Call number input
@@ -2585,18 +2585,18 @@ function updateISBNFields() {
             callNumberDiv.appendChild(copyNumberInput); // Copy number input
             callNumberDiv.appendChild(shelfLocationSelect); // Shelf location select
             callNumberContainer.appendChild(callNumberDiv);
-            
+
             // Increment the global copy index
             globalCopyIndex++;
         }
     });
-    
+
     // After creating call number fields, log the number created:
     console.log(`Created ${callNumberContainer.children.length} call number entries`);
-    
+
     // After all processing, restore saved values
     restoreDetailValues(valuesMap);
-    
+
     // Trigger form autosave to persist the generated call numbers
     if (typeof saveFormData === 'function') {
         setTimeout(saveFormData, 100);
@@ -2613,18 +2613,18 @@ function updateISBNFields() {
 
 function calculateAccession(baseAccession, increment) {
     if (!baseAccession) return '(undefined)';
-    
+
     // Handle formats like "2023-0001" or "2023-001" or just "0001"
     const match = baseAccession.match(/^(.*?)(\d+)$/);
     if (!match) return baseAccession;
-    
+
     const prefix = match[1]; // Everything before the number
     const num = parseInt(match[2]); // The number part
     const width = match[2].length; // Original width of the number
-    
+
     // Calculate new number and pad with zeros to maintain original width
     const newNum = (num + increment).toString().padStart(width, '0');
-    
+
     return prefix + newNum;
 }
 
@@ -2633,7 +2633,7 @@ function addAccessionGroup() {
     const accessionContainer = document.getElementById('accessionContainer');
     const groups = accessionContainer.querySelectorAll('.accession-group');
     const newIndex = groups.length;
-    
+
     // Create new accession group
     const newGroup = document.createElement('div');
     newGroup.className = 'accession-group mb-3';
@@ -2642,7 +2642,7 @@ function addAccessionGroup() {
             <div class="col-md-7">
                 <div class="form-group">
                     <label>Accession (Copy ${newIndex + 1})</label>
-                    <input type="text" class="form-control accession-input" name="accession[]" 
+                    <input type="text" class="form-control accession-input" name="accession[]"
                         placeholder="e.g., 2023-0001" required>
                     <small class="text-muted">Format: YYYY-NNNN</small>
                 </div>
@@ -2660,23 +2660,23 @@ function addAccessionGroup() {
                 </button>
             </div>
         </div>
-        
+
         <!-- Details section - initially empty, will be populated by updateISBNFields -->
         <div class="accession-details"></div>
     `;
-    
+
     accessionContainer.appendChild(newGroup);
-    
+
     // Save current values
     const valuesMap = saveDetailValues();
-    
+
     // Update labels and regenerate details
     updateAccessionLabels();
     updateISBNFields();
-    
-    // Restore saved values 
+
+    // Restore saved values
     restoreDetailValues(valuesMap);
-    
+
     // Scroll to the newly added group
     newGroup.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -2695,7 +2695,7 @@ function initializeAccessionGroups() {
             detailsDiv.className = 'accession-details';
             firstGroup.appendChild(detailsDiv);
         }
-        
+
         // Let updateISBNFields populate the details section
         updateISBNFields();
     }
@@ -2715,10 +2715,10 @@ function updateAccessionLabels() {
 // Create a function to save the current values of all detail fields
 function saveDetailValues() {
     const valuesMap = {};
-    
+
     // Get all accession groups
     const accessionGroups = document.querySelectorAll('.accession-group');
-    
+
     accessionGroups.forEach((group, index) => {
         // Find inputs in this group's details section
         const isbnInput = group.querySelector('input[name^="isbn"]');
@@ -2726,7 +2726,7 @@ function saveDetailValues() {
         const volumeInput = group.querySelector('input[name^="volume"]');
         const editionInput = group.querySelector('input[name^="edition"]');
         const partInput = group.querySelector('input[name^="part"]');
-        
+
         if (isbnInput && seriesInput && volumeInput && editionInput && partInput) {
             valuesMap[index] = {
                 isbn: isbnInput.value,
@@ -2737,14 +2737,14 @@ function saveDetailValues() {
             };
         }
     });
-    
+
     return valuesMap;
 }
 
 // Function to restore values after operations that might clear them
 function restoreDetailValues(valuesMap) {
     const accessionGroups = document.querySelectorAll('.accession-group');
-    
+
     accessionGroups.forEach((group, index) => {
         // Only restore if we have saved values for this index
         if (valuesMap[index]) {
@@ -2753,7 +2753,7 @@ function restoreDetailValues(valuesMap) {
             const volumeInput = group.querySelector('input[name^="volume"]');
             const editionInput = group.querySelector('input[name^="edition"]');
             const partInput = group.querySelector('input[name^="part"]');
-            
+
             if (isbnInput) isbnInput.value = valuesMap[index].isbn;
             if (seriesInput) seriesInput.value = valuesMap[index].series;
             if (volumeInput) volumeInput.value = valuesMap[index].volume;
@@ -2767,26 +2767,26 @@ function restoreDetailValues(valuesMap) {
 function updateCallNumbers() {
     const callNumberContainer = document.getElementById('callNumberContainer');
     callNumberContainer.innerHTML = '';
-    
+
     // Get all accession groups
     const accessionGroups = document.querySelectorAll('.accession-group');
-    
+
     // Track details across groups for comparison
     let detailsGroups = [];
     let totalCopiesByDetails = {};
     let startingCopyNumber = {};
-    
+
     // First pass: collect all details
     accessionGroups.forEach((group, groupIndex) => {
         const accessionInput = group.querySelector('.accession-input').value;
         const copiesCount = parseInt(group.querySelector('.copies-input').value) || 1;
-        
+
         const isbnInput = group.querySelector('input[name^="isbn"]');
         const seriesInput = group.querySelector('input[name^="series"]');
         const volumeInput = group.querySelector('input[name^="volume"]');
         const editionInput = group.querySelector('input[name^="edition"]');
         const partInput = group.querySelector('input[name^="part"]');
-        
+
         // Store this group's details for later comparison
         detailsGroups.push({
             groupIndex,
@@ -2799,55 +2799,55 @@ function updateCallNumbers() {
             copies: copiesCount
         });
     });
-    
+
     // Second pass: determine copy numbers and create call number inputs
     detailsGroups.forEach((groupDetails, index) => {
         // Create a key for this group's details
         const detailsKey = `${groupDetails.isbn}|${groupDetails.series}|${groupDetails.volume}|${groupDetails.edition}|${groupDetails.part}`;
-        
+
         // Check if we've seen this set of details before
         if (totalCopiesByDetails[detailsKey] === undefined) {
             // First time seeing these details, start copy number at 1
             totalCopiesByDetails[detailsKey] = 0;
             startingCopyNumber[detailsKey] = 1;
         }
-        
+
         // Get the starting copy number for this group
         const startCopy = startingCopyNumber[detailsKey] + totalCopiesByDetails[detailsKey];
-        
+
         // Update the total copies for this set of details
         totalCopiesByDetails[detailsKey] += groupDetails.copies;
-        
+
         // Create heading for this accession group's call numbers
         const groupHeader = document.createElement('div');
         groupHeader.className = 'mb-2 text-muted small font-weight-bold';
         groupHeader.innerHTML = `Accession Group ${index + 1}: ${groupDetails.accession}`;
         callNumberContainer.appendChild(groupHeader);
-        
+
         // Create call number inputs for this group
         for (let i = 0; i < groupDetails.copies; i++) {
             const currentAccession = calculateAccession(groupDetails.accession, i);
             // Start copy numbers at 1 for each accession group
             const copyNumber = i + 1;
-            
+
             const callNumberDiv = document.createElement('div');
             callNumberDiv.className = 'input-group mb-2';
             callNumberDiv.dataset.accessionGroup = index;
-            
+
             const accessionLabel = document.createElement('span');
             accessionLabel.className = 'input-group-text';
             accessionLabel.textContent = `Accession ${currentAccession}`;
-            
+
             const callNumberInput = document.createElement('input');
             callNumberInput.type = 'text';
             callNumberInput.className = 'form-control call-number-input';
             callNumberInput.name = 'call_number[]';
             callNumberInput.placeholder = 'Enter call number';
-            
+
             const shelfLocationSelect = document.createElement('select');
             shelfLocationSelect.className = 'form-control shelf-location-select';
             shelfLocationSelect.name = 'shelf_locations[]';
-            
+
             // Add shelf location options
             const shelfOptions = [
                 ['TR', 'Teachers Reference'],
@@ -2859,19 +2859,19 @@ function updateCallNumbers() {
                 ['RES', 'Reserve'],
                 ['FIC', 'Fiction']
             ];
-            
+
             shelfOptions.forEach(([value, text]) => {
                 const option = document.createElement('option');
                 option.value = value;
                 option.textContent = text;
                 shelfLocationSelect.appendChild(option);
             });
-            
+
             // Create copy number label and input (positioned between call number and shelf location)
             const copyNumberLabel = document.createElement('span');
             copyNumberLabel.className = 'input-group-text';
             copyNumberLabel.textContent = 'Copy Number';
-            
+
             const copyNumberInput = document.createElement('input');
             copyNumberInput.type = 'number';
             copyNumberInput.className = 'form-control copy-number-input';
@@ -2879,7 +2879,7 @@ function updateCallNumbers() {
             copyNumberInput.min = '1';
             copyNumberInput.value = copyNumber;
             copyNumberInput.style.width = '70px';
-            
+
             // New order of elements in the input group
             callNumberDiv.appendChild(accessionLabel);
             callNumberDiv.appendChild(callNumberInput); // Call number input
@@ -2889,7 +2889,7 @@ function updateCallNumbers() {
             callNumberContainer.appendChild(callNumberDiv);
         }
     });
-    
+
     // Trigger form autosave to persist the updated call numbers
     if (typeof saveFormData === 'function') {
         setTimeout(saveFormData, 100);
@@ -2901,38 +2901,38 @@ function forceGenerateCallNumbers() {
     console.log('Force generating call numbers');
     const callNumberContainer = document.getElementById('callNumberContainer');
     const accessionContainer = document.getElementById('accessionContainer');
-    
+
     if (!callNumberContainer || !accessionContainer) {
         console.error('Required containers not found');
         return;
     }
-    
+
     // Clear any existing content
     callNumberContainer.innerHTML = '';
-    
+
     // Get all accession groups
     const accessionGroups = accessionContainer.querySelectorAll('.accession-group');
     console.log(`Found ${accessionGroups.length} accession groups for direct generation`);
-    
+
     // Process each accession group
     accessionGroups.forEach((group, groupIndex) => {
         const accessionInput = group.querySelector('.accession-input');
         const copiesInput = group.querySelector('.copies-input');
-        
+
         if (!accessionInput || !copiesInput) {
             console.error('Required input fields not found in accession group');
             return;
         }
-        
+
         const accession = accessionInput.value || `ACC-${groupIndex+1}`;
         const copies = parseInt(copiesInput.value) || 1;
-        
+
         // Create header for this group
         const groupHeader = document.createElement('div');
         groupHeader.className = 'mb-2 text-muted small font-weight-bold';
         groupHeader.innerHTML = `Accession Group ${groupIndex + 1}: ${accession}`;
         callNumberContainer.appendChild(groupHeader);
-        
+
         // Create input fields for each copy
         for (let i = 0; i < copies; i++) {
             createCallNumberRow(callNumberContainer, accession, i, groupIndex);
@@ -2944,25 +2944,25 @@ function forceGenerateCallNumbers() {
 function createCallNumberRow(container, baseAccession, increment, groupIndex) {
     const currentAccession = calculateAccession(baseAccession, increment);
     const copyNumber = increment + 1;
-    
+
     const callNumberDiv = document.createElement('div');
     callNumberDiv.className = 'input-group mb-2';
     callNumberDiv.dataset.accessionGroup = groupIndex;
-    
+
     const accessionLabel = document.createElement('span');
     accessionLabel.className = 'input-group-text';
     accessionLabel.textContent = `Accession ${currentAccession}`;
-    
+
     const callNumberInput = document.createElement('input');
     callNumberInput.type = 'text';
     callNumberInput.className = 'form-control call-number-input';
     callNumberInput.name = 'call_number[]';
     callNumberInput.placeholder = 'Enter call number';
-    
+
     const copyNumberLabel = document.createElement('span');
     copyNumberLabel.className = 'input-group-text';
     copyNumberLabel.textContent = 'Copy Number';
-    
+
     const copyNumberInput = document.createElement('input');
     copyNumberInput.type = 'number';
     copyNumberInput.className = 'form-control copy-number-input';
@@ -2970,11 +2970,11 @@ function createCallNumberRow(container, baseAccession, increment, groupIndex) {
     copyNumberInput.min = '1';
     copyNumberInput.value = copyNumber;
     copyNumberInput.style.width = '70px';
-    
+
     const shelfLocationSelect = document.createElement('select');
     shelfLocationSelect.className = 'form-control shelf-location-select';
     shelfLocationSelect.name = 'shelf_locations[]';
-    
+
     // Add shelf location options
     const shelfOptions = [
         ['TR', 'Teachers Reference'],
@@ -2986,7 +2986,7 @@ function createCallNumberRow(container, baseAccession, increment, groupIndex) {
         ['RES', 'Reserve'],
         ['FIC', 'Fiction']
     ];
-    
+
     shelfOptions.forEach(([value, text]) => {
         const option = document.createElement('option');
         option.value = value;
@@ -2994,7 +2994,7 @@ function createCallNumberRow(container, baseAccession, increment, groupIndex) {
         if (value === 'CIR') option.selected = true;
         shelfLocationSelect.appendChild(option);
     });
-    
+
     // Assemble the input group
     callNumberDiv.appendChild(accessionLabel);
     callNumberDiv.appendChild(callNumberInput);
@@ -3002,7 +3002,7 @@ function createCallNumberRow(container, baseAccession, increment, groupIndex) {
     callNumberDiv.appendChild(copyNumberInput);
     callNumberDiv.appendChild(shelfLocationSelect);
     container.appendChild(callNumberDiv);
-    
+
     // Apply initial call number formatting
     setTimeout(() => formatCallNumberDisplay(callNumberInput), 100);
 }
@@ -3010,33 +3010,33 @@ function createCallNumberRow(container, baseAccession, increment, groupIndex) {
 // Function to format the call number display according to the pattern
 function formatCallNumberDisplay(callNumberInput) {
     if (!callNumberInput) return;
-    
+
     // Get the base call number entered by the user - Don't trim to preserve spaces
     const baseCallNumber = callNumberInput.value;
     if (!baseCallNumber) return; // Skip if no base call number
-    
+
     // Get the container and find related elements
     const container = callNumberInput.closest('.input-group');
     if (!container) return;
-    
+
     const shelfLocationSelect = container.querySelector('.shelf-location-select');
     const copyNumberInput = container.querySelector('.copy-number-input');
-    
+
     if (!shelfLocationSelect || !copyNumberInput) return;
-    
+
     // Get shelf location abbreviation
     const shelfLocation = shelfLocationSelect.value;
-    
+
     // Get copy number
     const copyNumber = copyNumberInput.value;
-    
+
     // Get publication year from the form
     const publishYear = document.getElementById('publish_date')?.value || '';
-    
+
     // Get volume if available - find the volume input for this accession group
     let volume = '';
     let part = ''; // Add part variable
-    
+
     // First try to find volume and part in the same accession group
     const accessionGroup = callNumberInput.closest('[data-accession-group]');
     if (accessionGroup) {
@@ -3046,36 +3046,36 @@ function formatCallNumberDisplay(callNumberInput) {
         if (volumeInputs.length > groupIndex && volumeInputs[groupIndex].value) {
             volume = 'v.' + volumeInputs[groupIndex].value;
         }
-        
+
         // Find part inputs and check if there's a value
         const partInputs = document.querySelectorAll('input[name="part[]"]');
         if (partInputs.length > groupIndex && partInputs[groupIndex].value) {
             part = 'pt.' + partInputs[groupIndex].value;
         }
     }
-    
+
     // Create the full formatted call number with proper spacing
     let formattedCallNumber = [];
     formattedCallNumber.push(shelfLocation);
-    
+
     // Add base call number as-is without splitting/trimming to preserve spaces
     formattedCallNumber.push(baseCallNumber);
-    
+
     // Add 'c' before year to indicate copyright
     if (publishYear) formattedCallNumber.push('c' + publishYear);
     if (volume) formattedCallNumber.push(volume);
     if (part) formattedCallNumber.push(part); // Add part to call number if present
     formattedCallNumber.push('c.' + copyNumber);
-    
+
     // Join with single spaces but preserve internal spaces in the base call number
     const preview = formattedCallNumber.join(' ');
-    
+
     // Add a data attribute with the full formatted call number
     callNumberInput.dataset.formattedCallNumber = preview;
-    
+
     // For better UX, we keep the base call number in the input but show the full format in a tooltip
     callNumberInput.title = "Will be saved as: " + preview;
-    
+
     // Add a small preview element next to the input if it doesn't exist
     let previewElem = container.querySelector('.call-number-preview');
     if (!previewElem) {
@@ -3088,7 +3088,7 @@ function formatCallNumberDisplay(callNumberInput) {
         callNumberInput.parentNode.style.position = 'relative';
         callNumberInput.parentNode.appendChild(previewElem);
     }
-    
+
     // Update the preview text
     previewElem.textContent = '→ ' + preview;
 }
@@ -3097,7 +3097,7 @@ function formatCallNumberDisplay(callNumberInput) {
 document.addEventListener("DOMContentLoaded", function() {
     // Call the standard initialization first
     updateISBNFields();
-    
+
     // If for some reason call numbers aren't generated, force them after a delay
     setTimeout(function() {
         const callNumberContainer = document.getElementById('callNumberContainer');
@@ -3106,7 +3106,7 @@ document.addEventListener("DOMContentLoaded", function() {
             forceGenerateCallNumbers();
         }
     }, 500);
-    
+
     // Add a button click handler for local-info-tab to ensure call numbers are shown
     document.getElementById('local-info-tab').addEventListener('click', function() {
         setTimeout(function() {
@@ -3126,69 +3126,69 @@ document.addEventListener("DOMContentLoaded", function() {
  */
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Direct call number generator loaded');
-    
+
     // Function to directly generate call numbers without dependency on other scripts
     window.generateCallNumbersDirectly = function() {
         console.log('Direct call number generation executing...');
-        
+
         const callNumberContainer = document.getElementById('callNumberContainer');
         const accessionContainer = document.getElementById('accessionContainer');
-        
+
         if (!callNumberContainer || !accessionContainer) {
             console.error('Essential containers missing');
             return;
         }
-        
+
         // Get all accession groups
         const accessionGroups = accessionContainer.querySelectorAll('.accession-group');
         if (accessionGroups.length === 0) {
             callNumberContainer.innerHTML = '<div class="alert alert-warning">No accession groups found. Please add accession information first.</div>';
             return;
         }
-        
+
         // Save existing copy numbers before regenerating
         const existingCopyNumbers = {};
         const existingCopyInputs = document.querySelectorAll('.copy-number-input');
         existingCopyInputs.forEach((input, index) => {
             existingCopyNumbers[index] = input.value;
         });
-        
+
         // Clear container for fresh content
         callNumberContainer.innerHTML = '';
-        
+
         // Track total copies count across all groups
         let totalCopiesCount = 0;
-        
+
         // Get publication year for call numbers
         const publishYear = document.getElementById('publish_date')?.value || '';
-        
+
         // Process each accession group
         accessionGroups.forEach((group, groupIndex) => {
             const accessionInput = group.querySelector('.accession-input');
             const copiesInput = group.querySelector('.copies-input');
-            
+
             if (!accessionInput || !copiesInput) {
                 console.error('Missing inputs in accession group');
                 return;
             }
-            
+
             // Get values (or use defaults if empty)
             const accessionValue = accessionInput.value || `ACC-${groupIndex+1}`;
             const copies = parseInt(copiesInput.value) || 1;
-            
+
             // Find volume for this group if any
             let volumeValue = '';
             const volumeInput = group.querySelector('input[name="volume[]"]');
             if (volumeInput && volumeInput.value) {
                 volumeValue = volumeInput.value;
             }
-            
+
             // Create group header
             const groupHeader = document.createElement('div');
             groupHeader.className = 'mb-2 text-muted small font-weight-bold';
             groupHeader.innerHTML = `Accession Group ${groupIndex + 1}: ${accessionValue}`;
             callNumberContainer.appendChild(groupHeader);
-            
+
             // Generate call number fields for each copy
             for (let i = 0; i < copies; i++) {
                 // Calculate incremented accession number
@@ -3202,32 +3202,32 @@ document.addEventListener('DOMContentLoaded', function() {
                         currentAccession = prefix + (num + i).toString().padStart(width, '0');
                     }
                 }
-                
+
                 // Create a call number row
                 const row = document.createElement('div');
                 row.className = 'input-group mb-2';
                 row.dataset.accessionGroup = groupIndex;
-                
+
                 // Create elements
                 const accessionLabel = document.createElement('span');
                 accessionLabel.className = 'input-group-text';
                 accessionLabel.textContent = `Accession ${currentAccession}`;
-                
+
                 const callNumberInput = document.createElement('input');
                 callNumberInput.type = 'text';
                 callNumberInput.className = 'form-control call-number-input';
                 callNumberInput.name = 'call_number[]';
                 callNumberInput.placeholder = 'Enter call number';
-                
+
                 const copyNumberLabel = document.createElement('span');
                 copyNumberLabel.className = 'input-group-text';
                 copyNumberLabel.textContent = 'Copy Number';
-                
+
                 // Use existing copy number if available, otherwise use global sequence
                 const copyIndex = totalCopiesCount + i;
                 // If we have a saved value use it, otherwise use the global count + 1
                 const copyValue = existingCopyNumbers[copyIndex] || (totalCopiesCount + i + 1);
-                
+
                 const copyNumberInput = document.createElement('input');
                 copyNumberInput.type = 'number';
                 copyNumberInput.className = 'form-control copy-number-input';
@@ -3235,11 +3235,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 copyNumberInput.min = '1';
                 copyNumberInput.value = copyValue;
                 copyNumberInput.style.width = '70px';
-                
+
                 const shelfLocationSelect = document.createElement('select');
                 shelfLocationSelect.className = 'form-control shelf-location-select';
                 shelfLocationSelect.name = 'shelf_locations[]';
-                
+
                 // Add shelf locations
                 [
                     ['TR', 'Teachers Reference'],
@@ -3257,7 +3257,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (value === 'CIR') option.selected = true;
                     shelfLocationSelect.appendChild(option);
                 });
-                
+
                 // Create a preview element for the formatted call number
                 const callNumberPreview = document.createElement('small');
                 callNumberPreview.className = 'call-number-preview text-muted ml-2';
@@ -3265,7 +3265,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 callNumberPreview.style.right = '120px';
                 callNumberPreview.style.top = '50%';
                 callNumberPreview.style.transform = 'translateY(-50%)';
-                
+
                 // Assemble the row
                 row.appendChild(accessionLabel);
                 row.appendChild(callNumberInput);
@@ -3275,7 +3275,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 row.appendChild(copyNumberInput);
                 row.appendChild(shelfLocationSelect);
                 callNumberContainer.appendChild(row);
-                
+
                 // Add event listener to update the formatted call number
                 callNumberInput.addEventListener('input', function() {
                     // If formatCallNumberDisplay exists use it, otherwise create a simple preview
@@ -3300,7 +3300,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     }
                 });
-                
+
                 // Add listeners for other fields that affect the call number format
                 shelfLocationSelect.addEventListener('change', function() {
                     if (typeof formatCallNumberDisplay === 'function') {
@@ -3310,7 +3310,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         callNumberInput.dispatchEvent(new Event('input'));
                     }
                 });
-                
+
                 copyNumberInput.addEventListener('change', function() {
                     if (typeof formatCallNumberDisplay === 'function') {
                         formatCallNumberDisplay(callNumberInput);
@@ -3320,14 +3320,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 });
             }
-            
+
             // Increment the total copies count for the next group
             totalCopiesCount += copies;
         });
-        
+
         console.log('Direct call number generation complete');
     };
-    
+
     // Automatically check and generate call numbers when accession inputs change
     document.addEventListener('input', function(e) {
         if (e.target && (e.target.classList.contains('accession-input') || e.target.classList.contains('copies-input'))) {
@@ -3339,7 +3339,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 300);
         }
     });
-    
+
     // Add click handler for the tab
     const localInfoTab = document.getElementById('local-info-tab');
     if (localInfoTab) {
@@ -3352,7 +3352,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 300);
         });
     }
-    
+
     // Check if we need to generate call numbers on initial load
     setTimeout(function() {
         const callNumberContainer = document.getElementById('callNumberContainer');
@@ -3361,7 +3361,7 @@ document.addEventListener('DOMContentLoaded', function() {
             generateCallNumbersDirectly();
         }
     }, 800);
-    
+
     // Export the function globally
     window.setupManualCallNumberGeneration = function() {
         const callNumberContainer = document.getElementById('callNumberContainer');
@@ -3433,29 +3433,29 @@ document.addEventListener("DOMContentLoaded", function() {
             const firstname = entry.querySelector('.author-firstname').value.trim();
             const middle_init = entry.querySelector('.author-middleinit').value.trim();
             const lastname = entry.querySelector('.author-lastname').value.trim();
-            
+
             if (!firstname || !lastname) {
                 hasErrors = true;
                 return;
             }
-            
+
             authorsData.push({
                 firstname: firstname,
                 middle_init: middle_init,
                 lastname: lastname
             });
         });
-        
+
         if (hasErrors) {
             alert('First name and last name are required for all authors.');
             return;
         }
-        
+
         if (authorsData.length === 0) {
             alert('Please add at least one author.');
             return;
         }
-        
+
         // AJAX request to save all authors
         const xhr = new XMLHttpRequest();
         xhr.open('POST', 'ajax/add_writers.php', true);
@@ -3469,25 +3469,25 @@ document.addEventListener("DOMContentLoaded", function() {
                         const authorSelect = document.getElementById('authorSelect');
                         const coAuthorsSelect = document.getElementById('coAuthorsSelect');
                         const editorsSelect = document.getElementById('editorsSelect');
-                        
+
                         response.authors.forEach(author => {
                             const newOption = document.createElement('option');
                             newOption.value = author.id;
                             newOption.textContent = author.name;
-                            
+
                             authorSelect.appendChild(newOption.cloneNode(true));
                             coAuthorsSelect.appendChild(newOption.cloneNode(true));
                             editorsSelect.appendChild(newOption.cloneNode(true));
                         });
-                        
+
                         // Select the first new author in the author dropdown if no author is selected
                         if (!authorSelect.value && response.authors.length > 0) {
                             authorSelect.value = response.authors[0].id;
                         }
-                        
+
                         // Close the modal
                         $('#addAuthorModal').modal('hide');
-                        
+
                         // Clear the form
                         document.getElementById('newAuthorForm').reset();
                         // Reset to just one author entry
@@ -3518,7 +3518,7 @@ document.addEventListener("DOMContentLoaded", function() {
                                 </div>
                             </div>
                         `;
-                        
+
                         alert(`Successfully added ${response.authors.length} author(s)!`);
                     } else {
                         alert('Error: ' + response.message);
@@ -3577,25 +3577,25 @@ document.addEventListener("DOMContentLoaded", function() {
     function addPublisherSearch() {
         const publisherSelect = document.querySelector('select[name="publisher"]');
         const searchInput = document.getElementById('publisherSearch');
-        
+
         if (!searchInput || !publisherSelect) return;
-        
+
         // Store original options
         const originalOptions = Array.from(publisherSelect.options);
-        
+
         // Add search functionality
         searchInput.addEventListener('input', function() {
             const searchText = this.value.toLowerCase();
-            
+
             // Clear current options
             publisherSelect.innerHTML = '';
-            
+
             // Add default "Select Publisher" option
             const defaultOption = document.createElement('option');
             defaultOption.value = '';
             defaultOption.textContent = 'Select Publisher';
             publisherSelect.appendChild(defaultOption);
-            
+
             // Filter and add matching options
             originalOptions.forEach(option => {
                 if (option.value !== '' && option.text.toLowerCase().includes(searchText)) {
@@ -3623,7 +3623,7 @@ document.addEventListener("DOMContentLoaded", function() {
     removeSelectedOption("authorSelect", "authorPreview");
     removeSelectedOption("coAuthorsSelect", "coAuthorsPreview");
     removeSelectedOption("editorsSelect", "editorsPreview");
-    
+
     // Initialize publisher search
     addPublisherSearch();
 
@@ -3676,28 +3676,28 @@ document.addEventListener("DOMContentLoaded", function() {
         publisherEntries.forEach(entry => {
             const publisher = entry.querySelector('.publisher-name').value.trim();
             const place = entry.querySelector('.publisher-place').value.trim();
-            
+
             if (!publisher || !place) {
                 hasErrors = true;
                 return;
             }
-            
+
             publishersData.push({
                 publisher: publisher,
                 place: place
             });
         });
-        
+
         if (hasErrors) {
             alert('Publisher name and place are required for all publishers.');
             return;
         }
-        
+
         if (publishersData.length === 0) {
             alert('Please add at least one publisher.');
             return;
         }
-        
+
         // AJAX request to save all publishers
         const xhr = new XMLHttpRequest();
         xhr.open('POST', 'ajax/add_publishers.php', true);
@@ -3709,7 +3709,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     if (response.success) {
                         // Add all new publishers to the select options
                         const publisherSelect = document.getElementById('publisher');
-                        
+
                         response.publishers.forEach(pub => {
                             // Check if this publisher is already in the dropdown
                             let exists = false;
@@ -3719,7 +3719,7 @@ document.addEventListener("DOMContentLoaded", function() {
                                     break;
                                 }
                             }
-                            
+
                             if (!exists) {
                                 const newOption = document.createElement('option');
                                 newOption.value = pub.publisher;
@@ -3727,15 +3727,15 @@ document.addEventListener("DOMContentLoaded", function() {
                                 publisherSelect.appendChild(newOption);
                             }
                         });
-                        
+
                         // Select the first new publisher in the dropdown if none is selected
                         if (!publisherSelect.value && response.publishers.length > 0) {
                             publisherSelect.value = response.publishers[0].publisher;
                         }
-                        
+
                         // Close the modal
                         $('#addPublisherModal').modal('hide');
-                        
+
                         // Clear the form
                         document.getElementById('newPublisherForm').reset();
                         // Reset to just one publisher entry
@@ -3760,7 +3760,7 @@ document.addEventListener("DOMContentLoaded", function() {
                                 </div>
                             </div>
                         `;
-                        
+
                         alert(`Successfully added ${response.publishers.length} publisher(s)!`);
                     } else {
                         alert('Error: ' + response.message);
@@ -3840,10 +3840,10 @@ document.addEventListener("DOMContentLoaded", function() {
                 addButton.style.width = '100%';
                 addButton.style.marginBottom = '10px';
                 container.appendChild(addButton);
-                
+
                 // Setup validation listeners for required fields
                 setupValidationListeners();
-                
+
                 // Add event listener for the button
                 addButton.addEventListener('click', function() {
                     const authorEntriesContainer = document.getElementById('authorEntriesContainer');
@@ -3881,10 +3881,10 @@ document.addEventListener("DOMContentLoaded", function() {
                         </div>
                     `;
                     authorEntriesContainer.appendChild(newEntry);
-                    
+
                     // Setup validation for new fields
                     setupValidationListeners(newEntry);
-                    
+
                     // Scroll to the bottom of the container to show the new entry
                     const swalContent = document.querySelector('.swal2-content');
                     if (swalContent) {
@@ -3906,7 +3906,7 @@ document.addEventListener("DOMContentLoaded", function() {
                         }
                     }
                 });
-                
+
                 function setupValidationListeners(parent = document) {
                     // Setup real-time validation
                     parent.querySelectorAll('.author-firstname, .author-lastname').forEach(input => {
@@ -3927,15 +3927,15 @@ document.addEventListener("DOMContentLoaded", function() {
                 const authorEntries = document.querySelectorAll('#authorEntriesContainer .author-entry');
                 const authorsData = [];
                 let hasErrors = false;
-                
+
                 authorEntries.forEach(entry => {
                     const firstname = entry.querySelector('.author-firstname').value.trim();
                     const middle_init = entry.querySelector('.author-middleinit').value.trim();
                     const lastname = entry.querySelector('.author-lastname').value.trim();
-                    
+
                     if (!firstname || !lastname) {
                         hasErrors = true;
-                        
+
                         // Highlight empty fields
                         if (!firstname) {
                             entry.querySelector('.author-firstname').classList.add('is-invalid');
@@ -3945,14 +3945,14 @@ document.addEventListener("DOMContentLoaded", function() {
                         }
                         return;
                     }
-                    
+
                     authorsData.push({
                         firstname: firstname,
                         middle_init: middle_init,
                         lastname: lastname
                     });
                 });
-                
+
                 if (hasErrors) {
                     Swal.fire({
                         icon: 'error',
@@ -3962,7 +3962,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     });
                     return;
                 }
-                
+
                 if (authorsData.length === 0) {
                     Swal.fire({
                         icon: 'error',
@@ -3995,17 +3995,17 @@ document.addEventListener("DOMContentLoaded", function() {
                                 const authorSelect = document.getElementById('authorSelect');
                                 const coAuthorsSelect = document.getElementById('coAuthorsSelect');
                                 const editorsSelect = document.getElementById('editorsSelect');
-                                
+
                                 response.authors.forEach(author => {
                                     const newOption = document.createElement('option');
                                     newOption.value = author.id;
                                     newOption.textContent = author.name;
-                                    
+
                                     if (authorSelect) authorSelect.appendChild(newOption.cloneNode(true));
                                     if (coAuthorsSelect) coAuthorsSelect.appendChild(newOption.cloneNode(true));
                                     if (editorsSelect) editorsSelect.appendChild(newOption.cloneNode(true));
                                 });
-                                
+
                                 // Auto-select the last added author
                                 if (authorSelect && response.authors.length > 0) {
                                     const lastAuthor = response.authors[response.authors.length - 1];
@@ -4129,10 +4129,10 @@ document.addEventListener("DOMContentLoaded", function() {
                 addButton.style.width = '100%';
                 addButton.style.marginBottom = '10px';
                 container.appendChild(addButton);
-                
+
                 // Setup validation listeners
                 setupValidationListeners();
-                
+
                 // Add event listener for the button
                 addButton.addEventListener('click', function() {
                     const publisherEntriesContainer = document.getElementById('publisherEntriesContainer');
@@ -4164,10 +4164,10 @@ document.addEventListener("DOMContentLoaded", function() {
                         </div>
                     `;
                     publisherEntriesContainer.appendChild(newEntry);
-                    
+
                     // Setup validation for new fields
                     setupValidationListeners(newEntry);
-                    
+
                     // Scroll to the bottom of the container to show the new entry
                     const swalContent = document.querySelector('.swal2-content');
                     if (swalContent) {
@@ -4189,7 +4189,7 @@ document.addEventListener("DOMContentLoaded", function() {
                         }
                     }
                 });
-                
+
                 function setupValidationListeners(parent = document) {
                     // Setup real-time validation
                     parent.querySelectorAll('.publisher-name, .publisher-place').forEach(input => {
@@ -4209,15 +4209,15 @@ document.addEventListener("DOMContentLoaded", function() {
                 const publisherEntries = document.querySelectorAll('#publisherEntriesContainer .publisher-entry');
                 const publishersData = [];
                 let hasErrors = false;
-                
+
                 // Collect data from all publisher entries
                 publisherEntries.forEach(entry => {
                     const publisher = entry.querySelector('.publisher-name').value.trim();
                     const place = entry.querySelector('.publisher-place').value.trim();
-                    
+
                     if (!publisher || !place) {
                         hasErrors = true;
-                        
+
                         // Highlight empty fields
                         if (!publisher) {
                             entry.querySelector('.publisher-name').classList.add('is-invalid');
@@ -4227,13 +4227,13 @@ document.addEventListener("DOMContentLoaded", function() {
                         }
                         return;
                     }
-                    
+
                     publishersData.push({
                         publisher: publisher,
                         place: place
                     });
                 });
-                
+
                 if (hasErrors) {
                     Swal.fire({
                         icon: 'error',
@@ -4243,7 +4243,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     });
                     return;
                 }
-                
+
                 if (publishersData.length === 0) {
                     Swal.fire({
                         icon: 'error',
@@ -4281,7 +4281,7 @@ document.addEventListener("DOMContentLoaded", function() {
                                         option.textContent = `${pub.place} ; ${pub.publisher}`;
                                         publisherSelect.appendChild(option);
                                     });
-                                    
+
                                     // Auto-select the last added publisher
                                     if (response.publishers.length > 0) {
                                         const lastPub = response.publishers[response.publishers.length - 1];
@@ -4359,10 +4359,24 @@ document.addEventListener("DOMContentLoaded", function() {
     if (addNewAuthorBtn) {
         addNewAuthorBtn.addEventListener('click', showAddAuthorDialog);
     }
-    
+
     const addNewPublisherBtn = document.getElementById('addNewPublisherBtn');
     if (addNewPublisherBtn) {
         addNewPublisherBtn.addEventListener('click', showAddPublisherDialog);
     }
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Update file input labels when a file is selected
+    document.querySelectorAll('.custom-file-input').forEach(input => {
+        input.addEventListener('change', function () {
+            const fileName = this.files[0]?.name || 'Choose file';
+            const label = this.nextElementSibling;
+            if (label && label.classList.contains('custom-file-label')) {
+                label.textContent = fileName;
+            }
+        });
+    });
 });
 </script>

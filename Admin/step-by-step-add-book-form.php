@@ -27,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if ($transactionSupported) {
         mysqli_begin_transaction($conn);
     }
-    
+
     try {
         $accessions = $_POST['accession'];
         $number_of_copies_array = $_POST['number_of_copies'];
@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $parallel_title = mysqli_real_escape_string($conn, $_POST['parallel_title']);
         $summary = mysqli_real_escape_string($conn, $_POST['abstract']);
         $contents = mysqli_real_escape_string($conn, $_POST['notes']);
-        
+
         // Process author, co-authors, and editors
         $author_id = mysqli_real_escape_string($conn, $_POST['author']);
         $co_authors_ids = isset($_POST['co_authors']) ? $_POST['co_authors'] : [];
@@ -53,13 +53,41 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         // Handle file uploads
         $front_image = '';
         $back_image = '';
-        if(isset($_FILES['front_image']) && $_FILES['front_image']['error'] == 0) {
-            $front_image = 'uploads/' . basename($_FILES['front_image']['name']);
-            move_uploaded_file($_FILES['front_image']['tmp_name'], $front_image);
+        $imageFolder = '../Images/book-image/'; // Define the folder for storing images
+
+        // Ensure the folder exists
+        if (!is_dir($imageFolder)) {
+            mkdir($imageFolder, 0777, true);
         }
-        if(isset($_FILES['back_image']) && $_FILES['back_image']['error'] == 0) {
-            $back_image = 'uploads/' . basename($_FILES['back_image']['name']);
-            move_uploaded_file($_FILES['back_image']['tmp_name'], $back_image);
+
+        // Process front image
+        if (isset($_FILES['front_image']) && $_FILES['front_image']['error'] === UPLOAD_ERR_OK) {
+            $frontImageTmpName = $_FILES['front_image']['tmp_name'];
+            $frontImageName = uniqid('front_', true) . '_' . basename($_FILES['front_image']['name']);
+            $frontImagePath = $imageFolder . $frontImageName;
+
+            // Move the uploaded file to the target folder
+            if (move_uploaded_file($frontImageTmpName, $frontImagePath)) {
+                // Convert to relative path for database storage
+                $front_image = 'Images/book-image/' . $frontImageName;
+            } else {
+                throw new Exception("Failed to upload front image.");
+            }
+        }
+
+        // Process back image
+        if (isset($_FILES['back_image']) && $_FILES['back_image']['error'] === UPLOAD_ERR_OK) {
+            $backImageTmpName = $_FILES['back_image']['tmp_name'];
+            $backImageName = uniqid('back_', true) . '_' . basename($_FILES['back_image']['name']);
+            $backImagePath = $imageFolder . $backImageName;
+
+            // Move the uploaded file to the target folder
+            if (move_uploaded_file($backImageTmpName, $backImagePath)) {
+                // Convert to relative path for database storage
+                $back_image = 'Images/book-image/' . $backImageName;
+            } else {
+                throw new Exception("Failed to upload back image.");
+            }
         }
 
         $dimension = mysqli_real_escape_string($conn, $_POST['dimension']);
@@ -77,10 +105,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $prefix_pages = mysqli_real_escape_string($conn, $_POST['prefix_pages']);
         $main_pages = mysqli_real_escape_string($conn, $_POST['main_pages']);
         $supplementary_content = isset($_POST['supplementary_content']) ? $_POST['supplementary_content'] : [];
-        
+
         // Create total_pages without supplementary content
         $total_pages = trim("$prefix_pages $main_pages");
-        
+
         // Prepare supplementary_contents for storage
         if (!empty($supplementary_content)) {
             if (count($supplementary_content) === 1) {
@@ -108,17 +136,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $current_part = mysqli_real_escape_string($conn, $_POST['part'][$i]); // Add part field
             $current_edition = mysqli_real_escape_string($conn, $_POST['edition'][$i]);
             $current_isbn = isset($_POST['isbn'][$i]) ? mysqli_real_escape_string($conn, $_POST['isbn'][$i]) : '';
-            
+
             // Reset copy number for each new accession group
             $copy_number = 1;
 
             for ($j = 0; $j < $copies_for_this_accession; $j++) {
                 $current_accession = $base_accession + $j;
-                $current_call_number = isset($_POST['call_number'][$call_number_index]) ? 
+                $current_call_number = isset($_POST['call_number'][$call_number_index]) ?
                     mysqli_real_escape_string($conn, $_POST['call_number'][$call_number_index]) : '';
-                $current_shelf_location = isset($_POST['shelf_locations'][$call_number_index]) ? 
+                $current_shelf_location = isset($_POST['shelf_locations'][$call_number_index]) ?
                     mysqli_real_escape_string($conn, $_POST['shelf_locations'][$call_number_index]) : '';
-                $current_copy_number = isset($_POST['user_copy_numbers'][$call_number_index]) ? 
+                $current_copy_number = isset($_POST['user_copy_numbers'][$call_number_index]) ?
                     mysqli_real_escape_string($conn, $_POST['user_copy_numbers'][$call_number_index]) : $copy_number;
                 $call_number_index++;
 
@@ -126,15 +154,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 if (!empty($current_volume)) {
                     // With volume, format: [shelf_location] [call_number] c[publish_year] vol[volume_number] c[copy_number]
                     $publish_year = $_SESSION['book_shortcut']['publish_year'] ?? date('Y');
-                    
+
                     // Build formatted call number with parts
                     $formatted_call_number = $current_shelf_location . ' ' . $current_call_number . ' c' . $publish_year . ' vol.' . $current_volume;
-                    
+
                     // Add part if present
                     if (!empty($current_part)) {
                         $formatted_call_number .= ' pt.' . $current_part;
                     }
-                    
+
                     // Add copy number
                     $formatted_call_number .= ' c.' . $current_copy_number;
                 } else {
@@ -145,7 +173,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 // Check for duplicate accession
                 $check_query = "SELECT * FROM books WHERE accession = '$current_accession'";
                 $result = mysqli_query($conn, $check_query);
-                
+
                 if (mysqli_num_rows($result) > 0) {
                     $error_messages[] = "Accession number $current_accession already exists - skipping.";
                     continue;
@@ -174,13 +202,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $program = implode('; ', $all_programs);
 
                 $query = "INSERT INTO books (
-                    accession, title, preferred_title, parallel_title, 
+                    accession, title, preferred_title, parallel_title,
                     subject_category, subject_detail, program,
-                    summary, contents, front_image, back_image, 
-                    dimension, series, volume, part, edition, 
-                    copy_number, total_pages, supplementary_contents, ISBN, content_type, 
-                    media_type, carrier_type, call_number, URL, 
-                    language, shelf_location, entered_by, date_added, 
+                    summary, contents, front_image, back_image,
+                    dimension, series, volume, part, edition,
+                    copy_number, total_pages, supplementary_contents, ISBN, content_type,
+                    media_type, carrier_type, call_number, URL,
+                    language, shelf_location, entered_by, date_added,
                     status, last_update
                 ) VALUES (
                     '$current_accession', '$title', '$preferred_title', '$parallel_title',
@@ -195,14 +223,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                 if (mysqli_query($conn, $query)) {
                     $success_count++;
-                    
+
                     // Insert into publications table using publisher id and publish year from session
                     $book_id = mysqli_insert_id($conn);
                     $pubQuery = "INSERT INTO publications (book_id, publisher_id, publish_date) VALUES ('$book_id', '$publisher_id', '$publish_year')";
                     if (!mysqli_query($conn, $pubQuery)) {
                         $error_messages[] = "Error adding publication for book with accession $current_accession: " . mysqli_error($conn);
                     }
-                    
+
                     // Insert contributors in batches
                     $contributors = [];
 
@@ -240,15 +268,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         if ($transactionSupported) {
             mysqli_commit($conn);
         }
-        
+
         // Store book information in session for success message
         $_SESSION['success_message'] = "Successfully added all books!";
         $_SESSION['added_book_title'] = $title;
         $_SESSION['added_book_copies'] = $success_count;
-        
+
         // Clear the book shortcut session data
         unset($_SESSION['book_shortcut']);
-        
+
         // Redirect to book_list.php
         header("Location: book_list.php");
         exit();
@@ -315,7 +343,7 @@ $accession_error = '';
     <div id="content" class="flex-grow-1">
         <div class="container-fluid">
             <!-- Fix: Remove enctype if not needed -->
-            <form id="bookForm" action="step-by-step-add-book-form.php" method="POST" enctype="multipart/form-data" class="h-100" 
+            <form id="bookForm" action="step-by-step-add-book-form.php" method="POST" enctype="multipart/form-data" class="h-100"
                   onkeydown="return event.key != 'Enter';">
                 <div class="container-fluid d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3">
                     <h1 class="h3 mb-2 text-gray-800">Add Book</h1>
@@ -341,14 +369,14 @@ $accession_error = '';
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <hr>
-                                
+
                                 <div class="row no-gutters align-items-center">
                                     <div class="col-md-4">
                                         <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Author(s):</div>
                                         <ul class="list-unstyled">
-                                            <?php 
+                                            <?php
                                             $writer_info = [];
                                             if (!empty($_SESSION['book_shortcut']['selected_writers'])) {
                                                 foreach ($_SESSION['book_shortcut']['selected_writers'] as $selected_writer) {
@@ -392,7 +420,7 @@ $accession_error = '';
                                     <div class="col-md-4">
                                         <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Publisher:</div>
                                         <div class="h6 mb-0 font-weight-bold text-gray-800">
-                                            <?php 
+                                            <?php
                                             if (isset($_SESSION['book_shortcut']['publisher_id']) && $_SESSION['book_shortcut']['publisher_id']) {
                                                 $publisher_id = $_SESSION['book_shortcut']['publisher_id'];
                                                 $publisher_query = "SELECT publisher, place FROM publishers WHERE id = $publisher_id";
@@ -409,7 +437,7 @@ $accession_error = '';
                                             ?>
                                         </div>
                                         <div class="small text-gray-600">
-                                            <?php 
+                                            <?php
                                             if (isset($publisher_data) && isset($publisher_data['place'])) {
                                                 echo htmlspecialchars($publisher_data['place']);
                                             }
@@ -419,7 +447,7 @@ $accession_error = '';
                                     <div class="col-md-4">
                                         <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Publication Year:</div>
                                         <div class="h6 mb-0 font-weight-bold text-gray-800">
-                                            <?php 
+                                            <?php
                                             if (isset($_SESSION['book_shortcut']['publish_year'])) {
                                                 echo htmlspecialchars($_SESSION['book_shortcut']['publish_year']);
                                             } else {
@@ -464,7 +492,7 @@ $accession_error = '';
                             <!-- Title Proper Tab -->
                             <div class="tab-pane fade show active" id="title-proper" role="tabpanel">
                                 <h4>Title Proper</h4>
-                                
+
                                 <!-- Book Title from Shortcut in alert box, similar to Writers and Publisher -->
                                 <div class="alert alert-info mb-4">
                                     <h5 class="mb-2">Book Title from Shortcut</h5>
@@ -472,8 +500,8 @@ $accession_error = '';
                                     <div class="card mb-2">
                                         <div class="card-body py-2">
                                             <h6 class="mb-0 font-weight-bold">
-                                                <?php echo isset($_SESSION['book_shortcut']['book_title']) ? 
-                                                    htmlspecialchars($_SESSION['book_shortcut']['book_title']) : 
+                                                <?php echo isset($_SESSION['book_shortcut']['book_title']) ?
+                                                    htmlspecialchars($_SESSION['book_shortcut']['book_title']) :
                                                     '<span class="text-danger">No title set</span>'; ?>
                                             </h6>
                                         </div>
@@ -481,7 +509,7 @@ $accession_error = '';
                                     <p class="mt-2 mb-0"><small>To change the title, please <a href="step-by-step-books.php">go back to the book title selection page</a>.</small></p>
                                 </div>
                                 <input type="hidden" name="title" value="<?php echo isset($_SESSION['book_shortcut']['book_title']) ? htmlspecialchars($_SESSION['book_shortcut']['book_title']) : ''; ?>">
-                                
+
                                 <div class="form-group">
                                     <label>Preferred Title</label>
                                     <input type="text" class="form-control" name="preferred_title">
@@ -490,14 +518,14 @@ $accession_error = '';
                                     <label>Parallel Title</label>
                                     <input type="text" class="form-control" name="parallel_title">
                                 </div>
-                                
+
                                 <!-- Hidden inputs for writer information -->
-                                <?php 
+                                <?php
                                 if (!empty($_SESSION['book_shortcut']['selected_writers'])) {
                                     foreach ($_SESSION['book_shortcut']['selected_writers'] as $index => $selected_writer) {
                                         $writer_id = $selected_writer['id'];
                                         $writer_role = $selected_writer['role'];
-                                        
+
                                         if ($index === 0 && $writer_role === 'Author') {
                                             // Set the first author as the main author
                                             echo '<input type="hidden" name="author" value="' . $writer_id . '">';
@@ -514,25 +542,25 @@ $accession_error = '';
                                     echo '<input type="hidden" name="author" value="' . $_SESSION['book_shortcut']['writer_id'] . '">';
                                 }
                                 ?>
-                                
+
                                 <div class="alert alert-info mt-4">
                                     <h5 class="mb-2">Writers from Shortcut</h5>
                                     <p>The following writers will be associated with this book:</p>
                                     <ul class="list-group">
-                                        <?php 
+                                        <?php
                                         if (!empty($_SESSION['book_shortcut']['selected_writers'])) {
                                             foreach ($_SESSION['book_shortcut']['selected_writers'] as $selected_writer) {
                                                 $writer_id = $selected_writer['id'];
                                                 $writer_role = $selected_writer['role'];
                                                 $writer_query = "SELECT firstname, middle_init, lastname FROM writers WHERE id = $writer_id";
                                                 $writer_result = $conn->query($writer_query);
-                                                
+
                                                 if ($writer_result && $writer_result->num_rows > 0) {
                                                     $writer = $writer_result->fetch_assoc();
                                                     echo '<li class="list-group-item d-flex justify-content-between align-items-center">';
                                                     echo htmlspecialchars(trim($writer['firstname'] . ' ' . $writer['middle_init'] . ' ' . $writer['lastname']));
-                                                    echo '<span class="badge badge-' . 
-                                                        ($writer_role == 'Author' ? 'primary' : ($writer_role == 'Co-Author' ? 'info' : 'secondary')) . 
+                                                    echo '<span class="badge badge-' .
+                                                        ($writer_role == 'Author' ? 'primary' : ($writer_role == 'Co-Author' ? 'info' : 'secondary')) .
                                                         ' rounded-pill">' . htmlspecialchars($writer_role) . '</span>';
                                                     echo '</li>';
                                                 }
@@ -593,7 +621,7 @@ $accession_error = '';
                                             <div class="col-md-6">
                                                 <div class="form-group">
                                                     <label>Details</label>
-                                                    <textarea class="form-control" name="subject_paragraphs[]" 
+                                                    <textarea class="form-control" name="subject_paragraphs[]"
                                                         rows="3" placeholder="Enter additional details about this subject"></textarea>
                                                 </div>
                                             </div>
@@ -607,12 +635,12 @@ $accession_error = '';
                                 <h4>Abstracts</h4>
                                 <div class="form-group">
                                     <label>Summary/Abstract</label>
-                                    <textarea class="form-control" name="abstract" rows="6" 
+                                    <textarea class="form-control" name="abstract" rows="6"
                                         placeholder="Enter a summary or abstract of the book"></textarea>
                                 </div>
                                 <div class="form-group">
                                     <label>Contents</label>
-                                    <textarea class="form-control" name="notes" rows="4" 
+                                    <textarea class="form-control" name="notes" rows="4"
                                         placeholder="Enter the table of contents or chapter list"></textarea>
                                 </div>
                             </div>
@@ -673,7 +701,7 @@ $accession_error = '';
                                                     <div class="col-md-8">
                                                         <div class="form-group">
                                                             <label>Accession Group 1</label>
-                                                            <input type="text" class="form-control accession-input" name="accession[]" 
+                                                            <input type="text" class="form-control accession-input" name="accession[]"
                                                                 placeholder="e.g., 2023-0001 (will auto-increment based on copies)" required>
                                                             <small class="text-muted">If you enter 2023-0001 and set 3 copies, it will create: 2023-0001, 2023-0002, 2023-0003</small>
                                                             <?php if ($accession_error): ?>
@@ -695,7 +723,7 @@ $accession_error = '';
                                                 </div>
                                             </div>
                                         </div>
-                                        
+
                                         <!-- Reduce top margin and add bottom margin -->
                                         <div class="form-group mb-3">
                                             <div id="callNumberContainer">
@@ -727,7 +755,7 @@ $accession_error = '';
                                             <?php
                                             // Get admin details
                                             $admin_id = $_SESSION['admin_id'];
-                                            $admin_query = "SELECT CONCAT(firstname, ' ', lastname) as full_name, role 
+                                            $admin_query = "SELECT CONCAT(firstname, ' ', lastname) as full_name, role
                                                           FROM admins WHERE id = ?";
                                             $stmt = $conn->prepare($admin_query);
                                             $stmt->bind_param("i", $admin_id);
@@ -735,8 +763,8 @@ $accession_error = '';
                                             $admin_result = $stmt->get_result();
                                             $admin_data = $admin_result->fetch_assoc();
                                             ?>
-                                            <input type="text" class="form-control" 
-                                                   value="<?php echo htmlspecialchars($admin_data['full_name'] . ' (' . $admin_data['role'] . ') - ID: ' . $admin_id); ?>" 
+                                            <input type="text" class="form-control"
+                                                   value="<?php echo htmlspecialchars($admin_data['full_name'] . ' (' . $admin_data['role'] . ') - ID: ' . $admin_id); ?>"
                                                    readonly>
                                             <input type="hidden" name="entered_by" value="<?php echo $admin_id; ?>">
                                         </div>
@@ -776,24 +804,24 @@ $accession_error = '';
                             <!-- Publication Tab -->
                             <div class="tab-pane fade" id="publication" role="tabpanel">
                                 <h4>Publication</h4>
-                                
+
                                 <!-- Hidden input for publisher and publication year from shortcut -->
                                 <?php if (isset($_SESSION['book_shortcut']['publisher_id']) && $_SESSION['book_shortcut']['publisher_id']): ?>
                                     <input type="hidden" name="publisher_id" value="<?php echo $_SESSION['book_shortcut']['publisher_id']; ?>">
                                 <?php endif; ?>
-                                
+
                                 <?php if (isset($_SESSION['book_shortcut']['publish_year'])): ?>
                                     <input type="hidden" name="publish_date" value="<?php echo $_SESSION['book_shortcut']['publish_year']; ?>">
                                 <?php else: ?>
                                     <input type="hidden" name="publish_date" value="<?php echo date('Y'); ?>">
                                 <?php endif; ?>
-                                
+
                                 <div class="alert alert-info mb-4">
                                     <h5 class="mb-2">Publisher from Shortcut</h5>
                                     <p>The following publisher information will be used for this book:</p>
-                                    
-                                    <?php 
-                                    if (isset($_SESSION['book_shortcut']['publisher_id']) && $_SESSION['book_shortcut']['publisher_id']): 
+
+                                    <?php
+                                    if (isset($_SESSION['book_shortcut']['publisher_id']) && $_SESSION['book_shortcut']['publisher_id']):
                                         $publisher_id = $_SESSION['book_shortcut']['publisher_id'];
                                         $publisher_query = "SELECT publisher, place FROM publishers WHERE id = $publisher_id";
                                         $publisher_result = $conn->query($publisher_query);
@@ -808,8 +836,8 @@ $accession_error = '';
                                                         <p class="mb-1"><strong>Place:</strong> <?php echo htmlspecialchars($publisher['place']); ?></p>
                                                     </div>
                                                     <div class="col-md-6">
-                                                        <p class="mb-1"><strong>Year of Publication:</strong> 
-                                                            <?php 
+                                                        <p class="mb-1"><strong>Year of Publication:</strong>
+                                                            <?php
                                                             if (isset($_SESSION['book_shortcut']['publish_year'])) {
                                                                 echo htmlspecialchars($_SESSION['book_shortcut']['publish_year']);
                                                             } else {
@@ -821,25 +849,25 @@ $accession_error = '';
                                                 </div>
                                             </div>
                                         </div>
-                                    <?php 
-                                        else: 
+                                    <?php
+                                        else:
                                     ?>
                                         <p class="text-warning">Publisher information not found.</p>
-                                    <?php 
+                                    <?php
                                         endif;
-                                    else: 
+                                    else:
                                     ?>
                                         <p class="text-warning">No publisher selected.</p>
                                     <?php endif; ?>
-                                    
+
                                     <p class="mt-2 mb-0"><small>To change publisher information, please <a href="step-by-step-publishers.php">go back to the publisher selection page</a>.</small></p>
                                 </div>
-                                
+
                                 <!-- Move Details for Accession Group fields just below the "Publisher from Shortcut" -->
                                 <div id="detailsForAccessionGroupContainer">
                                     <!-- Will be populated by JavaScript -->
                                 </div>
-                                
+
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="form-group">
@@ -849,7 +877,7 @@ $accession_error = '';
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="form-group">
@@ -923,36 +951,36 @@ $accession_error = '';
     .input-group {
         flex-wrap: wrap;
     }
-    
+
     .input-group > * {
         flex: 0 0 100%;
         margin-bottom: 5px;
     }
-    
+
     .input-group .input-group-text {
         width: 100%;
         border-radius: 0.25rem 0.25rem 0 0;
     }
-    
+
     .input-group .form-control {
         width: 100%;
         border-radius: 0 0 0.25rem 0.25rem;
     }
-    
+
     .input-group .shelf-location-select {
         width: 100%;
         margin-top: 5px;
         border-radius: 0.25rem;
     }
-    
+
     .accession-group .row {
         margin-bottom: 10px;
     }
-    
+
     .copy-number-input {
         width: 100% !important;
     }
-    
+
     .call-number-preview {
         position: static !important;
         transform: none !important;
@@ -973,11 +1001,11 @@ $accession_error = '';
     .nav-tabs {
         border-bottom: none;
     }
-    
+
     .nav-tabs .nav-item {
         display: inline-block;
     }
-    
+
     .nav-tabs .nav-link {
         margin-bottom: 5px;
         border: 1px solid #dee2e6;
@@ -1011,31 +1039,31 @@ function updateISBNFields() {
     isbnContainer.innerHTML = '';
     callNumberContainer.innerHTML = '';
     detailsForAccessionGroupContainer.innerHTML = '';
-    
+
     // Save existing copy numbers before regenerating
     const copyNumberValues = {};
     document.querySelectorAll('.copy-number-input').forEach((input, index) => {
         copyNumberValues[index] = input.value;
     });
-    
+
     // Get all accession groups
     const accessionGroups = document.querySelectorAll('.accession-group');
-    
+
     accessionGroups.forEach((group, groupIndex) => {
         const accessionInput = group.querySelector('.accession-input').value;
         const copiesCount = parseInt(group.querySelector('.copies-input').value) || 1;
-        
+
         // Create a container for Series, Volume, Edition, and ISBN inputs (in Publication tab)
         const groupDiv = document.createElement('div');
         groupDiv.className = 'form-group mb-3';
-        
+
         const groupLabel = document.createElement('label');
         groupLabel.textContent = `Details for Accession Group ${groupIndex + 1}`;
         groupDiv.appendChild(groupLabel);
-        
+
         const rowDiv = document.createElement('div');
         rowDiv.className = 'row';
-        
+
         // Create ISBN input cell
         const isbnDiv = document.createElement('div');
         isbnDiv.className = 'col-md-2';
@@ -1050,7 +1078,7 @@ function updateISBNFields() {
         isbnDiv.appendChild(isbnLabel);
         isbnDiv.appendChild(isbnInput);
         rowDiv.appendChild(isbnDiv);
-        
+
         // Create Series input cell
         const seriesDiv = document.createElement('div');
         seriesDiv.className = 'col-md-2';
@@ -1110,58 +1138,58 @@ function updateISBNFields() {
         editionDiv.appendChild(editionLabel);
         editionDiv.appendChild(editionInput);
         rowDiv.appendChild(editionDiv);
-        
+
         groupDiv.appendChild(rowDiv);
         detailsForAccessionGroupContainer.appendChild(groupDiv);
-        
+
         // Create call number inputs (in Local Information tab)
         const callNumberGroupLabel = document.createElement('h6');
         callNumberGroupLabel.className = 'mt-3 mb-2';
         callNumberGroupLabel.textContent = `Call Numbers for Accession Group ${groupIndex + 1}`;
         callNumberContainer.appendChild(callNumberGroupLabel);
-        
+
         // Track index across all copies for accessing saved copy numbers
         let globalCopyIndex = 0;
         for (let i = 0; i < copiesCount; i++) {
             const currentAccession = calculateAccession(accessionInput, i);
-            
+
             const callNumberDiv = document.createElement('div');
             callNumberDiv.className = 'input-group mb-2';
-            
+
             const accessionLabel = document.createElement('span');
             accessionLabel.className = 'input-group-text';
             accessionLabel.textContent = `Accession ${currentAccession}`;
-            
+
             const callNumberInput = document.createElement('input');
             callNumberInput.type = 'text';
             callNumberInput.className = 'form-control call-number-input';
             callNumberInput.name = 'call_number[]';
             callNumberInput.placeholder = 'Enter call number';
-            
+
             // Add Copy Number label and input
             const copyNumberLabel = document.createElement('span');
             copyNumberLabel.className = 'input-group-text';
             copyNumberLabel.textContent = 'Copy Number';
-            
+
             const copyNumberInput = document.createElement('input');
             copyNumberInput.type = 'number';
             copyNumberInput.className = 'form-control copy-number-input';
             copyNumberInput.name = 'copy_number[]';
             copyNumberInput.min = '1';
-            
+
             // Use saved copy number if available, otherwise use i+1
             const copyIndex = globalCopyIndex;
             globalCopyIndex++;
             const savedCopyNumber = copyNumberValues[copyIndex];
             copyNumberInput.value = savedCopyNumber || (i + 1);
-            
+
             copyNumberInput.style.width = '70px';
             copyNumberInput.dataset.originalValue = i + 1; // Store original value for reference
-            
+
             const shelfLocationSelect = document.createElement('select');
             shelfLocationSelect.className = 'form-control shelf-location-select';
             shelfLocationSelect.name = 'shelf_locations[]';
-            
+
             // Add shelf location options
             const shelfOptions = [
                 ['TR', 'Teachers Reference'],
@@ -1173,14 +1201,14 @@ function updateISBNFields() {
                 ['RES', 'Reserve'],
                 ['FIC', 'Fiction']
             ];
-            
+
             shelfOptions.forEach(([value, text]) => {
                 const option = document.createElement('option');
                 option.value = value;
                 option.textContent = text;
                 shelfLocationSelect.appendChild(option);
             });
-            
+
             // Restructure the order of elements
             callNumberDiv.appendChild(accessionLabel);
             callNumberDiv.appendChild(callNumberInput);
@@ -1188,7 +1216,7 @@ function updateISBNFields() {
             callNumberDiv.appendChild(copyNumberInput);
             callNumberDiv.appendChild(shelfLocationSelect);
             callNumberContainer.appendChild(callNumberDiv);
-            
+
             // Add event listener to update the call number preview when copy number changes
             copyNumberInput.addEventListener('input', function() {
                 const callNumberInput = this.closest('.input-group').querySelector('.call-number-input');
@@ -1200,18 +1228,18 @@ function updateISBNFields() {
 
 function calculateAccession(baseAccession, increment) {
     if (!baseAccession) return '(undefined)';
-    
+
     // Handle formats like "2023-0001" or "2023-001" or just "0001"
     const match = baseAccession.match(/^(.*?)(\d+)$/);
     if (!match) return baseAccession;
-    
+
     const prefix = match[1]; // Everything before the number
     const num = parseInt(match[2]); // The number part
     const width = match[2].length; // Original width of the number
-    
+
     // Calculate new number and pad with zeros to maintain original width
     const newNum = (num + increment).toString().padStart(width, '0');
-    
+
     return prefix + newNum;
 }
 
@@ -1233,7 +1261,7 @@ document.addEventListener('click', function(e) {
                 <div class="col-md-8">
                     <div class="form-group">
                         <label>Accession Group ${groupCount}</label>
-                        <input type="text" class="form-control accession-input" name="accession[]" 
+                        <input type="text" class="form-control accession-input" name="accession[]"
                             placeholder="e.g., 2023-0001" required>
                         <small class="text-muted">Format: YYYY-NNNN</small>
                     </div>
@@ -1266,7 +1294,7 @@ function validateForm(e) {
     const accessionInputs = document.querySelectorAll('.accession-input');
     let hasError = false;
     let errorMessage = '';
-    
+
     accessionInputs.forEach(input => {
         if (!input.value.trim()) {
             hasError = true;
@@ -1276,7 +1304,7 @@ function validateForm(e) {
             errorMessage = 'Accession numbers must contain only digits (0-9).';
         }
     });
-    
+
     if (hasError) {
         e.preventDefault();
         alert(errorMessage);
@@ -1302,7 +1330,7 @@ document.getElementById('bookForm').onsubmit = function(e) {
         e.preventDefault();
         return false;
     }
-    
+
     // Apply copy number values to hidden fields to ensure they're properly submitted
     document.querySelectorAll('.copy-number-input').forEach(function(input) {
         const value = input.value.trim();
@@ -1314,12 +1342,12 @@ document.getElementById('bookForm').onsubmit = function(e) {
             document.getElementById('bookForm').appendChild(hiddenInput);
         }
     });
-    
+
     if (!confirm('Are you sure you want to add this book?')) {
         e.preventDefault();
         return false;
     }
-    
+
     return true;
 };
 
@@ -1338,7 +1366,7 @@ document.addEventListener('input', function(e) {
     if (e.target && e.target.classList.contains('call-number-input')) {
         const callNumberInputs = document.querySelectorAll('.call-number-input');
         const index = Array.from(callNumberInputs).indexOf(e.target);
-        
+
         for (let i = index + 1; i < callNumberInputs.length; i++) {
             callNumberInputs[i].value = callNumberInputs[index].value;
         }
@@ -1350,7 +1378,7 @@ document.addEventListener('change', function(e) {
     if (e.target && e.target.classList.contains('shelf-location-select')) {
         const shelfLocationSelects = document.querySelectorAll('.shelf-location-select');
         const index = Array.from(shelfLocationSelects).indexOf(e.target);
-        
+
         for (let i = index + 1; i < shelfLocationSelects.length; i++) {
             shelfLocationSelects[i].value = shelfLocationSelects[index].value;
         }
@@ -1362,13 +1390,13 @@ function formatCallNumber() {
     const rawCallNumber = document.querySelector('input[name="raw_call_number"]').value.trim();
     const publishYear = document.querySelector('input[name="publish_date"]').value;
     const copies = document.querySelectorAll('.book-copy');
-    
+
     copies.forEach((copy, index) => {
         // Use the user-entered copy number rather than the index+1
         const copyNumberInput = copy.querySelector('input[name="copy_number[]"]');
         const copyNumber = copyNumberInput ? copyNumberInput.value : (index + 1);
         const shelfLocation = copy.querySelector('select[name="shelf_location[]"]').value;
-        
+
         // Ensure proper spacing between components
         const formattedCallNumber = [
             shelfLocation,
@@ -1376,7 +1404,7 @@ function formatCallNumber() {
             publishYear ? 'c' + publishYear : '',
             `c${copyNumber}`
         ].filter(Boolean).join(' ');
-        
+
         // Update hidden input
         let hiddenInput = copy.querySelector('input[name="formatted_call_numbers[]"]');
         if (!hiddenInput) {
@@ -1386,7 +1414,7 @@ function formatCallNumber() {
             copy.appendChild(hiddenInput);
         }
         hiddenInput.value = formattedCallNumber;
-        
+
         // Update display if exists
         const displayElement = copy.querySelector('.call-number-display');
         if (displayElement) {
@@ -1398,45 +1426,45 @@ function formatCallNumber() {
 // Add more specific formatting for call numbers with copy numbers
 function formatCallNumberDisplay(callNumberInput) {
     if (!callNumberInput) return;
-    
+
     const container = callNumberInput.closest('.input-group');
     if (!container) return;
-    
+
     const baseCallNumber = callNumberInput.value.trim();
     const copyNumberInput = container.querySelector('.copy-number-input');
     const shelfLocationSelect = container.querySelector('.shelf-location-select');
-    
+
     if (!baseCallNumber || !copyNumberInput || !shelfLocationSelect) return;
-    
+
     // Use user's copy number value rather than auto-generated
     const copyNumber = copyNumberInput.value || '1';
     const shelfLocation = shelfLocationSelect.value;
     const publishYear = document.getElementById('publish_date')?.value || '';
-    
+
     // Build formatted call number with proper spacing
     const formattedCallNumber = [
         shelfLocation,
         baseCallNumber,
         publishYear ? 'c' + publishYear : ''
     ].filter(Boolean).join(' ');
-    
+
     // Get the volume and part if available
     const accessionGroup = container.closest('[data-accession-group]')?.dataset?.accessionGroup;
     let volumeText = '';
     let partText = '';
-    
+
     if (accessionGroup !== undefined) {
         const volumeInputs = document.querySelectorAll('input[name="volume[]"]');
         if (volumeInputs[accessionGroup] && volumeInputs[accessionGroup].value) {
             volumeText = 'vol.' + volumeInputs[accessionGroup].value;
         }
-        
+
         const partInputs = document.querySelectorAll('input[name="part[]"]');
         if (partInputs[accessionGroup] && partInputs[accessionGroup].value) {
             partText = 'pt.' + partInputs[accessionGroup].value;
         }
     }
-    
+
     // Build the final call number with all components
     const finalCallNumber = [
         formattedCallNumber,
@@ -1444,7 +1472,7 @@ function formatCallNumberDisplay(callNumberInput) {
         partText,
         'c.' + copyNumber
     ].filter(Boolean).join(' ');
-    
+
     // Create or update preview element
     let previewElem = container.querySelector('.call-number-preview');
     if (!previewElem) {
@@ -1457,7 +1485,7 @@ function formatCallNumberDisplay(callNumberInput) {
         container.style.position = 'relative';
         container.appendChild(previewElem);
     }
-    
+
     previewElem.textContent = `→ ${finalCallNumber}`;
     callNumberInput.setAttribute('data-formatted', finalCallNumber);
 }

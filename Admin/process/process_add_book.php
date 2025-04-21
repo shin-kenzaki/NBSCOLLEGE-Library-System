@@ -23,21 +23,21 @@ try {
 if (isset($_POST['submit'])) {
     // Validate required fields
     $required_fields = [
-        'title', 
-        'publisher', 
-        'publish_date', 
-        'author', 
+        'title',
+        'publisher',
+        'publish_date',
+        'author',
         'accession'
     ];
-    
+
     $errors = [];
-    
+
     foreach ($required_fields as $field) {
         if (empty($_POST[$field])) {
             $errors[] = ucfirst(str_replace('_', ' ', $field)) . ' is required';
         }
     }
-    
+
     // Additional validation for author to ensure it contains at least one valid ID
     if (isset($_POST['author']) && is_array($_POST['author'])) {
         $has_valid_author = false;
@@ -47,41 +47,41 @@ if (isset($_POST['submit'])) {
                 break;
             }
         }
-        
+
         if (!$has_valid_author) {
             $errors[] = 'At least one valid author must be selected';
         }
     }
-    
+
     if (!empty($errors)) {
         $_SESSION['error_message'] = 'Please fix the following errors: ' . implode(', ', $errors);
         header("Location: ../Admin/add-book.php");
         exit();
     }
-    
+
     // Variables to track for update logging
     $total_copies_added = 0;
     $book_titles = [];
-    
+
     // Initialize counter for successful insertions and store book title
     $successful_inserts = 0;
     $book_title = mysqli_real_escape_string($conn, $_POST['title']);
-    
+
     // Process the form if validation passes
     try {
         // Start a transaction if supported
         if ($transactionSupported) {
             mysqli_begin_transaction($conn);
         }
-        
+
         // Process each accession group
         if (isset($_POST['accession']) && is_array($_POST['accession'])) {
             $current_index = 0; // Track overall index across all groups
-            
+
             // Extract subject fields from form submission
             $subject_category = mysqli_real_escape_string($conn, $_POST['subject_category'] ?? '');
             $subject_detail = mysqli_real_escape_string($conn, $_POST['subject_detail'] ?? '');
-            
+
             foreach ($_POST['accession'] as $i => $base_accession) {
                 $copies = intval($_POST['number_of_copies'][$i] ?? 1);
                 $isbn = mysqli_real_escape_string($conn, $_POST['isbn'][$i] ?? '');
@@ -89,10 +89,10 @@ if (isset($_POST['submit'])) {
                 $volume = mysqli_real_escape_string($conn, $_POST['volume'][$i] ?? '');
                 $part = mysqli_real_escape_string($conn, $_POST['part'][$i] ?? ''); // Add the part field
                 $edition = mysqli_real_escape_string($conn, $_POST['edition'][$i] ?? '');
-                
+
                 // Track the total copies being added
                 $total_copies_added += $copies;
-                
+
                 // Get shelf locations and call numbers
                 $call_numbers = $_POST['call_number'] ?? [];
                 $shelf_locations = $_POST['shelf_locations'] ?? [];
@@ -105,34 +105,34 @@ if (isset($_POST['submit'])) {
                     // Extract only numbers from the accession string if it contains non-numeric characters
                     preg_match('/(\d+)/', $accession_str, $matches);
                     $accession = isset($matches[0]) ? intval($matches[0]) : 0;
-                    
+
                     // Make sure we have a valid accession number
                     if ($accession <= 0) {
                         throw new Exception("Invalid accession number: " . $accession_str);
                     }
-                    
+
                     $title = mysqli_real_escape_string($conn, $_POST['title']);
                     // Add title to our tracking array if not already there
                     if (!in_array($title, $book_titles)) {
                         $book_titles[] = $title;
                     }
-                    
+
                     $preferred_title = mysqli_real_escape_string($conn, $_POST['preferred_title'] ?? '');
                     $parallel_title = mysqli_real_escape_string($conn, $_POST['parallel_title'] ?? '');
-                    
+
                     // Fields that match database structure
                     $summary = mysqli_real_escape_string($conn, $_POST['abstract'] ?? '');
                     $contents = mysqli_real_escape_string($conn, $_POST['notes'] ?? '');
                     $dimension = mysqli_real_escape_string($conn, $_POST['dimension'] ?? '');
-                    
+
                     // Get copy number from input field if it exists and is valid, else use default
-                    $copy_number = isset($copy_numbers[$current_index]) && !empty($copy_numbers[$current_index]) 
-                        ? intval($copy_numbers[$current_index]) 
+                    $copy_number = isset($copy_numbers[$current_index]) && !empty($copy_numbers[$current_index])
+                        ? intval($copy_numbers[$current_index])
                         : ($current_index + 1); // Fallback to sequential numbering
-                    
+
                     // Ensure copy number is at least 1
                     $copy_number = max(1, $copy_number);
-                    
+
                     // Format total_pages by combining prefix pages and main pages
                     $prefix_pages = isset($_POST['prefix_pages']) ? trim($_POST['prefix_pages']) : '';
                     $main_pages = isset($_POST['main_pages']) ? trim($_POST['main_pages']) : '';
@@ -147,7 +147,7 @@ if (isset($_POST['submit'])) {
                         $items = array_map(function($item) use ($conn) {
                             return mysqli_real_escape_string($conn, $item);
                         }, $_POST['supplementary_content']);
-                        
+
                         $count = count($items);
                         if ($count === 1) {
                             $supplementary_contents = "incudes " . $items[0];
@@ -161,17 +161,17 @@ if (isset($_POST['submit'])) {
                         // Handle case where no supplementary content is selected
                         $supplementary_contents = ''; // Or set to NULL if the column allows
                     }
-                    
+
                     $content_type = mysqli_real_escape_string($conn, $_POST['content_type'] ?? 'text');
                     $media_type = mysqli_real_escape_string($conn, $_POST['media_type'] ?? 'unmediated');
                     $carrier_type = mysqli_real_escape_string($conn, $_POST['carrier_type'] ?? 'volume');
                     $language = mysqli_real_escape_string($conn, $_POST['language'] ?? 'eng');
                     $url = mysqli_real_escape_string($conn, $_POST['url'] ?? '');
-                    
+
                     // Get call number and use formatted version if available
-                    $call_number = isset($call_numbers[$current_index]) ? 
+                    $call_number = isset($call_numbers[$current_index]) ?
                         mysqli_real_escape_string($conn, $call_numbers[$current_index]) : '';
-                        
+
                     // Check if we have a formatted call number from the data attribute
                     if (isset($_POST['formatted_call_numbers']) && isset($_POST['formatted_call_numbers'][$current_index])) {
                         $formatted_call_number = mysqli_real_escape_string($conn, $_POST['formatted_call_numbers'][$current_index]);
@@ -186,7 +186,7 @@ if (isset($_POST['submit'])) {
                         $base_call_number = $call_numbers[$current_index];
                         $shelf_location = $shelf_locations[$current_index] ?? 'CIR';
                         $publish_year = isset($_POST['publish_date']) ? $_POST['publish_date'] : date('Y');
-                        
+
                         if (!empty($volume)) {
                             $formatted_call_number = $shelf_location . ' ' . $base_call_number . ' c' . $publish_year . ' vol.' . $volume;
                             if (!empty($part)) {
@@ -197,88 +197,88 @@ if (isset($_POST['submit'])) {
                             $formatted_call_number = $shelf_location . ' ' . $base_call_number . ' c' . $publish_year . ' c.' . $copy_number;
                         }
                     }
-                    
+
                     // Get shelf location for this copy
-                    $shelf_location = isset($shelf_locations[$current_index]) ? 
+                    $shelf_location = isset($shelf_locations[$current_index]) ?
                         mysqli_real_escape_string($conn, $shelf_locations[$current_index]) : 'CIR';
-                    
+
                     $status = mysqli_real_escape_string($conn, $_POST['status'] ?? 'Available');
                     $entered_by = intval($_SESSION['admin_id']);
                     $date_added = date('Y-m-d');
                     $last_update = date('Y-m-d');
-                    
+
                     // Insert into books table
                     $insert_book_query = "INSERT INTO books (
-                        accession, title, preferred_title, parallel_title, 
+                        accession, title, preferred_title, parallel_title,
                         summary, contents, dimension, series, volume, part, edition, copy_number,
-                        total_pages, supplementary_contents, ISBN, content_type, media_type, 
-                        carrier_type, call_number, URL, language, shelf_location, 
+                        total_pages, supplementary_contents, ISBN, content_type, media_type,
+                        carrier_type, call_number, URL, language, shelf_location,
                         entered_by, date_added, status, last_update, subject_category, subject_detail
                     ) VALUES (
-                        '$accession', '$title', '$preferred_title', '$parallel_title', 
+                        '$accession', '$title', '$preferred_title', '$parallel_title',
                         '$summary', '$contents', '$dimension', '$series', '$volume', '$part', '$edition', '$copy_number',
-                        '$total_pages', '$supplementary_contents', '$isbn', '$content_type', '$media_type', 
-                        '$carrier_type', '$call_number', '$url', '$language', '$shelf_location', 
+                        '$total_pages', '$supplementary_contents', '$isbn', '$content_type', '$media_type',
+                        '$carrier_type', '$call_number', '$url', '$language', '$shelf_location',
                         '$entered_by', '$date_added', '$status', '$last_update', '$subject_category', '$subject_detail'
                     )";
-                    
+
                     if (!mysqli_query($conn, $insert_book_query)) {
                         throw new Exception("Error inserting book: " . mysqli_error($conn));
                     }
-                    
+
                     $successful_inserts++; // Increment the counter for successful insertions
-                    
+
                     $book_id = mysqli_insert_id($conn);
-                    
+
                     // 2. Insert contributors (authors)
                     if (isset($_POST['author']) && is_array($_POST['author'])) {
                         $author_added = false;
                         foreach ($_POST['author'] as $author_id) {
                             $author_id = intval($author_id);
                             if ($author_id > 0) {
-                                $insert_contributor_query = "INSERT INTO contributors (book_id, writer_id, role) 
+                                $insert_contributor_query = "INSERT INTO contributors (book_id, writer_id, role)
                                     VALUES ('$book_id', '$author_id', 'Author')";
-                                    
+
                                 if (!mysqli_query($conn, $insert_contributor_query)) {
                                     throw new Exception("Error inserting author: " . mysqli_error($conn));
                                 }
                                 $author_added = true;
                             }
                         }
-                        
+
                         if (!$author_added) {
                             throw new Exception("No valid author was added to the book.");
                         }
                     } else {
                         throw new Exception("Author information is missing.");
                     }
-                    
+
                     // 3. Insert co-authors if any
                     if (isset($_POST['co_authors']) && is_array($_POST['co_authors'])) {
                         foreach ($_POST['co_authors'] as $co_author) {
                             $co_author_id = intval($co_author);
-                            $insert_co_author_query = "INSERT INTO contributors (book_id, writer_id, role) 
+                            $insert_co_author_query = "INSERT INTO contributors (book_id, writer_id, role)
                                 VALUES ('$book_id', '$co_author_id', 'Co-Author')";
-                            
+
                             if (!mysqli_query($conn, $insert_co_author_query)) {
                                 throw new Exception("Error inserting co-author: " . mysqli_error($conn));
                             }
                         }
                     }
-                    
+
                     // 4. Insert editors if any
                     if (isset($_POST['editors']) && is_array($_POST['editors'])) {
                         foreach ($_POST['editors'] as $editor) {
                             $editor_id = intval($editor);
-                            $insert_editor_query = "INSERT INTO contributors (book_id, writer_id, role) 
+                            $insert_editor_query = "INSERT INTO contributors (book_id, writer_id, role)
                                 VALUES ('$book_id', '$editor_id', 'Editor')";
-                            
+
                             if (!mysqli_query($conn, $insert_editor_query)) {
                                 throw new Exception("Error inserting editor: " . mysqli_error($conn));
                             }
                         }
                     }
-                    
+
                     // 5. Insert publication information
                     $publisher_id = 0;
                     $publisher_name = '';
@@ -293,15 +293,15 @@ if (isset($_POST['submit'])) {
                         } else {
                             $publisher_value = $_POST['publisher'];
                         }
-                        
+
                         // Clean the publisher value
                         $publisher_value = mysqli_real_escape_string($conn, $publisher_value);
-                        
+
                         // Check if the publisher value is numeric (ID) or text (name)
                         if (is_numeric($publisher_value)) {
                             // It's an ID, use it directly
                             $publisher_id = intval($publisher_value);
-                            
+
                             // Get the publisher name for logging
                             $publisher_name_query = "SELECT publisher FROM publishers WHERE id = '$publisher_id'";
                             $publisher_name_result = mysqli_query($conn, $publisher_name_query);
@@ -321,19 +321,19 @@ if (isset($_POST['submit'])) {
                             mysqli_stmt_bind_param($stmt, "s", $publisher_name);
                             mysqli_stmt_execute($stmt);
                             $publisher_result = mysqli_stmt_get_result($stmt);
-                            
+
                             if ($publisher_result && mysqli_num_rows($publisher_result) > 0) {
                                 $publisher_row = mysqli_fetch_assoc($publisher_result);
                                 $publisher_id = $publisher_row['id'];
                             } else {
                                 // Publisher not found, log a warning
                                 error_log("Warning: Publisher '$publisher_name' not found in database");
-                                
+
                                 // Option: Insert the publisher if it doesn't exist
                                 $insert_publisher = "INSERT INTO publishers (publisher, place) VALUES (?, 'Unknown')";
                                 $stmt = mysqli_prepare($conn, $insert_publisher);
                                 mysqli_stmt_bind_param($stmt, "s", $publisher_name);
-                                
+
                                 if (mysqli_stmt_execute($stmt)) {
                                     $publisher_id = mysqli_insert_id($conn);
                                     error_log("Created new publisher with ID: $publisher_id");
@@ -357,10 +357,10 @@ if (isset($_POST['submit'])) {
 
                     // Insert publication info - attempt insertion even with publisher_id = 0
                     if (empty($publish_date)) {
-                        $insert_publication_query = "INSERT INTO publications (book_id, publisher_id) 
+                        $insert_publication_query = "INSERT INTO publications (book_id, publisher_id)
                             VALUES ('$book_id', '$publisher_id')";
                     } else {
-                        $insert_publication_query = "INSERT INTO publications (book_id, publisher_id, publish_date) 
+                        $insert_publication_query = "INSERT INTO publications (book_id, publisher_id, publish_date)
                             VALUES ('$book_id', '$publisher_id', '$publish_date')";
                     }
 
@@ -368,7 +368,7 @@ if (isset($_POST['submit'])) {
                         if (!mysqli_query($conn, $insert_publication_query)) {
                             $error = mysqli_error($conn);
                             error_log("Error inserting publication info for book ID $book_id: $error");
-                            
+
                             // Check if this is a foreign key constraint error
                             if (strpos($error, 'foreign key constraint') !== false) {
                                 // Try to add without publisher_id
@@ -385,7 +385,7 @@ if (isset($_POST['submit'])) {
                     } catch (Exception $e) {
                         error_log("Exception in publication insertion: " . $e->getMessage());
                     }
-                    
+
                     // 6. Process subject entries - insert for all copies
                     if (isset($_POST['subject_categories']) && is_array($_POST['subject_categories'])) {
                         foreach ($_POST['subject_categories'] as $i => $category) {
@@ -393,25 +393,25 @@ if (isset($_POST['submit'])) {
                                 $category = mysqli_real_escape_string($conn, $category);
                                 $program = mysqli_real_escape_string($conn, $_POST['program'][$i] ?? '');
                                 $detail = mysqli_real_escape_string($conn, $_POST['subject_paragraphs'][$i] ?? '');
-                                
-                                $update_subject_query = "UPDATE books SET 
-                                    subject_category = CASE 
-                                        WHEN subject_category IS NULL OR subject_category = '' 
-                                        THEN '$category' 
-                                        ELSE CONCAT(subject_category, '; ', '$category') 
+
+                                $update_subject_query = "UPDATE books SET
+                                    subject_category = CASE
+                                        WHEN subject_category IS NULL OR subject_category = ''
+                                        THEN '$category'
+                                        ELSE CONCAT(subject_category, '; ', '$category')
                                     END,
-                                    program = CASE 
-                                        WHEN program IS NULL OR program = '' 
-                                        THEN '$program' 
-                                        ELSE CONCAT(program, '; ', '$program') 
+                                    program = CASE
+                                        WHEN program IS NULL OR program = ''
+                                        THEN '$program'
+                                        ELSE CONCAT(program, '; ', '$program')
                                     END,
-                                    subject_detail = CASE 
-                                        WHEN subject_detail IS NULL OR subject_detail = '' 
-                                        THEN '$detail' 
-                                        ELSE CONCAT(subject_detail, '; ', '$detail') 
+                                    subject_detail = CASE
+                                        WHEN subject_detail IS NULL OR subject_detail = ''
+                                        THEN '$detail'
+                                        ELSE CONCAT(subject_detail, '; ', '$detail')
                                     END
                                     WHERE id = '$book_id'";
-                                    
+
                                 if (!mysqli_query($conn, $update_subject_query)) {
                                     throw new Exception("Error updating subject: " . mysqli_error($conn));
                                 }
@@ -420,110 +420,116 @@ if (isset($_POST['submit'])) {
                     }
 
                     // 7. Handle file uploads for book images (only for the first copy)
-                    if ($copy === 0) {
-                        if (isset($_FILES['front_image']) && $_FILES['front_image']['size'] > 0) {
-                            $target_dir = "../uploads/book_covers/";
-                            if (!is_dir($target_dir)) {
-                                mkdir($target_dir, 0777, true);
-                            }
-                            
-                            $front_image_name = $book_id . "_front." . pathinfo($_FILES['front_image']['name'], PATHINFO_EXTENSION);
-                            $target_file = $target_dir . $front_image_name;
-                            
-                            if (move_uploaded_file($_FILES['front_image']['tmp_name'], $target_file)) {
-                                $update_front_image = "UPDATE books SET front_image = '$front_image_name' WHERE id = '$book_id'";
-                                mysqli_query($conn, $update_front_image);
-                            }
+
+                    if (isset($_FILES['front_image']) && $_FILES['front_image']['size'] > 0) {
+                        $target_dir = "../Images/book-image/";
+                        if (!is_dir($target_dir)) {
+                            mkdir($target_dir, 0777, true);
                         }
-                        
-                        if (isset($_FILES['back_image']) && $_FILES['back_image']['size'] > 0) {
-                            $target_dir = "../uploads/book_covers/";
-                            if (!is_dir($target_dir)) {
-                                mkdir($target_dir, 0777, true);
-                            }
-                            
-                            $back_image_name = $book_id . "_back." . pathinfo($_FILES['back_image']['name'], PATHINFO_EXTENSION);
-                            $target_file = $target_dir . $back_image_name;
-                            
-                            if (move_uploaded_file($_FILES['back_image']['tmp_name'], $target_file)) {
-                                $update_back_image = "UPDATE books SET back_image = '$back_image_name' WHERE id = '$book_id'";
-                                mysqli_query($conn, $update_back_image);
-                            }
+
+                        // Generate a unique name for the front image
+                        $front_image_name = $book_id . "_front." . pathinfo($_FILES['front_image']['name'], PATHINFO_EXTENSION);
+                        $target_file = $target_dir . $front_image_name;
+
+                        if (move_uploaded_file($_FILES['front_image']['tmp_name'], $target_file)) {
+                            // Include the relative path in the database update
+                            $front_image_path = "Images/book-image/" . $front_image_name;
+                            // Update all copies of the book with the same front image
+                            $update_front_image = "UPDATE books SET front_image = '$front_image_path' WHERE accession LIKE '$base_accession%'";
+                            mysqli_query($conn, $update_front_image);
                         }
                     }
-                    
+
+                    if (isset($_FILES['back_image']) && $_FILES['back_image']['size'] > 0) {
+                        $target_dir = "../Images/book-image/";
+                        if (!is_dir($target_dir)) {
+                            mkdir($target_dir, 0777, true);
+                        }
+
+                        // Generate a unique name for the back image
+                        $back_image_name = $book_id . "_back." . pathinfo($_FILES['back_image']['name'], PATHINFO_EXTENSION);
+                        $target_file = $target_dir . $back_image_name;
+
+                        if (move_uploaded_file($_FILES['back_image']['tmp_name'], $target_file)) {
+                            // Include the relative path in the database update
+                            $back_image_path = "Images/book-image/" . $back_image_name;
+                            // Update all copies of the book with the same back image
+                            $update_back_image = "UPDATE books SET back_image = '$back_image_path' WHERE accession LIKE '$base_accession%'";
+                            mysqli_query($conn, $update_back_image);
+                        }
+                    }
                     // Increment the overall index
                     $current_index++;
                 }
             }
         }
-        
+
         // Commit the transaction if supported
         if ($transactionSupported) {
             mysqli_commit($conn);
         }
-        
+
         // Insert a single update entry for the book addition
         $admin_id = $_SESSION['admin_id'];
         $admin_role = $_SESSION['role'];
-        
+
         // Get admin's name from the database
         $admin_query = "SELECT CONCAT(firstname, ' ', lastname) as fullname FROM admins WHERE id = '$admin_id'";
         $admin_result = mysqli_query($conn, $admin_query);
         $admin_name = "Admin";
-        
+
         if ($admin_result && mysqli_num_rows($admin_result) > 0) {
             $admin_row = mysqli_fetch_assoc($admin_result);
             $admin_name = $admin_row['fullname'];
         }
-        
+
         // Create the update message without adding quotes directly in the string
         $book_title_text = count($book_titles) > 1 ? "multiple books" : $book_titles[0];
-        
+
         // Build the base message first
         $update_title = "$admin_role Added New Book";
         $message_text = "$admin_role $admin_name added ";
-        
+
         // Add the book title with appropriate formatting but without quotes in the string itself
         if (count($book_titles) > 1) {
             $message_text .= "multiple books";
         } else {
             $message_text .= "\"" . $book_titles[0] . "\""; // Use double quotes instead
         }
-        
+
         // Complete the message
         $message_text .= " with $total_copies_added copies";
-        
+
         // Properly escape the entire message for SQL insertion
         $update_title = mysqli_real_escape_string($conn, $update_title);
         $update_message = mysqli_real_escape_string($conn, $message_text);
         $current_timestamp = date('Y-m-d H:i:s');
-        
+
         // Insert into updates table
-        $insert_update_query = "INSERT INTO updates (user_id, role, title, message, `update`) 
+        $insert_update_query = "INSERT INTO updates (user_id, role, title, message, `update`)
             VALUES ('$admin_id', '$admin_role', '$update_title', '$update_message', '$current_timestamp')";
-        
+
         mysqli_query($conn, $insert_update_query);
-        
+
         $_SESSION['success_message'] = "Book(s) added successfully! Title: " . implode(', ', $book_titles) . " | Total Copies: $total_copies_added";
-        
+
         // Store book title and count in session for display on book_list.php
         $_SESSION['added_book_title'] = $book_title;
         $_SESSION['added_book_copies'] = $successful_inserts;
-        
+
         // Set a session flag to trigger form reset on the next page load
         $_SESSION['reset_book_form'] = true;
-        
+
         // Change redirect to book_list.php
         header("Location: ../Admin/book_list.php");
         exit();
-        
+
     } catch (Exception $e) {
         // Rollback the transaction if supported
         if ($transactionSupported) {
             mysqli_rollback($conn);
         }
-        
+
         $_SESSION['error_message'] = "Error: " . $e->getMessage();
             }
 }
@@ -531,19 +537,19 @@ if (isset($_POST['submit'])) {
 // Helper function to calculate accession number with increment
 function calculateAccession($baseAccession, $increment) {
     if (!$baseAccession) return '';
-    
+
     // Handle formats like "2023-0001" or "2023-001" or just "0001"
     $match = preg_match('/^(.*?)(\d+)$/', $baseAccession, $matches);
     if (!$match) return $baseAccession;
-    
+
     $prefix = $matches[1]; // Everything before the number
     $num = intval($matches[2]); // The number part
     $width = strlen($matches[2]); // Original width of the number
-    
+
     // Calculate new number and pad with zeros to maintain original width
     $newNum = ($num + $increment);
     $newNumStr = str_pad($newNum, $width, '0', STR_PAD_LEFT);
-    
+
     return $prefix . $newNumStr;
 }
 ?>
