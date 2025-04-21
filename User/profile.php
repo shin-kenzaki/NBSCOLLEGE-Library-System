@@ -35,46 +35,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
     $middle_init = mysqli_real_escape_string($conn, $_POST['middle_init']);
     $lastname = mysqli_real_escape_string($conn, $_POST['lastname']);
     $email = mysqli_real_escape_string($conn, $_POST['email']);
+    $contact_no = mysqli_real_escape_string($conn, $_POST['contact_no']);
+    $address = mysqli_real_escape_string($conn, $_POST['address']);
+    $id_type = mysqli_real_escape_string($conn, $_POST['id_type']);
+
+    // Get existing user data first to access image paths
+    $get_user_sql = "SELECT user_image, id_image FROM users WHERE id = ?";
+    $get_user_stmt = $conn->prepare($get_user_sql);
+    $get_user_stmt->bind_param("i", $user_id);
+    $get_user_stmt->execute();
+    $user_data = $get_user_stmt->get_result()->fetch_assoc();
     
-    // Handle file upload
+    $profile_image_path = $user_data['user_image'];
+    $id_image_path = $user_data['id_image'];
+
+    // Handle profile image upload
     if (isset($_FILES['profile_image']) && $_FILES['profile_image']['error'] === 0) {
         $target_dir = "../Images/Profile/";
         $file_extension = strtolower(pathinfo($_FILES["profile_image"]["name"], PATHINFO_EXTENSION));
         $new_filename = "profile_" . $user_id . "." . $file_extension;
         $target_file = $target_dir . $new_filename;
-        
-        // Check if image file is a actual image or fake image
+
         $check = getimagesize($_FILES["profile_image"]["tmp_name"]);
         if ($check !== false && move_uploaded_file($_FILES["profile_image"]["tmp_name"], $target_file)) {
-            $image_path = $target_file;
-            $sql = "UPDATE users SET firstname=?, middle_init=?, lastname=?, email=?, user_image=?, last_update=CURRENT_DATE WHERE id=?";
-            $stmt = $conn->prepare($sql);
-            $stmt->bind_param("sssssi", $firstname, $middle_init, $lastname, $email, $image_path, $user_id);
-            
-            // Update session image path if update successful
-            if ($stmt->execute()) {
-                $_SESSION['user_firstname'] = $firstname;
-                $_SESSION['user_lastname'] = $lastname;
-                $_SESSION['user_image'] = $image_path; // Add this line to update session image
-                $_SESSION['success_msg'] = "Profile updated successfully!";
-            } else {
-                $_SESSION['error_msg'] = "Error updating profile!";
-            }
+            $profile_image_path = $target_file;
         }
-    } else {
-        $sql = "UPDATE users SET firstname=?, middle_init=?, lastname=?, email=?, last_update=CURRENT_DATE WHERE id=?";
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("ssssi", $firstname, $middle_init, $lastname, $email, $user_id);
     }
-    
+
+    // Handle ID image upload
+    if (isset($_FILES['id_image']) && $_FILES['id_image']['error'] === 0) {
+        $target_dir = "../Images/ID/";
+        if (!is_dir($target_dir)) {
+            mkdir($target_dir, 0777, true);
+        }
+        $file_extension = strtolower(pathinfo($_FILES["id_image"]["name"], PATHINFO_EXTENSION));
+        $new_filename = "id_" . $user_id . "." . $file_extension;
+        $target_file = $target_dir . $new_filename;
+
+        $check = getimagesize($_FILES["id_image"]["tmp_name"]);
+        if ($check !== false && move_uploaded_file($_FILES["id_image"]["tmp_name"], $target_file)) {
+            $id_image_path = $target_file;
+        }
+    }
+
+    $sql = "UPDATE users SET firstname=?, middle_init=?, lastname=?, email=?, contact_no=?, address=?, id_type=?, user_image=?, id_image=?, last_update=CURRENT_DATE WHERE id=?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("sssssssssi", $firstname, $middle_init, $lastname, $email, $contact_no, $address, $id_type, $profile_image_path, $id_image_path, $user_id);
+
     if ($stmt->execute()) {
         $_SESSION['user_firstname'] = $firstname;
         $_SESSION['user_lastname'] = $lastname;
+        $_SESSION['user_image'] = $profile_image_path;
         $_SESSION['success_msg'] = "Profile updated successfully!";
     } else {
         $_SESSION['error_msg'] = "Error updating profile!";
     }
-    
+
     header('Location: profile.php');
     exit();
 }
@@ -92,9 +108,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['change_password'])) {
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
     $result = $stmt->get_result();
-    $user = $result->fetch_assoc();
+    $user_password = $result->fetch_assoc();  // Changed variable name here
     
-    if (password_verify($current_password, $user['password'])) {
+    if (password_verify($current_password, $user_password['password'])) {
         if ($new_password === $confirm_password) {
             $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
             $update_sql = "UPDATE users SET password = ? WHERE id = ?";
@@ -167,6 +183,27 @@ include('inc/header.php');
                         </form>
                     </div>
                 </div>
+                
+                <!-- ID Document Preview Card -->
+                <div class="card mt-4">
+                    <div class="card-header">ID Document</div>
+                    <div class="card-body text-center">
+                        <?php if (!empty($user['id_image'])): ?>
+                            <img class="img-fluid mb-2" 
+                                src="<?php echo $user['id_image']; ?>" 
+                                alt="ID Document" 
+                                style="max-height: 200px; max-width: 100%;">
+                            <div class="small font-italic text-muted">
+                                <?php echo ucfirst($user['id_type'] ? $user['id_type'] : 'No ID type specified'); ?>
+                            </div>
+                        <?php else: ?>
+                            <div class="text-muted py-4">
+                                <i class="fas fa-id-card fa-3x mb-3"></i>
+                                <p>No ID document uploaded</p>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
             </div>
 
             <div class="col-xl-8">
@@ -226,19 +263,68 @@ include('inc/header.php');
                                         <label class="small mb-1" for="inputEmailAddress">Email address</label>
                                         <input class="form-control" id="inputEmailAddress" type="email" name="email" value="<?php echo $user['email']; ?>" readonly>
                                     </div>
-                                    <!-- Form Group (profile picture)-->
+                                    <!-- Form Group (contact number)-->
                                     <div class="mb-3">
-                                        <label class="small mb-1" for="inputProfilePicture">Profile Picture</label>
-                                        <div class="d-flex align-items-center">
-                                            <button type="button" class="btn btn-light" onclick="document.getElementById('inputProfilePicture').click();">
-                                                Choose File
-                                            </button>
-                                            <span class="ml-2 small text-muted" id="fileNameDisplay">No file chosen</span>
-                                            <input class="d-none" id="inputProfilePicture" type="file" name="profile_image" accept="image/*" onchange="updateFileName(this)">
+                                        <label class="small mb-1" for="inputContactNo">Contact Number</label>
+                                        <input class="form-control" id="inputContactNo" type="text" name="contact_no" value="<?php echo $user['contact_no']; ?>">
+                                    </div>
+                                    <!-- Form Group (address)-->
+                                    <div class="mb-3">
+                                        <label class="small mb-1" for="inputAddress">Address</label>
+                                        <input class="form-control" id="inputAddress" type="text" name="address" value="<?php echo $user['address']; ?>">
+                                    </div>
+                                    <!-- Form Group (id type)-->
+                                    <div class="mb-3">
+                                        <label class="small mb-1" for="inputIDType">ID Type</label>
+                                        <select class="form-control" id="inputIDType" name="id_type">
+                                            <option value="">Select ID Type</option>
+                                            <option value="passport" <?php if($user['id_type']=='passport') echo 'selected'; ?>>Passport</option>
+                                            <option value="sss" <?php if($user['id_type']=='sss') echo 'selected'; ?>>SSS</option>
+                                            <option value="philhealth" <?php if($user['id_type']=='philhealth') echo 'selected'; ?>>PhilHealth</option>
+                                            <option value="tin" <?php if($user['id_type']=='tin') echo 'selected'; ?>>TIN</option>
+                                            <option value="school" <?php if($user['id_type']=='school') echo 'selected'; ?>>School</option>
+                                            <option value="national id" <?php if($user['id_type']=='national id') echo 'selected'; ?>>National ID</option>
+                                            <option value="drivers licence" <?php if($user['id_type']=='drivers licence') echo 'selected'; ?>>Driver's License</option>
+                                        </select>
+                                    </div>
+                                    <!-- Form Group (id image and profile picture in one row)-->
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label class="small mb-1" for="inputIDImage">ID Image</label>
+                                            <div class="d-flex align-items-center">
+                                                <?php if (!empty($user['id_image'])): ?>
+                                                    <img src="<?php echo $user['id_image']; ?>" alt="ID Image" style="width: 80px; height: 50px; object-fit: cover; border: 1px solid #ddd; border-radius: 4px; margin-right: 10px;">
+                                                <?php endif; ?>
+                                                <button type="button" class="btn btn-light" onclick="document.getElementById('inputIDImage').click();">
+                                                    Choose File
+                                                </button>
+                                                <span class="ml-2 small text-muted" id="idFileNameDisplay">No file chosen</span>
+                                                <input class="d-none" id="inputIDImage" type="file" name="id_image" accept="image/*" onchange="updateIDFileName(this)">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="small mb-1" for="inputProfilePicture">Profile Picture</label>
+                                            <div class="d-flex align-items-center">
+                                                <?php if (!empty($user['user_image'])): ?>
+                                                    <img src="<?php echo $user['user_image']; ?>" alt="Profile Image" style="width: 60px; height: 60px; object-fit: cover; border-radius: 50%; margin-right: 10px;">
+                                                <?php endif; ?>
+                                                <button type="button" class="btn btn-light" onclick="document.getElementById('inputProfilePicture').click();">
+                                                    Choose File
+                                                </button>
+                                                <span class="ml-2 small text-muted" id="fileNameDisplay">No file chosen</span>
+                                                <input class="d-none" id="inputProfilePicture" type="file" name="profile_image" accept="image/*" onchange="updateFileName(this)">
+                                            </div>
                                         </div>
                                     </div>
                                     <!-- Save changes button-->
-                                    <button class="btn btn-primary" type="submit" name="update_profile">Save changes</button>
+                                    <div class="mb-3 text-center">
+                                        <div class="small text-muted mb-2">
+                                            <i class="fas fa-info-circle mr-1"></i> Only First Name and Last Name are required fields
+                                        </div>
+                                        <button class="btn btn-primary btn-lg" type="submit" name="update_profile">
+                                            <i class="fas fa-save mr-2"></i> Save Profile Changes
+                                        </button>
+                                    </div>
                                 </form>
                             </div>
 
@@ -412,6 +498,40 @@ function updateFileName(input) {
         fileNameDisplay.textContent = 'No file chosen';
     }
 }
+function updateIDFileName(input) {
+    const fileNameDisplay = document.getElementById('idFileNameDisplay');
+    if (input.files && input.files[0]) {
+        fileNameDisplay.textContent = input.files[0].name;
+    } else {
+        fileNameDisplay.textContent = 'No file chosen';
+    }
+}
+
+// Auto-capitalize name fields
+document.addEventListener('DOMContentLoaded', function() {
+    // Add input event listeners to name fields
+    const firstNameInput = document.getElementById('inputFirstName');
+    const middleInitInput = document.getElementById('inputMiddleInit');
+    const lastNameInput = document.getElementById('inputLastName');
+    
+    if (firstNameInput) {
+        firstNameInput.addEventListener('input', function() {
+            this.value = this.value.toUpperCase();
+        });
+    }
+    
+    if (middleInitInput) {
+        middleInitInput.addEventListener('input', function() {
+            this.value = this.value.toUpperCase();
+        });
+    }
+    
+    if (lastNameInput) {
+        lastNameInput.addEventListener('input', function() {
+            this.value = this.value.toUpperCase();
+        });
+    }
+});
 </script>
 
 <?php include('inc/footer.php'); ?>
