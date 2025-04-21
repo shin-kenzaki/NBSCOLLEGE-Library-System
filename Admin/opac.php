@@ -6,7 +6,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $input = json_decode(file_get_contents('php://input'), true);
     if (isset($input['delete_book_id'])) {
         $bookId = intval($input['delete_book_id']);
-        
+
         // Start transaction
         $conn->begin_transaction();
         try {
@@ -76,7 +76,7 @@ if ($bookId > 0) {
 
     if ($result && $result->num_rows > 0) {
         $book = $result->fetch_assoc();
-        
+
         // Fetch total copies and Available count
         $copiesQuery = "SELECT COUNT(*) as total_copies, SUM(CASE WHEN status = 'Available' THEN 1 ELSE 0 END) as in_shelf FROM books WHERE title = ?";
         $stmt = $conn->prepare($copiesQuery);
@@ -86,15 +86,15 @@ if ($bookId > 0) {
         $copies = $copiesResult->fetch_assoc();
         $totalCopies = $copies['total_copies'];
         $inShelf = $copies['in_shelf'];
-    
+
     } else {
         $error = "Book not found.";
     }
 
     // Modify the contributors query to properly join with writers table and get author
-    $contributorsQuery = "SELECT c.*, w.firstname, w.middle_init, w.lastname, c.role 
-                         FROM contributors c 
-                         JOIN writers w ON c.writer_id = w.id 
+    $contributorsQuery = "SELECT c.*, w.firstname, w.middle_init, w.lastname, c.role
+                         FROM contributors c
+                         JOIN writers w ON c.writer_id = w.id
                          WHERE c.book_id = ? AND c.role = 'Author'
                          LIMIT 1";
     $stmt = $conn->prepare($contributorsQuery);
@@ -109,9 +109,9 @@ if ($bookId > 0) {
     }
 
     // Then get all contributors for the full list
-    $allContributorsQuery = "SELECT c.*, w.firstname, w.middle_init, w.lastname 
-                            FROM contributors c 
-                            JOIN writers w ON c.writer_id = w.id 
+    $allContributorsQuery = "SELECT c.*, w.firstname, w.middle_init, w.lastname
+                            FROM contributors c
+                            JOIN writers w ON c.writer_id = w.id
                             WHERE c.book_id = ?";
     $stmt = $conn->prepare($allContributorsQuery);
     $stmt->bind_param("i", $bookId);
@@ -353,85 +353,85 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
         table.table td {
             text-align: center;
         }
-        
+
         /* Add these new styles for smoother card corners */
         .card {
             border-radius: 12px;
             overflow: hidden;
         }
-        
+
         .card-header {
             border-top-left-radius: 12px !important;
             border-top-right-radius: 12px !important;
         }
-        
+
         .card-body, .card-footer {
             border-bottom-left-radius: 12px;
             border-bottom-right-radius: 12px;
         }
-        
+
         .list-group-item {
             border-radius: 8px !important;
             margin-bottom: 4px;
         }
-        
+
         img, .img-fluid {
             border-radius: 10px;
         }
-        
+
         .badge {
             border-radius: 20px;
             padding: 8px 12px;
         }
-        
+
         .btn {
             border-radius: 8px;
         }
-        
+
         .alert {
             border-radius: 10px;
         }
-        
+
         .table-responsive {
             border-radius: 10px;
             overflow: hidden;
         }
-        
+
         .table {
             border-radius: 10px;
             overflow: hidden;
         }
-        
+
         /* MARC view styling */
         .marc-field {
             border-radius: 10px;
         }
-        
+
         /* ISBD view styling */
         .isbd-record {
             border-radius: 12px;
         }
-        
+
         /* Tab styling */
         .nav-tabs .nav-link {
             border-top-left-radius: 10px;
             border-top-right-radius: 10px;
         }
-        
+
         /* Improve spacing */
         .card-body {
             padding: 1.5rem;
         }
-        
+
         /* Shadow styling for more depth */
         .shadow-sm {
             box-shadow: 0 4px 10px rgba(0,0,0,0.07) !important;
         }
-        
+
         .shadow {
             box-shadow: 0 8px 16px rgba(0,0,0,0.1) !important;
         }
-        
+
         /* Table responsive scrolling styles */
         .table-responsive-horizontal {
             width: 100%;
@@ -439,14 +439,14 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
             -webkit-overflow-scrolling: touch;
             position: relative;
         }
-        
+
         .table-holdings {
             width: 100%;
             min-width: 970px; /* Ensure table expands beyond screen width on small devices */
             border-collapse: separate;
             border-spacing: 0;
         }
-        
+
         .scroll-indicator {
             color: #6c757d;
             padding: 8px;
@@ -455,32 +455,32 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
             border-radius: 5px;
             animation: pulse 2s infinite;
         }
-        
+
         @keyframes pulse {
             0% { opacity: 0.6; }
             50% { opacity: 1; }
             100% { opacity: 0.6; }
         }
-        
+
         /* Fix horizontal scrollbar visibility on small screens */
         @media (max-width: 768px) {
             .table-responsive-horizontal::-webkit-scrollbar {
                 height: 6px;
             }
-            
+
             .table-responsive-horizontal::-webkit-scrollbar-track {
                 background: #f1f1f1;
             }
-            
+
             .table-responsive-horizontal::-webkit-scrollbar-thumb {
                 background: #888;
                 border-radius: 3px;
             }
-            
+
             .table-responsive-horizontal::-webkit-scrollbar-thumb:hover {
                 background: #555;
             }
-            
+
             .table-holdings th,
             .table-holdings td {
                 white-space: nowrap;
@@ -490,7 +490,7 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
     <!-- Add Bootstrap CSS and JS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    
+
     <!-- Add SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
@@ -560,26 +560,33 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                                 <div class="row">
                                     <!-- Book Images -->
                                     <div class="col-md-3">
+                                        <!-- Display Front Image -->
                                         <?php if (!empty($book['front_image'])): ?>
-                                            <img src="../inc/book-image/<?php echo htmlspecialchars($book['front_image']); ?>" alt="Front Cover" class="img-fluid mb-3 rounded shadow-sm">
+                                            <img src="<?php echo htmlspecialchars('../' . $book['front_image']); ?>" alt="Front Cover" class="img-fluid mb-3 rounded shadow-sm">
                                         <?php else: ?>
                                             <div class="text-center p-4 bg-light rounded mb-3">
                                                 <i class="fas fa-book fa-4x text-secondary"></i>
-                                                <p class="mt-2 text-muted">No cover image</p>
+                                                <p class="mt-2 text-muted">No front cover image</p>
                                             </div>
                                         <?php endif; ?>
-                                        
+
+                                        <!-- Display Back Image -->
                                         <?php if (!empty($book['back_image'])): ?>
-                                            <img src="../inc/book-image/<?php echo htmlspecialchars($book['back_image']); ?>" alt="Back Cover" class="img-fluid rounded shadow-sm">
+                                            <img src="<?php echo htmlspecialchars('../' . $book['back_image']); ?>" alt="Back Cover" class="img-fluid rounded shadow-sm">
+                                        <?php else: ?>
+                                            <div class="text-center p-4 bg-light rounded mb-3">
+                                                <i class="fas fa-book fa-4x text-secondary"></i>
+                                                <p class="mt-2 text-muted">No back cover image</p>
+                                            </div>
                                         <?php endif; ?>
                                     </div>
-                                    
+
                                     <!-- Main Book Details -->
                                     <div class="col-md-9">
                                         <!-- Title and Author -->
                                         <h4 class="text-dark mb-2"><?php echo htmlspecialchars($book['title']); ?></h4>
-                                        
-                                        <?php 
+
+                                        <?php
                                         $authorDisplayed = false;
                                         if (!empty($contributors)) {
                                             foreach ($contributors as $contributor) {
@@ -594,7 +601,7 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                                             echo '<h6 class="text-muted mb-4">Author: Not specified</h6>';
                                         }
                                         ?>
-                                        
+
                                         <!-- Book Details in Columns -->
                                         <div class="row mb-3">
                                             <div class="col-md-6">
@@ -613,11 +620,11 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                                                 <div class="mb-2"><strong>Availability:</strong> <span class="text-<?php echo ($inShelf > 0) ? 'success' : 'danger'; ?> fw-bold"><?php echo htmlspecialchars($inShelf); ?> of <?php echo htmlspecialchars($totalCopies); ?> copies</span></div>
                                             </div>
                                         </div>
-                                        
+
                                         <!-- Physical Description -->
                                         <div class="mb-3">
-                                            <strong>Physical Description:</strong> 
-                                            <?php 
+                                            <strong>Physical Description:</strong>
+                                            <?php
                                                 $physDesc = [];
                                                 if (!empty($book['total_pages'])) {
                                                     $physDesc[] = htmlspecialchars($book['total_pages']) . ' pages';
@@ -631,11 +638,11 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                                                 echo !empty($physDesc) ? implode(', ', $physDesc) : 'Information not available';
                                             ?>
                                         </div>
-                                        
+
                                         <!-- Publication Information -->
                                         <div class="mb-3">
-                                            <strong>Publication:</strong> 
-                                            <?php 
+                                            <strong>Publication:</strong>
+                                            <?php
                                             if (!empty($publications)) {
                                                 $pub = $publications[0];
                                                 echo htmlspecialchars($pub['place'] . '; ' . $pub['publisher'] . ', ' . $pub['publish_date']);
@@ -644,17 +651,17 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                                             }
                                             ?>
                                         </div>
-                                        
+
                                         <!-- Program Field -->
                                         <div class="mb-3">
-                                            <strong>Program:</strong> 
+                                            <strong>Program:</strong>
                                             <?php echo !empty($book['program']) ? htmlspecialchars($book['program']) : 'N/A'; ?>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Content Details Card -->
                         <div class="row">
                             <!-- Summary Column -->
@@ -672,7 +679,7 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <!-- Contents Column -->
                             <div class="col-md-6">
                                 <div class="card shadow-sm mb-4">
@@ -689,7 +696,7 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Subject Information Card -->
                         <div class="card shadow-sm mb-4">
                             <div class="card-header py-3">
@@ -717,7 +724,7 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                                                         <li class="list-group-item bg-light"><strong>Specific:</strong> <?php echo htmlspecialchars(trim($spec)); ?></li>
                                                     <?php endforeach; ?>
                                                 <?php endif; ?>
-                                                
+
                                                 <?php if (!empty($book['subject_detail'])): ?>
                                                     <?php foreach (explode(';', $book['subject_detail']) as $detail): ?>
                                                         <li class="list-group-item bg-light"><?php echo htmlspecialchars(trim($detail)); ?></li>
@@ -731,7 +738,7 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                                 <?php endif; ?>
                             </div>
                         </div>
-                        
+
                         <!-- Contributors Card -->
                         <div class="card shadow-sm mb-4">
                             <div class="card-header py-3">
@@ -740,7 +747,7 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                             <div class="card-body">
                                 <?php if (!empty($contributors)): ?>
                                     <div class="row">
-                                        <?php 
+                                        <?php
                                         $contributorsByRole = [];
                                         foreach ($contributors as $contributor) {
                                             $role = $contributor['role'];
@@ -749,7 +756,7 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                                             }
                                             $contributorsByRole[$role][] = $contributor;
                                         }
-                                        
+
                                         foreach ($contributorsByRole as $role => $people): ?>
                                             <div class="col-md-4 mb-3">
                                                 <h6 class="text-dark"><?php echo htmlspecialchars($role); ?></h6>
@@ -768,19 +775,19 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                                 <?php endif; ?>
                             </div>
                         </div>
-                        
+
                         <!-- Holdings Information Card -->
                         <div class="card shadow mb-4">
                             <div class="card-header py-3 d-flex justify-content-between align-items-center">
                                 <h6 class="m-0 font-weight-bold text-primary">Available Copies</h6>
                                 <div class="d-flex align-items-center">
                                     <div class="badge bg-primary p-2 me-3">
-                                        Total Copies: <?php echo htmlspecialchars($totalCopies); ?> | 
+                                        Total Copies: <?php echo htmlspecialchars($totalCopies); ?> |
                                         Available: <?php echo htmlspecialchars($inShelf); ?>
                                     </div>
                                     <div class="btn-group">
-                                        <a href="export_barcodes.php?title=<?php echo urlencode($book['title']); ?>" 
-                                           class="btn btn-sm btn-primary" 
+                                        <a href="export_barcodes.php?title=<?php echo urlencode($book['title']); ?>"
+                                           class="btn btn-sm btn-primary"
                                            target="_blank">
                                             <i class="fas fa-download"></i> Export Barcodes
                                         </a>
@@ -857,9 +864,9 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                 <!-- MARC View Tab -->
                 <div class="tab-pane fade" id="marc" role="tabpanel">
                     <h5 class="text-primary font-weight-bold mb-3">MARC21 Record View</h5>
-                    
+
                     <div class="marc-record-container">
-                        <?php 
+                        <?php
                         // MARC field descriptions
                         $fieldDescriptions = [
                             'LDR' => 'LEADER',
@@ -916,7 +923,7 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                             $marcFields[] = ['LDR', '', '', '00000nam a22000007a 4500'];
                             $marcFields[] = ['001', '', '', $book['accession']];
                             $marcFields[] = ['005', '', '', formatMarc21Date($book['date_added'])];
-                            
+
                             // Variable Fields
                             $marcFields[] = ['020', '##', 'a', $book['ISBN']];
                             $marcFields[] = ['040', '##', 'a', 'PH-MnNBS', 'c', 'PH-MnNBS'];
@@ -930,8 +937,8 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                             // Statement of responsibility
                             $responsibilityStatement = [];
                             if (!empty($primaryAuthor)) $responsibilityStatement[] = $primaryAuthor;
-                            
-                            $marcFields[] = ['245', '10', 
+
+                            $marcFields[] = ['245', '10',
                                 'a', $book['title'],
                                 'c', !empty($responsibilityStatement) ? implode(', ', $responsibilityStatement) : ''
                             ];
@@ -958,13 +965,13 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                             } else {
                                 $marcFields[] = ['336', '##', 'a', 'text', '2', 'rdacontent'];
                             }
-                            
+
                             if (!empty($book['media_type'])) {
                                 $marcFields[] = ['337', '##', 'a', $book['media_type'], '2', 'rdamedia'];
                             } else {
                                 $marcFields[] = ['337', '##', 'a', 'unmediated', '2', 'rdamedia'];
                             }
-                            
+
                             if (!empty($book['carrier_type'])) {
                                 $marcFields[] = ['338', '##', 'a', $book['carrier_type'], '2', 'rdacarrier'];
                             } else {
@@ -988,21 +995,21 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                             // Added Entries for Contributors
                             foreach ($contributors as $contributor) {
                                 if ($contributor['role'] !== 'Author') { // Skip primary author already in 100 field
-                                    $marcFields[] = ['700', '1#', 
-                                        'a', $contributor['lastname'] . ', ' . $contributor['firstname'] . ' ' . $contributor['middle_init'], 
+                                    $marcFields[] = ['700', '1#',
+                                        'a', $contributor['lastname'] . ', ' . $contributor['firstname'] . ' ' . $contributor['middle_init'],
                                         'e', strtolower($contributor['role'])
                                     ];
                                 }
                             }
 
                             // Holdings Information
-                            $marcFields[] = ['852', '##', 
+                            $marcFields[] = ['852', '##',
                                 'a', $book['shelf_location'],
                                 'p', $book['accession']
                             ];
                         }
 
-                        foreach ($marcFields as $field): 
+                        foreach ($marcFields as $field):
                             $isControlField = ($field[0] === 'LDR' || $field[0] < '010');
                             $fieldType = $isControlField ? 'control' : 'data';
                         ?>
@@ -1015,7 +1022,7 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                                             <span class="marc-indicators"><?= $field[1] ?></span>
                                         <?php endif; ?>
                                     </div>
-                                    
+
                                     <?php if ($isControlField): ?>
                                         <div class="marc-field-value">
                                             <?= htmlspecialchars($field[3]) ?>
@@ -1025,7 +1032,7 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                                             <?php for ($i = 2; $i < count($field); $i += 2): ?>
                                                 <?php if (!empty($field[$i + 1])): ?>
                                                     <div class="marc-subfield">
-                                                        <span class="marc-subfield-code" 
+                                                        <span class="marc-subfield-code"
                                                               title="<?= $subfieldDescriptions[$field[$i]] ?? 'Subfield ' . $field[$i] ?>">
                                                             $<?= $field[$i] ?>
                                                         </span>
@@ -1041,7 +1048,7 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                             </div>
                         <?php endforeach; ?>
                     </div>
-                    
+
                     <style>
                         .marc-record-container {
                             font-family: 'Roboto Mono', monospace;
@@ -1051,7 +1058,7 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                             box-shadow: 0 4px 10px rgba(0,0,0,0.07);
                             margin-bottom: 20px;
                         }
-                        
+
                         .marc-field {
                             display: flex;
                             margin-bottom: 10px;
@@ -1061,19 +1068,19 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                             background-color: #fff;
                             border-left: 4px solid transparent;
                         }
-                        
+
                         .marc-control-field {
                             border-left-color: #4e73df;
                         }
-                        
+
                         .marc-data-field {
                             border-left-color: #1cc88a;
                         }
-                        
+
                         .marc-field:hover {
                             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
                         }
-                        
+
                         .marc-field-tag {
                             background-color: #4e73df;
                             color: white;
@@ -1085,20 +1092,20 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                             align-items: center;
                             justify-content: center;
                         }
-                        
+
                         .marc-control-field .marc-field-tag {
                             background-color: #4e73df;
                         }
-                        
+
                         .marc-data-field .marc-field-tag {
                             background-color: #1cc88a;
                         }
-                        
+
                         .marc-field-content {
                             flex-grow: 1;
                             padding: 8px 15px;
                         }
-                        
+
                         .marc-field-header {
                             display: flex;
                             justify-content: space-between;
@@ -1106,12 +1113,12 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                             border-bottom: 1px solid #eee;
                             padding-bottom: 5px;
                         }
-                        
+
                         .marc-field-name {
                             font-weight: 500;
                             color: #2c3e50;
                         }
-                        
+
                         .marc-indicators {
                             background-color: #f1f5f8;
                             color: #4e73df;
@@ -1120,20 +1127,20 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                             font-size: 0.9em;
                             font-weight: bold;
                         }
-                        
+
                         .marc-field-value {
                             font-family: 'Courier New', monospace;
                             padding: 5px 0;
                             color: #2c3e50;
                             word-break: break-all;
                         }
-                        
+
                         .marc-subfields {
                             display: flex;
                             flex-wrap: wrap;
                             gap: 8px;
                         }
-                        
+
                         .marc-subfield {
                             display: flex;
                             align-items: center;
@@ -1142,23 +1149,23 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                             padding: 4px 8px;
                             margin-bottom: 5px;
                         }
-                        
+
                         .marc-subfield-code {
                             color: #e74a3b;
                             font-weight: bold;
                             margin-right: 8px;
                             cursor: help;
                         }
-                        
+
                         .marc-subfield-value {
                             color: #2c3e50;
                         }
-                        
+
                         /* Add Roboto Mono from Google Fonts */
                         @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500&display=swap');
                     </style>
                 </div>
-                
+
                 <!-- ISBD View Tab -->
                 <div class="tab-pane fade" id="isbd" role="tabpanel">
     <div class="isbd-details p-4">
@@ -1182,7 +1189,7 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
             echo '<div class="isbd-area">';
             // Title part
             echo htmlspecialchars($book['title']) . ' / ';
-            
+
             // Contributors part
             $allContributors = array();
             if (!empty($authorsList)) $allContributors[] = implode(', ', $authorsList);
@@ -1310,7 +1317,7 @@ function confirmDeleteCopy(bookId, accession) {
                 });
 
                 const data = await response.json();
-                
+
                 if (data.success) {
                     Swal.fire({
                         title: 'Success!',
@@ -1342,7 +1349,7 @@ function confirmDeleteAllCopies(title) {
     // Get all book IDs from the table
     const copyRows = document.querySelectorAll('.copy-row');
     const bookIds = Array.from(copyRows).map(row => parseInt(row.getAttribute('data-book-id')));
-    
+
     if (bookIds.length === 0) {
         Swal.fire({
             title: 'No copies found',
@@ -1351,7 +1358,7 @@ function confirmDeleteAllCopies(title) {
         });
         return;
     }
-    
+
     Swal.fire({
         title: 'Delete All Copies?',
         html: `
@@ -1383,7 +1390,7 @@ async function deleteAllCopies(bookIds, title) {
                 Progress: <span id="delete-progress">0</span>/${bookIds.length}
             </div>
             <div class="progress">
-                <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-danger" 
+                <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-danger"
                      role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
             </div>
             <div id="deletion-status" class="mt-3"></div>
@@ -1392,29 +1399,29 @@ async function deleteAllCopies(bookIds, title) {
         allowEscapeKey: false,
         showConfirmButton: false
     });
-    
+
     // Track success and failure counts
     let successCount = 0;
     let failureCount = 0;
     let failureMessages = [];
-    
+
     // Process each book ID sequentially
     for (let i = 0; i < bookIds.length; i++) {
         const bookId = bookIds[i];
-        
+
         try {
             const response = await fetch('delete_copy.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ bookId: bookId })
             });
-            
+
             const data = await response.json();
-            
+
             // Update progress
             document.getElementById('delete-progress').textContent = i + 1;
             document.getElementById('progress-bar').style.width = `${((i + 1) / bookIds.length) * 100}%`;
-            
+
             if (data.success) {
                 successCount++;
                 document.getElementById('deletion-status').innerHTML += `
@@ -1435,10 +1442,10 @@ async function deleteAllCopies(bookIds, title) {
             failureMessages.push(`Book ID ${bookId}: Unexpected error`);
         }
     }
-    
+
     // Show final results
     let resultIcon, resultTitle, resultHtml;
-    
+
     if (failureCount === 0) {
         resultIcon = 'success';
         resultTitle = 'All Copies Deleted';
@@ -1454,7 +1461,7 @@ async function deleteAllCopies(bookIds, title) {
         resultHtml = `Deleted ${successCount} copies, but failed to delete ${failureCount} copies of "${title}".<br><br>`;
         resultHtml += failureMessages.join('<br>');
     }
-    
+
     Swal.fire({
         title: resultTitle,
         html: resultHtml,
@@ -1482,7 +1489,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
-    
+
     // Style for clickable rows
     const style = document.createElement('style');
     style.innerHTML = `
@@ -1495,20 +1502,20 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     `;
     document.head.appendChild(style);
-    
+
     // Function to load book details via AJAX
     function loadBookDetails(bookId) {
         // Update URL without refreshing the page
         const url = new URL(window.location.href);
         url.searchParams.set('book_id', bookId);
         window.history.pushState({}, '', url);
-        
+
         // Highlight the selected row
         document.querySelectorAll('.copy-row').forEach(row => {
             row.classList.remove('table-primary');
         });
         document.querySelector(`.copy-row[data-book-id="${bookId}"]`).classList.add('table-primary');
-        
+
         // Load the new page content
         fetch(`opac.php?book_id=${bookId}&partial=true`, {
             method: 'GET',
@@ -1521,16 +1528,16 @@ document.addEventListener('DOMContentLoaded', function() {
             // Create a temporary div to hold the response
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = html;
-            
+
             // Get currently active tab
             const activeTab = document.querySelector('#bookDetailsTabs .nav-link.active');
             const activeTabId = activeTab ? activeTab.id : 'details-tab';
-            
+
             // STANDARD VIEW TAB UPDATES - Only update card contents
             if (tempDiv.querySelector('#details')) {
                 // Find all cards in the details tab
                 const detailsCards = tempDiv.querySelectorAll('#details .card');
-                
+
                 // Update each card individually
                 detailsCards.forEach(newCard => {
                     const cardHeading = newCard.querySelector('.card-header h5, .card-header h6');
@@ -1538,7 +1545,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         const cardTitle = cardHeading.textContent.trim();
                         // Find matching card in current page
                         const currentCards = document.querySelectorAll('#details .card');
-                        
+
                         currentCards.forEach(currentCard => {
                             const currentHeading = currentCard.querySelector('.card-header h5, .card-header h6');
                             if (currentHeading && currentHeading.textContent.trim() === cardTitle) {
@@ -1553,7 +1560,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 });
             }
-            
+
             // MARC VIEW TAB UPDATES
             if (tempDiv.querySelector('#marc')) {
                 const newMarcContent = tempDiv.querySelector('#marc .marc-record-container');
@@ -1562,7 +1569,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     currentMarcContent.innerHTML = newMarcContent.innerHTML;
                 }
             }
-            
+
             // ISBD VIEW TAB UPDATES
             if (tempDiv.querySelector('#isbd')) {
                 const newIsbdContent = tempDiv.querySelector('#isbd .isbd-record');
@@ -1571,13 +1578,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     currentIsbdContent.innerHTML = newIsbdContent.innerHTML;
                 }
             }
-            
+
             // Ensure the active tab remains active
             document.querySelector(`#${activeTabId}`).click();
-            
+
             // Rebind event listeners on the new content
             rebindEventListeners();
-            
+
             // Scroll to top of the page after loading content
             window.scrollTo({
                 top: 0,
@@ -1595,7 +1602,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
-    
+
     // Function to rebind event listeners after content update
     function rebindEventListeners() {
         // Rebind click events to copy rows
@@ -1607,7 +1614,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         });
-        
+
         // Rebind confirm delete function
         const deleteBtn = document.querySelector('[onclick^="confirmDeleteCopy"]');
         if (deleteBtn) {
@@ -1645,7 +1652,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         </ul>
                     </div>
                 </div>
-                
+
                 <div class="card mb-3">
                     <div class="card-header bg-light">
                         <h6 class="m-0 font-weight-bold">Viewing Book Details</h6>
@@ -1659,7 +1666,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         </ul>
                     </div>
                 </div>
-                
+
                 <div class="card">
                     <div class="card-header bg-light">
                         <h6 class="m-0 font-weight-bold">Export Options</h6>

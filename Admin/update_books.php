@@ -745,7 +745,7 @@ if ($first_book) {
             <form id="bookForm" action="" method="POST" enctype="multipart/form-data" class="h-100"
                   onkeydown="return event.key != 'Enter';">
                   <input type="hidden" name="existing_front_image" value="<?php echo htmlspecialchars($first_book['front_image'] ?? ''); ?>">
-<input type="hidden" name="existing_back_image" value="<?php echo htmlspecialchars($first_book['back_image'] ?? ''); ?>">
+                <input type="hidden" name="existing_back_image" value="<?php echo htmlspecialchars($first_book['back_image'] ?? ''); ?>">
                 <div class="container-fluid d-flex justify-content-between align-items-center">
                     <h1 class="h3 mb-2 text-gray-800">Update Books (<?php echo count($books); ?> copies)</h1>
                     <div>
@@ -986,6 +986,7 @@ if ($first_book) {
                                         <button type="button" class="btn btn-outline-primary me-2" onclick="document.getElementById('inputFrontImage').click();">
                                             <i class="fas fa-upload"></i> Choose File
                                         </button>
+
                                     </div>
                                     <input class="d-none" id="inputFrontImage" type="file" name="front_image" accept="image/*"
                                         onchange="previewImage(this, 'frontImagePreview', 'frontImagePreviewPlaceholder');">
@@ -1018,6 +1019,7 @@ if ($first_book) {
                                         <button type="button" class="btn btn-outline-primary me-2" onclick="document.getElementById('inputBackImage').click();">
                                             <i class="fas fa-upload"></i> Choose File
                                         </button>
+
                                     </div>
                                     <input class="d-none" id="inputBackImage" type="file" name="back_image" accept="image/*"
                                         onchange="previewImage(this, 'backImagePreview', 'backImagePreviewPlaceholder');">

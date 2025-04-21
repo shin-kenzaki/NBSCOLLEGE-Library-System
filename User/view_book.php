@@ -21,13 +21,13 @@ if ($bookId > 0) {
 
     if ($result && $result->num_rows > 0) {
         $selectedBook = $result->fetch_assoc();
-        
+
         // Now fetch all copies with the same attributes (ISBN, series, volume, part, edition)
         // But make sure to prioritize the selected book in display
         $copiesQuery = "SELECT * FROM books WHERE title = ?";
         $params = array($selectedBook['title']);
         $types = "s";
-        
+
         // Add matching criteria for ISBN
         if (!empty($selectedBook['ISBN'])) {
             $copiesQuery .= " AND ISBN = ?";
@@ -36,7 +36,7 @@ if ($bookId > 0) {
         } else {
             $copiesQuery .= " AND (ISBN IS NULL OR ISBN = '')";
         }
-        
+
         // Add matching criteria for series
         if (!empty($selectedBook['series'])) {
             $copiesQuery .= " AND series = ?";
@@ -45,7 +45,7 @@ if ($bookId > 0) {
         } else {
             $copiesQuery .= " AND (series IS NULL OR series = '')";
         }
-        
+
         // Add matching criteria for volume
         if (!empty($selectedBook['volume'])) {
             $copiesQuery .= " AND volume = ?";
@@ -54,7 +54,7 @@ if ($bookId > 0) {
         } else {
             $copiesQuery .= " AND (volume IS NULL OR volume = '')";
         }
-        
+
         // Add matching criteria for part
         if (!empty($selectedBook['part'])) {
             $copiesQuery .= " AND part = ?";
@@ -63,7 +63,7 @@ if ($bookId > 0) {
         } else {
             $copiesQuery .= " AND (part IS NULL OR part = '')";
         }
-        
+
         // Add matching criteria for edition
         if (!empty($selectedBook['edition'])) {
             $copiesQuery .= " AND edition = ?";
@@ -72,48 +72,48 @@ if ($bookId > 0) {
         } else {
             $copiesQuery .= " AND (edition IS NULL OR edition = '')";
         }
-        
+
         // Modified: Order by the specific book ID first to ensure it appears prominently
         $copiesQuery .= " ORDER BY (id = ?) DESC, copy_number";
         $params[] = $bookId;
         $types .= "i";
-        
+
         $stmt = $conn->prepare($copiesQuery);
         $stmt->bind_param($types, ...$params);
         $stmt->execute();
         $copiesResult = $stmt->get_result();
         $copies = [];
         $availableCopies = 0;
-        
+
         while ($copy = $copiesResult->fetch_assoc()) {
             $copies[] = $copy;
             if ($copy['status'] == 'Available') {
                 $availableCopies++;
             }
         }
-        
+
         // IMPORTANT CHANGE: Always use the selected book for display rather than first found copy
         $book = $selectedBook;
         $totalCopies = count($copies);
-        
+
         // Modified: Get contributors from all copies of the book
         // First collect all book IDs from the copies
         $copyBookIds = array_column($copies, 'id');
-        
+
         // Only proceed if we have book IDs
         if (!empty($copyBookIds)) {
             // Join the IDs with commas for the IN clause
             $bookIdsStr = implode(',', $copyBookIds);
-            
+
             // Get all contributors for these book copies
             // Modified: Order by the specific book ID first to ensure its contributors appear first
             $contributorsQuery = "SELECT c.*, w.firstname, w.middle_init, w.lastname, c.role, c.book_id
-                                FROM contributors c 
-                                JOIN writers w ON c.writer_id = w.id 
+                                FROM contributors c
+                                JOIN writers w ON c.writer_id = w.id
                                 WHERE c.book_id IN ($bookIdsStr)
                                 ORDER BY (c.book_id = $bookId) DESC, FIELD(c.role, 'Author', 'Co-Author', 'Editor'), w.lastname";
             $contributorsResult = $conn->query($contributorsQuery);
-            
+
             // Initialize contributors arrays
             $contributors = [];
             $contributorsByRole = [
@@ -122,19 +122,19 @@ if ($bookId > 0) {
                 'Editor' => [],
                 'Other' => []
             ];
-            
+
             // Avoid duplicate contributors by tracking them with a hash map
             $seenContributors = [];
-            
+
             // Process all contributors and organize by role
             while ($row = $contributorsResult->fetch_assoc()) {
-                $contributorName = $row['firstname'] . ' ' . 
-                                ($row['middle_init'] ? $row['middle_init'] . '. ' : '') . 
+                $contributorName = $row['firstname'] . ' ' .
+                                ($row['middle_init'] ? $row['middle_init'] . '. ' : '') .
                                 $row['lastname'];
-                
+
                 // Create a unique key to avoid duplicates based on name and role
                 $contributorKey = $contributorName . '|' . $row['role'];
-                
+
                 // Only add if we haven't seen this contributor with this role before
                 if (!isset($seenContributors[$contributorKey])) {
                     $contributors[] = [
@@ -142,7 +142,7 @@ if ($bookId > 0) {
                         'role' => $row['role'],
                         'book_id' => $row['book_id']  // Save the book ID to identify primary contributors
                     ];
-                    
+
                     // Group by role
                     if (array_key_exists($row['role'], $contributorsByRole)) {
                         $contributorsByRole[$row['role']][] = [
@@ -156,39 +156,39 @@ if ($bookId > 0) {
                             'book_id' => $row['book_id']  // Save the book ID to identify primary contributors
                         ];
                     }
-                    
+
                     // Mark this contributor as seen
                     $seenContributors[$contributorKey] = true;
                 }
             }
-            
+
             // Get primary display contributors - prioritize those from the selected book
-            $primaryAuthorArray = !empty($contributorsByRole['Author']) ? 
+            $primaryAuthorArray = !empty($contributorsByRole['Author']) ?
                                  array_filter($contributorsByRole['Author'], function($author) use ($bookId) {
                                      return $author['book_id'] == $bookId;
                                  }) : [];
-            
+
             // If no contributor from selected book, use the first one
             if (empty($primaryAuthorArray) && !empty($contributorsByRole['Author'])) {
                 $primaryAuthorArray = [$contributorsByRole['Author'][0]];
             }
-            
+
             $primaryAuthor = !empty($primaryAuthorArray) ? reset($primaryAuthorArray)['name'] : 'N/A';
-            
+
             // Get co-authors and editors
-            $coAuthors = array_filter(!empty($contributorsByRole['Co-Author']) ? 
+            $coAuthors = array_filter(!empty($contributorsByRole['Co-Author']) ?
                                    array_column($contributorsByRole['Co-Author'], 'name') : [], 'strlen');
-            $editors = array_filter(!empty($contributorsByRole['Editor']) ? 
+            $editors = array_filter(!empty($contributorsByRole['Editor']) ?
                                  array_column($contributorsByRole['Editor'], 'name') : [], 'strlen');
-            
+
             // Create a formatted contributor string for display
             $contributorDisplay = '';
             if ($primaryAuthor !== 'N/A') {
                 $contributorDisplay = $primaryAuthor;
-                
+
                 if (count($contributorsByRole['Author']) > 1) {
                     $contributorDisplay .= ' et al.';
-                } 
+                }
                 else if (!empty($coAuthors)) {
                     $contributorDisplay .= ' with ' . implode(', ', $coAuthors);
                 }
@@ -209,48 +209,48 @@ if ($bookId > 0) {
         }
 
         // Fetch publications - IMPORTANT: Get publication details for the specific book copy
-        $publicationsQuery = "SELECT p.*, pub.publisher, pub.place 
-                             FROM publications p 
-                             JOIN publishers pub ON p.publisher_id = pub.id 
+        $publicationsQuery = "SELECT p.*, pub.publisher, pub.place
+                             FROM publications p
+                             JOIN publishers pub ON p.publisher_id = pub.id
                              WHERE p.book_id = ?";
         $stmt = $conn->prepare($publicationsQuery);
         $stmt->bind_param("i", $bookId);  // Use the selected book ID
         $stmt->execute();
         $publicationsResult = $stmt->get_result();
         $publications = [];
-        
+
         while ($row = $publicationsResult->fetch_assoc()) {
             $publications[] = $row;
         }
-        
+
         // If no publications found for this specific copy, try to find publications from other copies
         if (count($publications) == 0 && count($copyBookIds) > 1) {
             // Remove the current book ID from the array
             $otherCopyIds = array_filter($copyBookIds, function($id) use ($bookId) {
                 return $id != $bookId;
             });
-            
+
             if (!empty($otherCopyIds)) {
                 $otherIdsStr = implode(',', $otherCopyIds);
-                $otherPublicationsQuery = "SELECT p.*, pub.publisher, pub.place 
-                                          FROM publications p 
-                                          JOIN publishers pub ON p.publisher_id = pub.id 
+                $otherPublicationsQuery = "SELECT p.*, pub.publisher, pub.place
+                                          FROM publications p
+                                          JOIN publishers pub ON p.publisher_id = pub.id
                                           WHERE p.book_id IN ($otherIdsStr)
                                           LIMIT 1";
                 $otherPublicationsResult = $conn->query($otherPublicationsQuery);
-                
+
                 while ($row = $otherPublicationsResult->fetch_assoc()) {
                     $publications[] = $row;
                 }
             }
         }
-        
+
         // Check if any of the copies are in user's cart, reserved, or borrowed
         $inCart = false;
         $isReserved = false;
         $isBorrowed = false;
         $reservationStatus = null;
-        
+
         // Only check user-specific status if logged in
         if ($isLoggedIn) {
             foreach ($copies as $copy) {
@@ -263,7 +263,7 @@ if ($bookId > 0) {
                 if ($cartResult->num_rows > 0) {
                     $inCart = true;
                 }
-                
+
                 // Check if book is already reserved by the user - Modified here to only include 'Pending' and 'Ready'
                 $checkReservationQuery = "SELECT id, status FROM reservations WHERE user_id = ? AND book_id = ? AND status IN ('Pending', 'Ready')";
                 $stmt = $conn->prepare($checkReservationQuery);
@@ -274,7 +274,7 @@ if ($bookId > 0) {
                     $isReserved = true;
                     $reservationStatus = $reservationResult->fetch_assoc()['status'];
                 }
-                
+
                 // Check if book is currently borrowed by the user
                 $checkBorrowingQuery = "SELECT id FROM borrowings WHERE user_id = ? AND book_id = ? AND status = 'Borrowed'";
                 $stmt = $conn->prepare($checkBorrowingQuery);
@@ -315,12 +315,12 @@ if ($bookId > 0) {
             --light-bg: #f8f9fc;
             --card-border: rgba(0, 0, 0, 0.125);
         }
-        
+
         body {
             background-color: var(--light-bg);
             color: #333;
         }
-        
+
         .book-header {
             background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             color: white;
@@ -330,27 +330,27 @@ if ($bookId > 0) {
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             position: relative;
         }
-        
+
         .book-header .container {
             position: relative;
             z-index: 1;
         }
-        
+
         .breadcrumb {
             background: none;
             padding: 0;
             margin-bottom: 1rem;
         }
-        
+
         .breadcrumb-item a {
             color: var(--tertiary-color); /* Changed from rgba(255, 255, 255, 0.8) to tertiary color */
             text-decoration: none;
         }
-        
+
         .breadcrumb-item.active {
             color: white;
         }
-        
+
         .book-cover {
             height: 350px;
             width: 100%;
@@ -358,7 +358,7 @@ if ($bookId > 0) {
             border-radius: 8px;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
         }
-        
+
         .no-image-placeholder {
             height: 350px;
             width: 100%;
@@ -369,19 +369,19 @@ if ($bookId > 0) {
             justify-content: center;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
         }
-        
+
         .book-title {
             font-size: 2rem;
             font-weight: 700;
             margin-bottom: 0.5rem;
         }
-        
+
         .book-author {
             font-size: 1.25rem;
             font-weight: 400;
             margin-bottom: 1.5rem;
         }
-        
+
         .availability-badge {
             font-size: 1rem;
             padding: 0.5rem 1rem;
@@ -389,23 +389,23 @@ if ($bookId > 0) {
             display: inline-block;
             margin-bottom: 1.5rem;
         }
-        
+
         .badge-available {
             background-color: rgba(40, 167, 69, 0.1);
             color: #28a745;
             border: 1px solid rgba(40, 167, 69, 0.2);
         }
-        
+
         .badge-unavailable {
             background-color: rgba(220, 53, 69, 0.1);
             color: #dc3545;
             border: 1px solid rgba(220, 53, 69, 0.2);
         }
-        
+
         .action-buttons {
             margin-top: 2rem;
         }
-        
+
         .action-buttons .btn {
             margin-right: 0.5rem;
             margin-bottom: 0.5rem;
@@ -413,7 +413,7 @@ if ($bookId > 0) {
             font-weight: 500;
             border-radius: 50px;
         }
-        
+
         .section-title {
             font-size: 1.5rem;
             font-weight: 600;
@@ -422,7 +422,7 @@ if ($bookId > 0) {
             border-bottom: 2px solid rgba(0, 0, 0, 0.1);
             color: var(--primary-color);
         }
-        
+
         .detail-card {
             background-color: white;
             border-radius: 1rem;
@@ -431,33 +431,33 @@ if ($bookId > 0) {
             padding: 1.5rem;
             border: none;
         }
-        
+
         .details-row {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 1.5rem;
             margin-bottom: 1rem;
         }
-        
+
         .detail-item {
             margin-bottom: 1.25rem;
         }
-        
+
         .detail-label {
             font-weight: 600;
             color: #495057;
             margin-bottom: 0.25rem;
             display: block;
         }
-        
+
         .detail-value {
             color: #6c757d;
         }
-        
+
         .summary-section {
             padding-top: 1rem;
         }
-        
+
         .contributor-item {
             background-color: white;
             border-radius: 0.5rem;
@@ -468,12 +468,12 @@ if ($bookId > 0) {
             align-items: center;
             box-shadow: 0 0.1rem 0.5rem rgba(0, 0, 0, 0.05);
         }
-        
+
         .contributor-name {
             font-weight: 500;
             color: #495057;
         }
-        
+
         .contributor-role {
             padding: 0.25rem 0.75rem;
             border-radius: 50px;
@@ -481,40 +481,40 @@ if ($bookId > 0) {
             font-weight: 500;
             color: white;
         }
-        
+
         .role-author {
             background-color: #4e73df;
         }
-        
+
         .role-coauthor {
             background-color: #36b9cc;
         }
-        
+
         .role-editor {
             background-color: #1cc88a;
         }
-        
+
         .role-other {
             background-color: #f6c23e;
         }
-        
+
         .contributor-section {
             margin-bottom: 2rem;
         }
-        
+
         .contributor-role-title {
             font-size: 1.1rem;
             font-weight: 600;
             margin-bottom: 1rem;
             color: #4e73df;
         }
-        
+
         .back-to-search {
             margin-top: 2rem;
             display: inline-block;
             margin-bottom: 2rem;
         }
-        
+
         .book-metadata {
             margin-top: -7rem;
             position: relative;
@@ -523,27 +523,27 @@ if ($bookId > 0) {
             box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
             padding: 2rem;
         }
-        
+
         .nav-pills .nav-link {
             color: #6c757d;
             border-radius: 0.5rem;
             padding: 0.75rem 1rem;
             margin-right: 0.5rem;
         }
-        
+
         .nav-pills .nav-link.active {
             background-color: var(--primary-color);
             color: white;
         }
-        
+
         .tab-content {
             padding: 1.5rem 0;
         }
-        
+
         .copy-list {
             margin-top: 1.5rem;
         }
-        
+
         .copy-item {
             background-color: white;
             border-radius: 0.5rem;
@@ -554,46 +554,46 @@ if ($bookId > 0) {
             align-items: center;
             box-shadow: 0 0.1rem 0.5rem rgba(0, 0, 0, 0.05);
         }
-        
+
         .copy-info {
             display: flex;
             flex-direction: column;
         }
-        
+
         .copy-accession {
             font-weight: 600;
             color: #495057;
         }
-        
+
         .copy-callnumber {
             color: #6c757d;
             font-size: 0.9rem;
         }
-        
+
         .copy-status {
             padding: 0.25rem 0.75rem;
             border-radius: 50px;
             font-size: 0.8rem;
             font-weight: 500;
         }
-        
+
         .copy-available {
             background-color: rgba(40, 167, 69, 0.1);
             color: #28a745;
             border: 1px solid rgba(40, 167, 69, 0.2);
         }
-        
+
         .copy-unavailable {
             background-color: rgba(220, 53, 69, 0.1);
             color: #dc3545;
             border: 1px solid rgba(220, 53, 69, 0.2);
         }
-        
+
         .copy-actions {
             display: flex;
             gap: 0.5rem;
         }
-        
+
         .copy-summary {
             background-color: rgba(0, 123, 255, 0.1);
             border-radius: 0.5rem;
@@ -603,7 +603,7 @@ if ($bookId > 0) {
             font-weight: 500;
             text-align: center;
         }
-        
+
         .additional-contributors {
             font-size: 0.9rem;
             font-style: italic;
@@ -611,40 +611,40 @@ if ($bookId > 0) {
             margin-bottom: 1.5rem;
             color: rgba(255, 255, 255, 0.8);
         }
-        
+
         /* Responsive adjustments */
         @media (max-width: 991.98px) {
             .book-metadata {
                 margin-top: 1rem;
             }
-            
+
             .details-row {
                 grid-template-columns: 1fr;
             }
-            
+
             .book-title {
                 font-size: 1.75rem;
             }
-            
+
             .book-author {
                 font-size: 1.1rem;
             }
-            
+
             .book-cover, .no-image-placeholder {
                 height: 300px;
             }
         }
-        
+
         @media (max-width: 767.98px) {
             .book-header {
                 padding: 2rem 0;
             }
-            
+
             .action-buttons .btn {
                 margin-bottom: 1rem;
                 width: 100%;
             }
-            
+
             .book-cover, .no-image-placeholder {
                 height: 250px;
             }
@@ -652,7 +652,7 @@ if ($bookId > 0) {
     </style>
 </head>
 <body>
-    <?php 
+    <?php
     // Include the appropriate header based on login status
     if ($isLoggedIn) {
         include 'inc/header.php';
@@ -667,13 +667,13 @@ if ($bookId > 0) {
                     </div>
                 </div>
               </nav>';
-        
+
         // Show guest notification banner
         echo '<div class="container mt-3">
               <div class="alert alert-warning">
-                <i class="fas fa-info-circle me-2"></i> You are viewing as a guest. 
-                <a href="index.php" class="btn btn-sm btn-outline-primary ms-2">Log In</a> or 
-                <a href="register.php" class="btn btn-sm btn-outline-primary ms-2">Register</a> 
+                <i class="fas fa-info-circle me-2"></i> You are viewing as a guest.
+                <a href="index.php" class="btn btn-sm btn-outline-primary ms-2">Log In</a> or
+                <a href="register.php" class="btn btn-sm btn-outline-primary ms-2">Register</a>
                 to borrow or reserve books.
               </div>
             </div>';
@@ -710,13 +710,13 @@ if ($bookId > 0) {
                 <!-- Book Cover Column -->
                 <div class="col-lg-3 mb-4">
                     <?php if (!empty($book['front_image'])): ?>
-                        <img src="<?php echo htmlspecialchars($book['front_image']); ?>" alt="Book Cover" class="book-cover">
+                        <img src="<?php echo htmlspecialchars('../' . $book['front_image']); ?>" alt="Front Cover" class="img-fluid mb-3 rounded shadow-sm">
                     <?php else: ?>
                         <div class="no-image-placeholder">
                             <i class="fas fa-book fa-5x text-muted"></i>
                         </div>
                     <?php endif; ?>
-                    
+
                     <!-- Status Badge -->
                     <div class="text-center mt-4">
                         <span class="availability-badge <?php echo ($availableCopies > 0) ? 'badge-available' : 'badge-unavailable'; ?>">
@@ -725,7 +725,7 @@ if ($bookId > 0) {
                         </span>
                     </div>
                 </div>
-                
+
                 <!-- Book Details Column -->
                 <div class="col-lg-9">
                     <div class="book-metadata">
@@ -734,13 +734,13 @@ if ($bookId > 0) {
                             <i class="fas fa-user-edit me-2"></i>
                             <?php echo htmlspecialchars($primaryAuthor); ?>
                         </p>
-                        
+
                         <?php if (!empty($coAuthors) || !empty($editors)): ?>
                         <div class="additional-contributors">
-                            <?php 
+                            <?php
                             $additionalInfo = [];
                             if (count($contributorsByRole['Author']) > 1) {
-                                $additionalInfo[] = (count($contributorsByRole['Author']) - 1) . " more author" . 
+                                $additionalInfo[] = (count($contributorsByRole['Author']) - 1) . " more author" .
                                     (count($contributorsByRole['Author']) > 2 ? "s" : "");
                             }
                             if (!empty($coAuthors)) {
@@ -755,13 +755,13 @@ if ($bookId > 0) {
                             ?>
                         </div>
                         <?php endif; ?>
-                        
+
                         <!-- Copy Summary -->
                         <div class="copy-summary">
                             <i class="fas fa-book-reader me-2"></i>
                             <?php echo $availableCopies; ?> out of <?php echo $totalCopies; ?> copies available
                         </div>
-                        
+
                         <!-- Action Buttons -->
                         <?php if ($isLoggedIn): ?>
                             <?php if ($availableCopies > 0 && !$isBorrowed && !$isReserved): ?>
@@ -775,7 +775,7 @@ if ($bookId > 0) {
                                             <i class="fas fa-check me-2"></i> In Your Cart
                                         </button>
                                     <?php endif; ?>
-                                    
+
                                     <button class="btn btn-outline-primary" onclick="reserveBook(<?php echo $book['id']; ?>)">
                                         <i class="fas fa-bookmark me-2"></i> Reserve Book
                                     </button>
@@ -801,7 +801,7 @@ if ($bookId > 0) {
                                 </button>
                             </div>
                         <?php endif; ?>
-                        
+
                         <!-- Book Details Tabs -->
                         <ul class="nav nav-pills mt-4" id="bookDetailsTabs" role="tablist">
                             <li class="nav-item" role="presentation">
@@ -827,7 +827,7 @@ if ($bookId > 0) {
                             </li>
                             <?php endif; ?>
                         </ul>
-                        
+
                         <div class="tab-content" id="bookDetailsTabsContent">
                             <!-- Copies Tab -->
                             <div class="tab-pane fade show active" id="copies" role="tabpanel" aria-labelledby="copies-tab">
@@ -857,7 +857,7 @@ if ($bookId > 0) {
                                     <?php endforeach; ?>
                                 </div>
                             </div>
-                            
+
                             <!-- Details Tab -->
                             <div class="tab-pane fade" id="details" role="tabpanel" aria-labelledby="details-tab">
                                 <div class="details-row">
@@ -865,43 +865,43 @@ if ($bookId > 0) {
                                         <span class="detail-label">Title</span>
                                         <span class="detail-value"><?php echo htmlspecialchars($book['title']); ?></span>
                                     </div>
-                                    
+
                                     <div class="detail-item">
                                         <span class="detail-label">Main Author</span>
                                         <span class="detail-value"><?php echo htmlspecialchars($primaryAuthor); ?></span>
                                     </div>
                                 </div>
-                                
+
                                 <div class="details-row">
                                     <div class="detail-item">
                                         <span class="detail-label">Category</span>
                                         <span class="detail-value"><?php echo htmlspecialchars($book['subject_category'] ?: 'N/A'); ?></span>
                                     </div>
-                                    
+
                                     <div class="detail-item">
                                         <span class="detail-label">Program</span>
                                         <span class="detail-value"><?php echo htmlspecialchars($book['program'] ?: 'N/A'); ?></span>
                                     </div>
                                 </div>
-                                
+
                                 <div class="details-row">
                                     <?php if (!empty($publications)): ?>
                                     <div class="detail-item">
                                         <span class="detail-label">Publisher</span>
                                         <span class="detail-value"><?php echo htmlspecialchars($publications[0]['publisher']); ?></span>
                                     </div>
-                                    
+
                                     <div class="detail-item">
                                         <span class="detail-label">Place</span>
                                         <span class="detail-value"><?php echo htmlspecialchars($publications[0]['place']); ?></span>
                                     </div>
-                                    
+
                                     <div class="detail-item">
                                         <span class="detail-label">Publication Year</span>
                                         <span class="detail-value"><?php echo htmlspecialchars($publications[0]['publish_date']); ?></span>
                                     </div>
                                     <?php endif; ?>
-                                    
+
                                     <?php if (!empty($book['ISBN'])): ?>
                                     <div class="detail-item">
                                         <span class="detail-label">ISBN</span>
@@ -909,7 +909,7 @@ if ($bookId > 0) {
                                     </div>
                                     <?php endif; ?>
                                 </div>
-                                
+
                                 <div class="details-row">
                                     <?php if (!empty($book['edition'])): ?>
                                     <div class="detail-item">
@@ -917,21 +917,21 @@ if ($bookId > 0) {
                                         <span class="detail-value"><?php echo htmlspecialchars($book['edition']); ?></span>
                                     </div>
                                     <?php endif; ?>
-                                    
+
                                     <?php if (!empty($book['series'])): ?>
                                     <div class="detail-item">
                                         <span class="detail-label">Series</span>
                                         <span class="detail-value"><?php echo htmlspecialchars($book['series']); ?></span>
                                     </div>
                                     <?php endif; ?>
-                                    
+
                                     <?php if (!empty($book['volume'])): ?>
                                     <div class="detail-item">
                                         <span class="detail-label">Volume</span>
                                         <span class="detail-value"><?php echo htmlspecialchars($book['volume']); ?></span>
                                     </div>
                                     <?php endif; ?>
-                                    
+
                                     <?php if (!empty($book['part'])): ?>
                                     <div class="detail-item">
                                         <span class="detail-label">Part</span>
@@ -939,20 +939,20 @@ if ($bookId > 0) {
                                     </div>
                                     <?php endif; ?>
                                 </div>
-                                
+
                                 <div class="details-row">
                                     <div class="detail-item">
                                         <span class="detail-label">Total Copies</span>
                                         <span class="detail-value"><?php echo $totalCopies; ?></span>
                                     </div>
-                                    
+
                                     <div class="detail-item">
                                         <span class="detail-label">Available Copies</span>
                                         <span class="detail-value"><?php echo $availableCopies; ?></span>
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <!-- Description Tab -->
                             <div class="tab-pane fade" id="description" role="tabpanel" aria-labelledby="description-tab">
                                 <?php if (!empty($book['summary']) || !empty($book['subject_detail']) || !empty($book['contents'])): ?>
@@ -962,13 +962,13 @@ if ($bookId > 0) {
                                             <p><?php echo nl2br(htmlspecialchars($book['summary'])); ?></p>
                                             <hr>
                                         <?php endif; ?>
-                                        
+
                                         <?php if (!empty($book['subject_detail'])): ?>
                                             <h4>Subject Details</h4>
                                             <p><?php echo nl2br(htmlspecialchars($book['subject_detail'])); ?></p>
                                             <hr>
                                         <?php endif; ?>
-                                        
+
                                         <?php if (!empty($book['contents'])): ?>
                                             <h4>Contents</h4>
                                             <p><?php echo nl2br(htmlspecialchars($book['contents'])); ?></p>
@@ -980,7 +980,7 @@ if ($bookId > 0) {
                                     </div>
                                 <?php endif; ?>
                             </div>
-                            
+
                             <!-- Contributors Tab -->
                             <?php if (count($contributors) > 0): ?>
                             <div class="tab-pane fade" id="contributors" role="tabpanel" aria-labelledby="contributors-tab">
@@ -997,7 +997,7 @@ if ($bookId > 0) {
                                     <?php endforeach; ?>
                                 </div>
                                 <?php endif; ?>
-                                
+
                                 <?php if (!empty($contributorsByRole['Co-Author'])): ?>
                                 <div class="contributor-section">
                                     <h4 class="contributor-role-title">
@@ -1011,7 +1011,7 @@ if ($bookId > 0) {
                                     <?php endforeach; ?>
                                 </div>
                                 <?php endif; ?>
-                                
+
                                 <?php if (!empty($contributorsByRole['Editor'])): ?>
                                 <div class="contributor-section">
                                     <h4 class="contributor-role-title">
@@ -1025,7 +1025,7 @@ if ($bookId > 0) {
                                     <?php endforeach; ?>
                                 </div>
                                 <?php endif; ?>
-                                
+
                                 <?php if (!empty($contributorsByRole['Other'])): ?>
                                 <div class="contributor-section">
                                     <h4 class="contributor-role-title">
@@ -1045,14 +1045,14 @@ if ($bookId > 0) {
                     </div>
                 </div>
             </div>
-            
+
             <a href="searchbook.php" class="btn btn-outline-secondary back-to-search">
                 <i class="fas fa-arrow-left me-2"></i> Back to Search Results
             </a>
         </div>
     <?php endif; ?>
 
-    <?php 
+    <?php
     // Include the appropriate footer based on login status
     if ($isLoggedIn) {
         include 'inc/footer.php';
@@ -1066,12 +1066,12 @@ if ($bookId > 0) {
               </footer>';
     }
     ?>
-    
+
     <!-- Bootstrap JS Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    
+
     <script>
         function loginPrompt() {
             Swal.fire({
@@ -1087,7 +1087,7 @@ if ($bookId > 0) {
                 }
             });
         }
-        
+
         function registerPrompt() {
             Swal.fire({
                 title: 'Create an Account',
@@ -1102,7 +1102,7 @@ if ($bookId > 0) {
                 }
             });
         }
-        
+
         <?php if ($isLoggedIn): ?>
         function addToCart(bookId) {
             $.ajax({
@@ -1140,7 +1140,7 @@ if ($bookId > 0) {
                 }
             });
         }
-        
+
         function reserveBook(bookId) {
             Swal.fire({
                 title: 'Reserve this book?',
