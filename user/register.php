@@ -19,11 +19,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $department = mysqli_real_escape_string($conn, $_POST['department']);
     $image = '../Images/Profile/default-avatar.jpg';
 
-    // Append period to middle initial if not empty
-    if (!empty($middle_init)) {
-        $middle_init .= '.';
-    }
-
     // Store user data in session
     $_SESSION['school_id'] = $school_id;
     $_SESSION['firstname'] = $firstname;

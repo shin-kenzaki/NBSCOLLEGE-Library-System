@@ -18,13 +18,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         if ($entered_otp == $_SESSION['otp']) {
             // Retrieve data from session
             $school_id = $_SESSION['school_id'];
-            $firstname = ucfirst(strtolower($_SESSION['firstname']));
-            $middle_init = ucfirst(strtolower($_SESSION['middle_init']));
-            $lastname = ucfirst(strtolower($_SESSION['lastname']));
+            // Capitalize all characters for names before insert
+            $firstname = strtoupper($_SESSION['firstname']);
+            $middle_init = strtoupper($_SESSION['middle_init']);
+            $lastname = strtoupper($_SESSION['lastname']);
             $email = $_SESSION['email'];
             $hashed_password = $_SESSION['hashed_password'];
             $usertype = $_SESSION['usertype'];
-            $department = $_SESSION['department']; // <-- Add this line
+            $department = $_SESSION['department'];
             $image = $_SESSION['image'];
 
             // If all checks pass, proceed with insert
@@ -43,7 +44,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     $hashed_password,
                     $image,
                     $usertype,
-                    $department // <-- Add this parameter
+                    $department
                 );
 
                 if ($stmt->execute()) {
@@ -53,7 +54,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     // Construct full name (including middle initial if exists)
                     $full_name = $firstname;
                     if (!empty($middle_init)) {
-                        $full_name .= " " . $middle_init . ".";
+                        $full_name .= " " . $middle_init;
                     }
                     $full_name .= " " . $lastname;
 
