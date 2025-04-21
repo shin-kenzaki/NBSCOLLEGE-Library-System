@@ -24,16 +24,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $email = $_SESSION['email'];
             $hashed_password = $_SESSION['hashed_password'];
             $usertype = $_SESSION['usertype'];
+            $department = $_SESSION['department']; // <-- Add this line
             $image = $_SESSION['image'];
 
             // If all checks pass, proceed with insert
             $sql = "INSERT INTO users (school_id, firstname, middle_init, lastname, email, password,
-                    user_image, usertype, date_added)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+                    user_image, usertype, department, date_added)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
 
             if ($stmt = $conn->prepare($sql)) {
                 $stmt->bind_param(
-                    "ssssssss",
+                    "sssssssss",
                     $school_id,
                     $firstname,
                     $middle_init,
@@ -41,7 +42,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     $email,
                     $hashed_password,
                     $image,
-                    $usertype
+                    $usertype,
+                    $department // <-- Add this parameter
                 );
 
                 if ($stmt->execute()) {
