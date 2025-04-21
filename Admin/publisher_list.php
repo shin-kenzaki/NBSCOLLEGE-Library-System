@@ -542,7 +542,6 @@ $result = $conn->query($sql);
 <div class="context-menu" id="contextMenu">
     <ul class="list-group">
         <li class="list-group-item context-menu-item" data-action="edit"><i class="fas fa-edit mr-2"></i>Edit Publisher</li>
-        <li class="list-group-item context-menu-item" data-action="delete"><i class="fas fa-trash-alt mr-2"></i>Delete Publisher</li>
     </ul>
 </div>
 
@@ -659,29 +658,23 @@ $(document).ready(function () {
         $('#contextMenu').hide();
     });
 
-    // Handle context menu actions
-    $('#updatePublisher').click(function() {
-        console.log('Update publisher clicked');
-        window.location.href = `update_publisher.php?publisher_id=${selectedPublisherId}`;
-    });
-
-    $('#deletePublisher').click(function() {
-        var row = $('#dataTable tbody tr.context-menu-active');
-        var publisherId = row.find('td:nth-child(2)').text();
-        var publisher = row.find('td:nth-child(3)').text();
-        var place = row.find('td:nth-child(4)').text();
-
-        if (confirm(`Are you sure you want to delete this publisher?\n\nID: ${publisherId}\nPublisher: ${publisher}\nPlace: ${place}\n\nThis will also delete all publication records for this publisher.`)) {
-            $.post('delete_publisher.php', { publisher_id: publisherId }, function(response) {
-                alert(response.message);
-                location.reload();
-            }, 'json');
+    // Handle context menu item clicks - Updated to only handle edit action
+    $('.context-menu-item').on('click', function() {
+        const action = $(this).data('action');
+        
+        if (!contextTarget) return;
+        
+        if (action === 'edit') {
+            window.location.href = `update_publisher.php?publisher_id=${contextTarget.id}`;
         }
-    });
-
-    // Save updated publisher functionality
-    $('#saveUpdatedPublisher').click(function() {
-        $('#updatePublisherForm').submit();
+        
+        // Hide the context menu
+        $('#contextMenu').hide();
+         // Remove highlight from the row
+        if (contextTarget && contextTarget.element) {
+            $(contextTarget.element).removeClass('table-primary');
+        }
+        contextTarget = null; // Clear context target
     });
 
     // Display session messages using SweetAlert2
@@ -1010,7 +1003,7 @@ $(document).ready(function () {
         $('#contextMenu').hide();
     });
     
-    // Handle context menu item clicks - Updated delete action with SweetAlert2
+    // Handle context menu item clicks - Updated to only handle edit action
     $('.context-menu-item').on('click', function() {
         const action = $(this).data('action');
         
@@ -1018,54 +1011,6 @@ $(document).ready(function () {
         
         if (action === 'edit') {
             window.location.href = `update_publisher.php?publisher_id=${contextTarget.id}`;
-        } else if (action === 'delete') {
-            Swal.fire({
-                title: 'Delete Publisher?',
-                html: `Are you sure you want to delete <strong>${contextTarget.publisher}</strong> in <strong>${contextTarget.place}</strong> (ID: ${contextTarget.id})?<br><br>
-                      <span class="text-danger">This will also remove all publication records for this publisher. This action cannot be undone.</span>`,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#3085d6',
-                confirmButtonText: 'Yes, delete it',
-                cancelButtonText: 'Cancel'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Perform delete operation via AJAX
-                    $.ajax({
-                        url: 'delete_publisher.php', // Ensure this endpoint exists and handles deletion
-                        type: 'POST',
-                        data: { publisher_id: contextTarget.id },
-                        dataType: 'json',
-                        success: function(response) {
-                            if (response.success) {
-                                Swal.fire({
-                                    title: 'Deleted!',
-                                    text: response.message || 'Publisher deleted successfully.',
-                                    icon: 'success',
-                                    timer: 1500, // Auto close after 1.5 seconds
-                                    showConfirmButton: false
-                                });
-                                // Remove row from table using DataTables API
-                                table.row($(contextTarget.element)).remove().draw(false); // Use draw(false) to avoid resetting pagination
-                            } else {
-                                Swal.fire({
-                                    title: 'Error!',
-                                    text: response.message || 'Failed to delete publisher.',
-                                    icon: 'error'
-                                });
-                            }
-                        },
-                        error: function(xhr) {
-                            Swal.fire({
-                                title: 'Error!',
-                                text: 'A server error occurred: ' + xhr.statusText,
-                                icon: 'error'
-                            });
-                        }
-                    });
-                }
-            });
         }
         
         // Hide the context menu

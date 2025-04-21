@@ -24,6 +24,28 @@ if (isset($_POST['action']) && $_POST['action'] == 'updateSelectedWriters') {
     exit;
 }
 
+// Handle AJAX request for deleting a writer
+if (isset($_POST['action']) && $_POST['action'] === 'deleteWriter') {
+    $writerId = intval($_POST['writer_id']);
+    $conn->begin_transaction();
+    try {
+        // Delete associated contributors
+        $deleteContributorsSql = "DELETE FROM contributors WHERE writer_id = $writerId";
+        $conn->query($deleteContributorsSql);
+
+        // Delete the writer
+        $deleteWriterSql = "DELETE FROM writers WHERE id = $writerId";
+        $conn->query($deleteWriterSql);
+
+        $conn->commit();
+        echo json_encode(['success' => true]);
+    } catch (Exception $e) {
+        $conn->rollback();
+        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    }
+    exit;
+}
+
 // Handle bulk action requests
 if (isset($_POST['bulk_action']) && isset($_POST['selected_ids'])) {
     $selectedIds = $_POST['selected_ids'];
@@ -403,7 +425,6 @@ $result = $conn->query($sql);
 <div class="context-menu" id="contextMenu">
     <ul class="list-group">
         <li class="list-group-item context-menu-item" data-action="edit"><i class="fas fa-edit mr-2"></i>Edit Writer</li>
-        <li class="list-group-item context-menu-item" data-action="delete"><i class="fas fa-trash-alt mr-2"></i>Delete Writer</li>
     </ul>
 </div>
 
@@ -764,7 +785,7 @@ $(document).ready(function () {
         e.preventDefault();
         $('#dataTable tbody tr').removeClass('context-menu-active');
         $(this).addClass('context-menu-active');
-        selectedWriterId = $(this).find('td:nth-child(2)').text(); // Changed from td:nth-child(1) to td:nth-child(2)
+        selectedWriterId = $(this).find('td:nth-child(2)').text(); // Get writer ID
         $('#contextMenu').css({
             display: 'block',
             left: e.pageX,
@@ -779,39 +800,15 @@ $(document).ready(function () {
     });
 
     // Handle context menu actions
-    $('#updateWriter').click(function() {
-        console.log('Update writer clicked');
-        window.location.href = `update_writer.php?writer_id=${selectedWriterId}`;
-    });
+    $('.context-menu-item').on('click', function() {
+        const action = $(this).data('action');
+        if (!selectedWriterId) return;
 
-    $('#deleteWriter').click(function() {
-        var row = $('#dataTable tbody tr.context-menu-active');
-        var writerId = row.find('td:nth-child(2)').text();
-        var firstName = row.find('td:nth-child(3)').text();
-        var lastName = row.find('td:nth-child(5)').text();
-
-        if (confirm(`Are you sure you want to delete this writer?\n\nID: ${writerId}\nName: ${firstName} ${lastName}\n\nThis will also delete all contributor records for this writer.`)) {
-            $.ajax({
-                url: 'delete_writer.php',
-                type: 'POST',
-                data: { writer_id: writerId },
-                dataType: 'json',
-                success: function(response) {
-                    if (response.success) {
-                        row.remove();
-                        $('#contextMenu').hide();
-                        alert(response.message);
-                    } else {
-                        alert(response.message || 'Error deleting writer');
-                    }
-                },
-                error: function(xhr, status, error) {
-                    console.error('Delete request failed:', error);
-                    console.error('Server response:', xhr.responseText);
-                    alert('An error occurred while trying to delete the writer. Please check the console for details.');
-                }
-            });
+        if (action === 'edit') {
+            window.location.href = `update_writer.php?writer_id=${selectedWriterId}`;
         }
+
+        $('#contextMenu').hide();
     });
 
     // Save updated writer functionality
@@ -1196,7 +1193,7 @@ $(document).ready(function () {
         $('#contextMenu').hide();
     });
     
-    // Handle context menu item clicks - Updated delete action with SweetAlert2
+    // Handle context menu item clicks
     $('.context-menu-item').on('click', function() {
         const action = $(this).data('action');
         
@@ -1204,54 +1201,6 @@ $(document).ready(function () {
         
         if (action === 'edit') {
             window.location.href = `update_writer.php?writer_id=${contextTarget.id}`;
-        } else if (action === 'delete') {
-            Swal.fire({
-                title: 'Delete Writer?',
-                html: `Are you sure you want to delete <strong>${contextTarget.firstName} ${contextTarget.lastName}</strong> (ID: ${contextTarget.id})?<br><br>
-                      <span class="text-danger">This will also remove all contributor records for this writer. This action cannot be undone.</span>`,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#3085d6',
-                confirmButtonText: 'Yes, delete it',
-                cancelButtonText: 'Cancel'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Perform delete operation via AJAX
-                    $.ajax({
-                        url: 'delete_writer.php', // Ensure this endpoint exists and handles deletion
-                        type: 'POST',
-                        data: { writer_id: contextTarget.id },
-                        dataType: 'json',
-                        success: function(response) {
-                            if (response.success) {
-                                Swal.fire({
-                                    title: 'Deleted!',
-                                    text: response.message || 'Writer deleted successfully.',
-                                    icon: 'success',
-                                    timer: 1500, // Auto close after 1.5 seconds
-                                    showConfirmButton: false
-                                });
-                                // Remove row from table using DataTables API for proper redraw
-                                table.row($(contextTarget.element)).remove().draw(false); // Use draw(false) to avoid resetting pagination
-                            } else {
-                                Swal.fire({
-                                    title: 'Error!',
-                                    text: response.message || 'Failed to delete writer.',
-                                    icon: 'error'
-                                });
-                            }
-                        },
-                        error: function(xhr) {
-                            Swal.fire({
-                                title: 'Error!',
-                                text: 'A server error occurred: ' + xhr.statusText,
-                                icon: 'error'
-                            });
-                        }
-                    });
-                }
-            });
         }
         
         // Hide the context menu
