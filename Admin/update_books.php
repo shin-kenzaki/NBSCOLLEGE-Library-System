@@ -414,14 +414,26 @@ if (isset($_POST['submit'])) {
 
         $conn->commit();
         echo "<script>
-                alert('Books updated successfully!');
-                window.location.href = 'book_list.php';
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success!',
+                    text: 'Books updated successfully!',
+                    confirmButtonColor: '#4e73df',
+                    confirmButtonText: 'View Books'
+                }).then((result) => {
+                    window.location.href = 'book_list.php';
+                });
               </script>";
         exit();
     } catch (Exception $e) {
         $conn->rollback();
         echo "<script>
-                alert('Error updating books: " . $e->getMessage() . "');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Error updating books: " . $e->getMessage() . "',
+                    confirmButtonColor: '#d33'
+                });
               </script>";
     }
 }
@@ -833,30 +845,109 @@ if ($first_book) {
                         <div class="form-group">
                             <label>Summary/Abstract</label>
                             <textarea class="form-control" name="abstract" rows="6" 
-                                placeholder="Enter a summary or abstract of the book"></textarea>
+                                placeholder="Enter a summary or abstract of the book"><?php echo htmlspecialchars($first_book['summary'] ?? ''); ?></textarea>
                         </div>
                         <div class="form-group">
                             <label>Contents</label>
                             <textarea class="form-control" name="notes" rows="4" 
-                                placeholder="Enter the table of contents or chapter list"></textarea>
+                                placeholder="Enter the table of contents or chapter list"><?php echo htmlspecialchars($first_book['contents'] ?? ''); ?></textarea>
                         </div>
                     </div>
 
                     <!-- Description Tab -->
                     <div class="tab-pane fade" id="description" role="tabpanel">
                         <h4>Description</h4>
-                        <div class="form-group">
-                            <label>Front Image</label>
-                            <input type="file" class="form-control" name="front_image">
+                        
+                        <!-- Enhanced Front/Back Image Selection -->
+                        <div class="row mb-4">
+                            <!-- Front Image -->
+                            <div class="col-md-6">
+                                <label class="mb-2">Front Image</label>
+                                <div class="card">
+                                    <div class="card-body text-center">
+                                        <div class="image-preview mb-3 d-flex justify-content-center align-items-center flex-column">
+                                            <?php if (!empty($first_book['front_image'])): ?>
+                                                <img src="<?php echo htmlspecialchars($first_book['front_image']); ?>" 
+                                                     alt="Book Front" id="frontImagePreview" 
+                                                     style="max-height: 200px; max-width: 100%; border: 1px solid #ddd; border-radius: 4px;">
+                                                <input type="hidden" name="front_image" value="<?php echo htmlspecialchars($first_book['front_image']); ?>">
+                                            <?php else: ?>
+                                                <div class="text-center py-4 bg-light rounded" id="frontImagePreviewPlaceholder">
+                                                    <i class="fas fa-book fa-3x mb-2 text-secondary"></i>
+                                                    <p class="text-muted">No front image available</p>
+                                                </div>
+                                                <img src="" alt="Book Front" id="frontImagePreview" 
+                                                     style="max-height: 200px; max-width: 100%; display: none; border: 1px solid #ddd; border-radius: 4px;">
+                                            <?php endif; ?>
+                                        </div>
+                                        <div id="frontAspectPreviews" class="d-flex justify-content-center gap-2 mb-2"></div>
+                                        <div class="small text-muted" id="frontImageDimensions"></div>
+                                        <div class="d-flex justify-content-center">
+                                            <button type="button" class="btn btn-outline-primary me-2" onclick="document.getElementById('inputFrontImage').click();">
+                                                <i class="fas fa-upload"></i> Choose File
+                                            </button>
+                                            <?php if (!empty($first_book['front_image'])): ?>
+                                                <button type="button" class="btn btn-outline-danger" onclick="clearImage('front')">
+                                                    <i class="fas fa-trash-alt"></i> Remove
+                                                </button>
+                                            <?php endif; ?>
+                                        </div>
+                                        <input class="d-none" id="inputFrontImage" type="file" name="front_image" accept="image/*" 
+                                               onchange="previewImage(this, 'frontImagePreview', 'frontImagePreviewPlaceholder'); updateFileNameDisplay(this, 'frontFileNameDisplay');">
+                                        <div class="small text-muted mt-2" id="frontFileNameDisplay">
+                                            <?php echo !empty($first_book['front_image']) ? 'Current: ' . basename($first_book['front_image']) : 'No file selected'; ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Back Image -->
+                            <div class="col-md-6">
+                                <label class="mb-2">Back Image</label>
+                                <div class="card">
+                                    <div class="card-body text-center">
+                                        <div class="image-preview mb-3 d-flex justify-content-center align-items-center flex-column">
+                                            <?php if (!empty($first_book['back_image'])): ?>
+                                                <img src="<?php echo htmlspecialchars($first_book['back_image']); ?>" 
+                                                     alt="Book Back" id="backImagePreview" 
+                                                     style="max-height: 200px; max-width: 100%; border: 1px solid #ddd; border-radius: 4px;">
+                                                <input type="hidden" name="back_image" value="<?php echo htmlspecialchars($first_book['back_image']); ?>">
+                                            <?php else: ?>
+                                                <div class="text-center py-4 bg-light rounded" id="backImagePreviewPlaceholder">
+                                                    <i class="fas fa-book-open fa-3x mb-2 text-secondary"></i>
+                                                    <p class="text-muted">No back image available</p>
+                                                </div>
+                                                <img src="" alt="Book Back" id="backImagePreview" 
+                                                     style="max-height: 200px; max-width: 100%; display: none; border: 1px solid #ddd; border-radius: 4px;">
+                                            <?php endif; ?>
+                                        </div>
+                                        <div id="backAspectPreviews" class="d-flex justify-content-center gap-2 mb-2"></div>
+                                        <div class="small text-muted" id="backImageDimensions"></div>
+                                        <div class="d-flex justify-content-center">
+                                            <button type="button" class="btn btn-outline-primary me-2" onclick="document.getElementById('inputBackImage').click();">
+                                                <i class="fas fa-upload"></i> Choose File
+                                            </button>
+                                            <?php if (!empty($first_book['back_image'])): ?>
+                                                <button type="button" class="btn btn-outline-danger" onclick="clearImage('back')">
+                                                    <i class="fas fa-trash-alt"></i> Remove
+                                                </button>
+                                            <?php endif; ?>
+                                        </div>
+                                        <input class="d-none" id="inputBackImage" type="file" name="back_image" accept="image/*" 
+                                               onchange="previewImage(this, 'backImagePreview', 'backImagePreviewPlaceholder'); updateFileNameDisplay(this, 'backFileNameDisplay');">
+                                        <div class="small text-muted mt-2" id="backFileNameDisplay">
+                                            <?php echo !empty($first_book['back_image']) ? 'Current: ' . basename($first_book['back_image']) : 'No file selected'; ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label>Back Image</label>
-                            <input type="file" class="form-control" name="back_image">
-                        </div>
+                        
                         <div class="form-group">
                             <label>Dimension (cm)</label>
-                            <input type="number" step="0.01" class="form-control" name="dimension">
+                            <input type="number" step="0.01" class="form-control" name="dimension" value="<?php echo htmlspecialchars($first_book['dimension'] ?? ''); ?>">
                         </div>
+                        
                         <div class="form-group">
                             <label>Pages</label>
                             <div class="row">
@@ -883,13 +974,25 @@ if ($first_book) {
                                 <div class="col-md-4">
                                     <label class="small">Supplementary Contents</label>
                                     <select class="form-control" name="supplementary_content[]" multiple>
-                                        <option value="Appendix" <?php echo (strpos($first_book['supplementary_contents'] ?? '', 'Appendix') !== false) ? 'selected' : ''; ?>>Appendix</option>
-                                        <option value="Bibliography" <?php echo (strpos($first_book['supplementary_contents'] ?? '', 'Bibliography') !== false) ? 'selected' : ''; ?>>Bibliography</option>
-                                        <option value="Glossary" <?php echo (strpos($first_book['supplementary_contents'] ?? '', 'Glossary') !== false) ? 'selected' : ''; ?>>Glossary</option>
-                                        <option value="Index" <?php echo (strpos($first_book['supplementary_contents'] ?? '', 'Index') !== false) ? 'selected' : ''; ?>>Index</option>
-                                        <option value="Illustrations" <?php echo (strpos($first_book['supplementary_contents'] ?? '', 'Illustrations') !== false) ? 'selected' : ''; ?>>Illustrations</option>
-                                        <option value="Maps" <?php echo (strpos($first_book['supplementary_contents'] ?? '', 'Maps') !== false) ? 'selected' : ''; ?>>Maps</option>
-                                        <option value="Tables" <?php echo (strpos($first_book['supplementary_contents'] ?? '', 'Tables') !== false) ? 'selected' : ''; ?>>Tables</option>
+                                        <?php
+                                        // Parse supplementary contents from first book
+                                        $supplementary = $first_book['supplementary_contents'] ?? '';
+                                        $supItems = [];
+                                        
+                                        // Extract items from format "includes X, Y, and Z"
+                                        if (!empty($supplementary)) {
+                                            $supplementary = str_replace('includes ', '', $supplementary);
+                                            $supplementary = str_replace(' and ', ', ', $supplementary);
+                                            $supItems = array_map('trim', explode(',', $supplementary));
+                                        }
+                                        ?>
+                                        <option value="Appendix" <?php echo (in_array('Appendix', $supItems)) ? 'selected' : ''; ?>>Appendix</option>
+                                        <option value="Bibliography" <?php echo (in_array('Bibliography', $supItems)) ? 'selected' : ''; ?>>Bibliography</option>
+                                        <option value="Glossary" <?php echo (in_array('Glossary', $supItems)) ? 'selected' : ''; ?>>Glossary</option>
+                                        <option value="Index" <?php echo (in_array('Index', $supItems)) ? 'selected' : ''; ?>>Index</option>
+                                        <option value="Illustrations" <?php echo (in_array('Illustrations', $supItems)) ? 'selected' : ''; ?>>Illustrations</option>
+                                        <option value="Maps" <?php echo (in_array('Maps', $supItems)) ? 'selected' : ''; ?>>Maps</option>
+                                        <option value="Tables" <?php echo (in_array('Tables', $supItems)) ? 'selected' : ''; ?>>Tables</option>
                                     </select>
                                     <small class="text-muted">Hold Ctrl/Cmd to select multiple items</small>
                                 </div>
@@ -1104,7 +1207,7 @@ if ($first_book) {
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label>URL</label>
-                                    <input type="text" class="form-control" name="url">
+                                    <input type="text" class="form-control" name="url" value="<?php echo htmlspecialchars($first_book['URL'] ?? ''); ?>">
                                 </div>
                             </div>
                         </div>
@@ -1115,9 +1218,9 @@ if ($first_book) {
                                 <div class="form-group">
                                     <label>Content Type</label>
                                     <select class="form-control" name="content_type">
-                                        <option value="Text">Text</option>
-                                        <option value="Image">Image</option>
-                                        <option value="Video">Video</option>
+                                        <option value="Text" <?php echo ($first_book['content_type'] ?? '') == 'Text' ? 'selected' : ''; ?>>Text</option>
+                                        <option value="Image" <?php echo ($first_book['content_type'] ?? '') == 'Image' ? 'selected' : ''; ?>>Image</option>
+                                        <option value="Video" <?php echo ($first_book['content_type'] ?? '') == 'Video' ? 'selected' : ''; ?>>Video</option>
                                     </select>
                                 </div>
                             </div>
@@ -1125,9 +1228,9 @@ if ($first_book) {
                                 <div class="form-group">
                                     <label>Media Type</label>
                                     <select class="form-control" name="media_type">
-                                        <option value="Print">Print</option>
-                                        <option value="Digital">Digital</option>
-                                        <option value="Audio">Audio</option>
+                                        <option value="Print" <?php echo ($first_book['media_type'] ?? '') == 'Print' ? 'selected' : ''; ?>>Print</option>
+                                        <option value="Digital" <?php echo ($first_book['media_type'] ?? '') == 'Digital' ? 'selected' : ''; ?>>Digital</option>
+                                        <option value="Audio" <?php echo ($first_book['media_type'] ?? '') == 'Audio' ? 'selected' : ''; ?>>Audio</option>
                                     </select>
                                 </div>
                             </div>
@@ -1135,9 +1238,9 @@ if ($first_book) {
                                 <div class="form-group">
                                     <label>Carrier Type</label>
                                     <select class="form-control" name="carrier_type">
-                                        <option value="Book">Book</option>
-                                        <option value="CD">CD</option>
-                                        <option value="USB">USB</option>
+                                        <option value="Book" <?php echo ($first_book['carrier_type'] ?? '') == 'Book' ? 'selected' : ''; ?>>Book</option>
+                                        <option value="CD" <?php echo ($first_book['carrier_type'] ?? '') == 'CD' ? 'selected' : ''; ?>>CD</option>
+                                        <option value="USB" <?php echo ($first_book['carrier_type'] ?? '') == 'USB' ? 'selected' : ''; ?>>USB</option>
                                     </select>
                                 </div>
                             </div>
@@ -1425,5 +1528,204 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+});
+
+// Image preview functionality
+function previewImage(input, previewId, placeholderId) {
+    const preview = document.getElementById(previewId);
+    const placeholder = document.getElementById(placeholderId);
+    const fileNameDisplay = (input.id === 'inputFrontImage')
+        ? document.getElementById('frontFileNameDisplay')
+        : document.getElementById('backFileNameDisplay');
+    const dimId = (input.id === 'inputFrontImage') ? 'frontImageDimensions' : 'backImageDimensions';
+    const aspectId = (input.id === 'inputFrontImage') ? 'frontAspectPreviews' : 'backAspectPreviews';
+    const dim = document.getElementById(dimId);
+
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.src = e.target.result;
+            preview.style.display = 'block';
+            if (placeholder) placeholder.style.display = 'none';
+            if (fileNameDisplay) fileNameDisplay.textContent = 'Selected: ' + input.files[0].name;
+            preview.onload = function() {
+                if (dim) dim.textContent = `Full size: ${preview.naturalWidth} x ${preview.naturalHeight} px`;
+                updateAspectPreviews(previewId, aspectId);
+            };
+        };
+        reader.readAsDataURL(input.files[0]);
+    } else {
+        preview.src = '';
+        preview.style.display = 'none';
+        if (placeholder) placeholder.style.display = 'block';
+        if (fileNameDisplay) fileNameDisplay.textContent = 'No file selected';
+        if (dim) dim.textContent = '';
+        const aspectContainer = document.getElementById(aspectId);
+        if (aspectContainer) aspectContainer.innerHTML = '';
+    }
+}
+
+// Clear image functionality
+function clearImage(type) {
+    if (type === 'front') {
+        // Clear front image
+        const preview = document.getElementById('frontImagePreview');
+        const placeholder = document.getElementById('frontImagePreviewPlaceholder');
+        const fileInput = document.getElementById('inputFrontImage');
+        const fileNameDisplay = document.getElementById('frontFileNameDisplay');
+        const dimId = 'frontImageDimensions';
+        const aspectId = 'frontAspectPreviews';
+        
+        preview.src = '';
+        preview.style.display = 'none';
+        if (placeholder) {
+            placeholder.style.display = 'block';
+        } else {
+            // Create placeholder if it doesn't exist
+            const container = preview.parentElement;
+            const newPlaceholder = document.createElement('div');
+            newPlaceholder.id = 'frontImagePreviewPlaceholder';
+            newPlaceholder.className = 'text-center py-4 bg-light rounded';
+            newPlaceholder.innerHTML = '<i class="fas fa-book fa-3x mb-2 text-secondary"></i><p class="text-muted">No front image available</p>';
+            container.insertBefore(newPlaceholder, preview);
+        }
+        
+        // Clear the file input
+        fileInput.value = '';
+        fileNameDisplay.textContent = 'No file selected';
+        
+        // Clear dimensions and aspect previews
+        const dim = document.getElementById(dimId);
+        const aspectContainer = document.getElementById(aspectId);
+        if (dim) dim.textContent = '';
+        if (aspectContainer) aspectContainer.innerHTML = '';
+        
+        // Add a hidden input to tell the server to remove the image
+        const hiddenInput = document.createElement('input');
+        hiddenInput.type = 'hidden';
+        hiddenInput.name = 'remove_front_image';
+        hiddenInput.value = '1';
+        fileInput.parentElement.appendChild(hiddenInput);
+        
+    } else if (type === 'back') {
+        // Clear back image
+        const preview = document.getElementById('backImagePreview');
+        const placeholder = document.getElementById('backImagePreviewPlaceholder');
+        const fileInput = document.getElementById('inputBackImage');
+        const fileNameDisplay = document.getElementById('backFileNameDisplay');
+        const dimId = 'backImageDimensions';
+        const aspectId = 'backAspectPreviews';
+        
+        preview.src = '';
+        preview.style.display = 'none';
+        if (placeholder) {
+            placeholder.style.display = 'block';
+        } else {
+            // Create placeholder if it doesn't exist
+            const container = preview.parentElement;
+            const newPlaceholder = document.createElement('div');
+            newPlaceholder.id = 'backImagePreviewPlaceholder';
+            newPlaceholder.className = 'text-center py-4 bg-light rounded';
+            newPlaceholder.innerHTML = '<i class="fas fa-book-open fa-3x mb-2 text-secondary"></i><p class="text-muted">No back image available</p>';
+            container.insertBefore(newPlaceholder, preview);
+        }
+        
+        // Clear the file input
+        fileInput.value = '';
+        fileNameDisplay.textContent = 'No file selected';
+        
+        // Clear dimensions and aspect previews
+        const dim = document.getElementById(dimId);
+        const aspectContainer = document.getElementById(aspectId);
+        if (dim) dim.textContent = '';
+        if (aspectContainer) aspectContainer.innerHTML = '';
+        
+        // Add a hidden input to tell the server to remove the image
+        const hiddenInput = document.createElement('input');
+        hiddenInput.type = 'hidden';
+        hiddenInput.name = 'remove_back_image';
+        hiddenInput.value = '1';
+        fileInput.parentElement.appendChild(hiddenInput);
+    }
+}
+
+// Aspect ratio preview functionality
+function createAspectPreview(imgSrc, aspect, label) {
+    const [w, h] = aspect;
+    const container = document.createElement('div');
+    container.style.width = '96px';
+    container.style.height = `${96 * h / w}px`;
+    container.style.overflow = 'hidden';
+    container.style.position = 'relative';
+    container.style.background = '#f8f9fa';
+    container.style.border = '1px solid #ddd';
+    container.style.borderRadius = '4px';
+    container.style.display = 'flex';
+    container.style.alignItems = 'center';
+    container.style.justifyContent = 'center';
+    container.title = label;
+
+    const img = document.createElement('img');
+    img.src = imgSrc;
+    img.style.width = '100%';
+    img.style.height = '100%';
+    img.style.objectFit = 'cover';
+    img.alt = label + ' preview';
+
+    container.appendChild(img);
+
+    const lbl = document.createElement('div');
+    lbl.textContent = label;
+    lbl.style.fontSize = '11px';
+    lbl.style.textAlign = 'center';
+    lbl.style.position = 'absolute';
+    lbl.style.bottom = '-18px';
+    lbl.style.left = '50%';
+    lbl.style.transform = 'translateX(-50%)';
+    lbl.style.color = '#888';
+    container.appendChild(lbl);
+
+    return container;
+}
+
+function updateAspectPreviews(imgId, aspectContainerId) {
+    const img = document.getElementById(imgId);
+    const aspectContainer = document.getElementById(aspectContainerId);
+    if (!aspectContainer) return;
+    aspectContainer.innerHTML = '';
+    if (!img || !img.src || img.style.display === 'none') return;
+
+    if (!img.complete) {
+        img.onload = () => updateAspectPreviews(imgId, aspectContainerId);
+        return;
+    }
+
+    aspectContainer.appendChild(createAspectPreview(img.src, [4,3], '4:3'));
+    aspectContainer.appendChild(createAspectPreview(img.src, [1,1], '1:1'));
+    aspectContainer.appendChild(createAspectPreview(img.src, [16,9], '16:9'));
+}
+
+function displayImageDimensions(imgId, dimId) {
+    const img = document.getElementById(imgId);
+    const dim = document.getElementById(dimId);
+    if (!img || !dim) return;
+    if (img.src && img.style.display !== 'none') {
+        if (img.complete) {
+            dim.textContent = `Full size: ${img.naturalWidth} x ${img.naturalHeight} px`;
+        } else {
+            img.onload = function() {
+                dim.textContent = `Full size: ${img.naturalWidth} x ${img.naturalHeight} px`;
+            };
+        }
+    } else {
+        dim.textContent = '';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    displayImageDimensions('frontImagePreview', 'frontImageDimensions');
+    displayImageDimensions('backImagePreview', 'backImageDimensions');
+    updateAspectPreviews('frontImagePreview', 'frontAspectPreviews');
+    updateAspectPreviews('backImagePreview', 'backAspectPreviews');
 });
 </script>
