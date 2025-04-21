@@ -14,12 +14,12 @@ $category = isset($_GET['category']) ? $_GET['category'] : '';
 $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
 
 // Prepare SQL query based on search parameters - modified to group books
-$sql = "SELECT 
-    book_counts.id, 
-    book_counts.title, 
+$sql = "SELECT
+    book_counts.id,
+    book_counts.title,
     book_counts.total_copies,
     book_counts.available_copies,
-    book_counts.subject_category, 
+    book_counts.subject_category,
     book_counts.program,
     book_counts.ISBN,
     book_counts.series,
@@ -28,9 +28,9 @@ $sql = "SELECT
     book_counts.edition,
     book_counts.front_image,
     book_counts.summary,
-    writers.firstname, 
-    writers.middle_init, 
-    writers.lastname 
+    writers.firstname,
+    writers.middle_init,
+    writers.lastname
 FROM (
     SELECT
         b.id as id,
@@ -58,23 +58,23 @@ if (!empty($searchTerm)) {
     // Clean and prepare search term for better handling of special characters
     // Normalize spaces - replace multiple spaces with a single space and trim
     $searchTerm = trim(preg_replace('/\s+/', ' ', $searchTerm));
-    
+
     // Create search tokens for more flexible matching
     $searchTokens = explode(' ', $searchTerm);
-    
+
     // Start building the search condition
     $sql .= " AND (";
     $searchConditions = [];
-    
+
     // For the complete search term
     $searchConditions[] = "b.title LIKE ?";
     $params[] = "%" . $searchTerm . "%";
     $types .= "s";
-    
+
     $searchConditions[] = "b.accession LIKE ?";
     $params[] = "%" . $searchTerm . "%";
     $types .= "s";
-    
+
     // For individual tokens in the search term (for multi-word searches)
     if (count($searchTokens) > 1) {
         foreach ($searchTokens as $token) {
@@ -85,24 +85,24 @@ if (!empty($searchTerm)) {
             }
         }
     }
-    
+
     // Author name searches
     $searchConditions[] = "w.firstname LIKE ?";
     $params[] = "%" . $searchTerm . "%";
     $types .= "s";
-    
+
     $searchConditions[] = "w.lastname LIKE ?";
     $params[] = "%" . $searchTerm . "%";
     $types .= "s";
-    
+
     $searchConditions[] = "CONCAT(w.firstname, ' ', w.lastname) LIKE ?";
     $params[] = "%" . $searchTerm . "%";
     $types .= "s";
-    
+
     $searchConditions[] = "CONCAT(w.firstname, ' ', w.middle_init, ' ', w.lastname) LIKE ?";
     $params[] = "%" . $searchTerm . "%";
     $types .= "s";
-    
+
     // Join all search conditions with OR
     $sql .= implode(" OR ", $searchConditions) . ")";
 }
@@ -120,15 +120,15 @@ if (!empty($category)) {
 }
 
 // Group by the attributes that identify unique books
-$sql .= " GROUP BY 
-        b.title, 
+$sql .= " GROUP BY
+        b.title,
         IFNULL(b.ISBN, ''),
         IFNULL(b.series, ''),
         IFNULL(b.volume, ''),
         IFNULL(b.part, ''),
         IFNULL(b.edition, '')
 ) book_counts
-LEFT JOIN contributors ON book_counts.id = contributors.book_id 
+LEFT JOIN contributors ON book_counts.id = contributors.book_id
 LEFT JOIN writers ON contributors.writer_id = writers.id
 GROUP BY book_counts.id
 ORDER BY book_counts.id DESC, book_counts.title";
@@ -193,11 +193,11 @@ if ($isAjax) {
             --secondary-color: #2e59d9;
             --light-bg: #f8f9fc;
         }
-        
+
         body {
             background-color: var(--light-bg);
         }
-        
+
         .hero-section {
             background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             padding: 3rem 0;
@@ -206,7 +206,7 @@ if ($isAjax) {
             border-radius: 0 0 1rem 1rem;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
-        
+
         .search-container {
             background-color: white;
             padding: 1.5rem;
@@ -216,7 +216,7 @@ if ($isAjax) {
             position: relative;
             margin-top: -4rem;
         }
-        
+
         .result-card {
             transition: all 0.3s ease;
             border: none;
@@ -226,25 +226,25 @@ if ($isAjax) {
             display: flex;
             flex-direction: column;
         }
-        
+
         .result-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 10px 20px rgba(0,0,0,0.1);
         }
-        
+
         .card-img-top {
             height: 200px;
             object-fit: cover;
             background-color: #e9ecef;
         }
-        
+
         .card-body {
             padding: 1.5rem;
             display: flex;
             flex-direction: column;
             flex-grow: 1;
         }
-        
+
         .card-title {
             font-weight: 600;
             margin-bottom: 0.75rem;
@@ -257,7 +257,7 @@ if ($isAjax) {
             line-clamp: 2;
             -webkit-box-orient: vertical;
         }
-        
+
         .card-author {
             color: #6c757d;
             font-size: 0.9rem;
@@ -265,7 +265,7 @@ if ($isAjax) {
             height: 1.5rem;
             overflow: hidden;
         }
-        
+
         .card-text {
             color: #6c757d;
             font-size: 0.9rem;
@@ -276,25 +276,25 @@ if ($isAjax) {
             line-clamp: 3;
             -webkit-box-orient: vertical;
         }
-        
+
         .card-details-row {
             display: flex;
             justify-content: space-between;
             margin-top: 1rem;
             font-size: 0.85rem;
         }
-        
+
         .card-details {
             display: flex;
             flex-direction: column;
             color: #6c757d;
         }
-        
+
         .card-details span:first-child {
             font-weight: 600;
             color: #495057;
         }
-        
+
         .availability {
             display: inline-block;
             padding: 0.25rem 0.5rem;
@@ -304,50 +304,50 @@ if ($isAjax) {
             text-transform: uppercase;
             margin-bottom: 0.5rem;
         }
-        
+
         .available {
             background-color: rgba(40, 167, 69, 0.1);
             color: #28a745;
         }
-        
+
         .unavailable {
             background-color: rgba(220, 53, 69, 0.1);
             color: #dc3545;
         }
-        
+
         .btn-view {
             width: 100%;
             margin-top: 1rem;
         }
-        
+
         .search-count {
             font-size: 1.2rem;
             font-weight: 600;
             color: #495057;
             margin-bottom: 1.5rem;
         }
-        
+
         .filter-label {
             font-weight: 600;
             margin-bottom: 0.5rem;
             color: #495057;
         }
-        
+
         .form-select:focus, .form-control:focus {
             border-color: var(--primary-color);
             box-shadow: 0 0 0 0.25rem rgba(78, 115, 223, 0.25);
         }
-        
+
         .btn-primary {
             background-color: var(--primary-color);
             border-color: var(--primary-color);
         }
-        
+
         .btn-primary:hover {
             background-color: var(--secondary-color);
             border-color: var(--secondary-color);
         }
-        
+
         /* Guest notification banner */
         .guest-banner {
             background-color: #f8d7da;
@@ -357,40 +357,40 @@ if ($isAjax) {
             border-radius: 0.25rem;
             text-align: center;
         }
-        
+
         .guest-banner .btn {
             margin-left: 0.5rem;
         }
-        
+
         /* Responsive adjustments */
         @media (max-width: 767.98px) {
             .search-container {
                 margin-top: -2rem;
             }
-            
+
             .hero-section {
                 padding: 2rem 0;
             }
-            
+
             .card-img-top {
                 height: 160px;
             }
         }
-        
+
         /* Book action buttons */
         .book-actions {
             display: flex;
             gap: 0.5rem;
             margin-top: auto;
         }
-        
+
         .book-actions .btn {
             flex: 1;
         }
     </style>
 </head>
 <body>
-    <?php 
+    <?php
     // Include the appropriate header based on login status
     if ($isLoggedIn) {
         include 'inc/header.php';
@@ -405,12 +405,12 @@ if ($isAjax) {
                     </div>
                 </div>
               </nav>';
-        
+
         echo '<div class="container mt-3">
               <div class="guest-banner">
-                You are browsing as a guest. 
-                <a href="index.php" class="btn btn-sm btn-outline-danger">Log In</a> or 
-                <a href="register.php" class="btn btn-sm btn-outline-danger">Register</a> 
+                You are browsing as a guest.
+                <a href="index.php" class="btn btn-sm btn-outline-danger">Log In</a> or
+                <a href="register.php" class="btn btn-sm btn-outline-danger">Register</a>
                 to borrow or reserve books.
               </div>
             </div>';
@@ -436,7 +436,7 @@ if ($isAjax) {
                             <input type="text" class="form-control border-start-0" id="searchInput" name="search" value="<?php echo htmlspecialchars($searchTerm); ?>" placeholder="Search by title, accession, or author...">
                         </div>
                     </div>
-                    
+
                     <div class="col-md-6">
                         <label for="program" class="filter-label">Program</label>
                         <select class="form-select" name="program" id="program">
@@ -448,7 +448,7 @@ if ($isAjax) {
                             <?php endwhile; ?>
                         </select>
                     </div>
-                    
+
                     <div class="col-md-6">
                         <label for="category" class="filter-label">Category</label>
                         <select class="form-select" name="category" id="category">
@@ -467,7 +467,7 @@ if ($isAjax) {
             <div class="search-count" id="resultCount">
                 <?php echo $searchResults->num_rows; ?> books found
                 <?php if (!empty($searchTerm) || !empty($program) || !empty($category)): ?>
-                    <?php 
+                    <?php
                         $filterText = [];
                         if (!empty($searchTerm)) $filterText[] = "\"" . htmlspecialchars($searchTerm) . "\"";
                         if (!empty($program)) $filterText[] = "Program: " . htmlspecialchars($program);
@@ -482,14 +482,14 @@ if ($isAjax) {
                     <?php while ($book = $searchResults->fetch_assoc()): ?>
                         <div class="col">
                             <div class="card result-card h-100">
-                                <?php if (!empty($book['front_image'])): ?>
-                                    <img src="<?php echo htmlspecialchars($book['front_image']); ?>" class="card-img-top" alt="Book Cover">
-                                <?php else: ?>
+                                     <?php if (!empty($book['front_image'])): ?>
+                                        <img src="<?php echo htmlspecialchars('../' . $book['front_image']); ?>" alt="Front Cover" class="img-fluid mb-3 rounded shadow-sm">
+                                    <?php else: ?>
                                     <div class="card-img-top d-flex align-items-center justify-content-center">
                                         <i class="fas fa-book fa-3x text-muted"></i>
                                     </div>
                                 <?php endif; ?>
-                                
+
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-center mb-2">
                                         <span class="availability <?php echo ($book['available_copies'] > 0) ? 'available' : 'unavailable'; ?>">
@@ -499,57 +499,57 @@ if ($isAjax) {
                                             <?php echo $book['available_copies']; ?>/<?php echo $book['total_copies']; ?> copies
                                         </span>
                                     </div>
-                                    
+
                                     <h5 class="card-title"><?php echo htmlspecialchars($book['title']); ?></h5>
-                                    
+
                                     <p class="card-author">
                                         <i class="fas fa-user-edit me-1"></i>
-                                        <?php 
+                                        <?php
                                         if (!empty($book['firstname']) || !empty($book['lastname'])) {
-                                            echo htmlspecialchars($book['firstname'] . ' ' . 
-                                                ($book['middle_init'] ? $book['middle_init'] . '. ' : '') . 
+                                            echo htmlspecialchars($book['firstname'] . ' ' .
+                                                ($book['middle_init'] ? $book['middle_init'] . '. ' : '') .
                                                 $book['lastname']);
                                         } else {
                                             echo 'Unknown Author';
                                         }
                                         ?>
                                     </p>
-                                    
+
                                     <!-- Book Edition Information -->
                                     <div class="book-edition-info mb-2">
                                         <small class="text-muted">
                                             <?php
                                             $editionDetails = [];
-                                            
+
                                             if (!empty($book['series'])) {
                                                 $editionDetails[] = '<span><i class="fas fa-bookmark me-1"></i> Series: ' . htmlspecialchars($book['series']) . '</span>';
                                             }
-                                            
+
                                             if (!empty($book['volume'])) {
                                                 $editionDetails[] = '<span><i class="fas fa-layer-group me-1"></i> Volume: ' . htmlspecialchars($book['volume']) . '</span>';
                                             }
-                                            
+
                                             if (!empty($book['part'])) {
                                                 $editionDetails[] = '<span><i class="fas fa-puzzle-piece me-1"></i> Part: ' . htmlspecialchars($book['part']) . '</span>';
                                             }
-                                            
+
                                             if (!empty($book['edition'])) {
                                                 $editionDetails[] = '<span><i class="fas fa-file-alt me-1"></i> Edition: ' . htmlspecialchars($book['edition']) . '</span>';
                                             }
-                                            
+
                                             if (!empty($editionDetails)) {
                                                 echo implode('<br>', $editionDetails);
                                             }
                                             ?>
                                         </small>
                                     </div>
-                                    
+
                                     <?php if (!empty($book['summary'])): ?>
                                         <p class="card-text">
                                             <?php echo htmlspecialchars(substr($book['summary'], 0, 120)) . (strlen($book['summary']) > 120 ? '...' : ''); ?>
                                         </p>
                                     <?php endif; ?>
-                                    
+
                                     <div class="card-details-row">
                                         <div class="card-details">
                                             <span>Program</span>
@@ -560,16 +560,16 @@ if ($isAjax) {
                                             <span><?php echo htmlspecialchars($book['subject_category'] ?: 'N/A'); ?></span>
                                         </div>
                                     </div>
-                                    
+
                                     <?php if ($isLoggedIn): ?>
                                         <!-- For logged in users: Show view details and add to cart buttons -->
                                         <div class="book-actions">
-                                            <a href="view_book.php?book_id=<?php echo $book['id']; ?>&group=1" 
+                                            <a href="view_book.php?book_id=<?php echo $book['id']; ?>&group=1"
                                             class="btn btn-outline-primary">
                                                 <i class="fas fa-eye"></i> View Details
                                             </a>
                                             <?php if ($book['available_copies'] > 0): ?>
-                                                <button class="btn btn-outline-success" 
+                                                <button class="btn btn-outline-success"
                                                         onclick="addToCart(<?php echo $book['id']; ?>, '<?php echo htmlspecialchars(addslashes($book['title'])); ?>')">
                                                     <i class="fas fa-cart-plus"></i> Add to Cart
                                                 </button>
@@ -582,7 +582,7 @@ if ($isAjax) {
                                     <?php else: ?>
                                         <!-- For guests: Direct link to view details (no more warning) -->
                                         <div class="book-actions">
-                                            <a href="view_book.php?book_id=<?php echo $book['id']; ?>&group=1" 
+                                            <a href="view_book.php?book_id=<?php echo $book['id']; ?>&group=1"
                                             class="btn btn-outline-primary btn-view">
                                                 <i class="fas fa-eye me-1"></i> View Details
                                             </a>
@@ -602,7 +602,7 @@ if ($isAjax) {
             </div>
         </div>
     </div>
-    <?php 
+    <?php
     // Include the appropriate footer based on login status
     if ($isLoggedIn) {
         include 'inc/footer.php';
@@ -616,7 +616,7 @@ if ($isAjax) {
               </footer>';
     }
     ?>
-    
+
     <?php if (!$isLoggedIn): ?>
     <!-- Bootstrap JS Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -625,14 +625,14 @@ if ($isAjax) {
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <?php endif; ?>
-    
+
     <script>
         $(document).ready(function() {
             // Add trigger for mobile filters toggle
             $('#filter-toggle').on('click', function() {
                 $('#filter-controls').toggleClass('show');
             });
-            
+
             // Auto-submit form when changing select fields
             $('#program, #category').on('change', function() {
                 performSearch();
@@ -654,10 +654,10 @@ if ($isAjax) {
                 const searchTerm = $('#searchInput').val();
                 const program = $('#program').val();
                 const category = $('#category').val();
-                
+
                 // Show loading spinner or indicator
                 $('#searchResults').html('<div class="col-12 text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>');
-                
+
                 $.ajax({
                     url: 'searchbook.php',
                     type: 'GET',
@@ -673,37 +673,37 @@ if ($isAjax) {
                     success: function(response) {
                         // Update the result count
                         let countText = response.count + ' books found';
-                        
+
                         const filterTexts = [];
                         if (response.searchTerm) filterTexts.push('"' + response.searchTerm + '"');
                         if (response.program) filterTexts.push('Program: ' + response.program);
                         if (response.category) filterTexts.push('Category: ' + response.category);
-                        
+
                         if (filterTexts.length > 0) {
                             countText += ' for ' + filterTexts.join(', ');
                         }
-                        
+
                         $('#resultCount').text(countText);
-                        
+
                         // Clear the results container
                         $('#searchResults').empty();
-                        
+
                         if (response.books.length > 0) {
                             // Render each book
                             $.each(response.books, function(index, book) {
                                 // Properly escape book title for JavaScript string
                                 const escapedTitle = book.title.replace(/[\/\\"']/g, '\\$&');
-                                
+
                                 let bookHtml = `
                                 <div class="col">
                                     <div class="card result-card h-100">
-                                        ${book.front_image ? 
-                                            `<img src="${book.front_image}" class="card-img-top" alt="Book Cover">` : 
+                                        ${book.front_image ?
+                                            `<img src="${book.front_image}" class="card-img-top" alt="Book Cover">` :
                                             `<div class="card-img-top d-flex align-items-center justify-content-center">
                                                 <i class="fas fa-book fa-3x text-muted"></i>
                                             </div>`
                                         }
-                                        
+
                                         <div class="card-body">
                                             <div class="d-flex justify-content-between align-items-center mb-2">
                                                 <span class="availability ${book.available_copies > 0 ? 'available' : 'unavailable'}">
@@ -713,20 +713,20 @@ if ($isAjax) {
                                                     ${book.available_copies}/${book.total_copies} copies
                                                 </span>
                                             </div>
-                                            
+
                                             <h5 class="card-title">${book.title}</h5>
-                                            
+
                                             <p class="card-author">
                                                 <i class="fas fa-user-edit me-1"></i>
-                                                ${book.firstname || book.lastname ? 
-                                                    `${book.firstname || ''} ${book.middle_init ? book.middle_init + '. ' : ''}${book.lastname || ''}` : 
+                                                ${book.firstname || book.lastname ?
+                                                    `${book.firstname || ''} ${book.middle_init ? book.middle_init + '. ' : ''}${book.lastname || ''}` :
                                                     'Unknown Author'
                                                 }
                                             </p>`;
-                                            
+
                                 // Book Edition Information
                                 bookHtml += `<div class="book-edition-info mb-2"><small class="text-muted">`;
-                                
+
                                 let editionDetails = [];
                                 if (book.series) {
                                     editionDetails.push(`<span><i class="fas fa-bookmark me-1"></i> Series: ${book.series}</span>`);
@@ -740,20 +740,20 @@ if ($isAjax) {
                                 if (book.edition) {
                                     editionDetails.push(`<span><i class="fas fa-file-alt me-1"></i> Edition: ${book.edition}</span>`);
                                 }
-                                
+
                                 if (editionDetails.length > 0) {
                                     bookHtml += editionDetails.join('<br>');
                                 }
-                                
+
                                 bookHtml += `</small></div>`;
-                                
+
                                 // Summary if available
                                 if (book.summary) {
                                     bookHtml += `<p class="card-text">
                                         ${book.summary.length > 120 ? book.summary.substring(0, 120) + '...' : book.summary}
                                     </p>`;
                                 }
-                                
+
                                 bookHtml += `
                                     <div class="card-details-row">
                                         <div class="card-details">
@@ -765,19 +765,19 @@ if ($isAjax) {
                                             <span>${book.subject_category || 'N/A'}</span>
                                         </div>
                                     </div>`;
-                                    
+
                                 const isLoggedIn = <?php echo $isLoggedIn ? 'true' : 'false'; ?>;
-                                
+
                                 if (isLoggedIn) {
                                     bookHtml += `
                                     <div class="book-actions">
                                         <a href="view_book.php?book_id=${book.id}&group=1" class="btn btn-outline-primary">
                                             <i class="fas fa-eye"></i> View Details
                                         </a>`;
-                                        
+
                                     if (book.available_copies > 0) {
                                         bookHtml += `
-                                        <button class="btn btn-outline-success" 
+                                        <button class="btn btn-outline-success"
                                                 onclick="addToCart(${book.id}, '${escapedTitle}')">
                                             <i class="fas fa-cart-plus"></i> Add to Cart
                                         </button>`;
@@ -787,23 +787,23 @@ if ($isAjax) {
                                             <i class="fas fa-clock"></i> Unavailable
                                         </button>`;
                                     }
-                                    
+
                                     bookHtml += `</div>`;
                                 } else {
                                     bookHtml += `
                                     <div class="book-actions">
-                                        <a href="view_book.php?book_id=${book.id}&group=1" 
+                                        <a href="view_book.php?book_id=${book.id}&group=1"
                                            class="btn btn-outline-primary btn-view">
                                             <i class="fas fa-eye me-1"></i> View Details
                                         </a>
                                     </div>`;
                                 }
-                                
+
                                 bookHtml += `
                                         </div>
                                     </div>
                                 </div>`;
-                                
+
                                 $('#searchResults').append(bookHtml);
                             });
                         } else {
@@ -828,16 +828,16 @@ if ($isAjax) {
                     }
                 });
             }
-            
+
             // Set up debounced search for search input
             const debouncedSearch = debounce(performSearch, 500);
-            
+
             // Event listener for search input
             $('#searchInput').on('keyup', function() {
                 debouncedSearch();
             });
         });
-        
+
         // Function to add book to cart (for logged-in users)
         function addToCart(bookId, bookTitle) {
             // Show loading state
@@ -849,7 +849,7 @@ if ($isAjax) {
                     Swal.showLoading();
                 }
             });
-            
+
             $.ajax({
                 type: "POST",
                 url: "add_to_cart.php",
