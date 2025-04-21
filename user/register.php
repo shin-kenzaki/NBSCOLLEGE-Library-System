@@ -8,9 +8,10 @@ require '../db.php';
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Sanitize and get form data
     $school_id = mysqli_real_escape_string($conn, $_POST['school_id']);
-    $firstname = mysqli_real_escape_string($conn, $_POST['firstname']);
-    $middle_init = mysqli_real_escape_string($conn, $_POST['middle_init']);
-    $lastname = mysqli_real_escape_string($conn, $_POST['lastname']);
+    // Capitalize all characters for names
+    $firstname = strtoupper(mysqli_real_escape_string($conn, $_POST['firstname']));
+    $middle_init = strtoupper(mysqli_real_escape_string($conn, $_POST['middle_init']));
+    $lastname = strtoupper(mysqli_real_escape_string($conn, $_POST['lastname']));
     $email = mysqli_real_escape_string($conn, $_POST['email']);
     $password = $_POST['password'];
     $hashed_password = password_hash($password, PASSWORD_DEFAULT);
@@ -151,143 +152,142 @@ $conn->query($update_image_query);
 
   <script>
     document.addEventListener('DOMContentLoaded', function () {
-  const form = document.querySelector('form.user');
+      const form = document.querySelector('form.user');
 
-  form.addEventListener('submit', async function (event) {
-            event.preventDefault(); // Prevent form submission by default
+      form.addEventListener('submit', async function (event) {
+        event.preventDefault(); // Prevent form submission by default
 
-            // Perform all validations
-            const isEmailValid = validateEmailDomain();
-            const isPasswordValid = validatePasswordLength();
-            const isUserUnique = await validateUserUniqueness();
+        // Perform all validations
+        const isEmailValid = validateEmailDomain();
+        const isPasswordValid = validatePasswordLength();
+        const isUserUnique = await validateUserUniqueness();
 
-            // If any validation fails, stop further execution
-            if (!isEmailValid || !isPasswordValid || !isUserUnique) {
-                return;
-            }
+        // If any validation fails, stop further execution
+        if (!isEmailValid || !isPasswordValid || !isUserUnique) {
+          return;
+        }
 
-            // If all validations pass, submit the form
-            form.submit();
-        });
-
-  // Capitalize the first letter of inputs for names
-  const firstNameInput = document.querySelector('input[name="firstname"]');
-  const middleInitInput = document.querySelector('input[name="middle_init"]');
-  const lastNameInput = document.querySelector('input[name="lastname"]');
-
-  firstNameInput.addEventListener('input', function () {
-    capitalizeFirstLetter(firstNameInput);
-  });
-
-  middleInitInput.addEventListener('input', function () {
-    capitalizeFirstLetter(middleInitInput);
-  });
-
-  lastNameInput.addEventListener('input', function () {
-    capitalizeFirstLetter(lastNameInput);
-  });
-});
-
-// Function to validate email domain
-function validateEmailDomain() {
-  const emailInput = document.querySelector('input[name="email"]');
-  const userTypeSelect = document.querySelector('select[name="usertype"]');
-  const email = emailInput.value;
-  const userType = userTypeSelect.value;
-  let validDomain = false;
-  let validUserType = false;
-
-  if (email.endsWith('@student.nbscollege.edu.ph') || email.endsWith('@nbscollege.edu.ph')) {
-    validDomain = true;
-  }
-
-  if (userType === 'Student' && email.endsWith('@student.nbscollege.edu.ph')) {
-    validUserType = true;
-  } else if ((userType === 'Faculty' || userType === 'Staff') && email.endsWith('@nbscollege.edu.ph')) {
-    validUserType = true;
-  }
-
-  if (!validDomain) {
-    Swal.fire({
-      title: 'Error!',
-      text: 'Please input a valid school email address.',
-      icon: 'error'
-    });
-    return false;
-  } else if (!validUserType) {
-    Swal.fire({
-      title: 'Error!',
-      text: 'Invalid email domain for the selected user type.',
-      icon: 'error'
-    });
-    return false;
-  }
-  return true;
-}
-
-// Function to validate password length
-function validatePasswordLength() {
-  const passwordInput = document.querySelector('input[name="password"]');
-  const password = passwordInput.value;
-
-  if (password.length < 8) {
-    Swal.fire({
-      title: 'Error!',
-      text: 'Password must be at least 8 characters long.',
-      icon: 'error'
-    });
-    return false;
-  }
-  return true;
-}
-
-// Function to validate user uniqueness (school ID, email, and name)
-async function validateUserUniqueness() {
-  const schoolIdInput = document.querySelector('input[name="school_id"]');
-  const firstNameInput = document.querySelector('input[name="firstname"]');
-  const lastNameInput = document.querySelector('input[name="lastname"]');
-  const emailInput = document.querySelector('input[name="email"]');
-
-  const schoolId = schoolIdInput.value;
-  const firstName = firstNameInput.value;
-  const lastName = lastNameInput.value;
-  const email = emailInput.value;
-
-  try {
-    const response = await fetch('validate_user.php', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ school_id: schoolId, firstname: firstName, lastname: lastName, email: email })
-    });
-
-    const result = await response.json();
-
-    if (!result.success) {
-      Swal.fire({
-        title: 'Error!',
-        text: result.message,
-        icon: 'error'
+        // If all validations pass, submit the form
+        form.submit();
       });
-      return false;
+
+      // Capitalize all characters for names
+      const firstNameInput = document.querySelector('input[name="firstname"]');
+      const middleInitInput = document.querySelector('input[name="middle_init"]');
+      const lastNameInput = document.querySelector('input[name="lastname"]');
+
+      function capitalizeAll(input) {
+        input.value = input.value.toUpperCase();
+      }
+
+      firstNameInput.addEventListener('input', function () {
+        capitalizeAll(firstNameInput);
+      });
+
+      middleInitInput.addEventListener('input', function () {
+        capitalizeAll(middleInitInput);
+      });
+
+      lastNameInput.addEventListener('input', function () {
+        capitalizeAll(lastNameInput);
+      });
+    });
+
+    // Function to validate email domain
+    function validateEmailDomain() {
+      const emailInput = document.querySelector('input[name="email"]');
+      const userTypeSelect = document.querySelector('select[name="usertype"]');
+      const email = emailInput.value;
+      const userType = userTypeSelect.value;
+      let validDomain = false;
+      let validUserType = false;
+
+      if (email.endsWith('@student.nbscollege.edu.ph') || email.endsWith('@nbscollege.edu.ph')) {
+        validDomain = true;
+      }
+
+      if (userType === 'Student' && email.endsWith('@student.nbscollege.edu.ph')) {
+        validUserType = true;
+      } else if ((userType === 'Faculty' || userType === 'Staff') && email.endsWith('@nbscollege.edu.ph')) {
+        validUserType = true;
+      }
+
+      if (!validDomain) {
+        Swal.fire({
+          title: 'Error!',
+          text: 'Please input a valid school email address.',
+          icon: 'error'
+        });
+        return false;
+      } else if (!validUserType) {
+        Swal.fire({
+          title: 'Error!',
+          text: 'Invalid email domain for the selected user type.',
+          icon: 'error'
+        });
+        return false;
+      }
+      return true;
     }
 
-    return true;
-  } catch (error) {
-    Swal.fire({
-      title: 'Error!',
-      text: 'An error occurred while validating user data. Please try again.',
-      icon: 'error'
-    });
-    return false;
-  }
-}
+    // Function to validate password length
+    function validatePasswordLength() {
+      const passwordInput = document.querySelector('input[name="password"]');
+      const password = passwordInput.value;
 
-// Function to capitalize the first letter of input fields
-function capitalizeFirstLetter(input) {
-  input.value = input.value.charAt(0).toUpperCase() + input.value.slice(1);
-}
+      if (password.length < 8) {
+        Swal.fire({
+          title: 'Error!',
+          text: 'Password must be at least 8 characters long.',
+          icon: 'error'
+        });
+        return false;
+      }
+      return true;
+    }
+
+    // Function to validate user uniqueness (school ID, email, and name)
+    async function validateUserUniqueness() {
+      const schoolIdInput = document.querySelector('input[name="school_id"]');
+      const firstNameInput = document.querySelector('input[name="firstname"]');
+      const lastNameInput = document.querySelector('input[name="lastname"]');
+      const emailInput = document.querySelector('input[name="email"]');
+
+      const schoolId = schoolIdInput.value;
+      const firstName = firstNameInput.value;
+      const lastName = lastNameInput.value;
+      const email = emailInput.value;
+
+      try {
+        const response = await fetch('validate_user.php', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ school_id: schoolId, firstname: firstName, lastname: lastName, email: email })
+        });
+
+        const result = await response.json();
+
+        if (!result.success) {
+          Swal.fire({
+            title: 'Error!',
+            text: result.message,
+            icon: 'error'
+          });
+          return false;
+        }
+
+        return true;
+      } catch (error) {
+        Swal.fire({
+          title: 'Error!',
+          text: 'An error occurred while validating user data. Please try again.',
+          icon: 'error'
+        });
+        return false;
+      }
+    }
   </script>
 </head>
 
@@ -335,8 +335,6 @@ function capitalizeFirstLetter(input) {
                 </script>
               <?php endif; ?>
 
-              
-
               <form class="user" method="POST" action="">
                 <div class="form-group row">
                   <div class="col-sm-6 mb-3 mb-sm-0">
@@ -366,7 +364,6 @@ function capitalizeFirstLetter(input) {
                       class="form-control form-control-user"
                       name="middle_init"
                       placeholder="Middle Initial"
-                      maxlength="1"
                     />
                   </div>
 
