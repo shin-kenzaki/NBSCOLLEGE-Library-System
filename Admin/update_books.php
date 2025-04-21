@@ -35,14 +35,14 @@ if (isset($_POST['submit'])) {
         // Check each accession number
         foreach ($accessions as $index => $accession) {
             $bookId = $bookIds[$index];
-            
+
             // Check if accession exists in other books
             $check_query = "SELECT id FROM books WHERE accession = ? AND id != ?";
             $stmt = $conn->prepare($check_query);
             $stmt->bind_param("ii", $accession, $bookId);
             $stmt->execute();
             $result = $stmt->get_result();
-            
+
             if ($result->num_rows > 0) {
                 $hasError = true;
                 $errorMessage = "Accession number $accession is already in use by another book.";
@@ -53,6 +53,8 @@ if (isset($_POST['submit'])) {
         if ($hasError) {
             throw new Exception($errorMessage);
         }
+
+
 
         // Get arrays of book data
         $shelf_locations = $_POST['shelf_location'] ?? array();
@@ -67,12 +69,12 @@ if (isset($_POST['submit'])) {
         $content_types = $_POST['content_type'] ?? array();
         $media_types = $_POST['media_type'] ?? array();
         $carrier_types = $_POST['carrier_type'] ?? array();
-        
+
         // Fix: Handle total_pages variable properly
         // Get prefix and main pages to combine into total_pages
         $prefix_pages = $_POST['prefix_pages'] ?? '';
         $main_pages = $_POST['main_pages'] ?? '';
-        
+
         // Process supplementary contents
         $supplementary_contents = '';
         if (isset($_POST['supplementary_content']) && is_array($_POST['supplementary_content']) && count($_POST['supplementary_content']) > 0) {
@@ -89,7 +91,7 @@ if (isset($_POST['submit'])) {
         } else {
             $supplementary_contents = '';
         }
-        
+
         $entered_by = $_POST['entered_by'] ?? array();
         $date_added = $_POST['date_added'] ?? array();
         $statuses = $_POST['statuses'] ?? array();
@@ -163,24 +165,24 @@ if (isset($_POST['submit'])) {
             $stmt->execute();
             $original_data = $stmt->get_result()->fetch_assoc();
             $stmt->close();
-            
+
             // Preserve original status with proper checks
             $preserved_status = isset($original_data['status']) ? $original_data['status'] : 'Available';
-            
+
             // Safe array access with proper checks for each array
             $shelf_location = isset($shelf_locations[$index]) ? mysqli_real_escape_string($conn, $shelf_locations[$index]) : '';
             $call_number = isset($call_numbers[$index]) ? mysqli_real_escape_string($conn, $call_numbers[$index]) : '';
             $accession = isset($accessions[$index]) ? mysqli_real_escape_string($conn, $accessions[$index]) : '';
-            
+
             // Get individual series, volume, edition values from form inputs for each copy
             $series_value = isset($series[0]) ? mysqli_real_escape_string($conn, $series[0]) : ''; // Use the same series value for all copies
             $volume_value = isset($volumes[$index]) ? mysqli_real_escape_string($conn, $volumes[$index]) : '';
             $part_value = isset($_POST['part'][$index]) ? mysqli_real_escape_string($conn, $_POST['part'][$index]) : ''; // Add this line to get part value
             $edition_value = isset($editions[$index]) ? mysqli_real_escape_string($conn, $editions[$index]) : '';
-            
+
             // Fix: Properly capture copy number value
             $copy_number = isset($_POST['copy_number'][$index]) ? intval($_POST['copy_number'][$index]) : 1;
-            
+
             $entered_by_value = isset($original_data['entered_by']) ? $original_data['entered_by'] : '';
             $date_added_value = isset($original_data['date_added']) ? $original_data['date_added'] : date('Y-m-d');
 
@@ -189,7 +191,7 @@ if (isset($_POST['submit'])) {
             $content_type = isset($_POST['content_type']) && is_string($_POST['content_type']) ? mysqli_real_escape_string($conn, $_POST['content_type']) : 'Text';
             $media_type = isset($_POST['media_type']) && is_string($_POST['media_type']) ? mysqli_real_escape_string($conn, $_POST['media_type']) : 'Print';
             $carrier_type = isset($_POST['carrier_type']) && is_string($_POST['carrier_type']) ? mysqli_real_escape_string($conn, $_POST['carrier_type']) : 'Book';
-            
+
             // Calculate total pages from prefix and main
             $total_page = '';
             if (!empty($prefix_pages) && !empty($main_pages)) {
@@ -199,15 +201,15 @@ if (isset($_POST['submit'])) {
             } elseif (!empty($main_pages)) {
                 $total_page = $main_pages;
             }
-            
+
             // Use same supplementary content for all copies
             $supplementary_content_value = mysqli_real_escape_string($conn, $supplementary_contents);
 
             $status_value = isset($statuses[$index]) ? mysqli_real_escape_string($conn, $statuses[$index]) : 'Available';
 
-            $update_query = "UPDATE books SET 
-                title = ?, 
-                preferred_title = ?, 
+            $update_query = "UPDATE books SET
+                title = ?,
+                preferred_title = ?,
                 parallel_title = ?,
                 subject_category = ?,
                 subject_detail = ?,
@@ -239,13 +241,13 @@ if (isset($_POST['submit'])) {
                 last_update = ?,
                 accession = ?
                 WHERE id = ?";
-                
+
             $stmt = $conn->prepare($update_query);
-            
+
             // Bind parameters with copy-specific values including preserved entered_by/date_added
-            $stmt->bind_param("ssssssssssssssssssssssssssssssssi", 
-                $title, 
-                $preferred_title, 
+            $stmt->bind_param("ssssssssssssssssssssssssssssssssi",
+                $title,
+                $preferred_title,
                 $parallel_title,
                 $subject_category,
                 $subject_detail,
@@ -283,7 +285,7 @@ if (isset($_POST['submit'])) {
             if (!$stmt->execute()) {
                 throw new Exception("Error updating book copy (ID: $bookId): " . $stmt->error);
             }
-            
+
             $stmt->close();
         }
 
@@ -292,7 +294,7 @@ if (isset($_POST['submit'])) {
             // Get publisher ID from name
             $publisher_name = mysqli_real_escape_string($conn, $_POST['publisher'] ?? '');
             $publisher_id = null;
-            
+
             if (!empty($publisher_name)) {
                 // Check if publisher exists
                 $check_publisher = "SELECT id FROM publishers WHERE publisher = ?";
@@ -300,7 +302,7 @@ if (isset($_POST['submit'])) {
                 $stmt->bind_param("s", $publisher_name);
                 $stmt->execute();
                 $publisher_result = $stmt->get_result();
-                
+
                 if ($publisher_result->num_rows > 0) {
                     // Publisher exists, get ID
                     $publisher_id = $publisher_result->fetch_assoc()['id'];
@@ -313,10 +315,10 @@ if (isset($_POST['submit'])) {
                     $publisher_id = $conn->insert_id;
                 }
             }
-            
+
             // Get publish date
             $publish_date = !empty($_POST['publish_date']) ? $_POST['publish_date'] : null;
-            
+
             if ($publisher_id !== null || $publish_date !== null) {
                 // Check if publication entry exists for this book
                 $check_pub = "SELECT id FROM publications WHERE book_id = ?";
@@ -324,11 +326,11 @@ if (isset($_POST['submit'])) {
                 $stmt->bind_param("i", $bookId);
                 $stmt->execute();
                 $pub_result = $stmt->get_result();
-                
+
                 if ($pub_result->num_rows > 0) {
                     // Publication exists, update it
                     $pub_id = $pub_result->fetch_assoc()['id'];
-                    
+
                     // Build the update query based on which fields we have
                     if ($publisher_id !== null && $publish_date !== null) {
                         $update_pub = "UPDATE publications SET publisher_id = ?, publish_date = ? WHERE id = ?";
@@ -343,7 +345,7 @@ if (isset($_POST['submit'])) {
                         $stmt = $conn->prepare($update_pub);
                         $stmt->bind_param("si", $publish_date, $pub_id);
                     }
-                    
+
                     if (isset($update_pub)) {
                         $stmt->execute();
                     }
@@ -371,7 +373,7 @@ if (isset($_POST['submit'])) {
                 // Add authors
                 $insert_author = "INSERT INTO contributors (book_id, writer_id, role) VALUES (?, ?, 'Author')";
                 $stmt = $conn->prepare($insert_author);
-                
+
                 if (is_array($_POST['author'])) {
                     foreach ($_POST['author'] as $authorId) {
                         if (!empty($authorId)) {
@@ -388,7 +390,7 @@ if (isset($_POST['submit'])) {
                 if (!empty($_POST['co_authors']) && is_array($_POST['co_authors'])) {
                     $insert_coauthor = "INSERT INTO contributors (book_id, writer_id, role) VALUES (?, ?, 'Co-Author')";
                     $stmt = $conn->prepare($insert_coauthor);
-                    
+
                     foreach ($_POST['co_authors'] as $coAuthorId) {
                         if (!empty($coAuthorId)) {
                             $stmt->bind_param("ii", $bookId, $coAuthorId);
@@ -401,7 +403,7 @@ if (isset($_POST['submit'])) {
                 if (!empty($_POST['editors']) && is_array($_POST['editors'])) {
                     $insert_editor = "INSERT INTO contributors (book_id, writer_id, role) VALUES (?, ?, 'Editor')";
                     $stmt = $conn->prepare($insert_editor);
-                    
+
                     foreach ($_POST['editors'] as $editorId) {
                         if (!empty($editorId) && (!isset($_POST['co_authors']) || !in_array($editorId, $_POST['co_authors']))) {
                             $stmt->bind_param("ii", $bookId, $editorId);
@@ -410,6 +412,103 @@ if (isset($_POST['submit'])) {
                     }
                 }
             }
+        }
+
+
+        // Define the folder for storing images
+        $imageFolder = '../Images/book-image/';
+
+        // Ensure the folder exists
+        if (!is_dir($imageFolder)) {
+            mkdir($imageFolder, 0777, true);
+        }
+
+        // Handle image uploads
+        $frontImagePath = '';
+        $backImagePath = '';
+
+        // Handle image uploads
+$frontImagePath = '';
+$backImagePath = '';
+
+// Process front image
+if (isset($_FILES['front_image']) && $_FILES['front_image']['error'] === UPLOAD_ERR_OK) {
+    $frontImageTmpName = $_FILES['front_image']['tmp_name'];
+    $frontImageName = uniqid('front_', true) . '_' . basename($_FILES['front_image']['name']);
+    $frontImagePath = $imageFolder . $frontImageName;
+
+    // Move the uploaded file to the target folder
+    if (!move_uploaded_file($frontImageTmpName, $frontImagePath)) {
+        throw new Exception("Failed to upload front image.");
+    }
+
+    // Convert to relative path for database storage
+    $frontImagePath = 'Images/book-image/' . $frontImageName;
+} else {
+    // Use the existing front image if no new image is uploaded
+    $frontImagePath = $_POST['existing_front_image'] ?? '';
+}
+
+// Process back image
+if (isset($_FILES['back_image']) && $_FILES['back_image']['error'] === UPLOAD_ERR_OK) {
+    $backImageTmpName = $_FILES['back_image']['tmp_name'];
+    $backImageName = uniqid('back_', true) . '_' . basename($_FILES['back_image']['name']);
+    $backImagePath = $imageFolder . $backImageName;
+
+    // Move the uploaded file to the target folder
+    if (!move_uploaded_file($backImageTmpName, $backImagePath)) {
+        throw new Exception("Failed to upload back image.");
+    }
+
+    // Convert to relative path for database storage
+    $backImagePath = 'Images/book-image/' . $backImageName;
+} else {
+    // Use the existing back image if no new image is uploaded
+    $backImagePath = $_POST['existing_back_image'] ?? '';
+}
+
+// Update the database with the image paths
+$update_query = "UPDATE books SET
+    front_image = ?,
+    back_image = ?
+    WHERE id = ?";
+$stmt = $conn->prepare($update_query);
+$stmt->bind_param("ssi", $frontImagePath, $backImagePath, $bookId);
+
+if (!$stmt->execute()) {
+    throw new Exception("Error updating book images: " . $stmt->error);
+}
+
+        // Update each book copy
+        foreach ($_POST['book_ids'] as $index => $bookId) {
+            $shelf_location = $_POST['shelf_location'][$index] ?? '';
+            $call_number = $_POST['call_numbers'][$index] ?? '';
+            $accession = $_POST['accession'][$index] ?? '';
+
+            $update_query = "UPDATE books SET
+                front_image = ?,
+                back_image = ?,
+                shelf_location = ?,
+                call_number = ?,
+                accession = ?
+                WHERE id = ?";
+
+            $stmt = $conn->prepare($update_query);
+            $stmt->bind_param(
+                "sssssi",
+                $frontImagePath,
+                $backImagePath,
+                $shelf_location,
+                $call_number,
+                $accession,
+                $bookId
+            );
+
+            if (!$stmt->execute()) {
+                throw new Exception("Error updating book copy (ID: $bookId): " . $stmt->error);
+            }
+
+            $stmt->close();
         }
 
         $conn->commit();
@@ -477,7 +576,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['num_copies']) && isset
             supplementary_contents, ISBN, content_type, media_type, carrier_type,
             call_number, URL, language, shelf_location, entered_by, date_added,
             status, last_update
-        ) SELECT 
+        ) SELECT
             ?, title, preferred_title, parallel_title, subject_category,
             subject_detail, summary, contents, front_image, back_image,
             dimension, series, volume, edition, ?,
@@ -512,7 +611,7 @@ $first_book = null;
 // Parse and validate the accession range
 if (!empty($accession_range)) {
     echo "<script>console.log('Parsing accession range: " . htmlspecialchars($accession_range) . "');</script>";
-    
+
     // Split the accession range into individual accessions or ranges
     $accession_parts = explode(',', $accession_range);
     $accession_array = [];
@@ -520,14 +619,14 @@ if (!empty($accession_range)) {
     foreach ($accession_parts as $part) {
         $part = trim($part); // Trim whitespace
         echo "<script>console.log('Processing part: " . htmlspecialchars($part) . "');</script>";
-        
+
         if (strpos($part, '-') !== false) {
             // Handle range (e.g., "1-3")
             list($start, $end) = explode('-', $part);
             $start = (int)trim($start);
             $end = (int)trim($end);
             echo "<script>console.log('Range detected: " . $start . " to " . $end . "');</script>";
-            
+
             // Ensure start is less than end
             if ($start <= $end) {
                 $accession_array = array_merge($accession_array, range($start, $end));
@@ -553,15 +652,15 @@ if (!empty($accession_range)) {
         $placeholders = implode(',', array_fill(0, count($accession_array), '?'));
         $book_query = "SELECT * FROM books WHERE accession IN ($placeholders)";
         $stmt = $conn->prepare($book_query);
-        
+
         // Dynamically create the type string for bind_param
         $types = str_repeat('i', count($accession_array));
         $stmt->bind_param($types, ...$accession_array);
-        
+
         $stmt->execute();
         $books_result = $stmt->get_result();
         $books = $books_result->fetch_all(MYSQLI_ASSOC);
-        
+
         echo "<script>console.log('Books found: " . count($books) . "');</script>";
 
         // Fetch the first book for shared data
@@ -627,9 +726,9 @@ if (!empty($bookIds)) {
 // Fetch publication details for the first book
 $publication = [];
 if ($first_book) {
-    $publication_query = "SELECT p.publish_date, pub.publisher 
-                          FROM publications p 
-                          LEFT JOIN publishers pub ON p.publisher_id = pub.id 
+    $publication_query = "SELECT p.publish_date, pub.publisher
+                          FROM publications p
+                          LEFT JOIN publishers pub ON p.publisher_id = pub.id
                           WHERE p.book_id = ?";
     $stmt = $conn->prepare($publication_query);
     $stmt->bind_param("i", $first_book['id']);
@@ -643,8 +742,10 @@ if ($first_book) {
 <div id="content-wrapper" class="d-flex flex-column min-vh-100">
     <div id="content" class="flex-grow-1">
         <div class="container-fluid">
-            <form id="bookForm" action="" method="POST" enctype="multipart/form-data" class="h-100" 
+            <form id="bookForm" action="" method="POST" enctype="multipart/form-data" class="h-100"
                   onkeydown="return event.key != 'Enter';">
+                  <input type="hidden" name="existing_front_image" value="<?php echo htmlspecialchars($first_book['front_image'] ?? ''); ?>">
+<input type="hidden" name="existing_back_image" value="<?php echo htmlspecialchars($first_book['back_image'] ?? ''); ?>">
                 <div class="container-fluid d-flex justify-content-between align-items-center">
                     <h1 class="h3 mb-2 text-gray-800">Update Books (<?php echo count($books); ?> copies)</h1>
                     <div>
@@ -700,7 +801,7 @@ if ($first_book) {
                             <label>Parallel Title</label>
                             <input type="text" class="form-control" name="parallel_title" value="<?php echo htmlspecialchars($first_book['parallel_title'] ?? ''); ?>">
                         </div>
-                        
+
                         <!-- Contributors section - Updated layout -->
                         <div class="form-group mt-4">
                             <label class="mb-2">Contributors</label>
@@ -709,12 +810,12 @@ if ($first_book) {
                                     <label>Author</label>
                                     <div class="input-group mb-2">
                                         <span class="input-group-text"><i class="fa fa-search"></i></span>
-                                        <input type="text" class="form-control contributor-search" 
+                                        <input type="text" class="form-control contributor-search"
                                                placeholder="Search authors..." data-target="authorSelect">
                                     </div>
                                     <select class="form-control" name="author[]" id="authorSelect" multiple>
                                         <option value="">Select Author</option>
-                                        <?php foreach ($writers as $writer): 
+                                        <?php foreach ($writers as $writer):
                                             $isAuthor = false;
                                             foreach ($contributors as $bookContributors) {
                                                 foreach ($bookContributors as $contributor) {
@@ -733,16 +834,16 @@ if ($first_book) {
                                     <small class="text-muted">Hold Ctrl/Cmd to select multiple items</small>
                                     <div class="mt-2 border rounded bg-light" id="authorPreview"></div>
                                 </div>
-                                
+
                                 <div class="col-md-4">
                                     <label>Co-Authors</label>
                                     <div class="input-group mb-2">
                                         <span class="input-group-text"><i class="fa fa-search"></i></span>
-                                        <input type="text" class="form-control contributor-search" 
+                                        <input type="text" class="form-control contributor-search"
                                                placeholder="Search co-authors..." data-target="coAuthorSelect">
                                     </div>
                                     <select class="form-control" name="co_authors[]" id="coAuthorSelect" multiple>
-                                        <?php foreach ($writers as $writer): 
+                                        <?php foreach ($writers as $writer):
                                             $isCoAuthor = false;
                                             foreach ($contributors as $bookContributors) {
                                                 foreach ($bookContributors as $contributor) {
@@ -761,16 +862,16 @@ if ($first_book) {
                                     <small class="text-muted">Hold Ctrl/Cmd to select multiple items</small>
                                     <div id="coAuthorPreview" class="mt-2 p-2 border rounded bg-light"></div>
                                 </div>
-                                
+
                                 <div class="col-md-4">
                                     <label>Editors</label>
                                     <div class="input-group mb-2">
                                         <span class="input-group-text"><i class="fa fa-search"></i></span>
-                                        <input type="text" class="form-control contributor-search" 
+                                        <input type="text" class="form-control contributor-search"
                                                placeholder="Search editors..." data-target="editorSelect">
                                     </div>
                                     <select class="form-control" name="editors[]" id="editorSelect" multiple>
-                                        <?php foreach ($writers as $writer): 
+                                        <?php foreach ($writers as $writer):
                                             $isEditor = false;
                                             foreach ($contributors as $bookContributors) {
                                                 foreach ($bookContributors as $contributor) {
@@ -805,7 +906,7 @@ if ($first_book) {
                                             <select class="form-control subject-category" name="subject_categories[]">
                                                 <option value="">Select Subject Category</option>
                                                 <?php foreach ($subject_options as $subject): ?>
-                                                    <option value="<?php echo htmlspecialchars($subject); ?>" 
+                                                    <option value="<?php echo htmlspecialchars($subject); ?>"
                                                         <?php echo ($first_book['subject_category'] == $subject) ? 'selected' : ''; ?>>
                                                         <?php echo htmlspecialchars($subject); ?>
                                                     </option>
@@ -828,9 +929,9 @@ if ($first_book) {
                                     <div class="col-md-4">
                                         <div class="form-group">
                                             <label>Details</label>
-                                            <textarea class="form-control" name="subject_paragraphs[]" 
-                                                rows="3" placeholder="Enter additional details about this subject"><?php 
-                                                echo htmlspecialchars($first_book['subject_detail'] ?? ''); 
+                                            <textarea class="form-control" name="subject_paragraphs[]"
+                                                rows="3" placeholder="Enter additional details about this subject"><?php
+                                                echo htmlspecialchars($first_book['subject_detail'] ?? '');
                                             ?></textarea>
                                         </div>
                                     </div>
@@ -844,12 +945,12 @@ if ($first_book) {
                         <h4>Abstracts</h4>
                         <div class="form-group">
                             <label>Summary/Abstract</label>
-                            <textarea class="form-control" name="abstract" rows="6" 
+                            <textarea class="form-control" name="abstract" rows="6"
                                 placeholder="Enter a summary or abstract of the book"><?php echo htmlspecialchars($first_book['summary'] ?? ''); ?></textarea>
                         </div>
                         <div class="form-group">
                             <label>Contents</label>
-                            <textarea class="form-control" name="notes" rows="4" 
+                            <textarea class="form-control" name="notes" rows="4"
                                 placeholder="Enter the table of contents or chapter list"><?php echo htmlspecialchars($first_book['contents'] ?? ''); ?></textarea>
                         </div>
                     </div>
@@ -857,117 +958,99 @@ if ($first_book) {
                     <!-- Description Tab -->
                     <div class="tab-pane fade" id="description" role="tabpanel">
                         <h4>Description</h4>
-                        
+
                         <!-- Enhanced Front/Back Image Selection -->
                         <div class="row mb-4">
-                            <!-- Front Image -->
-                            <div class="col-md-6">
-                                <label class="mb-2">Front Image</label>
-                                <div class="card">
-                                    <div class="card-body text-center">
-                                        <div class="image-preview mb-3 d-flex justify-content-center align-items-center flex-column">
-                                            <?php if (!empty($first_book['front_image'])): ?>
-                                                <img src="<?php echo htmlspecialchars($first_book['front_image']); ?>" 
-                                                     alt="Book Front" id="frontImagePreview" 
-                                                     style="max-height: 200px; max-width: 100%; border: 1px solid #ddd; border-radius: 4px;">
-                                                <input type="hidden" name="front_image" value="<?php echo htmlspecialchars($first_book['front_image']); ?>">
-                                            <?php else: ?>
-                                                <div class="text-center py-4 bg-light rounded" id="frontImagePreviewPlaceholder">
-                                                    <i class="fas fa-book fa-3x mb-2 text-secondary"></i>
-                                                    <p class="text-muted">No front image available</p>
-                                                </div>
-                                                <img src="" alt="Book Front" id="frontImagePreview" 
-                                                     style="max-height: 200px; max-width: 100%; display: none; border: 1px solid #ddd; border-radius: 4px;">
-                                            <?php endif; ?>
-                                        </div>
-                                        <div id="frontAspectPreviews" class="d-flex justify-content-center gap-2 mb-2"></div>
-                                        <div class="small text-muted" id="frontImageDimensions"></div>
-                                        <div class="d-flex justify-content-center">
-                                            <button type="button" class="btn btn-outline-primary me-2" onclick="document.getElementById('inputFrontImage').click();">
-                                                <i class="fas fa-upload"></i> Choose File
-                                            </button>
-                                            <?php if (!empty($first_book['front_image'])): ?>
-                                                <button type="button" class="btn btn-outline-danger" onclick="clearImage('front')">
-                                                    <i class="fas fa-trash-alt"></i> Remove
-                                                </button>
-                                            <?php endif; ?>
-                                        </div>
-                                        <input class="d-none" id="inputFrontImage" type="file" name="front_image" accept="image/*" 
-                                               onchange="previewImage(this, 'frontImagePreview', 'frontImagePreviewPlaceholder'); updateFileNameDisplay(this, 'frontFileNameDisplay');">
-                                        <div class="small text-muted mt-2" id="frontFileNameDisplay">
-                                            <?php echo !empty($first_book['front_image']) ? 'Current: ' . basename($first_book['front_image']) : 'No file selected'; ?>
-                                        </div>
+                        <!-- Front Image -->
+                        <div class="col-md-6">
+                            <label class="mb-2">Front Image</label>
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <div class="image-preview mb-3 d-flex justify-content-center align-items-center flex-column">
+                                        <?php if (!empty($first_book['front_image']) && file_exists('../' . $first_book['front_image'])): ?>
+                                            <img src="<?php echo htmlspecialchars('../' . $first_book['front_image']); ?>"
+                                                alt="Book Front" id="frontImagePreview"
+                                                style="max-height: 200px; max-width: 100%; border: 1px solid #ddd; border-radius: 4px;">
+                                        <?php else: ?>
+                                            <div class="text-center py-4 bg-light rounded" id="frontImagePreviewPlaceholder">
+                                                <i class="fas fa-book fa-3x mb-2 text-secondary"></i>
+                                                <p class="text-muted">No front image available</p>
+                                            </div>
+                                            <img src="" alt="Book Front" id="frontImagePreview"
+                                                style="max-height: 200px; max-width: 100%; display: none; border: 1px solid #ddd; border-radius: 4px;">
+                                        <?php endif; ?>
                                     </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Back Image -->
-                            <div class="col-md-6">
-                                <label class="mb-2">Back Image</label>
-                                <div class="card">
-                                    <div class="card-body text-center">
-                                        <div class="image-preview mb-3 d-flex justify-content-center align-items-center flex-column">
-                                            <?php if (!empty($first_book['back_image'])): ?>
-                                                <img src="<?php echo htmlspecialchars($first_book['back_image']); ?>" 
-                                                     alt="Book Back" id="backImagePreview" 
-                                                     style="max-height: 200px; max-width: 100%; border: 1px solid #ddd; border-radius: 4px;">
-                                                <input type="hidden" name="back_image" value="<?php echo htmlspecialchars($first_book['back_image']); ?>">
-                                            <?php else: ?>
-                                                <div class="text-center py-4 bg-light rounded" id="backImagePreviewPlaceholder">
-                                                    <i class="fas fa-book-open fa-3x mb-2 text-secondary"></i>
-                                                    <p class="text-muted">No back image available</p>
-                                                </div>
-                                                <img src="" alt="Book Back" id="backImagePreview" 
-                                                     style="max-height: 200px; max-width: 100%; display: none; border: 1px solid #ddd; border-radius: 4px;">
-                                            <?php endif; ?>
-                                        </div>
-                                        <div id="backAspectPreviews" class="d-flex justify-content-center gap-2 mb-2"></div>
-                                        <div class="small text-muted" id="backImageDimensions"></div>
-                                        <div class="d-flex justify-content-center">
-                                            <button type="button" class="btn btn-outline-primary me-2" onclick="document.getElementById('inputBackImage').click();">
-                                                <i class="fas fa-upload"></i> Choose File
-                                            </button>
-                                            <?php if (!empty($first_book['back_image'])): ?>
-                                                <button type="button" class="btn btn-outline-danger" onclick="clearImage('back')">
-                                                    <i class="fas fa-trash-alt"></i> Remove
-                                                </button>
-                                            <?php endif; ?>
-                                        </div>
-                                        <input class="d-none" id="inputBackImage" type="file" name="back_image" accept="image/*" 
-                                               onchange="previewImage(this, 'backImagePreview', 'backImagePreviewPlaceholder'); updateFileNameDisplay(this, 'backFileNameDisplay');">
-                                        <div class="small text-muted mt-2" id="backFileNameDisplay">
-                                            <?php echo !empty($first_book['back_image']) ? 'Current: ' . basename($first_book['back_image']) : 'No file selected'; ?>
-                                        </div>
+                                    <div id="frontAspectPreviews" class="d-flex justify-content-center gap-2 mb-2"></div>
+                                    <div class="small text-muted" id="frontImageDimensions"></div>
+                                    <div class="d-flex justify-content-center">
+                                        <button type="button" class="btn btn-outline-primary me-2" onclick="document.getElementById('inputFrontImage').click();">
+                                            <i class="fas fa-upload"></i> Choose File
+                                        </button>
                                     </div>
+                                    <input class="d-none" id="inputFrontImage" type="file" name="front_image" accept="image/*"
+                                        onchange="previewImage(this, 'frontImagePreview', 'frontImagePreviewPlaceholder');">
                                 </div>
                             </div>
                         </div>
-                        
+
+                        <!-- Back Image -->
+                        <div class="col-md-6">
+                            <label class="mb-2">Back Image</label>
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <div class="image-preview mb-3 d-flex justify-content-center align-items-center flex-column">
+                                        <?php if (!empty($first_book['back_image']) && file_exists('../' . $first_book['back_image'])): ?>
+                                            <img src="<?php echo htmlspecialchars('../' . $first_book['back_image']); ?>"
+                                                alt="Book Back" id="backImagePreview"
+                                                style="max-height: 200px; max-width: 100%; border: 1px solid #ddd; border-radius: 4px;">
+                                        <?php else: ?>
+                                            <div class="text-center py-4 bg-light rounded" id="backImagePreviewPlaceholder">
+                                                <i class="fas fa-book-open fa-3x mb-2 text-secondary"></i>
+                                                <p class="text-muted">No back image available</p>
+                                            </div>
+                                            <img src="" alt="Book Back" id="backImagePreview"
+                                                style="max-height: 200px; max-width: 100%; display: none; border: 1px solid #ddd; border-radius: 4px;">
+                                        <?php endif; ?>
+                                    </div>
+                                    <div id="backAspectPreviews" class="d-flex justify-content-center gap-2 mb-2"></div>
+                                    <div class="small text-muted" id="backImageDimensions"></div>
+                                    <div class="d-flex justify-content-center">
+                                        <button type="button" class="btn btn-outline-primary me-2" onclick="document.getElementById('inputBackImage').click();">
+                                            <i class="fas fa-upload"></i> Choose File
+                                        </button>
+                                    </div>
+                                    <input class="d-none" id="inputBackImage" type="file" name="back_image" accept="image/*"
+                                        onchange="previewImage(this, 'backImagePreview', 'backImagePreviewPlaceholder');">
+                                </div>
+                            </div>
+                        </div>
+                        </div>
+
                         <div class="form-group">
                             <label>Dimension (cm)</label>
                             <input type="number" step="0.01" class="form-control" name="dimension" value="<?php echo htmlspecialchars($first_book['dimension'] ?? ''); ?>">
                         </div>
-                        
+
                         <div class="form-group">
                             <label>Pages</label>
                             <div class="row">
                                 <div class="col-md-4">
                                     <label class="small">Prefix (Roman)</label>
-                                    <input type="text" class="form-control" name="prefix_pages" placeholder="e.g. xvi" 
-                                           value="<?php 
+                                    <input type="text" class="form-control" name="prefix_pages" placeholder="e.g. xvi"
+                                           value="<?php
                                                $pages = $first_book['total_pages'] ?? '';
                                                $parts = explode(' ', $pages); // Changed from comma to space
-                                               echo htmlspecialchars($parts[0] ?? ''); 
+                                               echo htmlspecialchars($parts[0] ?? '');
                                            ?>">
                                     <small class="text-muted">Use roman numerals</small>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="small">Main Pages</label>
                                     <input type="text" class="form-control" name="main_pages" placeholder="e.g. 234a"
-                                           value="<?php 
+                                           value="<?php
                                                $pages = $first_book['total_pages'] ?? '';
                                                $parts = explode(' ', $pages); // Changed from comma to space
-                                               echo htmlspecialchars($parts[1] ?? ''); 
+                                               echo htmlspecialchars($parts[1] ?? '');
                                            ?>">
                                     <small class="text-muted">Can include letters (e.g. 123a, 456b)</small>
                                 </div>
@@ -978,7 +1061,7 @@ if ($first_book) {
                                         // Parse supplementary contents from first book
                                         $supplementary = $first_book['supplementary_contents'] ?? '';
                                         $supItems = [];
-                                        
+
                                         // Extract items from format "includes X, Y, and Z"
                                         if (!empty($supplementary)) {
                                             $supplementary = str_replace('includes ', '', $supplementary);
@@ -1022,8 +1105,8 @@ if ($first_book) {
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label>Original Entry By</label>
-                                    <input type="text" class="form-control" 
-                                           value="<?php 
+                                    <input type="text" class="form-control"
+                                           value="<?php
                                                $entered_by_id = $first_book['entered_by'] ?? '';
                                                $entered_by_name = '';
                                                foreach ($admins as $admin) {
@@ -1034,14 +1117,14 @@ if ($first_book) {
                                                }
                                                echo htmlspecialchars($entered_by_name);
                                            ?>" readonly>
-                                    <input type="hidden" name="entered_by[]" 
+                                    <input type="hidden" name="entered_by[]"
                                            value="<?php echo htmlspecialchars($first_book['entered_by'] ?? ''); ?>">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label>Original Entry Date</label>
-                                    <input type="text" class="form-control" name="date_added[]" 
+                                    <input type="text" class="form-control" name="date_added[]"
                                            value="<?php echo htmlspecialchars($first_book['date_added'] ?? ''); ?>" readonly>
                                 </div>
                             </div>
@@ -1055,7 +1138,7 @@ if ($first_book) {
                                     // Get updater details if available
                                     $updater_name = 'Not yet updated';
                                     if (!empty($first_book['updated_by'])) {
-                                        $updater_query = "SELECT CONCAT(firstname, ' ', lastname) as full_name, role 
+                                        $updater_query = "SELECT CONCAT(firstname, ' ', lastname) as full_name, role
                                                         FROM admins WHERE id = ?";
                                         $stmt = $conn->prepare($updater_query);
                                         $stmt->bind_param("i", $first_book['updated_by']);
@@ -1073,7 +1156,7 @@ if ($first_book) {
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label>Last Update</label>
-                                    <input type="text" class="form-control" name="last_update" 
+                                    <input type="text" class="form-control" name="last_update"
                                            value="<?php echo date('Y-m-d'); ?>" readonly>
                                 </div>
                             </div>
@@ -1189,7 +1272,7 @@ if ($first_book) {
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label>Year of Publication</label>
-                                    <input type="number" class="form-control" name="publish_date" placeholder="e.g., 2023" 
+                                    <input type="number" class="form-control" name="publish_date" placeholder="e.g., 2023"
                                            value="<?php echo htmlspecialchars($publication['publish_date'] ?? ''); ?>">
                                 </div>
                             </div>
@@ -1198,8 +1281,8 @@ if ($first_book) {
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label>ISBN</label>
-                                    <input type="text" class="form-control" name="ISBN" 
-                                           value="<?php echo htmlspecialchars($first_book['ISBN'] ?? ''); ?>" 
+                                    <input type="text" class="form-control" name="ISBN"
+                                           value="<?php echo htmlspecialchars($first_book['ISBN'] ?? ''); ?>"
                                            placeholder="Enter ISBN number">
                                     <small class="text-muted">This ISBN will be applied to all copies</small>
                                 </div>
@@ -1340,7 +1423,7 @@ document.addEventListener("DOMContentLoaded", function() {
             tab.show();
         });
     });
-    
+
     // Ensure first tab is active on page load
     const firstTab = document.querySelector('#formTabs a:first-child');
     if (firstTab) {
@@ -1357,16 +1440,16 @@ document.addEventListener("DOMContentLoaded", function() {
         const partInput = copyElement.querySelector('input[name="part[]"]').value.trim();
         const copyNumber = copyElement.querySelector('input[name="copy_number[]"]').value.trim();
         const publishYear = document.querySelector('input[name="publish_date"]')?.value || '';
-        
+
         if (!callNumberField) return;
-        
+
         // Extract classifier and cutter from current call number
         let currentCallNum = callNumberField.value;
         let classifierCutter = '';
-        
+
         // Parse current call number to find classifier and cutter portions (e.g., "Z936.98 L39")
         const parts = currentCallNum.split(' ');
-        
+
         // First, try to detect the Location + Class + Cutter pattern
         for (let i = 0; i < parts.length - 1; i++) {
             // Look for patterns like "Z936.98 L39" where first part is class and second is cutter
@@ -1375,46 +1458,46 @@ document.addEventListener("DOMContentLoaded", function() {
                 break;
             }
         }
-        
+
         // If we couldn't find it but have at least 3 parts, assume parts[1] and parts[2] are classifier and cutter
         if (!classifierCutter && parts.length >= 3) {
             // Try to use the middle part of the call number as the classifier+cutter
             classifierCutter = `${parts[1]} ${parts[2]}`;
         }
-        
+
         // Build new call number components
         const components = [];
-        
+
         // Start with shelf location
         if (shelfLocation) {
             components.push(shelfLocation);
         }
-        
+
         // Add classifier and cutter if available
         if (classifierCutter) {
             components.push(classifierCutter);
         }
-        
+
         // Add publication year if available (with "c" prefix for copyright)
         if (publishYear) {
             components.push(`c${publishYear}`);
         }
-        
+
         // Add volume if available
         if (volumeInput) {
             components.push(`v.${volumeInput}`);
         }
-        
+
         // Add part if available
         if (partInput) {
             components.push(`pt.${partInput}`);
         }
-        
+
         // Add copy number if available
         if (copyNumber) {
             components.push(`c.${copyNumber}`);
         }
-        
+
         // Update the call number field with new formatted call number
         if (components.length > 1) {
             callNumberField.value = components.join(' ');
@@ -1424,7 +1507,7 @@ document.addEventListener("DOMContentLoaded", function() {
     // Setup event listeners for fields that affect call numbers
     function setupCallNumberEventListeners() {
         const bookCopies = document.querySelectorAll('.book-copy');
-        
+
         bookCopies.forEach(copy => {
             // Get all relevant fields that should trigger call number updates
             const shelfLocation = copy.querySelector('select[name="shelf_location[]"]');
@@ -1432,25 +1515,25 @@ document.addEventListener("DOMContentLoaded", function() {
             const partInput = copy.querySelector('input[name="part[]"]');
             const copyNumberInput = copy.querySelector('input[name="copy_number[]"]');
             const publishYear = document.querySelector('input[name="publish_date"]');
-            
+
             // Add event listeners to each field to update the call number when they change
             if (shelfLocation) {
                 shelfLocation.addEventListener('change', () => updateCallNumber(copy));
             }
-            
+
             if (volumeInput) {
                 volumeInput.addEventListener('input', () => updateCallNumber(copy));
             }
-            
+
             if (partInput) {
                 partInput.addEventListener('input', () => updateCallNumber(copy));
             }
-            
+
             if (copyNumberInput) {
                 copyNumberInput.addEventListener('input', () => updateCallNumber(copy));
             }
         });
-        
+
         // Publication year update affects all call numbers
         const publishYearInput = document.querySelector('input[name="publish_date"]');
         if (publishYearInput) {
@@ -1508,13 +1591,13 @@ document.addEventListener('DOMContentLoaded', function() {
         document.head.appendChild(tippyScript);
     };
     document.head.appendChild(script);
-    
+
     // Add confirmation when manually editing call numbers
     document.querySelectorAll('input[name="call_numbers[]"]').forEach(input => {
         input.addEventListener('focus', function() {
             this.dataset.originalValue = this.value;
         });
-        
+
         input.addEventListener('blur', function() {
             if (this.value !== this.dataset.originalValue) {
                 // Only show confirmation if the value actually changed
@@ -1575,7 +1658,7 @@ function clearImage(type) {
         const fileNameDisplay = document.getElementById('frontFileNameDisplay');
         const dimId = 'frontImageDimensions';
         const aspectId = 'frontAspectPreviews';
-        
+
         preview.src = '';
         preview.style.display = 'none';
         if (placeholder) {
@@ -1589,24 +1672,24 @@ function clearImage(type) {
             newPlaceholder.innerHTML = '<i class="fas fa-book fa-3x mb-2 text-secondary"></i><p class="text-muted">No front image available</p>';
             container.insertBefore(newPlaceholder, preview);
         }
-        
+
         // Clear the file input
         fileInput.value = '';
         fileNameDisplay.textContent = 'No file selected';
-        
+
         // Clear dimensions and aspect previews
         const dim = document.getElementById(dimId);
         const aspectContainer = document.getElementById(aspectId);
         if (dim) dim.textContent = '';
         if (aspectContainer) aspectContainer.innerHTML = '';
-        
+
         // Add a hidden input to tell the server to remove the image
         const hiddenInput = document.createElement('input');
         hiddenInput.type = 'hidden';
         hiddenInput.name = 'remove_front_image';
         hiddenInput.value = '1';
         fileInput.parentElement.appendChild(hiddenInput);
-        
+
     } else if (type === 'back') {
         // Clear back image
         const preview = document.getElementById('backImagePreview');
@@ -1615,7 +1698,7 @@ function clearImage(type) {
         const fileNameDisplay = document.getElementById('backFileNameDisplay');
         const dimId = 'backImageDimensions';
         const aspectId = 'backAspectPreviews';
-        
+
         preview.src = '';
         preview.style.display = 'none';
         if (placeholder) {
@@ -1629,17 +1712,17 @@ function clearImage(type) {
             newPlaceholder.innerHTML = '<i class="fas fa-book-open fa-3x mb-2 text-secondary"></i><p class="text-muted">No back image available</p>';
             container.insertBefore(newPlaceholder, preview);
         }
-        
+
         // Clear the file input
         fileInput.value = '';
         fileNameDisplay.textContent = 'No file selected';
-        
+
         // Clear dimensions and aspect previews
         const dim = document.getElementById(dimId);
         const aspectContainer = document.getElementById(aspectId);
         if (dim) dim.textContent = '';
         if (aspectContainer) aspectContainer.innerHTML = '';
-        
+
         // Add a hidden input to tell the server to remove the image
         const hiddenInput = document.createElement('input');
         hiddenInput.type = 'hidden';

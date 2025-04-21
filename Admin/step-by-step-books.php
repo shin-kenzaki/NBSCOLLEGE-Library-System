@@ -17,7 +17,7 @@ if (!isset($_SESSION['book_shortcut'])) {
 
 // Store the referrer information - check if we came from the form
 if (!isset($_SESSION['return_to_form'])) {
-    $_SESSION['return_to_form'] = (isset($_SERVER['HTTP_REFERER']) && 
+    $_SESSION['return_to_form'] = (isset($_SERVER['HTTP_REFERER']) &&
                                   strpos($_SERVER['HTTP_REFERER'], 'step-by-step-add-book-form.php') !== false);
 }
 
@@ -32,7 +32,7 @@ if (!$_SESSION['book_shortcut']['steps_completed']['writer'] || !$_SESSION['book
 if (isset($_POST['copy_title'])) {
     $_SESSION['book_shortcut']['book_title'] = $_POST['book_title'];
     $_SESSION['book_shortcut']['steps_completed']['title'] = true;
-    
+
     // Always redirect to the form page when a title is selected via copy
     header("Location: step-by-step-add-book-form.php");
     exit();
@@ -46,7 +46,7 @@ if (isset($_POST['proceed_to_add'])) {
     } else {
         $_SESSION['book_shortcut']['steps_completed']['title'] = true;
         $_SESSION['book_shortcut']['book_title'] = $_POST['new_title'];
-        
+
         // Check the referrer to determine where to redirect
         if ($_SESSION['return_to_form']) {
             // User came from the form, so send them back there
@@ -66,18 +66,18 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
 include 'inc/header.php';
 
 // Fetch ALL books from database for the table - we'll filter client-side
-$booksQuery = "SELECT 
-    b.id, 
-    b.title, 
-    GROUP_CONCAT(DISTINCT CONCAT(w.firstname, ' ', w.middle_init, ' ', w.lastname) SEPARATOR ', ') AS author_name, 
+$booksQuery = "SELECT
+    b.id,
+    b.title,
+    GROUP_CONCAT(DISTINCT CONCAT(w.firstname, ' ', w.middle_init, ' ', w.lastname) SEPARATOR ', ') AS author_name,
     p.publisher AS publisher_name
-    FROM books b 
+    FROM books b
     LEFT JOIN contributors c ON b.id = c.book_id AND c.role = 'Author'
     LEFT JOIN writers w ON c.writer_id = w.id
     LEFT JOIN publications pub ON b.id = pub.book_id
     LEFT JOIN publishers p ON pub.publisher_id = p.id
     GROUP BY b.id ORDER BY b.title";
-    
+
 $booksResult = $conn->query($booksQuery);
 ?>
 
@@ -174,7 +174,7 @@ $booksResult = $conn->query($booksQuery);
                                                 <td>{$book['author_name']}</td>
                                                 <td>{$book['publisher_name']}</td>
                                                 <td style=\"text-align: center\">
-                                                    <button type='button' class='btn btn-info btn-sm copy-title' 
+                                                    <button type='button' class='btn btn-info btn-sm copy-title'
                                                             data-title='" . htmlspecialchars($book['title'], ENT_QUOTES) . "'>
                                                         <i class='fas fa-copy'></i> Copy Title
                                                     </button>
@@ -197,7 +197,7 @@ $booksResult = $conn->query($booksQuery);
 /* Add DataTables styling similar to book_list.php */
 #booksTable th,
 #booksTable td {
-    min-width: 100px; 
+    min-width: 100px;
     white-space: nowrap;
 }
 
@@ -251,17 +251,17 @@ $(document).ready(function() {
         "searching": true,  // Enable client-side searching
         "info": true
     });
-    
+
     // Link our custom search box to DataTables search
     $('#bookSearch').on('keyup', function() {
         booksTable.search(this.value).draw();
     });
-    
+
     // Set initial search value if provided
     if ($('#bookSearch').val()) {
         booksTable.search($('#bookSearch').val()).draw();
     }
-    
+
     <?php if (isset($_POST['copy_title'])): ?>
     // If a title was copied, update the input field
     $('#new_title').val('<?php echo addslashes($_SESSION['book_shortcut']['book_title']); ?>');
@@ -279,7 +279,7 @@ $(document).ready(function() {
 // Handle title copy clicks
 $(document).on('click', '.copy-title', function() {
     const title = $(this).data('title');
-    
+
     // Send AJAX request
     $.ajax({
         url: 'step-by-step-books.php',
