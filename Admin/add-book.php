@@ -252,7 +252,6 @@ $accession_error = '';
     position: relative;
     max-width: 100%;
     display: none;
-    text-align: center;
 }
 
 .file-preview img {
@@ -261,8 +260,6 @@ $accession_error = '';
     border-radius: 5px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     border: 1px solid #e3e6f0;
-    display: block;
-    margin: 0 auto;
 }
 
 .file-info {
@@ -480,6 +477,46 @@ $accession_error = '';
                                         </button>
                                     </div>
                                 </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="dimension">Dimensions (cm<sup>2</sup>)</label>
+                                            <input type="text" class="form-control" id="dimension" name="dimension" placeholder="e.g., 23 cm²">
+                                            <small class="form-text text-muted">Specify the physical dimensions of the book.</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="prefix_pages">Prefix Pages</label>
+                                            <input type="text" class="form-control" id="prefix_pages" name="prefix_pages" placeholder="e.g., xii">
+                                            <small class="form-text text-muted">Enter the number of prefatory pages in Roman numerals.</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="main_pages">Main Pages</label>
+                                            <input type="text" class="form-control" id="main_pages" name="main_pages" placeholder="e.g., 350 p.">
+                                            <small class="form-text text-muted">Provide the total number of main pages in the book.</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Supplementary Content</label>
+                                            <select class="form-control" name="supplementary_content[]" multiple>
+                                                <option value="Appendix">Appendix</option>
+                                                <option value="Bibliography">Bibliography</option>
+                                                <option value="Glossary">Glossary</option>
+                                                <option value="Index">Index</option>
+                                                <option value="Illustrations">Illustrations</option>
+                                                <option value="Maps">Maps</option>
+                                                <option value="Tables">Tables</option>
+                                            </select>
+                                            <small class="form-text text-muted">Select any additional content included in the book.</small>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div class="form-group">
                                     <label>Book Images (Optional)</label>
                                     <div class="row image-upload-container">
@@ -520,46 +557,6 @@ $accession_error = '';
                                                     <i class="fas fa-times remove-file" data-target="backImageUpload"></i>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="dimension">Dimensions (cm<sup>2</sup>)</label>
-                                            <input type="text" class="form-control" id="dimension" name="dimension" placeholder="e.g., 23 cm²">
-                                            <small class="form-text text-muted">Specify the physical dimensions of the book.</small>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="prefix_pages">Prefix Pages</label>
-                                            <input type="text" class="form-control" id="prefix_pages" name="prefix_pages" placeholder="e.g., xii">
-                                            <small class="form-text text-muted">Enter the number of prefatory pages in Roman numerals.</small>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="main_pages">Main Pages</label>
-                                            <input type="text" class="form-control" id="main_pages" name="main_pages" placeholder="e.g., 350 p.">
-                                            <small class="form-text text-muted">Provide the total number of main pages in the book.</small>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Supplementary Content</label>
-                                            <select class="form-control" name="supplementary_content[]" multiple>
-                                                <option value="Appendix">Appendix</option>
-                                                <option value="Bibliography">Bibliography</option>
-                                                <option value="Glossary">Glossary</option>
-                                                <option value="Index">Index</option>
-                                                <option value="Illustrations">Illustrations</option>
-                                                <option value="Maps">Maps</option>
-                                                <option value="Tables">Tables</option>
-                                            </select>
-                                            <small class="form-text text-muted">Select any additional content included in the book.</small>
                                         </div>
                                     </div>
                                 </div>
@@ -750,7 +747,7 @@ $accession_error = '';
                                                             <option value="<?php echo $writer['id']; ?>"><?php echo $writer['name']; ?></option>
                                                         <?php endforeach; ?>
                                                     </select>
-                                                    <small class="form-text text-muted">Hold Ctrl (Windows) or Command (Mac) to select multiple options. <span class="text-info">Either authors or editors must be provided.</span></small>
+                                                    <small class="form-text text-muted">Hold Ctrl (Windows) or Command (Mac) to select multiple options.</small>
                                                     <div id="authorPreview" class="selected-preview mt-2"></div>
                                                 </div>
                                             </div>
@@ -782,7 +779,7 @@ $accession_error = '';
                                                             <option value="<?php echo $writer['id']; ?>"><?php echo $writer['name']; ?></option>
                                                         <?php endforeach; ?>
                                                     </select>
-                                                    <small class="form-text text-muted">Hold Ctrl (Windows) or Command (Mac) to select multiple options. <span class="text-info">Either authors or editors must be provided.</span></small>
+                                                    <small class="form-text text-muted">Hold Ctrl (Windows) or Command (Mac) to select multiple options.</small>
                                                     <div id="editorsPreview" class="selected-preview mt-2"></div>
                                                 </div>
                                             </div>
@@ -1344,6 +1341,12 @@ document.addEventListener('DOMContentLoaded', function() {
         fileInput.addEventListener('change', function() {
             if (this.files && this.files[0]) {
                 const file = this.files[0];
+                // Check file size (max 5MB)
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('File size exceeds 5MB. Please choose a smaller image.');
+                    this.value = '';
+                    return;
+                }
                 
                 // Check file type
                 const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];

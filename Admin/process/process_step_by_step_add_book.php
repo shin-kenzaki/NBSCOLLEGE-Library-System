@@ -26,6 +26,7 @@ if (isset($_POST['submit'])) {
         'title', 
         'publisher', 
         'publish_date', 
+        'author', 
         'accession'
     ];
     
@@ -35,25 +36,6 @@ if (isset($_POST['submit'])) {
         if (empty($_POST[$field])) {
             $errors[] = ucfirst(str_replace('_', ' ', $field)) . ' is required';
         }
-    }
-    
-    // Add validation for at least one contributor (author or editor)
-    $has_contributor = false;
-    
-    // Check if we have at least one author
-    if (isset($_POST['authors']) && is_array($_POST['authors']) && !empty($_POST['authors'])) {
-        $has_contributor = true;
-    } elseif (isset($_POST['author']) && !empty($_POST['author'])) {
-        $has_contributor = true;
-    }
-    
-    // If no authors, check for editors
-    if (!$has_contributor && isset($_POST['editors']) && is_array($_POST['editors']) && !empty($_POST['editors'])) {
-        $has_contributor = true;
-    }
-    
-    if (!$has_contributor) {
-        $errors[] = "At least one author or editor is required.";
     }
     
     if (!empty($errors)) {
@@ -211,7 +193,8 @@ if (isset($_POST['submit'])) {
                     
                     $book_id = mysqli_insert_id($conn);
                     
-                    // 2. Insert contributors (authors) - only if authors are provided
+                    // 2. Insert contributors (authors)
+                    // Now, loop through all authors instead of just one
                     if (!empty($authors_ids)) {
                         foreach ($authors_ids as $current_author_id) {
                             $current_author_id = intval($current_author_id);
