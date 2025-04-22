@@ -39,6 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         // Process author, co-authors, and editors
         $author_id = mysqli_real_escape_string($conn, $_POST['author']);
+        $authors_ids = isset($_POST['authors']) ? $_POST['authors'] : [];
         $co_authors_ids = isset($_POST['co_authors']) ? $_POST['co_authors'] : [];
         $editors_ids = isset($_POST['editors']) ? $_POST['editors'] : [];
 
@@ -234,8 +235,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     // Insert contributors in batches
                     $contributors = [];
 
-                    // Add author
-                    if (!empty($author_id)) {
+                    // Add authors
+                    foreach ($authors_ids as $author_id) {
                         $contributors[] = "('$book_id', '$author_id', 'Author')";
                     }
 
@@ -522,13 +523,19 @@ $accession_error = '';
                                 <!-- Hidden inputs for writer information -->
                                 <?php
                                 if (!empty($_SESSION['book_shortcut']['selected_writers'])) {
+                                    $mainAuthorFound = false;
                                     foreach ($_SESSION['book_shortcut']['selected_writers'] as $index => $selected_writer) {
                                         $writer_id = $selected_writer['id'];
                                         $writer_role = $selected_writer['role'];
 
-                                        if ($index === 0 && $writer_role === 'Author') {
-                                            // Set the first author as the main author
-                                            echo '<input type="hidden" name="author" value="' . $writer_id . '">';
+                                        if ($writer_role === 'Author') {
+                                            // For the first author, store as main author AND in the authors array
+                                            if (!$mainAuthorFound) {
+                                                echo '<input type="hidden" name="author" value="' . $writer_id . '">';
+                                                $mainAuthorFound = true;
+                                            }
+                                            // Always include all authors in the authors array
+                                            echo '<input type="hidden" name="authors[]" value="' . $writer_id . '">';
                                         } elseif ($writer_role === 'Co-Author') {
                                             // Add co-authors
                                             echo '<input type="hidden" name="co_authors[]" value="' . $writer_id . '">';

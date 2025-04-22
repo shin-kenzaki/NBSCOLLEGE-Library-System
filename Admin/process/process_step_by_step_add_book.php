@@ -56,7 +56,15 @@ if (isset($_POST['submit'])) {
         
         // Process each accession group
         if (isset($_POST['accession']) && is_array($_POST['accession'])) {
-            $author_id = intval($_POST['author'][0]);
+            // Get the first author ID for backward compatibility
+            $author_id = isset($_POST['author']) ? intval($_POST['author']) : 0;
+            // Get all author IDs from the authors array if it exists
+            $authors_ids = isset($_POST['authors']) && is_array($_POST['authors']) ? $_POST['authors'] : [];
+            // If no authors array but we have a single author, use that
+            if (empty($authors_ids) && $author_id > 0) {
+                $authors_ids = [$author_id];
+            }
+            
             $book_title = mysqli_real_escape_string($conn, $_POST['title']);
             
             // Extract subject and program before the copy loop
@@ -186,11 +194,27 @@ if (isset($_POST['submit'])) {
                     $book_id = mysqli_insert_id($conn);
                     
                     // 2. Insert contributors (authors)
-                    $insert_contributor_query = "INSERT INTO contributors (book_id, writer_id, role) 
-                        VALUES ('$book_id', '$author_id', 'Author')";
-                    
-                    if (!mysqli_query($conn, $insert_contributor_query)) {
-                        throw new Exception("Error adding author: " . mysqli_error($conn));
+                    // Now, loop through all authors instead of just one
+                    if (!empty($authors_ids)) {
+                        foreach ($authors_ids as $current_author_id) {
+                            $current_author_id = intval($current_author_id);
+                            if ($current_author_id > 0) {
+                                $insert_contributor_query = "INSERT INTO contributors (book_id, writer_id, role) 
+                                    VALUES ('$book_id', '$current_author_id', 'Author')";
+                                
+                                if (!mysqli_query($conn, $insert_contributor_query)) {
+                                    throw new Exception("Error adding author: " . mysqli_error($conn));
+                                }
+                            }
+                        }
+                    } elseif ($author_id > 0) {
+                        // Fallback for backward compatibility
+                        $insert_contributor_query = "INSERT INTO contributors (book_id, writer_id, role) 
+                            VALUES ('$book_id', '$author_id', 'Author')";
+                        
+                        if (!mysqli_query($conn, $insert_contributor_query)) {
+                            throw new Exception("Error adding author: " . mysqli_error($conn));
+                        }
                     }
                     
                     // 3. Insert co-authors if any
