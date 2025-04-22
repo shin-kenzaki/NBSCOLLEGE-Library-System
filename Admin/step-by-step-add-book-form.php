@@ -347,6 +347,7 @@ echo '
         position: relative;
         max-width: 100%;
         display: none;
+        text-align: center;
     }
     
     .file-preview img {
@@ -355,6 +356,8 @@ echo '
         border-radius: 5px;
         box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         border: 1px solid #e3e6f0;
+        display: block;
+        margin: 0 auto;
     }
     
     .file-info {
@@ -683,6 +686,9 @@ $accession_error = '';
                                         ?>
                                     </ul>
                                     <p class="mt-2 mb-0"><small>To change writers, please <a href="step-by-step-writers.php">go back to the writers selection page</a>.</small></p>
+                                    <div class="alert alert-info mt-2 mb-0">
+                                        <small><strong>Note:</strong> At least one author or editor must be provided for the book.</small>
+                                    </div>
                                 </div>
                             </div>
 
@@ -1757,12 +1763,6 @@ document.addEventListener('DOMContentLoaded', function() {
         fileInput.addEventListener('change', function() {
             if (this.files && this.files[0]) {
                 const file = this.files[0];
-                // Check file size (max 5MB)
-                if (file.size > 5 * 1024 * 1024) {
-                    alert('File size exceeds 5MB. Please choose a smaller image.');
-                    this.value = '';
-                    return;
-                }
                 
                 // Check file type
                 const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];

@@ -26,7 +26,6 @@ if (isset($_POST['submit'])) {
         'title',
         'publisher',
         'publish_date',
-        'author',
         'accession'
     ];
 
@@ -38,19 +37,32 @@ if (isset($_POST['submit'])) {
         }
     }
 
-    // Additional validation for author to ensure it contains at least one valid ID
+    // Updated validation: Check that at least one author OR one editor is provided
+    $has_valid_contributor = false;
+    
+    // Check for valid authors
     if (isset($_POST['author']) && is_array($_POST['author'])) {
-        $has_valid_author = false;
         foreach ($_POST['author'] as $author_id) {
             if (!empty($author_id) && intval($author_id) > 0) {
-                $has_valid_author = true;
+                $has_valid_contributor = true;
                 break;
             }
         }
-
-        if (!$has_valid_author) {
-            $errors[] = 'At least one valid author must be selected';
+    }
+    
+    // If no authors, check for valid editors
+    if (!$has_valid_contributor && isset($_POST['editors']) && is_array($_POST['editors'])) {
+        foreach ($_POST['editors'] as $editor_id) {
+            if (!empty($editor_id) && intval($editor_id) > 0) {
+                $has_valid_contributor = true;
+                break;
+            }
         }
+    }
+
+    // If neither authors nor editors, add an error
+    if (!$has_valid_contributor) {
+        $errors[] = 'At least one author or editor must be provided';
     }
 
     if (!empty($errors)) {
@@ -237,8 +249,8 @@ if (isset($_POST['submit'])) {
                     // --- Add: Track accession string for image update ---
                     $inserted_accessions[] = $accession_str;
 
-                    // 2. Insert contributors (authors)
-                    if (isset($_POST['author']) && is_array($_POST['author'])) {
+                    // 2. Insert contributors (authors) - only if authors are provided
+                    if (isset($_POST['author']) && is_array($_POST['author']) && count($_POST['author']) > 0) {
                         $author_added = false;
                         foreach ($_POST['author'] as $author_id) {
                             $author_id = intval($author_id);
@@ -252,12 +264,11 @@ if (isset($_POST['submit'])) {
                                 $author_added = true;
                             }
                         }
-
-                        if (!$author_added) {
-                            throw new Exception("No valid author was added to the book.");
+                        
+                        // Only log warning when authors were attempted to be added but none succeeded
+                        if (!$author_added && count($_POST['author']) > 0) {
+                            error_log("Warning: No valid authors were added to the book ID: $book_id");
                         }
-                    } else {
-                        throw new Exception("Author information is missing.");
                     }
 
                     // 3. Insert co-authors if any
