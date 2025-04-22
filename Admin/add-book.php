@@ -390,8 +390,8 @@ $accession_error = '';
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="form-group">
-                                            <label for="dimension">Dimensions</label>
-                                            <input type="text" class="form-control" id="dimension" name="dimension" placeholder="e.g., 23 cm">
+                                            <label for="dimension">Dimensions (cm<sup>2</sup>)</label>
+                                            <input type="text" class="form-control" id="dimension" name="dimension" placeholder="e.g., 23 cm²">
                                             <small class="form-text text-muted">Specify the physical dimensions of the book.</small>
                                         </div>
                                     </div>

@@ -67,6 +67,9 @@ if (isset($_POST['submit'])) {
     $successful_inserts = 0;
     $book_title = mysqli_real_escape_string($conn, $_POST['title']);
 
+    // --- Add: Track all inserted accession numbers for image update ---
+    $inserted_accessions = [];
+
     // Process the form if validation passes
     try {
         // Start a transaction if supported
@@ -125,6 +128,7 @@ if (isset($_POST['submit'])) {
                     $contents = mysqli_real_escape_string($conn, $_POST['notes'] ?? '');
                     $dimension = mysqli_real_escape_string($conn, $_POST['dimension'] ?? '');
 
+                    // --- CHANGED: Use the exact copy number from the Copy Number fields ---
                     // Get copy number from input field if it exists and is valid, else use default
                     $copy_number = isset($copy_numbers[$current_index]) && !empty($copy_numbers[$current_index])
                         ? intval($copy_numbers[$current_index])
@@ -229,6 +233,9 @@ if (isset($_POST['submit'])) {
                     $successful_inserts++; // Increment the counter for successful insertions
 
                     $book_id = mysqli_insert_id($conn);
+
+                    // --- Add: Track accession string for image update ---
+                    $inserted_accessions[] = $accession_str;
 
                     // 2. Insert contributors (authors)
                     if (isset($_POST['author']) && is_array($_POST['author'])) {
@@ -419,50 +426,71 @@ if (isset($_POST['submit'])) {
                         }
                     }
 
-                    // 7. Handle file uploads for book images (only for the first copy)
-
-                    if (isset($_FILES['front_image']) && $_FILES['front_image']['size'] > 0) {
-                        $target_dir = "../Images/book-image/";
-                        if (!is_dir($target_dir)) {
-                            mkdir($target_dir, 0777, true);
-                        }
-
-                        // Generate a unique name for the front image
-                        $front_image_name = $book_id . "_front." . pathinfo($_FILES['front_image']['name'], PATHINFO_EXTENSION);
-                        $target_file = $target_dir . $front_image_name;
-
-                        if (move_uploaded_file($_FILES['front_image']['tmp_name'], $target_file)) {
-                            // Include the relative path in the database update
-                            $front_image_path = "Images/book-image/" . $front_image_name;
-                            // Update all copies of the book with the same front image
-                            $update_front_image = "UPDATE books SET front_image = '$front_image_path' WHERE accession LIKE '$base_accession%'";
-                            mysqli_query($conn, $update_front_image);
-                        }
-                    }
-
-                    if (isset($_FILES['back_image']) && $_FILES['back_image']['size'] > 0) {
-                        $target_dir = "../Images/book-image/";
-                        if (!is_dir($target_dir)) {
-                            mkdir($target_dir, 0777, true);
-                        }
-
-                        // Generate a unique name for the back image
-                        $back_image_name = $book_id . "_back." . pathinfo($_FILES['back_image']['name'], PATHINFO_EXTENSION);
-                        $target_file = $target_dir . $back_image_name;
-
-                        if (move_uploaded_file($_FILES['back_image']['tmp_name'], $target_file)) {
-                            // Include the relative path in the database update
-                            $back_image_path = "Images/book-image/" . $back_image_name;
-                            // Update all copies of the book with the same back image
-                            $update_back_image = "UPDATE books SET back_image = '$back_image_path' WHERE accession LIKE '$base_accession%'";
-                            mysqli_query($conn, $update_back_image);
-                        }
-                    }
-                    // Increment the overall index
-                    $current_index++;
+                    $current_index++; // <-- increment for each copy processed
                 }
             }
         }
+
+        // --- Move image upload logic here, after all books are inserted ---
+        if (!empty($inserted_accessions)) {
+            $accession_list = array_map(function($a) use ($conn) {
+                return "'" . mysqli_real_escape_string($conn, $a) . "'";
+            }, $inserted_accessions);
+            $accession_in = implode(',', $accession_list);
+
+            // Handle front image
+            if (isset($_FILES['front_image']) && $_FILES['front_image']['size'] > 0) {
+                $target_dir = "../Images/book-image/";
+                if (!is_dir($target_dir)) {
+                    mkdir($target_dir, 0777, true);
+                }
+                // Use the first inserted book's ID for naming
+                $first_book_id_query = "SELECT id FROM books WHERE accession IN ($accession_in) ORDER BY id ASC LIMIT 1";
+                $first_book_id_result = mysqli_query($conn, $first_book_id_query);
+                $first_book_id = null;
+                if ($first_book_id_result && mysqli_num_rows($first_book_id_result) > 0) {
+                    $row = mysqli_fetch_assoc($first_book_id_result);
+                    $first_book_id = $row['id'];
+                }
+                if ($first_book_id) {
+                    $front_image_name = $first_book_id . "_front." . pathinfo($_FILES['front_image']['name'], PATHINFO_EXTENSION);
+                    $target_file = $target_dir . $front_image_name;
+                    if (move_uploaded_file($_FILES['front_image']['tmp_name'], $target_file)) {
+                        $front_image_path = "Images/book-image/" . $front_image_name;
+                        // Update all inserted accessions with the same front image
+                        $update_front_image = "UPDATE books SET front_image = '$front_image_path' WHERE accession IN ($accession_in)";
+                        mysqli_query($conn, $update_front_image);
+                    }
+                }
+            }
+
+            // Handle back image
+            if (isset($_FILES['back_image']) && $_FILES['back_image']['size'] > 0) {
+                $target_dir = "../Images/book-image/";
+                if (!is_dir($target_dir)) {
+                    mkdir($target_dir, 0777, true);
+                }
+                // Use the first inserted book's ID for naming
+                $first_book_id_query = "SELECT id FROM books WHERE accession IN ($accession_in) ORDER BY id ASC LIMIT 1";
+                $first_book_id_result = mysqli_query($conn, $first_book_id_query);
+                $first_book_id = null;
+                if ($first_book_id_result && mysqli_num_rows($first_book_id_result) > 0) {
+                    $row = mysqli_fetch_assoc($first_book_id_result);
+                    $first_book_id = $row['id'];
+                }
+                if ($first_book_id) {
+                    $back_image_name = $first_book_id . "_back." . pathinfo($_FILES['back_image']['name'], PATHINFO_EXTENSION);
+                    $target_file = $target_dir . $back_image_name;
+                    if (move_uploaded_file($_FILES['back_image']['tmp_name'], $target_file)) {
+                        $back_image_path = "Images/book-image/" . $back_image_name;
+                        // Update all inserted accessions with the same back image
+                        $update_back_image = "UPDATE books SET back_image = '$back_image_path' WHERE accession IN ($accession_in)";
+                        mysqli_query($conn, $update_back_image);
+                    }
+                }
+            }
+        }
+        // --- End image logic ---
 
         // Commit the transaction if supported
         if ($transactionSupported) {
