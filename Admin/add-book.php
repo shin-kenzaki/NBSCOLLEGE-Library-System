@@ -679,7 +679,7 @@ $accession_error = '';
 
                                 <div class="form-group">
                                     <label for="url">URL (if applicable)</label>
-                                    <input type="text" class="form-control" id="url" name="url" placeholder="https://example.com">
+                                    <input type="url" class="form-control" id="url" name="url" placeholder="https://example.com">
                                 </div>
                             </div>
                             <!-- Publication Tab -->

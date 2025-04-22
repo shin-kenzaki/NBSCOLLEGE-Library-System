@@ -610,11 +610,11 @@ $accession_error = '';
 
                                 <div class="form-group">
                                     <label>Preferred Title</label>
-                                    <input type="text" class="form-control" name="preferred_title" placeholder="Alternative title, if applicable">
+                                    <input type="text" class="form-control" name="preferred_title">
                                 </div>
                                 <div class="form-group">
                                     <label>Parallel Title</label>
-                                    <input type="text" class="form-control" name="parallel_title" placeholder="Title in another language">
+                                    <input type="text" class="form-control" name="parallel_title">
                                 </div>
 
                                 <!-- Hidden inputs for writer information -->
@@ -729,7 +729,7 @@ $accession_error = '';
                                                 <div class="form-group">
                                                     <label>Details</label>
                                                     <textarea class="form-control" name="subject_paragraphs[]"
-                                                        rows="3" placeholder="Enter details about this subject category"></textarea>
+                                                        rows="3" placeholder="Enter additional details about this subject"></textarea>
                                                 </div>
                                             </div>
                                         </div>
@@ -743,12 +743,12 @@ $accession_error = '';
                                 <div class="form-group">
                                     <label>Summary/Abstract</label>
                                     <textarea class="form-control" name="abstract" rows="6"
-                                        placeholder="Brief summary of the book's content"></textarea>
+                                        placeholder="Enter a summary or abstract of the book"></textarea>
                                 </div>
                                 <div class="form-group">
                                     <label>Contents</label>
                                     <textarea class="form-control" name="notes" rows="4"
-                                        placeholder="Table of contents or chapter information"></textarea>
+                                        placeholder="Enter the table of contents or chapter list"></textarea>
                                 </div>
                             </div>
 
@@ -800,19 +800,19 @@ $accession_error = '';
                                 </div>
                                 <div class="form-group">
                                     <label>Dimension (cm)</label>
-                                    <input type="number" step="0.01" class="form-control" name="dimension" placeholder="e.g., 23 cm²">
+                                    <input type="number" step="0.01" class="form-control" name="dimension">
                                 </div>
                                 <div class="form-group">
                                     <label>Pages</label>
                                     <div class="row">
                                         <div class="col-md-3">
                                             <label class="small">Prefix (Roman)</label>
-                                            <input type="text" class="form-control" name="prefix_pages" placeholder="e.g., xii">
+                                            <input type="text" class="form-control" name="prefix_pages" placeholder="e.g. xvi">
                                             <small class="text-muted">Use roman numerals</small>
                                         </div>
                                         <div class="col-md-3">
                                             <label class="small">Main Pages</label>
-                                            <input type="text" class="form-control" name="main_pages" placeholder="e.g., 350 p.">
+                                            <input type="text" class="form-control" name="main_pages" placeholder="e.g. 234a">
                                             <small class="text-muted">Can include letters (e.g. 123a)</small>
                                         </div>
                                         <div class="col-md-6">
@@ -844,7 +844,7 @@ $accession_error = '';
                                                         <div class="form-group">
                                                             <label>Accession Group 1</label>
                                                             <input type="text" class="form-control accession-input" name="accession[]"
-                                                                placeholder="e.g., 2023-0001" required>
+                                                                placeholder="e.g., 2023-0001 (will auto-increment based on copies)" required>
                                                             <small class="text-muted">If you enter 2023-0001 and set 3 copies, it will create: 2023-0001, 2023-0002, 2023-0003</small>
                                                             <?php if ($accession_error): ?>
                                                                 <small class="text-danger"><?php echo $accession_error; ?></small>
@@ -1024,7 +1024,7 @@ $accession_error = '';
                                     <div class="col-md-6">
                                         <div class="form-group">
                                             <label>URL</label>
-                                            <input type="text" class="form-control" name="url" placeholder="https://example.com">
+                                            <input type="text" class="form-control" name="url">
                                         </div>
                                     </div>
 
@@ -1306,7 +1306,7 @@ function updateISBNFields() {
             callNumberInput.type = 'text';
             callNumberInput.className = 'form-control call-number-input';
             callNumberInput.name = 'call_number[]';
-            callNumberInput.placeholder = 'Enter classification number and cutter';
+            callNumberInput.placeholder = 'Enter call number';
 
             // Add Copy Number label and input
             const copyNumberLabel = document.createElement('span');
