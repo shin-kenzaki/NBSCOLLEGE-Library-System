@@ -142,15 +142,7 @@ include 'inc/header.php';
                         <?php if ($current_step < 3): ?>
                             <form method="post" class="d-inline">
                                 <input type="hidden" name="step" value="<?php echo $current_step + 1; ?>">
-                                <button type="submit" class="btn btn-primary" 
-                                    <?php 
-                                    // Disable the button if writer isn't selected in step 1
-                                    echo (!$_SESSION['book_shortcut']['steps_completed']['writer'] && $current_step == 1) ? 'disabled' : ''; 
-                                    // Disable the button if publisher isn't selected in step 2
-                                    echo (!$_SESSION['book_shortcut']['steps_completed']['publisher'] && $current_step == 2) ? 'disabled' : '';
-                                    ?>>
-                                    Next Step
-                                </button>
+                                <button type="submit" class="btn btn-primary">Next Step</button>
                             </form>
                         <?php endif; ?>
                     </div>
