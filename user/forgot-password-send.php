@@ -34,8 +34,13 @@ if ($stmt->affected_rows > 0) {
 
     $mail->isHTML(true);
     $encoded_token = urlencode($token);
+    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
+    $host = $_SERVER['HTTP_HOST']; // This will give you the server's hostname or IP
+    $base_url = "$protocol://$host";
+
+    // Generate the reset link
     $mail->Body = <<<END
-    Click <a href="http://localhost/Library-System/user/forgot-reset-password.php?token=$encoded_token">here</a>
+    Click <a href="$base_url/Library-System/User/forgot-reset-password.php?token=$encoded_token">here</a>
     to reset your password.
     END;
 
