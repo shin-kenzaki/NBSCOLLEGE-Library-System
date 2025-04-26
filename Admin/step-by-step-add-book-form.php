@@ -339,6 +339,148 @@ $accession_error = '';
 
 ?>
 
+<!-- Add custom CSS for file uploads -->
+<style>
+/* Enhanced File Upload Styling */
+.file-upload-container {
+  position: relative;
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.file-upload-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed #ddd;
+  border-radius: 8px;
+  background-color: #f8f9fc;
+  padding: 20px;
+  text-align: center;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  min-height: 180px;
+}
+
+.file-upload-area:hover, .file-upload-area.drag-over {
+  border-color: #4e73df;
+  background-color: rgba(78, 115, 223, 0.05);
+}
+
+.file-upload-area .upload-icon {
+  font-size: 2rem;
+  color: #4e73df;
+  margin-bottom: 10px;
+}
+
+.file-upload-area .upload-text {
+  color: #6e707e;
+  margin-bottom: 10px;
+}
+
+.file-upload-area .upload-hint {
+  font-size: 0.8rem;
+  color: #858796;
+}
+
+.file-upload-input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.file-preview-container {
+  display: none;
+  margin-top: 15px;
+  border: 1px solid #e3e6f0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.file-preview-container.show {
+  display: block;
+}
+
+.file-preview {
+  position: relative;
+  width: 100%;
+  padding-top: 56.25%; /* 16:9 aspect ratio */
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+.file-info {
+  padding: 10px;
+  background: #f8f9fc;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+.file-info .file-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 70%;
+}
+
+.file-info .file-size {
+  color: #858796;
+}
+
+.file-remove {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #e74a3b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.file-remove:hover {
+  background: rgba(255, 255, 255, 1);
+  transform: scale(1.1);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .file-upload-area {
+    min-height: 150px;
+    padding: 15px;
+  }
+  
+  .file-upload-area .upload-icon {
+    font-size: 1.5rem;
+  }
+}
+
+.file-upload-container.is-invalid .file-upload-area {
+  border-color: #e74a3b;
+}
+
+.file-upload-container .invalid-feedback {
+  display: none;
+}
+
+.file-upload-container.is-invalid .invalid-feedback {
+  display: block;
+}
+</style>
+
 <!-- Main Content -->
 <div id="content-wrapper" class="d-flex flex-column min-vh-100">
     <div id="content" class="flex-grow-1">
@@ -655,14 +797,58 @@ $accession_error = '';
                             <!-- Description Tab -->
                             <div class="tab-pane fade" id="description" role="tabpanel">
                                 <h4>Description</h4>
-                                <div class="form-group">
-                                    <label>Front Image</label>
-                                    <input type="file" class="form-control" name="front_image">
+                                <!-- Replace file inputs with custom file upload components -->
+                                <div class="row mb-4">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Front Cover Image</label>
+                                            <div class="file-upload-container">
+                                                <div class="file-upload-area">
+                                                    <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                                                    <div class="upload-text">Drag & drop front cover image or click to browse</div>
+                                                    <div class="upload-hint">Supported formats: JPG, PNG, GIF (Max: 5MB)</div>
+                                                </div>
+                                                <input type="file" name="front_image" class="file-upload-input" accept="image/*">
+                                                <div class="invalid-feedback">Please select a front cover image</div>
+                                                
+                                                <div class="file-preview-container">
+                                                    <div class="file-preview"></div>
+                                                    <div class="file-info">
+                                                        <span class="file-name"></span>
+                                                        <span class="file-size"></span>
+                                                    </div>
+                                                    <div class="file-remove"><i class="fas fa-times"></i></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Back Cover Image</label>
+                                            <div class="file-upload-container">
+                                                <div class="file-upload-area">
+                                                    <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                                                    <div class="upload-text">Drag & drop back cover image or click to browse</div>
+                                                    <div class="upload-hint">Supported formats: JPG, PNG, GIF (Max: 5MB)</div>
+                                                </div>
+                                                <input type="file" name="back_image" class="file-upload-input" accept="image/*">
+                                                <div class="invalid-feedback">Please select a back cover image</div>
+                                                
+                                                <div class="file-preview-container">
+                                                    <div class="file-preview"></div>
+                                                    <div class="file-info">
+                                                        <span class="file-name"></span>
+                                                        <span class="file-size"></span>
+                                                    </div>
+                                                    <div class="file-remove"><i class="fas fa-times"></i></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="form-group">
-                                    <label>Back Image</label>
-                                    <input type="file" class="form-control" name="back_image">
-                                </div>
+                                
+                                <!-- Then the rest of the fields -->
                                 <div class="form-group">
                                     <label>Dimension (cm)</label>
                                     <input type="number" step="0.01" class="form-control" name="dimension">
@@ -1514,4 +1700,112 @@ function updateCopyNumbers() {
         formatCallNumberDisplay(input);
     });
 }
+
+/**
+ * Enhanced File Upload Component
+ */
+function initializeFileUploads() {
+  const fileUploads = document.querySelectorAll('.file-upload-container');
+  
+  fileUploads.forEach(container => {
+    const input = container.querySelector('.file-upload-input');
+    const uploadArea = container.querySelector('.file-upload-area');
+    const previewContainer = container.querySelector('.file-preview-container');
+    const preview = container.querySelector('.file-preview');
+    const fileName = container.querySelector('.file-name');
+    const fileSize = container.querySelector('.file-size');
+    const removeButton = container.querySelector('.file-remove');
+    
+    // Handle file selection
+    input.addEventListener('change', function() {
+      handleFileSelection(this.files[0]);
+    });
+    
+    // Handle remove button click
+    if (removeButton) {
+      removeButton.addEventListener('click', function(e) {
+        e.stopPropagation();
+        clearFileSelection();
+      });
+    }
+    
+    // Handle drag and drop
+    uploadArea.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      uploadArea.classList.add('drag-over');
+    });
+    
+    uploadArea.addEventListener('dragleave', function() {
+      uploadArea.classList.remove('drag-over');
+    });
+    
+    uploadArea.addEventListener('drop', function(e) {
+      e.preventDefault();
+      uploadArea.classList.remove('drag-over');
+      handleFileSelection(e.dataTransfer.files[0]);
+    });
+    
+    // Click on upload area to trigger file input
+    uploadArea.addEventListener('click', function() {
+      input.click();
+    });
+    
+    // Function to handle selected file
+    function handleFileSelection(file) {
+      if (!file) return;
+      
+      // Check if file is an image
+      if (!file.type.match('image.*')) {
+        alert('Please select an image file (jpg, png, etc.)');
+        return;
+      }
+      
+      // Check file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('File size exceeds 5MB. Please choose a smaller file.');
+        return;
+      }
+      
+      // Update preview
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        preview.style.backgroundImage = `url(${e.target.result})`;
+      };
+      reader.readAsDataURL(file);
+      
+      // Show preview container
+      previewContainer.classList.add('show');
+      
+      // Update file info
+      fileName.textContent = file.name;
+      fileSize.textContent = formatFileSize(file.size);
+      
+      // Remove invalid state if present
+      container.classList.remove('is-invalid');
+    }
+    
+    // Function to clear file selection
+    function clearFileSelection() {
+      input.value = '';
+      preview.style.backgroundImage = '';
+      previewContainer.classList.remove('show');
+      fileName.textContent = '';
+      fileSize.textContent = '';
+    }
+  });
+}
+
+// Utility function to format file size
+function formatFileSize(bytes) {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+  initializeFileUploads();
+});
 </script>

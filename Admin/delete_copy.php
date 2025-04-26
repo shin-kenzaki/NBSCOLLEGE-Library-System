@@ -80,15 +80,38 @@ try {
     $stmt = $conn->prepare($delete_book);
     $stmt->bind_param("i", $bookId);
     $stmt->execute();
-    
+
+    // Check if there are remaining copies of the book
+    $remaining_copies_query = "SELECT id FROM books WHERE title = ? AND status = 'Available' LIMIT 1";
+    $stmt = $conn->prepare($remaining_copies_query);
+    $stmt->bind_param("s", $book['title']);
+    $stmt->execute();
+    $remaining_copies_result = $stmt->get_result();
+
+    if ($remaining_copies_result->num_rows > 0) {
+        $remaining_copy = $remaining_copies_result->fetch_assoc();
+        $selectedBookId = $remaining_copy['id'];
+    } else {
+        // No copies remain, navigate to book list
+        $conn->commit();
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => true,
+            'message' => 'Book copy deleted successfully. Redirecting to book list.',
+            'redirect' => 'book_list.php'
+        ]);
+        exit;
+    }
+
     // Commit the transaction
     $conn->commit();
-    
-    // Return success response
+
+    // Return success response with the selected book ID
     header('Content-Type: application/json');
     echo json_encode([
-        'success' => true, 
-        'message' => 'Book copy deleted successfully'
+        'success' => true,
+        'message' => 'Book copy deleted successfully',
+        'selectedBookId' => $selectedBookId
     ]);
     
 } catch (Exception $e) {

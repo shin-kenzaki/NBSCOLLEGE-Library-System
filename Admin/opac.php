@@ -1294,10 +1294,9 @@ function confirmDeleteCopy(bookId, accession) {
         reverseButtons: true
     }).then(async (result) => {
         if (result.isConfirmed) {
-            // Show loading state
             Swal.fire({
-                title: 'Checking book status...',
-                html: 'Please wait while we check if this book can be deleted.',
+                title: 'Deleting...',
+                html: 'Please wait while the copy is being deleted.',
                 allowOutsideClick: false,
                 allowEscapeKey: false,
                 didOpen: () => {
@@ -1311,32 +1310,40 @@ function confirmDeleteCopy(bookId, accession) {
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                        bookId: bookId
-                    })
+                    body: JSON.stringify({ bookId: bookId })
                 });
 
                 const data = await response.json();
 
                 if (data.success) {
-                    Swal.fire({
-                        title: 'Success!',
-                        text: data.message || `Successfully deleted book copy with accession #${accession}.`,
-                        icon: 'success'
-                    }).then(() => {
-                        location.reload();
-                    });
+                    if (data.redirect) {
+                        Swal.fire({
+                            title: 'Success!',
+                            text: data.message,
+                            icon: 'success'
+                        }).then(() => {
+                            window.location.href = data.redirect;
+                        });
+                    } else if (data.selectedBookId) {
+                        Swal.fire({
+                            title: 'Success!',
+                            text: data.message,
+                            icon: 'success'
+                        }).then(() => {
+                            window.location.href = `opac.php?book_id=${data.selectedBookId}`;
+                        });
+                    }
                 } else {
                     Swal.fire({
-                        title: 'Cannot Delete Book',
-                        html: data.error || 'Failed to delete copy. The book may be currently in use.',
+                        title: 'Error!',
+                        text: data.error || 'An unexpected error occurred.',
                         icon: 'error'
                     });
                 }
             } catch (error) {
                 Swal.fire({
                     title: 'Error!',
-                    text: 'An unexpected error occurred while deleting the copy',
+                    text: 'An unexpected error occurred while deleting the copy.',
                     icon: 'error'
                 });
             }

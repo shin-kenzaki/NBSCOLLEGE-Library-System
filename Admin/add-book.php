@@ -204,6 +204,145 @@ $accession_error = '';
     text-align: left;
     margin-bottom: 5px;
 }
+
+/* Enhanced File Upload Styling */
+.file-upload-container {
+  position: relative;
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.file-upload-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed #ddd;
+  border-radius: 8px;
+  background-color: #f8f9fc;
+  padding: 20px;
+  text-align: center;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  min-height: 180px;
+}
+
+.file-upload-area:hover, .file-upload-area.drag-over {
+  border-color: #4e73df;
+  background-color: rgba(78, 115, 223, 0.05);
+}
+
+.file-upload-area .upload-icon {
+  font-size: 2rem;
+  color: #4e73df;
+  margin-bottom: 10px;
+}
+
+.file-upload-area .upload-text {
+  color: #6e707e;
+  margin-bottom: 10px;
+}
+
+.file-upload-area .upload-hint {
+  font-size: 0.8rem;
+  color: #858796;
+}
+
+.file-upload-input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.file-preview-container {
+  display: none;
+  margin-top: 15px;
+  border: 1px solid #e3e6f0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.file-preview-container.show {
+  display: block;
+}
+
+.file-preview {
+  position: relative;
+  width: 100%;
+  padding-top: 56.25%; /* 16:9 aspect ratio */
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+.file-info {
+  padding: 10px;
+  background: #f8f9fc;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+.file-info .file-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 70%;
+}
+
+.file-info .file-size {
+  color: #858796;
+}
+
+.file-remove {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #e74a3b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.file-remove:hover {
+  background: rgba(255, 255, 255, 1);
+  transform: scale(1.1);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .file-upload-area {
+    min-height: 150px;
+    padding: 15px;
+  }
+  
+  .file-upload-area .upload-icon {
+    font-size: 1.5rem;
+  }
+}
+
+.file-upload-container.is-invalid .file-upload-area {
+  border-color: #e74a3b;
+}
+
+.file-upload-container .invalid-feedback {
+  display: none;
+}
+
+.file-upload-container.is-invalid .invalid-feedback {
+  display: block;
+}
 </style>
 
 <!-- Main Content -->
@@ -245,13 +384,6 @@ $accession_error = '';
                 </div>
                 <?php unset($_SESSION['success_message']); ?>
                 <?php endif; ?>
-
-                <!-- Progress Bar -->
-                <div class="progress mb-4">
-                    <div class="progress-bar" role="progressbar" style="width: 0%" id="formProgressBar"
-                         aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
-                    </div>
-                </div>
 
                 <div class="row">
                     <div class="col-xl-12 col-lg-12">
@@ -387,6 +519,56 @@ $accession_error = '';
                                         </button>
                                     </div>
                                 </div>
+                                <!-- New file inputs with custom file upload components -->
+                                <div class="row mb-4">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Front Cover Image</label>
+                                            <div class="file-upload-container">
+                                                <div class="file-upload-area">
+                                                    <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                                                    <div class="upload-text">Drag & drop front cover image or click to browse</div>
+                                                    <div class="upload-hint">Supported formats: JPG, PNG, GIF (Max: 5MB)</div>
+                                                </div>
+                                                <input type="file" name="front_image" class="file-upload-input" accept="image/*">
+                                                <div class="invalid-feedback">Please select a front cover image</div>
+                                                
+                                                <div class="file-preview-container">
+                                                    <div class="file-preview"></div>
+                                                    <div class="file-info">
+                                                        <span class="file-name"></span>
+                                                        <span class="file-size"></span>
+                                                    </div>
+                                                    <div class="file-remove"><i class="fas fa-times"></i></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Back Cover Image</label>
+                                            <div class="file-upload-container">
+                                                <div class="file-upload-area">
+                                                    <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                                                    <div class="upload-text">Drag & drop back cover image or click to browse</div>
+                                                    <div class="upload-hint">Supported formats: JPG, PNG, GIF (Max: 5MB)</div>
+                                                </div>
+                                                <input type="file" name="back_image" class="file-upload-input" accept="image/*">
+                                                <div class="invalid-feedback">Please select a back cover image</div>
+                                                
+                                                <div class="file-preview-container">
+                                                    <div class="file-preview"></div>
+                                                    <div class="file-info">
+                                                        <span class="file-name"></span>
+                                                        <span class="file-size"></span>
+                                                    </div>
+                                                    <div class="file-remove"><i class="fas fa-times"></i></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="form-group">
@@ -427,11 +609,12 @@ $accession_error = '';
                                         </div>
                                     </div>
                                 </div>
-                                <div class="form-group">
+                                <!-- <div class="form-group">
                                     <label>Book Images (Optional)</label>
                                     <div class="row">
                                         <div class="col-md-6">
-                                            <div class="custom-file mb-3">
+
+                                        <div class="custom-file mb-3">
                                                 <input type="file" class="custom-file-input" id="front_image" name="front_image">
                                                 <label class="custom-file-label" for="front_image">Front Cover</label>
                                             </div>
@@ -443,7 +626,7 @@ $accession_error = '';
                                             </div>
                                         </div>
                                     </div>
-                                </div>
+                                </div> -->
                             </div>
                             <!-- Local Information Tab -->
                             <div class="tab-pane fade" id="local-info" role="tabpanel">
@@ -909,20 +1092,6 @@ $accession_error = '';
     display: flex;
     align-items: center;
 }
-/* Completed tab styling */
-#formTabs .nav-link.completed {
-    position: relative;
-    display: flex;
-    align-items: center;
-}
-#formTabs .nav-link.completed::after {
-    content: '✓';
-    position: absolute;
-    top: 2px;
-    right: 5px;
-    font-size: 12px;
-    color: #28a745;
-}
 /* Add to existing styles */
 .btn-group .btn {
     margin: 0 2px;
@@ -1182,32 +1351,18 @@ document.addEventListener('DOMContentLoaded', function() {
         if (tabLink) {
             tabLink.classList.remove('completed');
         }
-
-        // Update progress bar if needed
-        updateFormProgress();
     }
 
     function clearAllTabs() {
         const tabs = ['title-proper', 'subject-entry', 'abstracts', 'description', 'local-info', 'publication'];
         tabs.forEach(tabId => clearTab(tabId));
 
-        // Reset progress bar
-        const progressBar = document.getElementById('formProgressBar');
-        if (progressBar) {
-            progressBar.style.width = '0%';
-            progressBar.setAttribute('aria-valuenow', 0);
-        }
 
         // Reset to first tab
         const firstTab = document.querySelector('#formTabs .nav-link');
         if (firstTab && typeof $(firstTab).tab === 'function') {
             $(firstTab).tab('show');
         }
-
-        // Remove 'completed' class from all tabs
-        document.querySelectorAll('#formTabs .nav-link').forEach(tab => {
-            tab.classList.remove('completed');
-        });
 
         // Reset current tab index if it's being tracked
         if (typeof window.currentTabIndex !== 'undefined') {
@@ -1249,15 +1404,8 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateFormProgress() {
         const totalTabs = document.querySelectorAll('#formTabs .nav-link').length;
         const completedTabs = document.querySelectorAll('#formTabs .nav-link.completed').length;
-
-        // Update progress bar
-        const progressBar = document.getElementById('formProgressBar');
-        if (progressBar) {
-            const progressPercentage = totalTabs > 0 ? (completedTabs / totalTabs) * 100 : 0;
-            progressBar.style.width = progressPercentage + '%';
-            progressBar.setAttribute('aria-valuenow', progressPercentage);
-        }
     }
+
 
     // Function to validate current tab
     function validateCurrentTab() {
@@ -1277,14 +1425,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 field.classList.remove('is-invalid');
             }
         });
-
-        // If valid, mark tab as completed
-        if (isValid) {
-            currentTab.classList.add('completed');
-
-            // Count completed tabs
-            completedTabs = document.querySelectorAll('#formTabs .nav-link.completed').length;
-        }
 
         return isValid;
     }
@@ -1331,9 +1471,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 });
 
-                // Update progress bar
-                updateProgressBar();
-
                 // Activate the tab with Bootstrap
                 $(nextTab).tab('show');
             } else {
@@ -1361,9 +1498,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     currentTabIndex = index;
                 }
             });
-
-            // Update progress bar
-            updateProgressBar();
 
             // Trigger click on the previous tab
             $(prevTab).tab('show');
@@ -1477,18 +1611,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (isbnContainer) {
         isbnContainer.innerHTML = '';
     }
-
-    // Reset the progress bar
-    const progressBar = document.getElementById('formProgressBar');
-    if (progressBar) {
-        progressBar.style.width = '0%';
-        progressBar.setAttribute('aria-valuenow', 0);
-    }
-
-    // Remove 'completed' class from all tabs
-    document.querySelectorAll('#formTabs .nav-link.completed').forEach(tab => {
-        tab.classList.remove('completed');
-    });
 
     // Activate the first tab
     const firstTab = document.querySelector('#formTabs .nav-link');
@@ -1610,10 +1732,6 @@ document.addEventListener("DOMContentLoaded", function() {
             formData['activeTab'] = activeTab.id;
         }
 
-        // Save progress bar state
-        const progressBar = document.getElementById('formProgressBar');
-        formData['progressValue'] = progressBar.style.width;
-
         // Save completed tabs
         const completedTabs = Array.from(document.querySelectorAll('#formTabs .nav-link.completed')).map(tab => tab.id);
         formData['completedTabs'] = completedTabs;
@@ -1626,19 +1744,22 @@ document.addEventListener("DOMContentLoaded", function() {
         const tabPane = document.querySelector(`#${tabId}`);
         if (!tabPane) return;
 
-        // Clear inputs within the tab
+        // IDs to preserve in the publication tab
+        const preserveFields = ['entered_by', 'date_added', 'last_update', 'status'];
+
         tabPane.querySelectorAll('input:not([type="hidden"]), textarea, select').forEach(input => {
+            // Skip preserved fields in publication tab
+            if (tabId === 'publication' && preserveFields.includes(input.id)) return;
+
             if (input.type === 'checkbox' || input.type === 'radio') {
                 input.checked = false;
             } else if (input.type === 'select-multiple') {
                 input.selectedIndex = -1;
-                // Clear associated preview if exists
                 const previewId = input.id + 'Preview';
                 const preview = document.getElementById(previewId);
                 if (preview) preview.innerHTML = '';
             } else if (input.type === 'file') {
                 input.value = '';
-                // Reset associated label
                 const label = input.nextElementSibling;
                 if (label && label.classList.contains('custom-file-label')) {
                     label.textContent = 'Choose file';
@@ -1710,11 +1831,6 @@ document.addEventListener("DOMContentLoaded", function() {
                 progressBar.style.width = '0%';
                 progressBar.setAttribute('aria-valuenow', 0);
             }
-
-            // Remove completed status from all tabs
-            document.querySelectorAll('#formTabs .nav-link').forEach(tab => {
-                tab.classList.remove('completed');
-            });
 
             // Clear accession groups
             const accessionContainer = document.getElementById('accessionContainer');
@@ -1918,15 +2034,6 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         }
 
-        // Restore progress bar
-        if (formData['progressValue']) {
-            const progressBar = document.getElementById('formProgressBar');
-            if (progressBar) {
-                progressBar.style.width = formData['progressValue'];
-                progressBar.setAttribute('aria-valuenow', parseInt(formData['progressValue']));
-            }
-        }
-
         // Restore completed tabs with improved selector handling
         if (formData['completedTabs'] && Array.isArray(formData['completedTabs'])) {
             formData['completedTabs'].forEach(tabId => {
@@ -1936,10 +2043,6 @@ document.addEventListener("DOMContentLoaded", function() {
                 if (!tab) tab = document.querySelector(`#formTabs .nav-link[href="#${tabId.replace('tab', 'proper')}"]`);
                 if (!tab) tab = document.querySelector(`#formTabs .nav-link[href="#${tabId}"]`);
                 if (!tab) tab = document.querySelector(`#formTabs .nav-link[id="${tabId}"]`);
-
-                if (tab) {
-                    tab.classList.add('completed');
-                }
             });
         }
 
@@ -1955,18 +2058,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
         // Reset the form element
         if (form) form.reset();
-
-        // Reset progress bar
-        const progressBar = document.getElementById('formProgressBar');
-        if (progressBar) {
-            progressBar.style.width = '0%';
-            progressBar.setAttribute('aria-valuenow', 0);
-        }
-
-        // Remove completed status from all tabs
-        document.querySelectorAll('#formTabs .nav-link').forEach(tab => {
-            tab.classList.remove('completed');
-        });
 
         // Reset accession groups
         const accessionContainer = document.getElementById('accessionContainer');
@@ -2023,11 +2114,6 @@ document.addEventListener("DOMContentLoaded", function() {
                     allFilled = false;
                 }
             });
-
-            // If all required fields are filled, mark tab as completed
-            if (allFilled && requiredFields.length > 0) {
-                tab.classList.add('completed');
-            }
         });
     }
 
@@ -4378,5 +4464,113 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     });
+});
+
+/**
+ * Enhanced File Upload Component
+ */
+function initializeFileUploads() {
+  const fileUploads = document.querySelectorAll('.file-upload-container');
+  
+  fileUploads.forEach(container => {
+    const input = container.querySelector('.file-upload-input');
+    const uploadArea = container.querySelector('.file-upload-area');
+    const previewContainer = container.querySelector('.file-preview-container');
+    const preview = container.querySelector('.file-preview');
+    const fileName = container.querySelector('.file-name');
+    const fileSize = container.querySelector('.file-size');
+    const removeButton = container.querySelector('.file-remove');
+    
+    // Handle file selection
+    input.addEventListener('change', function() {
+      handleFileSelection(this.files[0]);
+    });
+    
+    // Handle remove button click
+    if (removeButton) {
+      removeButton.addEventListener('click', function(e) {
+        e.stopPropagation();
+        clearFileSelection();
+      });
+    }
+    
+    // Handle drag and drop
+    uploadArea.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      uploadArea.classList.add('drag-over');
+    });
+    
+    uploadArea.addEventListener('dragleave', function() {
+      uploadArea.classList.remove('drag-over');
+    });
+    
+    uploadArea.addEventListener('drop', function(e) {
+      e.preventDefault();
+      uploadArea.classList.remove('drag-over');
+      handleFileSelection(e.dataTransfer.files[0]);
+    });
+    
+    // Click on upload area to trigger file input
+    uploadArea.addEventListener('click', function() {
+      input.click();
+    });
+    
+    // Function to handle selected file
+    function handleFileSelection(file) {
+      if (!file) return;
+      
+      // Check if file is an image
+      if (!file.type.match('image.*')) {
+        alert('Please select an image file (jpg, png, etc.)');
+        return;
+      }
+      
+      // Check file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('File size exceeds 5MB. Please choose a smaller file.');
+        return;
+      }
+      
+      // Update preview
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        preview.style.backgroundImage = `url(${e.target.result})`;
+      };
+      reader.readAsDataURL(file);
+      
+      // Show preview container
+      previewContainer.classList.add('show');
+      
+      // Update file info
+      fileName.textContent = file.name;
+      fileSize.textContent = formatFileSize(file.size);
+      
+      // Remove invalid state if present
+      container.classList.remove('is-invalid');
+    }
+    
+    // Function to clear file selection
+    function clearFileSelection() {
+      input.value = '';
+      preview.style.backgroundImage = '';
+      previewContainer.classList.remove('show');
+      fileName.textContent = '';
+      fileSize.textContent = '';
+    }
+  });
+}
+
+// Utility function to format file size
+function formatFileSize(bytes) {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+  initializeFileUploads();
 });
 </script>

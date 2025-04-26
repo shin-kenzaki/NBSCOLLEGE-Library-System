@@ -371,7 +371,19 @@ $result = $stmt->get_result();
             $current_sequence = [];
 
             foreach ($call_number_data as $data) {
-                list($call_num, $copy_num) = explode('|', $data);
+                // Fix: Safely handle data without a pipe character
+                $parts = explode('|', $data);
+                
+                // Make sure we have both parts (call number and copy number)
+                if (count($parts) >= 2) {
+                    $call_num = $parts[0];
+                    $copy_num = $parts[1];
+                } else {
+                    // If we don't have both parts, just use the data as the call number
+                    $call_num = $data;
+                    $copy_num = "1"; // Default copy number
+                }
+                
                 $base_call = preg_replace('/\s*c\d+$/', '', $call_num);
 
                 if ($base_call !== $current_base) {

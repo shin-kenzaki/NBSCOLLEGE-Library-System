@@ -21,26 +21,50 @@ try {
 
 // Check if the form was submitted
 if (isset($_POST['submit'])) {
-    // Validate required fields
+    // Validate required fields with more detailed checking
     $required_fields = [
-        'title', 
-        'publisher', 
-        'publish_date', 
-        'author', 
-        'accession'
+        'title' => 'Book Title', 
+        'accession' => 'Accession Number'
     ];
     
     $errors = [];
     
-    foreach ($required_fields as $field) {
+    foreach ($required_fields as $field => $display_name) {
         if (empty($_POST[$field])) {
-            $errors[] = ucfirst(str_replace('_', ' ', $field)) . ' is required';
+            $errors[] = "$display_name is required";
+        }
+    }
+    
+    // Validate author information
+    if (empty($_POST['author']) && (!isset($_POST['authors']) || empty($_POST['authors']))) {
+        $errors[] = "At least one author must be selected";
+    }
+    
+    // Validate publisher information from session
+    if (empty($_SESSION['book_shortcut']['publisher_id'])) {
+        $errors[] = "Publisher information is missing. Please go back and select a publisher";
+    }
+    
+    // Validate accession numbers format
+    if (!empty($_POST['accession']) && is_array($_POST['accession'])) {
+        foreach ($_POST['accession'] as $i => $accession) {
+            if (empty($accession)) {
+                $errors[] = "Accession number for group " . ($i + 1) . " is required";
+            } else {
+                // Check for duplicate accession in database
+                $check_query = "SELECT accession FROM books WHERE accession = '" . mysqli_real_escape_string($conn, $accession) . "'";
+                $result = mysqli_query($conn, $check_query);
+                if (mysqli_num_rows($result) > 0) {
+                    $errors[] = "Accession number '$accession' already exists in the database";
+                }
+            }
         }
     }
     
     if (!empty($errors)) {
-        $_SESSION['error_message'] = 'Please fix the following errors: ' . implode(', ', $errors);
-        return; // Stop processing if there are validation errors
+        $_SESSION['error_message'] = 'Please fix the following errors:<ul><li>' . implode('</li><li>', $errors) . '</li></ul>';
+        // Return without redirection, letting the form handle the error display
+        return;
     }
     
     // Process the form if validation passes
@@ -48,6 +72,68 @@ if (isset($_POST['submit'])) {
         // Start a transaction if supported
         if ($transactionSupported) {
             mysqli_begin_transaction($conn);
+        }
+        
+        // Handle file uploads with improved validation
+        $front_image = '';
+        $back_image = '';
+        $imageFolder = '../Images/book-image/'; 
+
+        // Ensure the folder exists
+        if (!is_dir($imageFolder)) {
+            mkdir($imageFolder, 0777, true);
+        }
+
+        // Process front image with additional validation
+        if (isset($_FILES['front_image']) && $_FILES['front_image']['error'] === UPLOAD_ERR_OK && $_FILES['front_image']['size'] > 0) {
+            // Validate image type
+            $allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+            if (!in_array($_FILES['front_image']['type'], $allowedTypes)) {
+                throw new Exception("Front image must be a JPG, PNG, or GIF file.");
+            }
+            
+            // Validate size (max 5MB)
+            if ($_FILES['front_image']['size'] > 5 * 1024 * 1024) {
+                throw new Exception("Front image exceeds maximum size of 5MB.");
+            }
+            
+            $frontImageTmpName = $_FILES['front_image']['tmp_name'];
+            $frontImageName = uniqid('front_', true) . '_' . basename($_FILES['front_image']['name']);
+            $frontImagePath = $imageFolder . $frontImageName;
+
+            // Move the uploaded file to the target folder
+            if (move_uploaded_file($frontImageTmpName, $frontImagePath)) {
+                // Convert to relative path for database storage
+                $front_image = 'Images/book-image/' . $frontImageName;
+            } else {
+                throw new Exception("Failed to upload front image.");
+            }
+        }
+
+        // Process back image with same improved validation
+        if (isset($_FILES['back_image']) && $_FILES['back_image']['error'] === UPLOAD_ERR_OK && $_FILES['back_image']['size'] > 0) {
+            // Validate image type
+            $allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+            if (!in_array($_FILES['back_image']['type'], $allowedTypes)) {
+                throw new Exception("Back image must be a JPG, PNG, or GIF file.");
+            }
+            
+            // Validate size (max 5MB)
+            if ($_FILES['back_image']['size'] > 5 * 1024 * 1024) {
+                throw new Exception("Back image exceeds maximum size of 5MB.");
+            }
+            
+            $backImageTmpName = $_FILES['back_image']['tmp_name'];
+            $backImageName = uniqid('back_', true) . '_' . basename($_FILES['back_image']['name']);
+            $backImagePath = $imageFolder . $backImageName;
+
+            // Move the uploaded file to the target folder
+            if (move_uploaded_file($backImageTmpName, $backImagePath)) {
+                // Convert to relative path for database storage
+                $back_image = 'Images/book-image/' . $backImageName;
+            } else {
+                throw new Exception("Failed to upload back image.");
+            }
         }
         
         // Initialize counter for successful insertions
@@ -174,14 +260,14 @@ if (isset($_POST['submit'])) {
                         summary, contents, dimension, series, volume, part, edition,
                         copy_number, total_pages, supplementary_contents, ISBN, content_type, 
                         media_type, carrier_type, call_number, URL, language, shelf_location, 
-                        entered_by, date_added, status, last_update, subject_category, program, subject_detail
+                        entered_by, date_added, status, last_update, subject_category, program, subject_detail, front_image, back_image
                     ) VALUES (
                         '$accession', '$title', '$preferred_title', '$parallel_title',
                         '$summary', '$contents', '$dimension', '$series', '$volume', '$part', '$edition',
                         '$copy_number', '$total_pages', '$supplementary_contents', '$isbn', '$content_type',
                         '$media_type', '$carrier_type', '$formatted_call_number', '$url',
                         '$language', '$shelf_location', '$entered_by', '$date_added',
-                        '$status', '$last_update', '$combined_subject_category', '$combined_program', '$combined_subject_detail'
+                        '$status', '$last_update', '$combined_subject_category', '$combined_program', '$combined_subject_detail', '$front_image', '$back_image'
                     )";
                     
                     if (!mysqli_query($conn, $insert_book_query)) {
@@ -287,8 +373,8 @@ if (isset($_POST['submit'])) {
         }
         
         $_SESSION['error_message'] = "Error: " . $e->getMessage();
-        header("Location: ../step-by-step-add-book-form.php");
-        exit();
+        // Don't redirect, let the form handle the error display
+        return;
     }
 }
 
