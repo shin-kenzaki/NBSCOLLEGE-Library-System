@@ -160,11 +160,6 @@ $accession_error = '';
     }
 }
 
-/* Make tab content more readable on mobile */
-.tab-pane {
-    padding: 15px 10px;
-}
-
 /* Ensure proper form layout */
 @media (max-width: 576px) {
     .container-fluid {
@@ -392,7 +387,7 @@ $accession_error = '';
                             <ul class="nav nav-tabs flex-nowrap" id="formTabs" role="tablist">
                                 <li class="nav-item">
                                     <a class="nav-link active" id="title-tab" data-toggle="tab" href="#title-proper" role="tab">
-                                        <i class="fas fa-book"></i> Title Information
+                                        <i class="fas fa-book"></i> Title Proper
                                     </a>
                                 </li>
                                 <li class="nav-item">
@@ -485,7 +480,8 @@ $accession_error = '';
                                 </div>
                                 <div class="form-group">
                                     <label>Details</label>
-                                    <textarea class="form-control" name="subject_paragraphs[]" rows="3"></textarea>
+                                    <textarea class="form-control" name="subject_paragraphs[]" 
+                                    rows="3" placeholder="Enter additional details about this subject"></textarea>
                                 </div>
                             </div>
                             <!-- Abstracts Tab -->
@@ -499,7 +495,7 @@ $accession_error = '';
                                     </div>
                                 </div>
                                 <div class="form-group">
-                                    <label for="abstract">Abstract/Summary</label>
+                                    <label for="abstract">Summary/Abstract</label>
                                     <textarea class="form-control" id="abstract" name="abstract" rows="4"></textarea>
                                     <small class="form-text text-muted">Brief summary of the book's content.</small>
                                 </div>
@@ -609,24 +605,6 @@ $accession_error = '';
                                         </div>
                                     </div>
                                 </div>
-                                <!-- <div class="form-group">
-                                    <label>Book Images (Optional)</label>
-                                    <div class="row">
-                                        <div class="col-md-6">
-
-                                        <div class="custom-file mb-3">
-                                                <input type="file" class="custom-file-input" id="front_image" name="front_image">
-                                                <label class="custom-file-label" for="front_image">Front Cover</label>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="custom-file mb-3">
-                                                <input type="file" class="custom-file-input" id="back_image" name="back_image">
-                                                <label class="custom-file-label" for="back_image">Back Cover</label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div> -->
                             </div>
                             <!-- Local Information Tab -->
                             <div class="tab-pane fade" id="local-info" role="tabpanel">
@@ -1279,8 +1257,6 @@ $accession_error = '';
 <script src="inc/js/demo/chart-pie-demo.js"></script>
 <script src="inc/js/demo/chart-bar-demo.js"></script>
 
-<!-- Include JavaScript Files -->
-<script src="js/form-validation.js"></script>
 <script>
 // Form clear functionality integrated directly
 document.addEventListener('DOMContentLoaded', function() {

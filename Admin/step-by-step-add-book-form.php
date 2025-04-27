@@ -607,26 +607,38 @@ $accession_error = '';
 
                 <div class="row">
                     <div class="col-xl-12 col-lg-12">
-                        <!-- Tab Navigation - Make scrollable on small screens -->
+                        <!-- Tab Navigation - Single Row -->
                         <div class="nav-tab-wrapper overflow-auto">
-                            <ul class="nav nav-tabs" id="formTabs" role="tablist">
+                            <ul class="nav nav-tabs flex-nowrap" id="formTabs" role="tablist">
                                 <li class="nav-item">
-                                    <a class="nav-link active" data-bs-toggle="tab" href="#title-proper" role="tab">Title Proper</a>
+                                    <a class="nav-link active" data-bs-toggle="tab" href="#title-proper" role="tab">
+                                        <i class="fas fa-book"></i> Title Proper
+                                    </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link" data-bs-toggle="tab" href="#subject-entry" role="tab">Access Point</a>
+                                    <a class="nav-link" data-bs-toggle="tab" href="#subject-entry" role="tab">
+                                        <i class="fas fa-tags"></i> Access Point
+                                    </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link" data-bs-toggle="tab" href="#abstracts" role="tab">Abstracts</a>
+                                    <a class="nav-link" data-bs-toggle="tab" href="#abstracts" role="tab">
+                                        <i class="fas fa-file-alt"></i> Abstracts
+                                    </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link" data-bs-toggle="tab" href="#description" role="tab">Description</a>
+                                    <a class="nav-link" data-bs-toggle="tab" href="#description" role="tab">
+                                        <i class="fas fa-info-circle"></i> Description
+                                    </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link" data-bs-toggle="tab" href="#local-info" role="tab">Local Information</a>
+                                    <a class="nav-link" data-bs-toggle="tab" href="#local-info" role="tab">
+                                        <i class="fas fa-map-marker-alt"></i> Local Information
+                                    </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link" data-bs-toggle="tab" href="#publication" role="tab">Publication</a>
+                                    <a class="nav-link" data-bs-toggle="tab" href="#publication" role="tab">
+                                        <i class="fas fa-print"></i> Publication
+                                    </a>
                                 </li>
                             </ul>
                         </div>
@@ -656,10 +668,12 @@ $accession_error = '';
                                 <div class="form-group">
                                     <label>Preferred Title</label>
                                     <input type="text" class="form-control" name="preferred_title">
+                                    <small class="form-text text-muted">Alternative title, if applicable.</small>
                                 </div>
                                 <div class="form-group">
                                     <label>Parallel Title</label>
                                     <input type="text" class="form-control" name="parallel_title">
+                                    <small class="form-text text-muted">Title in another language.</small>
                                 </div>
 
                                 <!-- Hidden inputs for writer information -->
@@ -784,13 +798,13 @@ $accession_error = '';
                                 <h4>Abstracts</h4>
                                 <div class="form-group">
                                     <label>Summary/Abstract</label>
-                                    <textarea class="form-control" name="abstract" rows="6"
-                                        placeholder="Enter a summary or abstract of the book"></textarea>
+                                    <textarea class="form-control" name="abstract" rows="4"></textarea>
+                                    <small class="form-text text-muted">Brief summary of the book's content.</small>
                                 </div>
                                 <div class="form-group">
                                     <label>Contents</label>
-                                    <textarea class="form-control" name="notes" rows="4"
-                                        placeholder="Enter the table of contents or chapter list"></textarea>
+                                    <textarea class="form-control" name="notes" rows="4"></textarea>
+                                    <small class="form-text text-muted">Additional notes about the book.</small>
                                 </div>
                             </div>
 
@@ -1337,7 +1351,7 @@ function updateISBNFields() {
 
         // Create call number inputs (in Local Information tab)
         const callNumberGroupLabel = document.createElement('h6');
-        callNumberGroupLabel.className = 'mt-3 mb-2';
+        callNumberGroupLabel.class
         callNumberGroupLabel.textContent = `Call Numbers for Accession Group ${groupIndex + 1}`;
         callNumberContainer.appendChild(callNumberGroupLabel);
 
