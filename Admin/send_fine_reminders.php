@@ -104,6 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $mail = require 'mailer.php';
             try {
                 $mail->setFrom('noreply@nbs-library-system.com', 'NBS College Library');
+                $mail->addReplyTo('noreply@nbs-library-system.com', 'NBS College Library'); // Add NoReply address
                 $mail->addAddress($email, $borrowerName);
                 $mail->Subject = $subject;
                 $mail->Body = $body;

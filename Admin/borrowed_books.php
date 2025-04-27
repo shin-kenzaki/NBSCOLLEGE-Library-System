@@ -129,9 +129,15 @@ while($row = $shelfResult->fetch_assoc()) {
 // 🟢 Email Reminder Query (Due Date Reminders)
 // 🟢 Email Reminder Query (Due Date Reminders)
 $emailQuery = "
-    SELECT u.id AS user_id, u.email, u.firstname, u.lastname,
-           GROUP_CONCAT(bk.title SEPARATOR '|') AS book_titles,
-           b.due_date
+    SELECT
+        u.id AS user_id,
+        u.email,
+        u.firstname,
+        u.lastname,
+        GROUP_CONCAT(bk.title SEPARATOR '|') AS book_titles,
+        GROUP_CONCAT(bk.accession SEPARATOR '|') AS accessions, -- Include accession numbers
+        b.issue_date, -- Include issue date
+        b.due_date
     FROM borrowings b
     JOIN users u ON b.user_id = u.id
     JOIN books bk ON b.book_id = bk.id
@@ -148,6 +154,7 @@ while ($row = $emailResult->fetch_assoc()) {
     $userId = $row['user_id'];
     $email = $row['email'];
     $bookTitles = explode('|', $row['book_titles']);
+    $accessions = explode('|', $row['accessions']); // Split concatenated accession numbers
     $dueDate = date('M d, Y', strtotime($row['due_date']));
     $borrowerName = $row['firstname'] . ' ' . $row['lastname'];
 
@@ -155,31 +162,71 @@ while ($row = $emailResult->fetch_assoc()) {
 
     try {
         $mail->setFrom('noreply@nbs-library-system.com', 'Library System (No-Reply)');
-        $mail->addReplyTo('noreply@nbs-library-system.com', 'No-Reply');
+        $mail->addReplyTo('noreply@nbs-library-system.com', 'NBS College Library');
         $mail->addAddress($email, $borrowerName);
 
         if (count($bookTitles) == 1) {
             $bookTitle = htmlspecialchars($bookTitles[0]);
+            $accession = htmlspecialchars($accessions[0]); // Get the first accession number
             $mail->Subject = "Library Due Date Reminder - $dueDate";
             $mail->Body = "
                 Dear $borrowerName,<br><br>
-                This is a reminder that the book you borrowed, <b>$bookTitle</b>, is due tomorrow, <b>$dueDate</b>.<br>
+                This is a reminder that the book you borrowed is due tomorrow, <b>$dueDate</b>:<br><br>
+                <table border='1' cellpadding='5' cellspacing='0' style='border-collapse: collapse; width: 100%;'>
+                    <thead>
+                        <tr>
+                            <th>Accession No</th>
+                            <th>Book Title</th>
+                            <th>Borrow Date</th>
+                            <th>Due Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>{$accession}</td>
+                            <td>{$bookTitle}</td>
+                            <td>" . date('M d, Y', strtotime($row['issue_date'])) . "</td>
+                            <td>{$dueDate}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <br>
                 Please return it tomorrow before 4:00PM to avoid penalties.<br><br>
                 <i><b>Note:</b> This is an automated email — please do not reply.</i><br><br>
                 Thank you!
             ";
         } else {
-            $bookList = "<ul>";
-            foreach ($bookTitles as $title) {
-                $bookList .= "<li>" . htmlspecialchars($title) . "</li>";
+            $tableRows = "";
+            foreach ($bookTitles as $index => $title) {
+                $accession = htmlspecialchars($accessions[$index]); // Get the corresponding accession number
+                $tableRows .= "
+                    <tr>
+                        <td>{$accession}</td>
+                        <td>" . htmlspecialchars($title) . "</td>
+                        <td>" . date('M d, Y', strtotime($row['issue_date'])) . "</td>
+                        <td>{$dueDate}</td>
+                    </tr>
+                ";
             }
-            $bookList .= "</ul>";
 
             $mail->Subject = "Library Due Date Reminder - $dueDate";
             $mail->Body = "
                 Dear $borrowerName,<br><br>
-                This is a reminder that the books you borrowed are due tomorrow, <b>$dueDate</b>:<br>
-                $bookList
+                This is a reminder that the books you borrowed are due tomorrow, <b>$dueDate</b>:<br><br>
+                <table border='1' cellpadding='5' cellspacing='0' style='border-collapse: collapse; width: 100%;'>
+                    <thead>
+                        <tr>
+                            <th>Accession No</th>
+                            <th>Book Title</th>
+                            <th>Borrow Date</th>
+                            <th>Due Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {$tableRows}
+                    </tbody>
+                </table>
+                <br>
                 Please return them tomorrow before 4:00PM to avoid penalties.<br><br>
                 <i><b>Note:</b> This is an automated email — please do not reply.</i><br><br>
                 Thank you!
@@ -192,7 +239,6 @@ while ($row = $emailResult->fetch_assoc()) {
                                     WHERE user_id = '$userId'
                                     AND DATE(due_date) = CURDATE() + INTERVAL 1 DAY";
             $conn->query($updateReminderQuery);
-            $emailsSent = true;
         }
     } catch (Exception $e) {
         echo "Email sending failed for {$email}. Error: {$mail->ErrorInfo}";
@@ -201,9 +247,15 @@ while ($row = $emailResult->fetch_assoc()) {
 
 // 🟠 Overdue Reminder Logic
 $overdueEmailQuery = "
-    SELECT u.id AS user_id, u.email, u.firstname, u.lastname,
-           GROUP_CONCAT(bk.title SEPARATOR '|') AS book_titles,
-           b.due_date
+    SELECT
+        u.id AS user_id,
+        u.email,
+        u.firstname,
+        u.lastname,
+        GROUP_CONCAT(bk.title SEPARATOR '|') AS book_titles,
+        GROUP_CONCAT(bk.accession SEPARATOR '|') AS accessions, -- Include accession numbers
+        GROUP_CONCAT(b.issue_date SEPARATOR '|') AS issue_dates, -- Include issue dates
+        b.due_date
     FROM borrowings b
     JOIN users u ON b.user_id = u.id
     JOIN books bk ON b.book_id = bk.id
@@ -215,42 +267,89 @@ $overdueEmailQuery = "
 ";
 $overdueEmailResult = $conn->query($overdueEmailQuery);
 
+
 while ($row = $overdueEmailResult->fetch_assoc()) {
-    $userId = $row['user_id'];
     $email = $row['email'];
     $bookTitles = explode('|', $row['book_titles']);
+    $accessions = explode('|', $row['accessions']);
+    $issueDates = explode('|', $row['issue_dates']);
     $dueDate = date('M d, Y', strtotime($row['due_date']));
-    $borrowerName = $row['firstname'] . ' ' . $row['lastname'];
+    $borrowId = uniqid(); // Generate a unique ID for the email
 
     $mail = require 'mailer.php';
 
     try {
         $mail->setFrom('noreply@nbs-library-system.com', 'Library System (No-Reply)');
-        $mail->addReplyTo('noreply@nbs-library-system.com', 'No-Reply');
-        $mail->addAddress($email, $borrowerName);
+        $mail->addReplyTo('noreply@nbs-library-system.com', 'NBS College Library');
+        $mail->addAddress($email);
+
+        // Set a unique Message-ID
+        $mail->MessageID = "<" . $borrowId . "@nbs-library-system.com>";
 
         if (count($bookTitles) == 1) {
             $bookTitle = htmlspecialchars($bookTitles[0]);
+            $accession = htmlspecialchars($accessions[0]);
+            $issueDate = date('M d, Y', strtotime($issueDates[0]));
             $mail->Subject = "Overdue Book Reminder - $dueDate";
             $mail->Body = "
-                Dear $borrowerName,<br><br>
-                The book you borrowed, <b>$bookTitle</b>, is overdue as of <b>$dueDate</b>.<br>
+                Dear Library User,<br><br>
+                The following book you borrowed is overdue as of <b>$dueDate</b>:<br><br>
+                <table border='1' cellpadding='5' cellspacing='0' style='border-collapse: collapse; width: 100%;'>
+                    <thead>
+                        <tr>
+                            <th>Accession No</th>
+                            <th>Book Title</th>
+                            <th>Borrow Date</th>
+                            <th>Due Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>{$accession}</td>
+                            <td>{$bookTitle}</td>
+                            <td>{$issueDate}</td>
+                            <td>{$dueDate}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <br>
                 Please return it as soon as possible to avoid further penalties.<br><br>
                 <i><b>Note:</b> This is an automated email — please do not reply.</i><br><br>
                 Thank you!
             ";
         } else {
-            $bookList = "<ul>";
-            foreach ($bookTitles as $title) {
-                $bookList .= "<li>" . htmlspecialchars($title) . "</li>";
+            $tableRows = "";
+            foreach ($bookTitles as $index => $title) {
+                $accession = htmlspecialchars($accessions[$index]);
+                $issueDate = date('M d, Y', strtotime($issueDates[$index]));
+                $tableRows .= "
+                    <tr>
+                        <td>{$accession}</td>
+                        <td>" . htmlspecialchars($title) . "</td>
+                        <td>{$issueDate}</td>
+                        <td>{$dueDate}</td>
+                    </tr>
+                ";
             }
-            $bookList .= "</ul>";
 
             $mail->Subject = "Overdue Book Reminder - $dueDate";
             $mail->Body = "
-                Dear $borrowerName,<br><br>
-                The following books you borrowed are overdue as of <b>$dueDate</b>:<br>
-                $bookList
+                Dear Library User,<br><br>
+                The following books you borrowed are overdue as of <b>$dueDate</b>:<br><br>
+                <table border='1' cellpadding='5' cellspacing='0' style='border-collapse: collapse; width: 100%;'>
+                    <thead>
+                        <tr>
+                            <th>Accession No</th>
+                            <th>Book Title</th>
+                            <th>Borrow Date</th>
+                            <th>Due Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {$tableRows}
+                    </tbody>
+                </table>
+                <br>
                 Please return them as soon as possible to avoid further penalties.<br><br>
                 <i><b>Note:</b> This is an automated email — please do not reply.</i><br><br>
                 Thank you!
@@ -260,10 +359,9 @@ while ($row = $overdueEmailResult->fetch_assoc()) {
         if ($mail->send()) {
             $updateReminderQuery = "UPDATE borrowings
                                     SET reminder_sent = 3
-                                    WHERE user_id = '$userId'
+                                    WHERE user_id = '{$row['user_id']}'
                                     AND DATE(due_date) < CURDATE()";
             $conn->query($updateReminderQuery);
-            $emailsSent = true;
         }
     } catch (Exception $e) {
         echo "Email sending failed for {$email}. Error: {$mail->ErrorInfo}";
