@@ -22,6 +22,25 @@ try {
     $transactionSupported = false;
 }
 
+// Helper function to calculate accession number with increment
+function calculateAccession($baseAccession, $increment) {
+    if (!$baseAccession) return '';
+
+    // Handle formats like "2023-0001" or "2023-001" or just "0001"
+    $match = preg_match('/^(.*?)(\d+)$/', $baseAccession, $matches);
+    if (!$match) return $baseAccession;
+    
+    $prefix = $matches[1]; // Everything before the number
+    $num = intval($matches[2]); // The number part
+    $width = strlen($matches[2]); // Original width of the number
+    
+    // Calculate new number and pad with zeros to maintain original width
+    $newNum = ($num + $increment);
+    $newNumStr = str_pad($newNum, $width, '0', STR_PAD_LEFT);
+    
+    return $prefix . $newNumStr;
+}
+
 // Handle form submission first, before any HTML output
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if ($transactionSupported) {
@@ -97,7 +116,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $copy_number = 1;
 
             for ($j = 0; $j < $copies_for_this_accession; $j++) {
-                $current_accession = $base_accession + $j;
+                // Fix: Use calculateAccession function to preserve leading zeroes
+                $current_accession = calculateAccession($base_accession, $j);
+                
                 $current_call_number = isset($_POST['call_number'][$call_number_index]) ?
                     mysqli_real_escape_string($conn, $_POST['call_number'][$call_number_index]) : '';
                 $current_shelf_location = isset($_POST['shelf_locations'][$call_number_index]) ?
@@ -852,6 +873,7 @@ $accession_error = '';
                                     </div>
                                 </div>
                                 
+
                                 <!-- Then the rest of the fields -->
                                 <div class="form-group">
                                     <div class="row">
@@ -1767,7 +1789,7 @@ function updateCopyNumbers() {
  */
 function initializeFileUploads() {
   const fileUploads = document.querySelectorAll('.file-upload-container');
-  
+    
   fileUploads.forEach(container => {
     const input = container.querySelector('.file-upload-input');
     const uploadArea = container.querySelector('.file-upload-area');
