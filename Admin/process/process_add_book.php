@@ -67,8 +67,9 @@ if (isset($_POST['submit'])) {
     $successful_inserts = 0;
     $book_title = mysqli_real_escape_string($conn, $_POST['title']);
 
-    // --- Add: Track all inserted accession numbers for image update ---
+    // --- Add: Track all inserted accession numbers for image and supplementary content update ---
     $inserted_accessions = [];
+    $supplementary_contents_for_update = '';
 
     // Process the form if validation passes
     try {
@@ -105,12 +106,10 @@ if (isset($_POST['submit'])) {
                 for ($copy = 0; $copy < $copies; $copy++) {
                     // Handle accession number appropriately
                     $accession_str = calculateAccession($base_accession, $copy);
-                    // Extract only numbers from the accession string if it contains non-numeric characters
-                    preg_match('/(\d+)/', $accession_str, $matches);
-                    $accession = isset($matches[0]) ? intval($matches[0]) : 0;
+                    $accession = mysqli_real_escape_string($conn, $accession_str);
 
-                    // Make sure we have a valid accession number
-                    if ($accession <= 0) {
+                    // Make sure we have a valid accession string
+                    if (empty($accession)) {
                         throw new Exception("Invalid accession number: " . $accession_str);
                     }
 
@@ -154,17 +153,18 @@ if (isset($_POST['submit'])) {
 
                         $count = count($items);
                         if ($count === 1) {
-                            $supplementary_contents = "incudes " . $items[0];
+                            $supplementary_contents = "includes " . $items[0];
                         } elseif ($count === 2) {
-                            $supplementary_contents = "incudes " . $items[0] . " and " . $items[1];
+                            $supplementary_contents = "includes " . $items[0] . " and " . $items[1];
                         } else {
                             $last_item = array_pop($items);
-                            $supplementary_contents = "incudes " . implode(', ', $items) . ", and " . $last_item;
+                            $supplementary_contents = "includes " . implode(', ', $items) . ", and " . $last_item;
                         }
                     } else {
-                        // Handle case where no supplementary content is selected
-                        $supplementary_contents = ''; // Or set to NULL if the column allows
+                        $supplementary_contents = '';
                     }
+                    // Save for later update
+                    $supplementary_contents_for_update = $supplementary_contents;
 
                     $content_type = mysqli_real_escape_string($conn, $_POST['content_type'] ?? 'text');
                     $media_type = mysqli_real_escape_string($conn, $_POST['media_type'] ?? 'unmediated');
@@ -184,32 +184,16 @@ if (isset($_POST['submit'])) {
                         }
                     }
 
-                    // Format call number with 'c' before the year and proper copy number
-                    $formatted_call_number = '';
-                    if (isset($call_numbers[$current_index])) {
-                        $base_call_number = $call_numbers[$current_index];
-                        $shelf_location = $shelf_locations[$current_index] ?? 'CIR';
-                        $publish_year = isset($_POST['publish_date']) ? $_POST['publish_date'] : date('Y');
-
-                        if (!empty($volume)) {
-                            $formatted_call_number = $shelf_location . ' ' . $base_call_number . ' c' . $publish_year . ' vol.' . $volume;
-                            if (!empty($part)) {
-                                $formatted_call_number .= ' pt.' . $part;
-                            }
-                            $formatted_call_number .= ' c.' . $copy_number;
-                        } else {
-                            $formatted_call_number = $shelf_location . ' ' . $base_call_number . ' c' . $publish_year . ' c.' . $copy_number;
-                        }
-                    }
-
                     // Get shelf location for this copy
                     $shelf_location = isset($shelf_locations[$current_index]) ?
                         mysqli_real_escape_string($conn, $shelf_locations[$current_index]) : 'CIR';
 
                     $status = mysqli_real_escape_string($conn, $_POST['status'] ?? 'Available');
-                    $entered_by = intval($_SESSION['admin_id']);
-                    $date_added = date('Y-m-d');
-                    $last_update = date('Y-m-d');
+                    
+                    // CORRECTED: Use admin_employee_id instead of employee_id
+                    $entered_by = intval($_SESSION['admin_employee_id']);
+                    $date_added = date('Y-m-d H:i:s'); 
+                    $last_update = date('Y-m-d H:i:s'); 
 
                     // Insert into books table
                     $insert_book_query = "INSERT INTO books (
@@ -234,7 +218,7 @@ if (isset($_POST['submit'])) {
 
                     $book_id = mysqli_insert_id($conn);
 
-                    // --- Add: Track accession string for image update ---
+                    // --- Add: Track accession string for image and supplementary content update ---
                     $inserted_accessions[] = $accession_str;
 
                     // 2. Insert contributors (authors)
@@ -416,7 +400,9 @@ if (isset($_POST['submit'])) {
                                         WHEN subject_detail IS NULL OR subject_detail = ''
                                         THEN '$detail'
                                         ELSE CONCAT(subject_detail, '; ', '$detail')
-                                    END
+                                    END,
+                                    updated_by = '$entered_by',
+                                    last_update = NOW()
                                     WHERE id = '$book_id'";
 
                                 if (!mysqli_query($conn, $update_subject_query)) {
@@ -431,7 +417,7 @@ if (isset($_POST['submit'])) {
             }
         }
 
-        // --- Move image upload logic here, after all books are inserted ---
+        // ---   Move image and supplementary_contents update logic here, after all books are inserted ---
         if (!empty($inserted_accessions)) {
             $accession_list = array_map(function($a) use ($conn) {
                 return "'" . mysqli_real_escape_string($conn, $a) . "'";
@@ -444,7 +430,6 @@ if (isset($_POST['submit'])) {
                 if (!is_dir($target_dir)) {
                     mkdir($target_dir, 0777, true);
                 }
-                // Use the first inserted book's ID for naming
                 $first_book_id_query = "SELECT id FROM books WHERE accession IN ($accession_in) ORDER BY id ASC LIMIT 1";
                 $first_book_id_result = mysqli_query($conn, $first_book_id_query);
                 $first_book_id = null;
@@ -458,7 +443,13 @@ if (isset($_POST['submit'])) {
                     if (move_uploaded_file($_FILES['front_image']['tmp_name'], $target_file)) {
                         $front_image_path = "Images/book-image/" . $front_image_name;
                         // Update all inserted accessions with the same front image
-                        $update_front_image = "UPDATE books SET front_image = '$front_image_path' WHERE accession IN ($accession_in)";
+                        // CHANGED: Also update the updated_by field using employee_id
+                        $employee_id = intval($_SESSION['admin_employee_id']);
+                        $update_front_image = "UPDATE books SET 
+                            front_image = '$front_image_path', 
+                            updated_by = '$employee_id',
+                            last_update = NOW() 
+                            WHERE accession IN ($accession_in)";
                         mysqli_query($conn, $update_front_image);
                     }
                 }
@@ -470,7 +461,6 @@ if (isset($_POST['submit'])) {
                 if (!is_dir($target_dir)) {
                     mkdir($target_dir, 0777, true);
                 }
-                // Use the first inserted book's ID for naming
                 $first_book_id_query = "SELECT id FROM books WHERE accession IN ($accession_in) ORDER BY id ASC LIMIT 1";
                 $first_book_id_result = mysqli_query($conn, $first_book_id_query);
                 $first_book_id = null;
@@ -484,13 +474,30 @@ if (isset($_POST['submit'])) {
                     if (move_uploaded_file($_FILES['back_image']['tmp_name'], $target_file)) {
                         $back_image_path = "Images/book-image/" . $back_image_name;
                         // Update all inserted accessions with the same back image
-                        $update_back_image = "UPDATE books SET back_image = '$back_image_path' WHERE accession IN ($accession_in)";
+                        // CHANGED: Also update the updated_by field using employee_id
+                        $employee_id = intval($_SESSION['admin_employee_id']);
+                        $update_back_image = "UPDATE books SET 
+                            back_image = '$back_image_path',
+                            updated_by = '$employee_id',
+                            last_update = NOW()
+                            WHERE accession IN ($accession_in)";
                         mysqli_query($conn, $update_back_image);
                     }
                 }
             }
+
+            // Update supplementary_contents for all inserted accessions
+            if (!empty($supplementary_contents_for_update)) {
+                // CHANGED: Also update the updated_by field using employee_id
+                $employee_id = intval($_SESSION['admin_employee_id']);
+                $update_supp = "UPDATE books SET 
+                    supplementary_contents = '$supplementary_contents_for_update',
+                    updated_by = '$employee_id',
+                    last_update = NOW()
+                    WHERE accession IN ($accession_in)";
+                mysqli_query($conn, $update_supp);
+            }
         }
-        // --- End image logic ---
 
         // Commit the transaction if supported
         if ($transactionSupported) {
@@ -498,11 +505,13 @@ if (isset($_POST['submit'])) {
         }
 
         // Insert a single update entry for the book addition
-        $admin_id = $_SESSION['admin_id'];
+        // CORRECTED: Use admin_employee_id instead of employee_id
+        $admin_id = $_SESSION['admin_employee_id'];
         $admin_role = $_SESSION['role'];
 
         // Get admin's name from the database
-        $admin_query = "SELECT CONCAT(firstname, ' ', lastname) as fullname FROM admins WHERE id = '$admin_id'";
+        // CORRECTED: Use admin_employee_id to search in the admins table
+        $admin_query = "SELECT CONCAT(firstname, ' ', lastname) as fullname FROM admins WHERE employee_id = '$admin_id'";
         $admin_result = mysqli_query($conn, $admin_query);
         $admin_name = "Admin";
 
@@ -533,7 +542,7 @@ if (isset($_POST['submit'])) {
         $update_message = mysqli_real_escape_string($conn, $message_text);
         $current_timestamp = date('Y-m-d H:i:s');
 
-        // Insert into updates table
+        // Insert into updates table - using employee_id
         $insert_update_query = "INSERT INTO updates (user_id, role, title, message, `update`)
             VALUES ('$admin_id', '$admin_role', '$update_title', '$update_message', '$current_timestamp')";
 
@@ -572,12 +581,11 @@ function calculateAccession($baseAccession, $increment) {
 
     $prefix = $matches[1]; // Everything before the number
     $num = intval($matches[2]); // The number part
-    $width = strlen($matches[2]); // Original width of the number
+    $width = strlen($matches[2]); // Original width of the number to preserve leading zeros
 
-    // Calculate new number and pad with zeros to maintain original width
-    $newNum = ($num + $increment);
-    $newNumStr = str_pad($newNum, $width, '0', STR_PAD_LEFT);
+    // Calculate new number and ensure it maintains the same width with leading zeros
+    $newNum = str_pad($num + $increment, $width, '0', STR_PAD_LEFT);
 
-    return $prefix . $newNumStr;
+    return $prefix . $newNum;
 }
 ?>

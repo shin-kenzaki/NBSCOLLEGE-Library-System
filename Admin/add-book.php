@@ -384,37 +384,13 @@ $accession_error = '';
                     <div class="col-xl-12 col-lg-12">
                         <!-- Tab Navigation - Make scrollable on mobile -->
                         <div class="nav-tab-wrapper overflow-auto">
-                            <ul class="nav nav-tabs flex-nowrap" id="formTabs" role="tablist">
-                                <li class="nav-item">
-                                    <a class="nav-link active" id="title-tab" data-toggle="tab" href="#title-proper" role="tab">
-                                        <i class="fas fa-book"></i> Title Proper
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" id="subject-tab" data-toggle="tab" href="#subject-entry" role="tab">
-                                        <i class="fas fa-tag"></i> Subject Entry
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" id="abstracts-tab" data-toggle="tab" href="#abstracts" role="tab">
-                                        <i class="fas fa-file-alt"></i> Abstract & Notes
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" id="description-tab" data-toggle="tab" href="#description" role="tab">
-                                        <i class="fas fa-info-circle"></i> Description
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" id="local-info-tab" data-toggle="tab" href="#local-info" role="tab">
-                                        <i class="fas fa-map-marker-alt"></i> Local Information
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" id="publication-tab" data-toggle="tab" href="#publication" role="tab">
-                                        <i class="fas fa-print"></i> Publication
-                                    </a>
-                                </li>
+                            <ul class="nav nav-tabs flex-nowrap" id="formTabs" role="tablist" style="white-space: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 5px;">
+                                <li class="nav-item"><a class="nav-link active" id="title-tab" data-toggle="tab" href="#title-proper" role="tab"><i class="fas fa-book"></i> Title Proper</a></li>
+                                <li class="nav-item"><a class="nav-link" id="subject-tab" data-toggle="tab" href="#subject-entry" role="tab"><i class="fas fa-tag"></i> Access Point</a></li>
+                                <li class="nav-item"><a class="nav-link" id="abstracts-tab" data-toggle="tab" href="#abstracts" role="tab"><i class="fas fa-file-alt"></i> Abstract & Notes</a></li>
+                                <li class="nav-item"><a class="nav-link" id="description-tab" data-toggle="tab" href="#description" role="tab"><i class="fas fa-info-circle"></i> Description</a></li>
+                                <li class="nav-item"><a class="nav-link" id="local-info-tab" data-toggle="tab" href="#local-info" role="tab"><i class="fas fa-map-marker-alt"></i> Local Information</a></li>
+                                <li class="nav-item"><a class="nav-link" id="publication-tab" data-toggle="tab" href="#publication" role="tab"><i class="fas fa-print"></i> Publication</a></li>
                             </ul>
                         </div>
 
@@ -434,23 +410,29 @@ $accession_error = '';
                                 <div class="form-group">
                                     <label for="title">Title Proper</label>
                                     <input type="text" class="form-control" id="title" name="title" required>
-                                    <small class="form-text text-muted">Main title of the book.</small>
+                                    <small class="form-text text-muted">
+                                        <i class="fas fa-info-circle mr-1"></i> Main title of the book.
+                                    </small>
                                 </div>
                                 <div class="form-group">
                                     <label for="preferred_title">Preferred Title</label>
                                     <input type="text" class="form-control" id="preferred_title" name="preferred_title">
-                                    <small class="form-text text-muted">Alternative title, if applicable.</small>
+                                    <small class="form-text text-muted">
+                                        <i class="fas fa-info-circle mr-1"></i> Alternative title, if applicable.
+                                    </small>
                                 </div>
                                 <div class="form-group">
                                     <label for="parallel_title">Parallel Title</label>
                                     <input type="text" class="form-control" id="parallel_title" name="parallel_title">
-                                    <small class="form-text text-muted">Title in another language.</small>
+                                    <small class="form-text text-muted">
+                                        <i class="fas fa-info-circle mr-1"></i> Title in another language.
+                                    </small>
                                 </div>
                             </div>
-                            <!-- Subject Entry Tab -->
+                            <!-- Access Point Tab -->
                             <div class="tab-pane fade" id="subject-entry" role="tabpanel">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <h4 class="mb-0">Subject Entry</h4>
+                                    <h4 class="mb-0">Access Point</h4>
                                     <div class="btn-group">
                                         <button type="button" class="btn btn-outline-secondary btn-sm clear-tab-btn" data-tab-id="subject-entry">
                                             <i class="fas fa-eraser"></i> Clear Tab
@@ -465,6 +447,9 @@ $accession_error = '';
                                             <option value="<?php echo $option; ?>"><?php echo $option; ?></option>
                                         <?php endforeach; ?>
                                     </select>
+                                    <small class="form-text text-muted">
+                                        <i class="fas fa-info-circle mr-1"></i> Select the primary subject classification for this book.
+                                    </small>
                                 </div>
                                 <div class="form-group">
                                     <label>Program</label>
@@ -477,11 +462,17 @@ $accession_error = '';
                                         <option value="Accountancy Information System">Accountancy Information System</option>
                                         <option value="Tourism Management">Tourism Management</option>
                                     </select>
+                                    <small class="form-text text-muted">
+                                        <i class="fas fa-info-circle mr-1"></i> Choose the academic program this book is most relevant to.
+                                    </small>
                                 </div>
                                 <div class="form-group">
                                     <label>Details</label>
                                     <textarea class="form-control" name="subject_paragraphs[]" 
                                     rows="3" placeholder="Enter additional details about this subject"></textarea>
+                                    <small class="form-text text-muted">
+                                        <i class="fas fa-info-circle mr-1"></i> Provide specific subject terms, keywords, or descriptions that help identify the content.
+                                    </small>
                                 </div>
                             </div>
                             <!-- Abstracts Tab -->
@@ -497,12 +488,16 @@ $accession_error = '';
                                 <div class="form-group">
                                     <label for="abstract">Summary/Abstract</label>
                                     <textarea class="form-control" id="abstract" name="abstract" rows="4"></textarea>
-                                    <small class="form-text text-muted">Brief summary of the book's content.</small>
+                                    <small class="form-text text-muted">
+                                        <i class="fas fa-info-circle mr-1"></i> Brief summary of the book's content.
+                                    </small>
                                 </div>
                                 <div class="form-group">
                                     <label for="notes">Notes/Contents</label>
                                     <textarea class="form-control" id="notes" name="notes" rows="4"></textarea>
-                                    <small class="form-text text-muted">Additional notes about the book.</small>
+                                    <small class="form-text text-muted">
+                                        <i class="fas fa-info-circle mr-1"></i> Additional notes about the book.
+                                    </small>
                                 </div>
                             </div>
                             <!-- Description Tab -->
@@ -567,17 +562,23 @@ $accession_error = '';
                                 </div>
                                 <div class="row">
                                     <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="dimension">Dimensions (cm<sup>2</sup>)</label>
-                                            <input type="text" class="form-control" id="dimension" name="dimension" placeholder="e.g., 23 cm²">
-                                            <small class="form-text text-muted">Specify the physical dimensions of the book.</small>
-                                        </div>
+                                        <label>Dimension (cm)</label>
+                                        <input type="text" class="form-control" name="dimension" placeholder="e.g. 23 x 24 or 23 cm²">
+                                            <div class="mt-2">
+                                                <small class="form-text text-muted">
+                                                    <i class="fas fa-info-circle mr-1"></i> You may enter values like "23 × 24", or "23 cm²"
+                                                </small>
+                                            </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="form-group">
                                             <label for="prefix_pages">Prefix Pages</label>
                                             <input type="text" class="form-control" id="prefix_pages" name="prefix_pages" placeholder="e.g., xii">
-                                            <small class="form-text text-muted">Enter the number of prefatory pages in Roman numerals.</small>
+                                            <div class="mt-2">
+                                                <small class="form-text text-muted">
+                                                    <i class="fas fa-info-circle mr-1"></i> Enter the number of prefatory pages in Roman numerals.
+                                                </small>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -585,8 +586,10 @@ $accession_error = '';
                                     <div class="col-md-6">
                                         <div class="form-group">
                                             <label for="main_pages">Main Pages</label>
-                                            <input type="text" class="form-control" id="main_pages" name="main_pages" placeholder="e.g., 350 p.">
-                                            <small class="form-text text-muted">Provide the total number of main pages in the book.</small>
+                                            <input type="text" class="form-control" id="main_pages" name="main_pages" placeholder="e.g., 350a">
+                                                <small class="form-text text-muted">
+                                                    <i class="fas fa-info-circle mr-1"></i> Provide the total number of main pages in the book.
+                                                </small>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
@@ -601,7 +604,12 @@ $accession_error = '';
                                                 <option value="Maps">Maps</option>
                                                 <option value="Tables">Tables</option>
                                             </select>
-                                            <small class="form-text text-muted">Select any additional content included in the book.</small>
+                                            <small class="text-primary d-block mb-1">
+                                                <i class="fas fa-keyboard mr-1"></i> Hold <kbd>Ctrl</kbd> (Windows) or <kbd>⌘ Cmd</kbd> (Mac) to select multiple items
+                                            </small>
+                                            <small class="form-text text-muted">
+                                                <i class="fas fa-info-circle mr-1"></i> Select any additional content included in the book.
+                                            </small>
                                         </div>
                                     </div>
                                 </div>
@@ -625,19 +633,27 @@ $accession_error = '';
                                         <div id="accessionContainer">
                                             <div class="accession-group mb-3">
                                                 <div class="row">
-                                                    <div class="col-md-7">
+                                                    <div class="col-md-6">
                                                         <div class="form-group">
-                                                            <label>Accession (Copy 1)</label>
+                                                            <label>Accession Group 1</label>
                                                             <input type="text" class="form-control accession-input" name="accession[]"
-                                                                placeholder="e.g., 2023-0001" required>
-                                                            <small class="text-muted">Format: YYYY-NNNN</small>
+                                                                placeholder="e.g., 00001, 00002, etc." required>
+                                                            <div class="mt-2">
+                                                                <small class="form-text text-muted">
+                                                                    <i class="fas fa-info-circle mr-1"></i> If you enter 2023-0001 and set 3 copies, it will create: 2023-0001, 2023-0002, 2023-0003
+                                                                </small>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                    <div class="col-md-3">
+                                                    <div class="col-md-6">
                                                         <div class="form-group">
                                                             <label>Number of Copies</label>
                                                             <input type="number" class="form-control copies-input" name="number_of_copies[]" min="1" value="1" required>
-                                                            <small class="text-muted">Auto-increments accession</small>
+                                                            <div class="mt-2">
+                                                                <small class="form-text text-muted">
+                                                                    <i class="fas fa-info-circle mr-1"></i> System will auto-increment accession numbers
+                                                                </small>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                     <div class="col-md-2 remove-btn-container">
@@ -649,6 +665,11 @@ $accession_error = '';
                                         <button type="button" class="btn btn-secondary btn-sm add-accession">
                                             <i class="fas fa-plus"></i> Add Another Accession Group
                                         </button>
+                                        <div class="mt-2">
+                                            <small class="form-text text-muted">
+                                                <i class="fas fa-info-circle mr-1"></i> Add another accession group for books with different ISBN/edition/volume combinations
+                                            </small>
+                                        </div>
                                     </div>
                                 </div>
                                 <!-- Call Numbers -->
@@ -673,6 +694,11 @@ $accession_error = '';
                                             <button type="button" id="generateCallNumbersBtn" class="btn btn-sm btn-outline-secondary">
                                                 <i class="fas fa-sync"></i> Reset Call Numbers
                                             </button>
+                                            <div class="mt-2">
+                                                <small class="form-text text-muted">
+                                                    <i class="fas fa-info-circle mr-1"></i> Click this button to regenerate call numbers if they don't appear automatically
+                                                </small>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -685,7 +711,14 @@ $accession_error = '';
                                                 <option value="Text">Text</option>
                                                 <option value="Image">Image</option>
                                                 <option value="Video">Video</option>
+                                                <option value="Audio">Audio</option>
+                                                <option value="Multimedia">Multimedia</option>
                                             </select>
+                                            <div class="mt-2">
+                                                <small class="form-text text-muted">
+                                                    <i class="fas fa-info-circle mr-1"></i> Specifies the fundamental form of the content
+                                                </small>
+                                            </div>
                                         </div>
                                     </div>
                                     <div class="col-md-3">
@@ -695,7 +728,14 @@ $accession_error = '';
                                                 <option value="Print">Print</option>
                                                 <option value="Digital">Digital</option>
                                                 <option value="Audio">Audio</option>
+                                                <option value="Video">Video</option>
+                                                <option value="Microform">Microform</option>
                                             </select>
+                                            <div class="mt-2">
+                                                <small class="form-text text-muted">
+                                                    <i class="fas fa-info-circle mr-1"></i> General type of intermediation device required
+                                                </small>
+                                            </div>
                                         </div>
                                     </div>
                                     <div class="col-md-3">
@@ -704,8 +744,15 @@ $accession_error = '';
                                             <select class="form-control" id="carrier_type" name="carrier_type">
                                                 <option value="Book">Book</option>
                                                 <option value="CD">CD</option>
+                                                <option value="DVD">DVD</option>
                                                 <option value="USB">USB</option>
+                                                <option value="Online Resource">Online Resource</option>
                                             </select>
+                                            <div class="mt-2">
+                                                <small class="form-text text-muted">
+                                                    <i class="fas fa-info-circle mr-1"></i> The physical medium or storage format of the resource
+                                                </small>
+                                            </div>
                                         </div>
                                     </div>
                                     <div class="col-md-3">
@@ -713,8 +760,18 @@ $accession_error = '';
                                             <label for="language">Language</label>
                                             <select class="form-control" id="language" name="language">
                                                 <option value="English">English</option>
+                                                <option value="Filipino">Filipino</option>
                                                 <option value="Spanish">Spanish</option>
+                                                <option value="French">French</option>
+                                                <option value="Chinese">Chinese</option>
+                                                <option value="Japanese">Japanese</option>
+                                                <option value="Multiple">Multiple Languages</option>
                                             </select>
+                                            <div class="mt-2">
+                                                <small class="form-text text-muted">
+                                                    <i class="fas fa-info-circle mr-1"></i> Primary language of the resource's content
+                                                </small>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -722,6 +779,11 @@ $accession_error = '';
                                 <div class="form-group">
                                     <label for="url">URL (if applicable)</label>
                                     <input type="url" class="form-control" id="url" name="url" placeholder="https://example.com">
+                                    <div class="mt-2">
+                                        <small class="form-text text-muted">
+                                            <i class="fas fa-info-circle mr-1"></i> For digital resources, enter the web address where the resource can be accessed
+                                        </small>
+                                    </div>
                                 </div>
                             </div>
                             <!-- Publication Tab -->
@@ -749,12 +811,18 @@ $accession_error = '';
                                                     </button>
                                                 </div>
                                             </div>
+                                            <small class="form-text text-muted">
+                                                <i class="fas fa-search mr-1"></i> Search by publisher name or place of publication
+                                            </small>
                                             <select class="form-control" id="publisher" name="publisher" required>
                                                 <option value="">Select Publisher</option>
                                                 <?php foreach ($publishers as $publisher): ?>
                                                     <option value="<?php echo $publisher['publisher']; ?>"><?php echo $publisher['place']; ?> ; <?php echo $publisher['publisher'] ?? 'Unknown'; ?></option>
                                                 <?php endforeach; ?>
                                             </select>
+                                            <small class="form-text text-muted mt-1">
+                                                <i class="fas fa-info-circle mr-1"></i> Format: Place of publication ; Publisher name
+                                            </small>
                                         </div>
                                     </div>
                                     <div class="col-md-4">
@@ -762,6 +830,9 @@ $accession_error = '';
                                             <label for="publish_date">Publication Year</label>
                                             <input type="number" class="form-control" id="publish_date" name="publish_date"
                                                 min="1800" max="<?php echo date('Y'); ?>" value="<?php echo date('Y'); ?>" required>
+                                            <small class="form-text text-muted">
+                                                <i class="fas fa-info-circle mr-1"></i> Enter the year the book was published
+                                            </small>
                                         </div>
                                     </div>
                                 </div>
@@ -792,8 +863,14 @@ $accession_error = '';
                                                             <option value="<?php echo $writer['id']; ?>"><?php echo $writer['name']; ?></option>
                                                         <?php endforeach; ?>
                                                     </select>
-                                                    <small class="form-text text-muted">Hold Ctrl (Windows) or Command (Mac) to select multiple options.</small>
-                                                    <div id="authorPreview" class="selected-preview mt-2"></div>
+                                                    <div class="mt-2">
+                                                        <small class="text-primary d-block mb-1">
+                                                            <i class="fas fa-keyboard mr-1"></i> Hold <kbd>Ctrl</kbd> (Windows) or <kbd>⌘ Cmd</kbd> (Mac) to select multiple items
+                                                        </small>
+                                                        <small class="form-text text-muted">
+                                                            <i class="fas fa-info-circle mr-1"></i> Main author(s) primarily responsible for the intellectual content of the work
+                                                        </small>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <!-- Co-Authors Section -->
@@ -808,8 +885,14 @@ $accession_error = '';
                                                             <option value="<?php echo $writer['id']; ?>"><?php echo $writer['name']; ?></option>
                                                         <?php endforeach; ?>
                                                     </select>
-                                                    <small class="form-text text-muted">Hold Ctrl (Windows) or Command (Mac) to select multiple options.</small>
-                                                    <div id="coAuthorsPreview" class="selected-preview mt-2"></div>
+                                                    <div class="mt-2">
+                                                        <small class="text-primary d-block mb-1">
+                                                            <i class="fas fa-keyboard mr-1"></i> Hold <kbd>Ctrl</kbd> (Windows) or <kbd>⌘ Cmd</kbd> (Mac) to select multiple items
+                                                        </small>
+                                                        <small class="form-text text-muted">
+                                                            <i class="fas fa-info-circle mr-1"></i> Secondary authors who contributed to the work but are not the main authors
+                                                        </small>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <!-- Editors Section -->
@@ -824,8 +907,14 @@ $accession_error = '';
                                                             <option value="<?php echo $writer['id']; ?>"><?php echo $writer['name']; ?></option>
                                                         <?php endforeach; ?>
                                                     </select>
-                                                    <small class="form-text text-muted">Hold Ctrl (Windows) or Command (Mac) to select multiple options.</small>
-                                                    <div id="editorsPreview" class="selected-preview mt-2"></div>
+                                                    <div class="mt-2">
+                                                        <small class="text-primary d-block mb-1">
+                                                            <i class="fas fa-keyboard mr-1"></i> Hold <kbd>Ctrl</kbd> (Windows) or <kbd>⌘ Cmd</kbd> (Mac) to select multiple items
+                                                        </small>
+                                                        <small class="form-text text-muted">
+                                                            <i class="fas fa-info-circle mr-1"></i> People who edited, compiled, or curated the work rather than creating it
+                                                        </small>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -840,35 +929,44 @@ $accession_error = '';
                                         <div class="row">
                                             <div class="col-md-6">
                                                 <div class="form-group">
-                                                    <label for="entered_by">Entered By</label>
+                                                    <label for="entered_by">Entered By (Currently Logged In)</label>
                                                     <input type="text" class="form-control" id="entered_by" name="entered_by"
-                                                        value="<?php echo $_SESSION['admin_id']; ?>" readonly>
+                                                        value="<?php echo ($_SESSION['admin_firstname'] ?? '') . ' ' . ($_SESSION['admin_lastname'] ?? '') . ' (' . ($_SESSION['admin_employee_id'] ?? '') . ' - ' . ($_SESSION['role'] ?? '') . ')'; ?>" readonly>
+                                                    <small class="form-text text-muted">
+                                                        <i class="fas fa-user mr-1"></i> Staff member who created this record
+                                                    </small>
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="form-group">
                                                     <label for="date_added">Date Added</label>
                                                     <input type="text" class="form-control" id="date_added" name="date_added"
-                                                        value="<?php echo date('Y-m-d'); ?>" readonly>
+                                                        value="<?php echo date('Y-m-d H:i:s'); ?>" readonly>
+                                                    <small class="form-text text-muted">
+                                                        <i class="fas fa-calendar mr-1"></i> Date the book was added to the system
+                                                    </small>
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <div class="form-group">
-                                                    <label for="status">Status</label>
-                                                    <select class="form-control" id="status" name="status">
-                                                        <option value="Available">Available</option>
-                                                        <option value="Reserved">Reserved</option>
-                                                        <option value="Borrowed">Borrowed</option>
-                                                    </select>
-                                                </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="status">Status</label>
+                                                <input type="text" class="form-control" id="status" name="status"
+                                                    value="Available" readonly>
+                                                <small class="form-text text-muted">
+                                                    <i class="fas fa-info-circle mr-1"></i> Current availability status of the book
+                                                </small>
                                             </div>
+                                        </div>
                                             <div class="col-md-6">
                                                 <div class="form-group">
                                                     <label for="last_update">Last Update</label>
                                                     <input type="text" class="form-control" id="last_update" name="last_update"
                                                         value="<?php echo date('Y-m-d H:i:s'); ?>" readonly>
+                                                    <small class="form-text text-muted">
+                                                        <i class="fas fa-clock mr-1"></i> Timestamp of the most recent modification
+                                                    </small>
                                                 </div>
                                             </div>
                                         </div>
@@ -1491,56 +1589,6 @@ document.addEventListener('DOMContentLoaded', function() {
             $(this).tab('show');
         });
     });
-
-    // Add subject entry
-    document.getElementById('add-subject').addEventListener('click', function() {
-        const subjectEntries = document.getElementById('subject-entries');
-        const newEntry = document.createElement('div');
-        newEntry.className = 'subject-entry card p-3 mb-3';
-        newEntry.innerHTML = `
-            <button type="button" class="btn btn-danger btn-sm remove-subject">
-                <i class="fas fa-times"></i>
-            </button>
-            <div class="form-group">
-                <label>Subject Category</label>
-                <select class="form-control" name="subject_categories[]">
-                    <option value="">Select Subject Category</option>
-                    ${Array.from(document.querySelector('select[name="subject_categories[]"]').options)
-                        .map(opt => `<option value="${opt.value}">${opt.textContent}</option>`)
-                        .join('')}
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Program</label>
-                <select class="form-control" name="program[]">
-                    <option value="">Select Program</option>
-                    <option value="General Education">General Education</option>
-                    <option value="Computer Science">Computer Science</option>
-                    <option value="Accountancy">Accountancy</option>
-                    <option value="Entrepreneurship">Entrepreneurship</option>
-                    <option value="Accountancy Information System">Accountancy Information System</option>
-                    <option value="Tourism Management">Tourism Management</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Details</label>
-                <textarea class="form-control" name="subject_paragraphs[]" rows="3"></textarea>
-            </div>
-        `;
-        subjectEntries.appendChild(newEntry);
-    });
-
-    // Remove subject entry
-    document.addEventListener('click', function(e) {
-        if (e.target && e.target.classList.contains('remove-subject')) {
-            const subjectEntries = document.getElementById('subject-entries');
-            if (subjectEntries.children.length > 1) {
-                e.target.closest('.subject-entry').remove();
-            } else {
-                alert('At least one subject entry is required.');
-            }
-        }
-    });
 });
 </script>
 
@@ -2130,21 +2178,29 @@ document.addEventListener("DOMContentLoaded", function() {
             <div class="row">
                 <div class="col-md-7">
                     <div class="form-group">
-                        <label>Accession (Copy ${copyNumber})</label>
+                        <label>Accession Group ${copyNumber}</label>
                         <input type="text" class="form-control accession-input" name="accession[]"
                             placeholder="e.g., 2023-0001" required>
-                        <small class="text-muted">Format: YYYY-NNNN</small>
+                        <div class="mt-2">
+                            <small class="form-text text-muted">
+                                <i class="fas fa-info-circle mr-1"></i> If you enter 2023-0001 and set 3 copies, it will create: 2023-0001, 2023-0002, 2023-0003
+                            </small>
+                        </div>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="form-group">
                         <label>Number of Copies</label>
                         <input type="number" class="form-control copies-input" name="number_of_copies[]" min="1" value="1" required>
-                        <small class="text-muted">Auto-increments accession</small>
+                        <div class="mt-2">
+                            <small class="form-text text-muted">
+                                <i class="fas fa-info-circle mr-1"></i> Auto-increments accession
+                            </small>
+                        </div>
                     </div>
                 </div>
                 <div class="col-md-2 d-flex align-items-center justify-content-center">
-                    ${copyNumber > 1 ? '<button type="button" class="btn btn-danger btn-sm remove-accession"><i class="fas fa-trash"></i> Remove</button>' : ''}
+                    <!-- ${copyNumber > 1 ? '<button type="button" class="btn btn-danger btn-sm remove-accession"><i class="fas fa-trash"></i> Remove</button>' : ''} -->
                 </div>
             </div>
 
@@ -2209,33 +2265,36 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <script>
 /**
- * Confirm formatted call numbers are being used before submission
+ * Ensure the formatted call numbers from preview are used during submission
  */
 document.getElementById('bookForm').addEventListener('submit', function(e) {
     const callNumberInputs = document.querySelectorAll('.call-number-input');
     const previewElements = document.querySelectorAll('.call-number-preview');
 
-    if (callNumberInputs.length > 0 && previewElements.length > 0) {
+    if (callNumberInputs.length > 0) {
         // Always use formatted call numbers for submission
         callNumberInputs.forEach((input, index) => {
-            const preview = previewElements[index]?.textContent?.replace('→ ', '') || '';
-            // Get formatted call number from data attribute or preview text
-            const formattedCallNumber = input.dataset.formattedCallNumber || preview;
-
+            // Get the preview text with the arrow symbol removed
+            const previewElement = previewElements[index];
+            const previewText = previewElement ? previewElement.textContent.replace('→ ', '') : '';
+            
+            // Use preview text directly if available, otherwise use data attribute
+            const formattedCallNumber = previewText || input.dataset.formattedCallNumber || input.value;
+            
             if (formattedCallNumber) {
-                // Always replace the input value with the formatted version that includes shelf location
+                // Replace input value with exactly what's in the preview
                 input.value = formattedCallNumber;
-
-                // Also create a hidden input for backward compatibility
-                const hiddenInput = document.createElement('input');
-                hiddenInput.type = 'hidden';
-                hiddenInput.name = 'formatted_call_numbers[]';
-                hiddenInput.value = formattedCallNumber;
-                this.appendChild(hiddenInput);
+                
+                // Create a hidden flag to indicate this call number is already formatted
+                const formattedFlag = document.createElement('input');
+                formattedFlag.type = 'hidden';
+                formattedFlag.name = 'call_number_already_formatted[]';
+                formattedFlag.value = '1';
+                this.appendChild(formattedFlag);
             }
         });
-
-        console.log('Formatted call numbers with shelf location applied for submission');
+        
+        console.log('Preview call numbers applied for submission');
     }
 });
 </script>
@@ -2703,17 +2762,26 @@ function addAccessionGroup() {
         <div class="row">
             <div class="col-md-7">
                 <div class="form-group">
-                    <label>Accession (Copy ${newIndex + 1})</label>
+                    <label>Accession Groyp ${newIndex + 1}</label>
                     <input type="text" class="form-control accession-input" name="accession[]"
-                        placeholder="e.g., 2023-0001" required>
-                    <small class="text-muted">Format: YYYY-NNNN</small>
+                        placeholder="e.g., 00001, 00002, etc." required>
+                    <div class="mt-2">
+                        <small class="form-text text-muted">
+                            <i class="fas fa-info-circle mr-1"></i> If you enter 2023-0001 and set 3 copies, it will create: 2023-0001, 2023-0002, 2023-0003
+                        </small>
+                    </div>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="form-group">
                     <label>Number of Copies</label>
-                    <input type="number" class="form-control copies-input" name="number_of_copies[]" min="1" value="1" required>
-                    <small class="text-muted">Auto-increments accession</small>
+                    <input type="number" class="form-control copies-input" name="number_of_copies[]" min="1" value="1" 
+                        placeholder="Number of copies" required>
+                    <div class="mt-2">
+                        <small class="form-text text-muted">
+                            <i class="fas fa-info-circle mr-1"></i> System will auto-increment accession numbers
+                        </small>
+                    </div>
                 </div>
             </div>
             <div class="col-md-2 d-flex align-items-center justify-content-center">
@@ -2769,7 +2837,7 @@ function updateAccessionLabels() {
     groups.forEach((group, index) => {
         const label = group.querySelector('label');
         if (label) {
-            label.textContent = `Accession (Copy ${index + 1})`;
+            label.textContent = `Accession Group ${index + 1}`;
         }
     });
 }
@@ -4454,6 +4522,7 @@ function initializeFileUploads() {
     const previewContainer = container.querySelector('.file-preview-container');
     const preview = container.querySelector('.file-preview');
     const fileName = container.querySelector('.file-name');
+
     const fileSize = container.querySelector('.file-size');
     const removeButton = container.querySelector('.file-remove');
     

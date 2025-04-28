@@ -51,79 +51,34 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             throw new Exception("Publisher ID is not set. Please select a publisher.");
         }
 
-        // Handle file uploads
+        // Add missing variable declarations
+        $dimension = mysqli_real_escape_string($conn, $_POST['dimension'] ?? '');
+        $total_pages = mysqli_real_escape_string($conn, trim(($_POST['prefix_pages'] ?? '') . ' ' . ($_POST['main_pages'] ?? '')));
+        $supplementary_contents = mysqli_real_escape_string($conn, isset($_POST['supplementary_content']) ? implode(', ', $_POST['supplementary_content']) : '');
+        $content_type = mysqli_real_escape_string($conn, $_POST['content_type'] ?? 'Text');
+        $media_type = mysqli_real_escape_string($conn, $_POST['media_type'] ?? 'Print');
+        $carrier_type = mysqli_real_escape_string($conn, $_POST['carrier_type'] ?? 'Book');
+        $url = mysqli_real_escape_string($conn, $_POST['url'] ?? '');
+        $language = mysqli_real_escape_string($conn, $_POST['language'] ?? 'English');
+        $entered_by = $_SESSION['admin_employee_id'];
+        $date_added = date('Y-m-d');
+        $status = 'Available';
+        $updated_by = $_SESSION['admin_employee_id'];
+        $last_update = date('Y-m-d');
+
+        // Process each accession group
         $front_image = '';
         $back_image = '';
-        $imageFolder = '../Images/book-image/'; // Define the folder for storing images
+        $first_book_id = null;
+        $imageFolder = '../Images/book-image/';
+        $all_book_ids = [];
 
         // Ensure the folder exists
         if (!is_dir($imageFolder)) {
             mkdir($imageFolder, 0777, true);
         }
 
-        // Process front image
-        if (isset($_FILES['front_image']) && $_FILES['front_image']['error'] === UPLOAD_ERR_OK) {
-            $frontImageTmpName = $_FILES['front_image']['tmp_name'];
-            $frontImageName = uniqid('front_', true) . '_' . basename($_FILES['front_image']['name']);
-            $frontImagePath = $imageFolder . $frontImageName;
-
-            // Move the uploaded file to the target folder
-            if (move_uploaded_file($frontImageTmpName, $frontImagePath)) {
-                // Convert to relative path for database storage
-                $front_image = 'Images/book-image/' . $frontImageName;
-            } else {
-                throw new Exception("Failed to upload front image.");
-            }
-        }
-
-        // Process back image
-        if (isset($_FILES['back_image']) && $_FILES['back_image']['error'] === UPLOAD_ERR_OK) {
-            $backImageTmpName = $_FILES['back_image']['tmp_name'];
-            $backImageName = uniqid('back_', true) . '_' . basename($_FILES['back_image']['name']);
-            $backImagePath = $imageFolder . $backImageName;
-
-            // Move the uploaded file to the target folder
-            if (move_uploaded_file($backImageTmpName, $backImagePath)) {
-                // Convert to relative path for database storage
-                $back_image = 'Images/book-image/' . $backImageName;
-            } else {
-                throw new Exception("Failed to upload back image.");
-            }
-        }
-
-        $dimension = mysqli_real_escape_string($conn, $_POST['dimension']);
-        $content_type = mysqli_real_escape_string($conn, $_POST['content_type']);
-        $media_type = mysqli_real_escape_string($conn, $_POST['media_type']);
-        $carrier_type = mysqli_real_escape_string($conn, $_POST['carrier_type']);
-        $url = mysqli_real_escape_string($conn, $_POST['url']);
-        $language = mysqli_real_escape_string($conn, $_POST['language']);
-        $entered_by = $_POST['entered_by'];
-        $date_added = $_POST['date_added'];
-        $status = mysqli_real_escape_string($conn, $_POST['status']);
-        $last_update = $_POST['last_update'];
-
-        // Process total pages and supplementary contents separately
-        $prefix_pages = mysqli_real_escape_string($conn, $_POST['prefix_pages']);
-        $main_pages = mysqli_real_escape_string($conn, $_POST['main_pages']);
-        $supplementary_content = isset($_POST['supplementary_content']) ? $_POST['supplementary_content'] : [];
-
-        // Create total_pages without supplementary content
-        $total_pages = trim("$prefix_pages $main_pages");
-
-        // Prepare supplementary_contents for storage
-        if (!empty($supplementary_content)) {
-            if (count($supplementary_content) === 1) {
-                $supplementary_contents = "includes {$supplementary_content[0]}";
-            } elseif (count($supplementary_content) === 2) {
-                $supplementary_contents = "includes {$supplementary_content[0]} and {$supplementary_content[1]}";
-            } else {
-                $last = array_pop($supplementary_content);
-                $supplementary_contents = "includes " . implode(", ", $supplementary_content) . ", and " . $last;
-            }
-        } else {
-            $supplementary_contents = '';
-        }
-
+        // Process book insertions first to get all book IDs
         $success_count = 0;
         $error_messages = array();
         $call_number_index = 0;
@@ -210,7 +165,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     copy_number, total_pages, supplementary_contents, ISBN, content_type,
                     media_type, carrier_type, call_number, URL,
                     language, shelf_location, entered_by, date_added,
-                    status, last_update
+                    status, updated_by, last_update
                 ) VALUES (
                     '$current_accession', '$title', '$preferred_title', '$parallel_title',
                     '$subject_category', '$subject_detail', '$program',
@@ -219,50 +174,94 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $current_copy_number, '$total_pages', '$supplementary_contents', '$current_isbn', '$content_type',
                     '$media_type', '$carrier_type', '$formatted_call_number', '$url',
                     '$language', '$current_shelf_location', '$entered_by', '$date_added',
-                    '$status', '$last_update'
+                    '$status', '$updated_by', '$last_update'
                 )";
 
-                if (mysqli_query($conn, $query)) {
-                    $success_count++;
+                // Store the first book ID when inserting books
+                if (!mysqli_query($conn, $query)) {
+                    throw new Exception("Error inserting book data: " . mysqli_error($conn));
+                }
+                
+                $book_id = mysqli_insert_id($conn);
+                if ($first_book_id === null) {
+                    $first_book_id = $book_id;
+                }
+                $all_book_ids[] = $book_id;
 
-                    // Insert into publications table using publisher id and publish year from session
-                    $book_id = mysqli_insert_id($conn);
-                    $pubQuery = "INSERT INTO publications (book_id, publisher_id, publish_date) VALUES ('$book_id', '$publisher_id', '$publish_year')";
-                    if (!mysqli_query($conn, $pubQuery)) {
-                        $error_messages[] = "Error adding publication for book with accession $current_accession: " . mysqli_error($conn);
-                    }
-
-                    // Insert contributors in batches
-                    $contributors = [];
-
-                    // Add authors
-                    foreach ($authors_ids as $author_id) {
-                        $contributors[] = "('$book_id', '$author_id', 'Author')";
-                    }
-
-                    // Add co-authors
-                    foreach ($co_authors_ids as $co_author_id) {
-                        $contributors[] = "('$book_id', '$co_author_id', 'Co-Author')";
-                    }
-
-                    // Add editors
-                    foreach ($editors_ids as $editor_id) {
-                        $contributors[] = "('$book_id', '$editor_id', 'Editor')";
-                    }
-
-                    // Insert all contributors in one query
-                    if (!empty($contributors)) {
-                        $contributor_query = "INSERT INTO contributors (book_id, writer_id, role) VALUES " . implode(', ', $contributors);
-                        if (!mysqli_query($conn, $contributor_query)) {
-                            $error_messages[] = "Error adding contributors for book with accession $current_accession: " . mysqli_error($conn);
-                        }
-                    }
-                } else {
-                    $error_messages[] = "Error adding book with accession $current_accession: " . mysqli_error($conn);
+                // Insert into publications table using publisher id and publish year from session
+                $pubQuery = "INSERT INTO publications (book_id, publisher_id, publish_date) VALUES ('$book_id', '$publisher_id', '$publish_year')";
+                if (!mysqli_query($conn, $pubQuery)) {
+                    $error_messages[] = "Error adding publication for book with accession $current_accession: " . mysqli_error($conn);
                 }
 
-                // Increment copy number for the next copy in the same accession group
-                $copy_number++;
+                // Insert contributors in batches
+                $contributors = [];
+
+                // Add authors
+                foreach ($authors_ids as $author_id) {
+                    $contributors[] = "('$book_id', '$author_id', 'Author')";
+                }
+
+                // Add co-authors
+                foreach ($co_authors_ids as $co_author_id) {
+                    $contributors[] = "('$book_id', '$co_author_id', 'Co-Author')";
+                }
+
+                // Add editors
+                foreach ($editors_ids as $editor_id) {
+                    $contributors[] = "('$book_id', '$editor_id', 'Editor')";
+                }
+
+                // Insert all contributors in one query
+                if (!empty($contributors)) {
+                    $contributor_query = "INSERT INTO contributors (book_id, writer_id, role) VALUES " . implode(', ', $contributors);
+                    if (!mysqli_query($conn, $contributor_query)) {
+                        $error_messages[] = "Error adding contributors for book with accession $current_accession: " . mysqli_error($conn);
+                    }
+                }
+
+                $success_count++;
+            }
+        }
+
+        // After getting first_book_id, process images
+        if ($first_book_id) {
+            // Process front image
+            if (isset($_FILES['front_image']) && $_FILES['front_image']['error'] === UPLOAD_ERR_OK) {
+                $extension = strtolower(pathinfo($_FILES['front_image']['name'], PATHINFO_EXTENSION));
+                $frontImageName = $first_book_id . '_front.' . $extension;
+                $frontImagePath = $imageFolder . $frontImageName;
+
+                if (move_uploaded_file($_FILES['front_image']['tmp_name'], $frontImagePath)) {
+                    $front_image = 'Images/book-image/' . $frontImageName;
+                    
+                    // Update all books with the same front image path
+                    $update_front_image = "UPDATE books SET front_image = '$front_image' WHERE id IN (" . implode(',', $all_book_ids) . ")";
+                    if (!mysqli_query($conn, $update_front_image)) {
+                        throw new Exception("Failed to update front image for all copies.");
+                    }
+                } else {
+                    throw new Exception("Failed to upload front image.");
+                }
+            }
+
+            // Process back image
+            if (isset($_FILES['back_image']) && $_FILES['back_image']['error'] === UPLOAD_ERR_OK) {
+                $extension = strtolower(pathinfo($_FILES['back_image']['name'], PATHINFO_EXTENSION));
+                $backImageName = $first_book_id . '_back.' . $extension;
+                $backImagePath = $imageFolder . $backImageName;
+
+                if (move_uploaded_file($_FILES['back_image']['tmp_name'], $backImagePath)) {
+                    $back_image = 'Images/book-image/' . $backImageName;
+                    
+                    // Update all books with the same back image path
+                    $update_back_image = "UPDATE books SET back_image = '$back_image' WHERE id IN (" . implode(',', $all_book_ids) . ")";
+                    if (!mysqli_query($conn, $update_back_image)) {
+                        throw new Exception("Failed to update back image for all copies.");
+                    }
+                } else {
+                    throw new Exception("Failed to upload back image.");
+                }
             }
         }
 
@@ -609,37 +608,13 @@ $accession_error = '';
                     <div class="col-xl-12 col-lg-12">
                         <!-- Tab Navigation - Single Row -->
                         <div class="nav-tab-wrapper overflow-auto">
-                            <ul class="nav nav-tabs flex-nowrap" id="formTabs" role="tablist">
-                                <li class="nav-item">
-                                    <a class="nav-link active" data-bs-toggle="tab" href="#title-proper" role="tab">
-                                        <i class="fas fa-book"></i> Title Proper
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" data-bs-toggle="tab" href="#subject-entry" role="tab">
-                                        <i class="fas fa-tags"></i> Access Point
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" data-bs-toggle="tab" href="#abstracts" role="tab">
-                                        <i class="fas fa-file-alt"></i> Abstracts
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" data-bs-toggle="tab" href="#description" role="tab">
-                                        <i class="fas fa-info-circle"></i> Description
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" data-bs-toggle="tab" href="#local-info" role="tab">
-                                        <i class="fas fa-map-marker-alt"></i> Local Information
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" data-bs-toggle="tab" href="#publication" role="tab">
-                                        <i class="fas fa-print"></i> Publication
-                                    </a>
-                                </li>
+                            <ul class="nav nav-tabs flex-nowrap" id="formTabs" role="tablist" style="white-space: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 5px;">
+                                <li class="nav-item"><a class="nav-link active" id="title-tab" data-toggle="tab" href="#title-proper" role="tab"><i class="fas fa-book"></i> Title Proper</a></li>
+                                <li class="nav-item"><a class="nav-link" id="subject-tab" data-toggle="tab" href="#subject-entry" role="tab"><i class="fas fa-tag"></i> Access Point</a></li>
+                                <li class="nav-item"><a class="nav-link" id="abstracts-tab" data-toggle="tab" href="#abstracts" role="tab"><i class="fas fa-file-alt"></i> Abstract & Notes</a></li>
+                                <li class="nav-item"><a class="nav-link" id="description-tab" data-toggle="tab" href="#description" role="tab"><i class="fas fa-info-circle"></i> Description</a></li>
+                                <li class="nav-item"><a class="nav-link" id="local-info-tab" data-toggle="tab" href="#local-info" role="tab"><i class="fas fa-map-marker-alt"></i> Local Information</a></li>
+                                <li class="nav-item"><a class="nav-link" id="publication-tab" data-toggle="tab" href="#publication" role="tab"><i class="fas fa-print"></i> Publication</a></li>
                             </ul>
                         </div>
 
@@ -668,12 +643,16 @@ $accession_error = '';
                                 <div class="form-group">
                                     <label>Preferred Title</label>
                                     <input type="text" class="form-control" name="preferred_title">
-                                    <small class="form-text text-muted">Alternative title, if applicable.</small>
+                                        <small class="form-text text-muted">
+                                            <i class="fas fa-info-circle mr-1"></i> Alternative title, if applicable.
+                                        </small>
                                 </div>
                                 <div class="form-group">
                                     <label>Parallel Title</label>
                                     <input type="text" class="form-control" name="parallel_title">
-                                    <small class="form-text text-muted">Title in another language.</small>
+                                        <small class="form-text text-muted">
+                                            <i class="fas fa-info-circle mr-1"></i> Title in another language.
+                                        </small>
                                 </div>
 
                                 <!-- Hidden inputs for writer information -->
@@ -748,45 +727,52 @@ $accession_error = '';
                                 </div>
                             </div>
 
-                            <!-- Access Point Tab -->
+                            <!-- Subject Entry Tab -->
                             <div class="tab-pane fade" id="subject-entry" role="tabpanel">
                                 <h4>Access Point</h4>
                                 <div id="subjectEntriesContainer">
                                     <div class="subject-entry-group mb-3">
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <div class="form-group">
-                                                    <label>Subject Category</label>
-                                                    <select class="form-control subject-category" name="subject_categories[]">
-                                                        <option value="">Select Subject Category</option>
-                                                        <?php foreach ($subject_options as $subject): ?>
-                                                            <option value="<?php echo htmlspecialchars($subject); ?>">
-                                                                <?php echo htmlspecialchars($subject); ?>
-                                                            </option>
-                                                        <?php endforeach; ?>
-                                                    </select>
-                                                </div>
+                                        <div class="col-md-12">
+                                            <div class="form-group">
+                                                <label>Subject Category</label>
+                                                <select class="form-control subject-category" name="subject_categories[]">
+                                                    <option value="">Select Subject Category</option>
+                                                    <?php foreach ($subject_options as $subject): ?>
+                                                        <option value="<?php echo htmlspecialchars($subject); ?>">
+                                                            <?php echo htmlspecialchars($subject); ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                                <small class="form-text text-muted">
+                                                    <i class="fas fa-info-circle mr-1"></i> Select the primary subject classification for this book.
+                                                </small>
                                             </div>
-                                            <div class="col-md-6">
-                                                <div class="form-group">
-                                                    <label>Program</label>
-                                                    <select class="form-control" name="program[]">
-                                                        <option value="">Select Program</option>
-                                                        <option value="General Education">General Education</option>
-                                                        <option value="Computer Science">Computer Science</option>
-                                                        <option value="Accountancy">Accountancy</option>
-                                                        <option value="Entrepreneurship">Entrepreneurship</option>
-                                                        <option value="Accountancy Information System">Accountancy Information System</option>
-                                                        <option value="Tourism Management">Tourism Management</option>
-                                                    </select>
-                                                </div>
+                                        </div>
+                                        <div class="col-md-12">
+                                            <div class="form-group">
+                                                <label>Program</label>
+                                                <select class="form-control" name="program[]">
+                                                    <option value="">Select Program</option>
+                                                    <option value="General Education">General Education</option>
+                                                    <option value="Computer Science">Computer Science</option>
+                                                    <option value="Accountancy">Accountancy</option>
+                                                    <option value="Entrepreneurship">Entrepreneurship</option>
+                                                    <option value="Accountancy Information System">Accountancy Information System</option>
+                                                    <option value="Tourism Management">Tourism Management</option>
+                                                </select>
+                                                <small class="form-text text-muted">
+                                                    <i class="fas fa-info-circle mr-1"></i> Choose the academic program this book is most relevant to.
+                                                </small>
                                             </div>
-                                            <div class="col-md-6">
-                                                <div class="form-group">
-                                                    <label>Details</label>
-                                                    <textarea class="form-control" name="subject_paragraphs[]"
-                                                        rows="3" placeholder="Enter additional details about this subject"></textarea>
-                                                </div>
+                                        </div>
+                                        <div class="col-md-12">
+                                            <div class="form-group">
+                                                <label>Details</label>
+                                                <textarea class="form-control" name="subject_paragraphs[]"
+                                                    rows="3" placeholder="Enter additional details about this subject"></textarea>
+                                                <small class="form-text text-muted">
+                                                    <i class="fas fa-info-circle mr-1"></i> Provide specific subject terms, keywords, or descriptions that help identify the content.
+                                                </small>
                                             </div>
                                         </div>
                                     </div>
@@ -799,12 +785,16 @@ $accession_error = '';
                                 <div class="form-group">
                                     <label>Summary/Abstract</label>
                                     <textarea class="form-control" name="abstract" rows="4"></textarea>
-                                    <small class="form-text text-muted">Brief summary of the book's content.</small>
+                                    <small class="form-text text-muted">
+                                        <i class="fas fa-info-circle mr-1"></i> Brief summary of the book's content.
+                                    </small>
                                 </div>
                                 <div class="form-group">
                                     <label>Contents</label>
                                     <textarea class="form-control" name="notes" rows="4"></textarea>
-                                    <small class="form-text text-muted">Additional notes about the book.</small>
+                                    <small class="form-text text-muted">
+                                        <i class="fas fa-info-circle mr-1"></i> Additional notes about the book.
+                                    </small>
                                 </div>
                             </div>
 
@@ -864,21 +854,38 @@ $accession_error = '';
                                 
                                 <!-- Then the rest of the fields -->
                                 <div class="form-group">
-                                    <label>Dimension (cm)</label>
-                                    <input type="number" step="0.01" class="form-control" name="dimension">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <label>Dimension (cm)</label>
+                                            <input type="text" class="form-control" name="dimension" placeholder="e.g. 23 x 24 or 23 cm²">
+                                            <div class="mt-2">
+                                                <small class="form-text text-muted">
+                                                    <i class="fas fa-info-circle mr-1"></i> You may enter values like "23 × 24", or "23 cm²"
+                                                </small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="small">Prefix (Roman)</label>
+                                            <input type="text" class="form-control" name="prefix_pages" placeholder="e.g. xii">
+                                            <div class="mt-2">
+                                                <small class="form-text text-muted">
+                                                    <i class="fas fa-info-circle mr-1"></i> Enter the number of prefatory pages in Roman numerals.
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="form-group">
                                     <label>Pages</label>
                                     <div class="row">
-                                        <div class="col-md-3">
-                                            <label class="small">Prefix (Roman)</label>
-                                            <input type="text" class="form-control" name="prefix_pages" placeholder="e.g. xvi">
-                                            <small class="text-muted">Use roman numerals</small>
-                                        </div>
-                                        <div class="col-md-3">
+                                        <div class="col-md-6">
                                             <label class="small">Main Pages</label>
-                                            <input type="text" class="form-control" name="main_pages" placeholder="e.g. 234a">
-                                            <small class="text-muted">Can include letters (e.g. 123a)</small>
+                                            <input type="text" class="form-control" name="main_pages" placeholder="e.g. 350a">
+                                            <div class="mt-2">
+                                                <small class="form-text text-muted">
+                                                    <i class="fas fa-info-circle mr-1"></i> Provide the total number of main pages in the book.
+                                                </small>
+                                            </div>
                                         </div>
                                         <div class="col-md-6">
                                             <label class="small">Supplementary Contents</label>
@@ -891,7 +898,14 @@ $accession_error = '';
                                                 <option value="Maps">Maps</option>
                                                 <option value="Tables">Tables</option>
                                             </select>
-                                            <small class="text-muted">Hold Ctrl/Cmd to select multiple items</small>
+                                            <div class="mt-2">
+                                                <small class="text-primary d-block mb-1">
+                                                    <i class="fas fa-keyboard mr-1"></i> Hold <kbd>Ctrl</kbd> (Windows) or <kbd>⌘ Cmd</kbd> (Mac) to select multiple items
+                                                </small>
+                                                <small class="form-text text-muted">
+                                                    <i class="fas fa-info-circle mr-1"></i> Select any additional content included in the book.
+                                                </small>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -910,7 +924,9 @@ $accession_error = '';
                                                             <label>Accession Group 1</label>
                                                             <input type="text" class="form-control accession-input" name="accession[]"
                                                                 placeholder="e.g., 2023-0001 (will auto-increment based on copies)" required>
-                                                            <small class="text-muted">If you enter 2023-0001 and set 3 copies, it will create: 2023-0001, 2023-0002, 2023-0003</small>
+                                                                <small class="form-text text-muted">
+                                                                    <i class="fas fa-info-circle mr-1"></i> If you enter 2023-0001 and set 3 copies, it will create: 2023-0001, 2023-0002, 2023-0003
+                                                                </small>
                                                             <?php if ($accession_error): ?>
                                                                 <small class="text-danger"><?php echo $accession_error; ?></small>
                                                             <?php endif; ?>
@@ -920,12 +936,17 @@ $accession_error = '';
                                                         <div class="form-group">
                                                             <label>Number of Copies</label>
                                                             <input type="number" class="form-control copies-input" name="number_of_copies[]" min="1" value="1" required>
-                                                            <small class="text-muted">Auto-increments accession</small>
+                                                            <small class="form-text text-muted">
+                                                                <i class="fas fa-info-circle mr-1"></i> Auto-increments accession
+                                                            </small>
                                                         </div>
                                                     </div>
                                                     <div class="col-md-2">
                                                         <label>&nbsp;</label>
                                                         <button type="button" class="btn btn-primary btn-block w-100 add-accession">Add Another</button>
+                                                        <small class="form-text text-muted">
+                                                            <i class="fas fa-info-circle mr-1"></i> Add another accession group for books with different ISBN/edition/volume combinations
+                                                        </small>
                                                     </div>
                                                 </div>
                                             </div>
@@ -941,45 +962,39 @@ $accession_error = '';
                                     </div>
                                 </div>
 
-                                <!-- Remove extra margin/padding -->
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Language</label>
-                                            <select class="form-control" name="language">
-                                                <option value="English">English</option>
-                                                <option value="Spanish">Spanish</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-
                                 <!--  -->
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="form-group">
                                             <label>Entered By</label>
                                             <?php
-                                            // Get admin details
-                                            $admin_id = $_SESSION['admin_id'];
-                                            $admin_query = "SELECT CONCAT(firstname, ' ', lastname) as full_name, role
-                                                          FROM admins WHERE id = ?";
-                                            $stmt = $conn->prepare($admin_query);
-                                            $stmt->bind_param("i", $admin_id);
-                                            $stmt->execute();
-                                            $admin_result = $stmt->get_result();
-                                            $admin_data = $admin_result->fetch_assoc();
+                                            // Get admin details from session
+                                            $admin_firstname = $_SESSION['admin_firstname'] ?? '';
+                                            $admin_lastname = $_SESSION['admin_lastname'] ?? '';
+                                            $admin_employee_id = $_SESSION['admin_employee_id'] ?? '';
+                                            $admin_role = $_SESSION['role'] ?? '';
+                                            
+                                            // Format as "firstname lastname (employee id - role)"
+                                            $admin_display = htmlspecialchars(
+                                                "$admin_firstname $admin_lastname ($admin_employee_id - $admin_role)"
+                                            );
                                             ?>
                                             <input type="text" class="form-control"
-                                                   value="<?php echo htmlspecialchars($admin_data['full_name'] . ' (' . $admin_data['role'] . ') - ID: ' . $admin_id); ?>"
+                                                   value="<?php echo $admin_display; ?>"
                                                    readonly>
-                                            <input type="hidden" name="entered_by" value="<?php echo $admin_id; ?>">
+                                            <input type="hidden" name="entered_by" value="<?php echo $_SESSION['admin_employee_id']; ?>">
+                                            <small class="form-text text-muted">
+                                                <i class="fas fa-user mr-1"></i> Staff member who created this record
+                                            </small>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="form-group">
                                             <label>Date Added</label>
-                                            <input type="text" class="form-control" name="date_added" value="<?php echo date('Y-m-d'); ?>" readonly>
+                                            <input type="text" class="form-control" name="date_added" value="<?php echo date('Y-m-d H:i:s'); ?>" readonly>
+                                            <small class="form-text text-muted">
+                                                <i class="fas fa-calendar mr-1"></i> Timestamp when the book was added to the system
+                                            </small>
                                         </div>
                                     </div>
                                 </div>
@@ -990,17 +1005,19 @@ $accession_error = '';
                                     <div class="col-md-6">
                                         <div class="form-group">
                                             <label>Status</label>
-                                            <select class="form-control" name="status">
-                                                <option value="Available">Available</option>
-                                                <option value="Borrowed">Borrowed</option>
-                                                <option value="Lost">Lost</option>
-                                            </select>
+                                            <input type="text" class="form-control" name="status" value="Available" readonly>
+                                            <small class="form-text text-muted">
+                                                <i class="fas fa-info-circle mr-1"></i> Current availability status of the book
+                                            </small>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="form-group">
                                             <label>Last Update</label>
-                                            <input type="text" class="form-control" name="last_update" value="<?php echo date('Y-m-d'); ?>" readonly>
+                                            <input type="text" class="form-control" name="last_update" value="<?php echo date('Y-m-d H:i:s'); ?>" readonly>
+                                            <small class="form-text text-muted">
+                                                <i class="fas fa-clock mr-1"></i> Timestamp of the most recent modification
+                                            </small>
                                         </div>
                                     </div>
                                 </div>
@@ -1085,15 +1102,22 @@ $accession_error = '';
                                     </div>
                                 </div>
 
+                                <!-- Move URL to its own row spanning full width -->
                                 <div class="row">
-                                    <div class="col-md-6">
+                                    <div class="col-md-12">
                                         <div class="form-group">
-                                            <label>URL</label>
-                                            <input type="text" class="form-control" name="url">
+                                            <label for="url">URL (if applicable)</label>
+                                            <input type="url" class="form-control" id="url" name="url" placeholder="https://example.com">
+                                            <small class="form-text text-muted">
+                                                <i class="fas fa-info-circle mr-1"></i> Optional URL for digital resources
+                                            </small>
                                         </div>
                                     </div>
+                                </div>
 
-                                    <div class="col-md-6">
+                                <!-- Content Type, Media Type, Carrier Type, and Language in One Row -->
+                                <div class="row">
+                                    <div class="col-md-3">
                                         <div class="form-group">
                                             <label>Content Type</label>
                                             <select class="form-control" name="content_type">
@@ -1101,13 +1125,13 @@ $accession_error = '';
                                                 <option value="Image">Image</option>
                                                 <option value="Video">Video</option>
                                             </select>
+                                            <small class="form-text text-muted">
+                                                <i class="fas fa-info-circle mr-1"></i> The form of communication through which the work is expressed
+                                            </small>
                                         </div>
                                     </div>
-                                </div>
 
-                                <!-- Content Type, Media Type, Carrier Type in One Row -->
-                                <div class="row">
-                                    <div class="col-md-6">
+                                    <div class="col-md-3">
                                         <div class="form-group">
                                             <label>Media Type</label>
                                             <select class="form-control" name="media_type">
@@ -1115,10 +1139,13 @@ $accession_error = '';
                                                 <option value="Digital">Digital</option>
                                                 <option value="Audio">Audio</option>
                                             </select>
+                                            <small class="form-text text-muted">
+                                                <i class="fas fa-info-circle mr-1"></i> The general type of intermediation device required to view the content
+                                            </small>
                                         </div>
                                     </div>
 
-                                    <div class="col-md-6">
+                                    <div class="col-md-3">
                                         <div class="form-group">
                                             <label>Carrier Type</label>
                                             <select class="form-control" name="carrier_type">
@@ -1126,16 +1153,32 @@ $accession_error = '';
                                                 <option value="CD">CD</option>
                                                 <option value="USB">USB</option>
                                             </select>
+                                            <small class="form-text text-muted">
+                                                <i class="fas fa-info-circle mr-1"></i> The physical medium in which the content is stored or displayed
+                                            </small>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label>Language</label>
+                                            <select class="form-control" name="language">
+                                                <option value="English">English</option>
+                                                <option value="Spanish">Spanish</option>
+                                            </select>
+                                            <small class="form-text text-muted">
+                                                <i class="fas fa-info-circle mr-1"></i> Primary language of the resource's content
+                                            </small>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <!-- Move Details for Accession Group fields outside the current column -->
-                            <div id="detailsForAccessionGroupContainer">
-                                <!-- Will be populated by JavaScript -->
-                            </div>
+                                <!-- Move Details for Accession Group fields outside the current column -->
+                                <div id="detailsForAccessionGroupContainer">
+                                    <!-- Will be populated by JavaScript -->
+                                </div>
 
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1470,14 +1513,18 @@ document.addEventListener('click', function(e) {
                         <label>Accession Group ${groupCount}</label>
                         <input type="text" class="form-control accession-input" name="accession[]"
                             placeholder="e.g., 2023-0001" required>
-                        <small class="text-muted">Format: YYYY-NNNN</small>
+                            <small class="form-text text-muted">
+                                <i class="fas fa-info-circle mr-1"></i> If you enter 2023-0001 and set 3 copies, it will create: 2023-0001, 2023-0002, 2023-0003
+                            </small>
                     </div>
                 </div>
                 <div class="col-md-2">
                     <div class="form-group">
                         <label>Number of Copies</label>
                         <input type="number" class="form-control copies-input" name="number_of_copies[]" min="1" value="1" required>
-                        <small class="text-muted">Auto-increments accession</small>
+                        <small class="form-text text-muted">
+                            <i class="fas fa-info-circle mr-1"></i> Auto-increments accession
+                        </small>
                     </div>
                 </div>
                 <div class="col-md-2">
@@ -1743,12 +1790,12 @@ function initializeFileUploads() {
       });
     }
     
-    // Handle drag and drop
+        // Handle drag and drop
     uploadArea.addEventListener('dragover', function(e) {
       e.preventDefault();
-      uploadArea.classList.add('drag-over');
+            uploadArea.classList.add('drag-over');
     });
-    
+
     uploadArea.addEventListener('dragleave', function() {
       uploadArea.classList.remove('drag-over');
     });
