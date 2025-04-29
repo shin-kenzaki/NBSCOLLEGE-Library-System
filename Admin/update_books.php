@@ -1026,12 +1026,7 @@ if ($first_book) {
 
                         <div class="form-group">
                             <label>Dimension (cm)</label>
-                            <input type="text" class="form-control" name="dimension" 
-                                value="<?php echo htmlspecialchars($first_book['dimension'] ?? ''); ?>"
-                                placeholder="e.g., 23 x 24, 23 * 24, or 24 cm²"
-                                pattern="^\d+(\s*[x*]\s*\d+)?(\s*cm²)?$"
-                                title="Enter dimensions like '23 x 24', '23 * 24', or '24 cm²'">
-                            <small class="text-muted">Format: width x height (e.g., 23 x 24) or size squared (e.g., 24 cm²)</small>
+                            <input type="number" step="0.01" class="form-control" name="dimension" value="<?php echo htmlspecialchars($first_book['dimension'] ?? ''); ?>">
                         </div>
 
                         <div class="form-group">
@@ -1817,39 +1812,4 @@ document.addEventListener('DOMContentLoaded', function() {
     updateAspectPreviews('backImagePreview', 'backAspectPreviews');
 });
 </script>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const dimensionInput = document.querySelector('input[name="dimension"]');
-    
-    dimensionInput.addEventListener('input', function(e) {
-        let value = e.target.value.trim();
-        
-        // Convert * to x if used
-        value = value.replace(/\*/g, 'x');
-        
-        // Clean up spaces around x
-        value = value.replace(/\s*x\s*/g, ' x ');
-        
-        // Format "cm squared" or "cm2" to cm²
-        value = value.replace(/cm\s*squared|cm2/i, 'cm²');
-        
-        // Update the input value with formatted version
-        e.target.value = value;
-    });
-    
-    dimensionInput.addEventListener('blur', function(e) {
-        let value = e.target.value.trim();
-        
-        // Add "cm" if dimensions are provided without unit
-        if (value.match(/^\d+\s*x\s*\d+$/)) {
-            e.target.value = value + ' cm';
-        }
-        
-        // Convert any remaining "squared" notation to ²
-        if (value.includes('cm squared')) {
-            e.target.value = value.replace('cm squared', 'cm²');
-        }
-    });
-});
-</script>
+```
