@@ -234,8 +234,6 @@ if (isset($_POST['submit'])) {
                 URL = ?,
                 language = ?,
                 shelf_location = ?,
-                entered_by = ?,
-                date_added = ?,
                 status = ?, -- Ensure status is updated
                 updated_by = ?,
                 last_update = ?,
@@ -245,7 +243,7 @@ if (isset($_POST['submit'])) {
             $stmt = $conn->prepare($update_query);
 
             // Bind parameters with copy-specific values including preserved entered_by/date_added
-            $stmt->bind_param("ssssssssssssssssssssssssssssssssi",
+            $stmt->bind_param("ssssssssssssssssssssssssssssssi",
                 $title,
                 $preferred_title,
                 $parallel_title,
@@ -272,8 +270,6 @@ if (isset($_POST['submit'])) {
                 $url,
                 $language,
                 $shelf_location,
-                $entered_by_value,
-                $date_added_value,
                 $status_value, // Bind the status value
                 $current_admin_id,
                 $update_date,
@@ -1520,10 +1516,9 @@ document.addEventListener("DOMContentLoaded", function() {
             const copyNumberInput = copy.querySelector('input[name="copy_number[]"]');
             const publishYear = document.querySelector('input[name="publish_date"]');
 
-            // Add event listeners to each field to```javascript
             // Add event listeners to each field to update the call number when they change
             if (shelfLocation) {
-                shelfLocation.addEventListener('change', () => updateCallNumber(copy));
+                                shelfLocation.addEventListener('change', () => updateCallNumber(copy));
             }
 
             if (volumeInput) {
