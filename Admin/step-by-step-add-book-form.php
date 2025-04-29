@@ -902,7 +902,7 @@ $accession_error = '';
                                             <input type="text" class="form-control" name="dimension" placeholder="e.g. 23 x 24 or 23 cm²">
                                             <div class="mt-2">
                                                 <small class="form-text text-muted">
-                                                    <i class="fas fa-info-circle mr-1"></i> You may enter values like "23 × 24", or "23 cm²"
+                                                    <i class="fas fa-info-circle mr-1"></i> Format examples: 23 x 24, 23 * 24, or just 24 (cm² will be added automatically for single numbers)
                                                 </small>
                                             </div>
                                         </div>
@@ -925,7 +925,7 @@ $accession_error = '';
                                             <input type="text" class="form-control" name="main_pages" placeholder="e.g. 350a">
                                             <div class="mt-2">
                                                 <small class="form-text text-muted">
-                                                    <i class="fas fa-info-circle mr-1"></i> Provide the total number of main pages in the book.
+                                                    <i class="fas fa-info-circle mr-1"></i> Provide the total number of main pages in the book. (Format examples: 345p)
                                                 </small>
                                             </div>
                                         </div>

@@ -806,14 +806,23 @@ if ($first_book) {
                         <div class="form-group">
                             <label>Title</label>
                             <input type="text" class="form-control" name="title" value="<?php echo htmlspecialchars($first_book['title'] ?? ''); ?>" required>
+                            <small class="form-text text-muted">
+                                <i class="fas fa-info-circle mr-1"></i> Main title of the book.
+                            </small>
                         </div>
                         <div class="form-group">
                             <label>Preferred Title</label>
                             <input type="text" class="form-control" name="preferred_title" value="<?php echo htmlspecialchars($first_book['preferred_title'] ?? ''); ?>">
+                            <small class="form-text text-muted">
+                                <i class="fas fa-info-circle mr-1"></i> Alternative title, if applicable.
+                            </small>
                         </div>
                         <div class="form-group">
                             <label>Parallel Title</label>
                             <input type="text" class="form-control" name="parallel_title" value="<?php echo htmlspecialchars($first_book['parallel_title'] ?? ''); ?>">
+                            <small class="form-text text-muted">
+                                <i class="fas fa-info-circle mr-1"></i> Title in another language.
+                            </small>
                         </div>
 
                         <!-- Contributors section - Updated layout -->
@@ -845,6 +854,12 @@ if ($first_book) {
                                             </option>
                                         <?php endforeach; ?>
                                     </select>
+                                    <small class="text-primary d-block mb-1">
+                                        <i class="fas fa-keyboard mr-1"></i> Hold <kbd>Ctrl</kbd> (Windows) or <kbd>⌘ Cmd</kbd> (Mac) to select multiple items
+                                    </small>
+                                    <small class="form-text text-muted">
+                                        <i class="fas fa-info-circle mr-1"></i> Main author(s) primarily responsible for the intellectual content of the work
+                                    </small>
                                     <small class="text-muted">Hold Ctrl/Cmd to select multiple items</small>
                                     <div class="mt-2 border rounded bg-light" id="authorPreview"></div>
                                 </div>
@@ -873,6 +888,12 @@ if ($first_book) {
                                             </option>
                                         <?php endforeach; ?>
                                     </select>
+                                    <small class="text-primary d-block mb-1">
+                                        <i class="fas fa-keyboard mr-1"></i> Hold <kbd>Ctrl</kbd> (Windows) or <kbd>⌘ Cmd</kbd> (Mac) to select multiple items
+                                    </small>
+                                    <small class="form-text text-muted">
+                                        <i class="fas fa-info-circle mr-1"></i> Secondary authors who contributed to the work but are not the main authors
+                                    </small>
                                     <small class="text-muted">Hold Ctrl/Cmd to select multiple items</small>
                                     <div id="coAuthorPreview" class="mt-2 p-2 border rounded bg-light"></div>
                                 </div>
@@ -901,6 +922,12 @@ if ($first_book) {
                                             </option>
                                         <?php endforeach; ?>
                                     </select>
+                                    <small class="text-primary d-block mb-1">
+                                        <i class="fas fa-keyboard mr-1"></i> Hold <kbd>Ctrl</kbd> (Windows) or <kbd>⌘ Cmd</kbd> (Mac) to select multiple items
+                                    </small>
+                                    <small class="form-text text-muted">
+                                        <i class="fas fa-info-circle mr-1"></i> People who edited, compiled, or curated the work rather than creating it
+                                    </small>
                                     <small class="text-muted">Hold Ctrl/Cmd to select multiple items</small>
                                     <div id="editorPreview" class="mt-2 p-2 border rounded bg-light"></div>
                                 </div>
@@ -913,42 +940,43 @@ if ($first_book) {
                         <h4>Access Point</h4>
                         <div id="subjectEntriesContainer">
                             <div class="subject-entry-group mb-3">
-                                <div class="row">
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label>Subject Category</label>
-                                            <select class="form-control subject-category" name="subject_categories[]">
-                                                <option value="">Select Subject Category</option>
-                                                <?php foreach ($subject_options as $subject): ?>
-                                                    <option value="<?php echo htmlspecialchars($subject); ?>"
-                                                        <?php echo ($first_book['subject_category'] == $subject) ? 'selected' : ''; ?>>
-                                                        <?php echo htmlspecialchars($subject); ?>
-                                                    </option>
-                                                <?php endforeach; ?>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label>Program</label>
-                                            <select class="form-control" name="program">
-                                                <option value="">Select Program</option>
-                                                <option value="Accountancy" <?php echo ($first_book['program'] == 'Accountancy') ? 'selected' : ''; ?>>Accountancy</option>
-                                                <option value="Computer Science" <?php echo ($first_book['program'] == 'Computer Science') ? 'selected' : ''; ?>>Computer Science</option>
-                                                <option value="Entrepreneurship" <?php echo ($first_book['program'] == 'Entrepreneurship') ? 'selected' : ''; ?>>Entrepreneurship</option>
-                                                <option value="Tourism Management" <?php echo ($first_book['program'] == 'Tourism Management') ? 'selected' : ''; ?>>Tourism Management</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label>Details</label>
-                                            <textarea class="form-control" name="subject_paragraphs[]"
-                                                rows="3" placeholder="Enter additional details about this subject"><?php
-                                                echo htmlspecialchars($first_book['subject_detail'] ?? '');
-                                            ?></textarea>
-                                        </div>
-                                    </div>
+                                    <div class="form-group">
+                                    <label>Subject Category</label>
+                                    <select class="form-control subject-category" name="subject_categories[]">
+                                        <option value="">Select Subject Category</option>
+                                        <?php foreach ($subject_options as $subject): ?>
+                                            <option value="<?php echo htmlspecialchars($subject); ?>"
+                                                <?php echo ($first_book['subject_category'] == $subject) ? 'selected' : ''; ?>>
+                                                <?php echo htmlspecialchars($subject); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <small class="form-text text-muted">
+                                        <i class="fas fa-info-circle mr-1"></i> Select the primary subject classification for this book.
+                                    </small>
+                                </div>
+                                <div class="form-group">
+                                    <label>Program</label>
+                                    <select class="form-control" name="program">
+                                        <option value="">Select Program</option>
+                                        <option value="Accountancy" <?php echo ($first_book['program'] == 'Accountancy') ? 'selected' : ''; ?>>Accountancy</option>
+                                        <option value="Computer Science" <?php echo ($first_book['program'] == 'Computer Science') ? 'selected' : ''; ?>>Computer Science</option>
+                                        <option value="Entrepreneurship" <?php echo ($first_book['program'] == 'Entrepreneurship') ? 'selected' : ''; ?>>Entrepreneurship</option>
+                                        <option value="Tourism Management" <?php echo ($first_book['program'] == 'Tourism Management') ? 'selected' : ''; ?>>Tourism Management</option>
+                                    </select>
+                                    <small class="form-text text-muted">
+                                        <i class="fas fa-info-circle mr-1"></i> Choose the academic program this book is most relevant to.
+                                    </small>
+                                </div>
+                                <div class="form-group">
+                                    <label>Details</label>
+                                    <textarea class="form-control" name="subject_paragraphs[]"
+                                        rows="3" placeholder="Enter additional details about this subject"><?php
+                                        echo htmlspecialchars($first_book['subject_detail'] ?? '');
+                                    ?></textarea>
+                                    <small class="form-text text-muted">
+                                        <i class="fas fa-info-circle mr-1"></i> Provide specific subject terms, keywords, or descriptions that help identify the content.
+                                    </small>
                                 </div>
                             </div>
                         </div>
@@ -961,11 +989,17 @@ if ($first_book) {
                             <label>Summary/Abstract</label>
                             <textarea class="form-control" name="abstract" rows="6"
                                 placeholder="Enter a summary or abstract of the book"><?php echo htmlspecialchars($first_book['summary'] ?? ''); ?></textarea>
+                            <small class="form-text text-muted">
+                                <i class="fas fa-info-circle mr-1"></i> Brief summary of the book's content.
+                            </small>
                         </div>
                         <div class="form-group">
                             <label>Contents</label>
                             <textarea class="form-control" name="notes" rows="4"
                                 placeholder="Enter the table of contents or chapter list"><?php echo htmlspecialchars($first_book['contents'] ?? ''); ?></textarea>
+                            <small class="form-text text-muted">
+                                <i class="fas fa-info-circle mr-1"></i> Additional notes about the book.
+                            </small>
                         </div>
                     </div>
 
@@ -1047,9 +1081,10 @@ if ($first_book) {
                             <input type="text" class="form-control" name="dimension" 
                                    value="<?php echo htmlspecialchars($first_book['dimension'] ?? ''); ?>"
                                    placeholder="e.g. 23 x 24, 23 * 24, or 24 cm²"
-                                   pattern="^\d+(\s*[x*×]\s*\d+)?(\s*cm)?(\s*²)?$"
-                                   title="Enter dimensions like '23 x 24', '23 * 24', or '24 cm²'">
-                            <small class="text-muted">Format examples: 23 x 24, 23 * 24, or just 24 (cm² will be added automatically for single numbers)</small>
+                                   pattern="^\d+(\s*[x*×]\s*\d+)?(\s*cm)?(\s*²)?$">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle mr-1"></i> Format examples: 23 x 24, 23 * 24, or just 24 (cm² will be added automatically for single numbers)
+                            </small>
                         </div>
 
                         <div class="form-group">
@@ -1063,7 +1098,9 @@ if ($first_book) {
                                                $parts = explode(' ', $pages); // Changed from comma to space
                                                echo htmlspecialchars($parts[0] ?? '');
                                            ?>">
-                                    <small class="text-muted">Use roman numerals</small>
+                                <small class="form-text text-muted">
+                                    <i class="fas fa-info-circle mr-1"></i> Enter the number of prefatory pages in Roman numerals.
+                                </small>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="small">Main Pages</label>
@@ -1073,7 +1110,9 @@ if ($first_book) {
                                                $parts = explode(' ', $pages); // Changed from comma to space
                                                echo htmlspecialchars($parts[1] ?? '');
                                            ?>">
-                                    <small class="text-muted">Can include letters (e.g. 123a, 456b)</small>
+                                    <small class="form-text text-muted">
+                                        <i class="fas fa-info-circle mr-1"></i> Provide the total number of main pages in the book. (Format examples: 345p)
+                                    </small>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="small">Supplementary Contents</label>
@@ -1098,7 +1137,12 @@ if ($first_book) {
                                         <option value="Maps" <?php echo (in_array('Maps', $supItems)) ? 'selected' : ''; ?>>Maps</option>
                                         <option value="Tables" <?php echo (in_array('Tables', $supItems)) ? 'selected' : ''; ?>>Tables</option>
                                     </select>
-                                    <small class="text-muted">Hold Ctrl/Cmd to select multiple items</small>
+                                    <small class="text-primary d-block mb-1">
+                                        <i class="fas fa-keyboard mr-1"></i> Hold <kbd>Ctrl</kbd> (Windows) or <kbd>⌘ Cmd</kbd> (Mac) to select multiple items
+                                    </small>
+                                    <small class="form-text text-muted">
+                                        <i class="fas fa-info-circle mr-1"></i> Select any additional content included in the book.
+                                    </small>
                                 </div>
                             </div>
                         </div>
