@@ -102,6 +102,27 @@ if (isset($_POST['submit'])) {
             
             $book_title = mysqli_real_escape_string($conn, $_POST['title']);
             
+            // Process dimension field - add cm² if it's only a number, otherwise add (cm)
+            $dimension = mysqli_real_escape_string($conn, $_POST['dimension'] ?? '');
+            if (!empty($dimension)) {
+                $dimension = trim($dimension);
+                // Check if it's just a number (single part)
+                if (is_numeric($dimension)) {
+                    $dimension .= ' cm²';
+                } 
+                // Check if it has multiple parts (contains x, * or spaces)
+                else if (strpos($dimension, 'x') !== false || strpos($dimension, '*') !== false || strpos($dimension, ' ') !== false) {
+                    // Add (cm) if not already present with a unit
+                    if (!preg_match('/\(cm\)$|\s+cm$|\s+cm²$/', $dimension)) {
+                        $dimension .= ' (cm)';
+                    }
+                } 
+                // For other formats without units, add (cm)
+                else if (!preg_match('/\(cm\)$|\s+cm$|\s+cm²$/', $dimension)) {
+                    $dimension .= ' (cm)';
+                }
+            }
+            
             // Extract subject and program before the copy loop
             $subject_categories = $_POST['subject_categories'] ?? [];
             $programs = $_POST['program'] ?? [];

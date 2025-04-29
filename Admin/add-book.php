@@ -562,7 +562,7 @@ $accession_error = '';
                                 </div>
                                 <div class="row">
                                     <div class="col-md-6">
-                                        <label>Dimension (cm)</label>
+                                        <label>Dimension (cm²)</label>
                                         <input type="text" class="form-control" name="dimension" placeholder="e.g. 23 x 24 or 23 cm²">
                                             <div class="mt-2">
                                                 <small class="form-text text-muted">

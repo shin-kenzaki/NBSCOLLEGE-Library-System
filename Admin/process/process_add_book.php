@@ -125,7 +125,27 @@ if (isset($_POST['submit'])) {
                     // Fields that match database structure
                     $summary = mysqli_real_escape_string($conn, $_POST['abstract'] ?? '');
                     $contents = mysqli_real_escape_string($conn, $_POST['notes'] ?? '');
+                    
+                    // Process dimension field - add cm² if it's a single number, otherwise add (cm)
                     $dimension = mysqli_real_escape_string($conn, $_POST['dimension'] ?? '');
+                    if (!empty($dimension)) {
+                        $dimension = trim($dimension);
+                        // Check if dimension contains only numbers (single dimension)
+                        if (is_numeric($dimension)) {
+                            $dimension .= ' cm²';
+                        } 
+                        // Check if dimension contains multiple parts (has x, *, or spaces)
+                        else if (strpos($dimension, 'x') !== false || strpos($dimension, '*') !== false || strpos($dimension, ' ') !== false) {
+                            // Only add (cm) if not already present
+                            if (!preg_match('/\(cm\)$|\s+cm$|\s+cm²$/', $dimension)) {
+                                $dimension .= ' (cm)';
+                            }
+                        }
+                        // For any other format that's not already properly suffixed
+                        else if (!preg_match('/\(cm\)$|\s+cm$|\s+cm²$/', $dimension)) {
+                            $dimension .= ' (cm)';
+                        }
+                    }
 
                     // --- CHANGED: Use the exact copy number from the Copy Number fields ---
                     // Get copy number from input field if it exists and is valid, else use default

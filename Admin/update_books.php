@@ -109,6 +109,24 @@ if (isset($_POST['submit'])) {
         $abstract = mysqli_real_escape_string($conn, is_array($_POST['abstract']) ? $_POST['abstract'][0] : ($_POST['abstract'] ?? ''));
         $notes = mysqli_real_escape_string($conn, is_array($_POST['notes']) ? $_POST['notes'][0] : ($_POST['notes'] ?? ''));
         $dimension = mysqli_real_escape_string($conn, is_array($_POST['dimension']) ? $_POST['dimension'][0] : ($_POST['dimension'] ?? ''));
+        // If dimension contains just a single number, append cm²
+        if (!empty($dimension)) {
+            $dimension = trim($dimension);
+            if (is_numeric($dimension)) {
+                $dimension .= ' cm²';
+            } 
+            // Check if dimension has multiple parts
+            else if (strpos($dimension, 'x') !== false || strpos($dimension, '*') !== false || strpos($dimension, ' ') !== false) {
+                // Only add (cm) if not already present
+                if (!preg_match('/\(cm\)$|\s+cm$|\s+cm²$/', $dimension)) {
+                    $dimension .= ' (cm)';
+                }
+            }
+            // For any other format that's not already properly suffixed
+            else if (!preg_match('/\(cm\)$|\s+cm$|\s+cm²$/', $dimension)) {
+                $dimension .= ' (cm)';
+            }
+        }
         $series = mysqli_real_escape_string($conn, is_array($_POST['series']) ? $_POST['series'][0] : ($_POST['series'] ?? ''));
         $volume = mysqli_real_escape_string($conn, is_array($_POST['volume']) ? $_POST['volume'][0] : ($_POST['volume'] ?? ''));
         $edition = mysqli_real_escape_string($conn, is_array($_POST['edition']) ? $_POST['edition'][0] : ($_POST['edition'] ?? ''));
@@ -1025,8 +1043,13 @@ if ($first_book) {
                         </div>
 
                         <div class="form-group">
-                            <label>Dimension (cm)</label>
-                            <input type="number" step="0.01" class="form-control" name="dimension" value="<?php echo htmlspecialchars($first_book['dimension'] ?? ''); ?>">
+                            <label>Dimension (cm²)</label>
+                            <input type="text" class="form-control" name="dimension" 
+                                   value="<?php echo htmlspecialchars($first_book['dimension'] ?? ''); ?>"
+                                   placeholder="e.g. 23 x 24, 23 * 24, or 24 cm²"
+                                   pattern="^\d+(\s*[x*×]\s*\d+)?(\s*cm)?(\s*²)?$"
+                                   title="Enter dimensions like '23 x 24', '23 * 24', or '24 cm²'">
+                            <small class="text-muted">Format examples: 23 x 24, 23 * 24, or just 24 (cm² will be added automatically for single numbers)</small>
                         </div>
 
                         <div class="form-group">
@@ -1478,7 +1501,7 @@ document.addEventListener("DOMContentLoaded", function() {
             components.push(classifierCutter);
         }
 
-        // Add publication year if available (with "c" prefix for copyright)
+        // Add publication year if available (with "c" prefix for copyright```javascript
         if (publishYear) {
             components.push(`c${publishYear}`);
         }
@@ -1518,7 +1541,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
             // Add event listeners to each field to update the call number when they change
             if (shelfLocation) {
-                                shelfLocation.addEventListener('change', () => updateCallNumber(copy));
+                shelfLocation.addEventListener('change', () => updateCallNumber(copy));
             }
 
             if (volumeInput) {
@@ -1812,4 +1835,3 @@ document.addEventListener('DOMContentLoaded', function() {
     updateAspectPreviews('backImagePreview', 'backAspectPreviews');
 });
 </script>
-```

@@ -70,8 +70,28 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             throw new Exception("Publisher ID is not set. Please select a publisher.");
         }
 
-        // Add missing variable declarations
+        // Process dimension field - add cm² if it's only a number, otherwise add (cm)
         $dimension = mysqli_real_escape_string($conn, $_POST['dimension'] ?? '');
+        if (!empty($dimension)) {
+            $dimension = trim($dimension);
+            // Check if it's just a number (single part)
+            if (is_numeric($dimension)) {
+                $dimension .= ' cm²';
+            } 
+            // Check if it has multiple parts (contains x, * or spaces)
+            else if (strpos($dimension, 'x') !== false || strpos($dimension, '*') !== false || strpos($dimension, ' ') !== false) {
+                // Add (cm) if not already present with a unit
+                if (!preg_match('/\(cm\)$|\s+cm$|\s+cm²$/', $dimension)) {
+                    $dimension .= ' (cm)';
+                }
+            } 
+            // For other formats without units, add (cm)
+            else if (!preg_match('/\(cm\)$|\s+cm$|\s+cm²$/', $dimension)) {
+                $dimension .= ' (cm)';
+            }
+        }
+
+        // Add missing variable declarations
         $total_pages = mysqli_real_escape_string($conn, trim(($_POST['prefix_pages'] ?? '') . ' ' . ($_POST['main_pages'] ?? '')));
         $supplementary_contents = mysqli_real_escape_string($conn, isset($_POST['supplementary_content']) ? implode(', ', $_POST['supplementary_content']) : '');
         $content_type = mysqli_real_escape_string($conn, $_POST['content_type'] ?? 'Text');
@@ -878,7 +898,7 @@ $accession_error = '';
                                 <div class="form-group">
                                     <div class="row">
                                         <div class="col-md-6">
-                                            <label>Dimension (cm)</label>
+                                            <label>Dimension (cm²)</label>
                                             <input type="text" class="form-control" name="dimension" placeholder="e.g. 23 x 24 or 23 cm²">
                                             <div class="mt-2">
                                                 <small class="form-text text-muted">
@@ -1753,7 +1773,7 @@ function formatCallNumberDisplay(callNumberInput) {
     let previewElem = container.querySelector('.call-number-preview');
     if (!previewElem) {
         previewElem = document.createElement('small');
-        previewElem.className = 'call-number-preview text-muted';
+                previewElem.className = 'call-number-preview text-muted';
         previewElem.style.position = 'absolute';
         previewElem.style.right = '120px';
         previewElem.style.top = '50%';
