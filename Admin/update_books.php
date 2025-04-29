@@ -116,7 +116,7 @@ if (isset($_POST['submit'])) {
         $content_type = mysqli_real_escape_string($conn, is_array($_POST['content_type']) ? $_POST['content_type'][0] : ($_POST['content_type'] ?? 'Text'));
         $media_type = mysqli_real_escape_string($conn, is_array($_POST['media_type']) ? $_POST['media_type'][0] : ($_POST['media_type'] ?? 'Print'));
         $carrier_type = mysqli_real_escape_string($conn, is_array($_POST['carrier_type']) ? $_POST['carrier_type'][0] : ($_POST['carrier_type'] ?? 'Book'));
-        $last_update = date('Y-m-d');
+        $last_update = date('Y-m-d H:i:s'); // Changed to include time
 
         // Safely access array elements for subject category and detail
         $subject_category = '';
@@ -141,9 +141,9 @@ if (isset($_POST['submit'])) {
             $ISBN = mysqli_real_escape_string($conn, $_POST['ISBN']);
         }
 
-        // Get admin info for update tracking
-        $current_admin_id = $_SESSION['admin_id'];
-        $update_date = date('Y-m-d');
+        // Get admin info for update tracking 
+        $current_admin_employee_id = $_SESSION['admin_employee_id'];
+        $update_date = date('Y-m-d H:i:s'); // Changed to include time
 
         // Properly handle status with default value
         $status = isset($_POST['status']) ? (is_array($_POST['status']) ? $_POST['status'][0] : $_POST['status']) : 'Available';
@@ -275,7 +275,7 @@ if (isset($_POST['submit'])) {
                 $entered_by_value,
                 $date_added_value,
                 $status_value, // Bind the status value
-                $current_admin_id,
+                $current_admin_employee_id, // Now using employee_id instead of admin_id
                 $update_date,
                 $accession,
                 $bookId
@@ -1107,18 +1107,26 @@ if ($first_book) {
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label>Original Entry By</label>
+                                    <?php
+                                    // Get admin info for the entered_by field using employee_id
+                                    $entered_by_id = $first_book['entered_by'] ?? '';
+                                    $entered_by_name = '';
+                                    
+                                    if ($entered_by_id) {
+                                        $admin_query = "SELECT CONCAT(firstname, ' ', lastname) AS name, role 
+                                                      FROM admins 
+                                                      WHERE employee_id = ?";
+                                        $stmt = $conn->prepare($admin_query);
+                                        $stmt->bind_param("i", $entered_by_id);
+                                        $stmt->execute();
+                                        $admin_result = $stmt->get_result();
+                                        if ($admin = $admin_result->fetch_assoc()) {
+                                            $entered_by_name = $admin['name'] . ' (' . $admin['role'] . ')';
+                                        }
+                                    }
+                                    ?>
                                     <input type="text" class="form-control"
-                                           value="<?php
-                                               $entered_by_id = $first_book['entered_by'] ?? '';
-                                               $entered_by_name = '';
-                                               foreach ($admins as $admin) {
-                                                   if ($admin['id'] == $entered_by_id) {
-                                                       $entered_by_name = $admin['name'] . ' (' . $admin['role'] . ')';
-                                                       break;
-                                                   }
-                                               }
-                                               echo htmlspecialchars($entered_by_name);
-                                           ?>" readonly>
+                                           value="<?php echo htmlspecialchars($entered_by_name); ?>" readonly>
                                     <input type="hidden" name="entered_by[]"
                                            value="<?php echo htmlspecialchars($first_book['entered_by'] ?? ''); ?>">
                                 </div>
@@ -1127,7 +1135,7 @@ if ($first_book) {
                                 <div class="form-group">
                                     <label>Original Entry Date</label>
                                     <input type="text" class="form-control" name="date_added[]"
-                                           value="<?php echo htmlspecialchars($first_book['date_added'] ?? ''); ?>" readonly>
+                                           value="<?php echo date('M d, Y h:i A', strtotime($first_book['date_added'])); ?>" readonly>
                                 </div>
                             </div>
                         </div>
@@ -1137,29 +1145,33 @@ if ($first_book) {
                                 <div class="form-group">
                                     <label>Last Updated By</label>
                                     <?php
-                                    // Get updater details if available
+                                    // Get updater details if available using employee_id
                                     $updater_name = 'Not yet updated';
                                     if (!empty($first_book['updated_by'])) {
-                                        $updater_query = "SELECT CONCAT(firstname, ' ', lastname) as full_name, role
-                                                        FROM admins WHERE id = ?";
+                                        $updater_query = "SELECT CONCAT(firstname, ' ', lastname) as full_name, role, employee_id 
+                                                        FROM admins WHERE employee_id = ?";
                                         $stmt = $conn->prepare($updater_query);
                                         $stmt->bind_param("i", $first_book['updated_by']);
                                         $stmt->execute();
                                         $updater_result = $stmt->get_result();
                                         if ($updater_data = $updater_result->fetch_assoc()) {
-                                            $updater_name = $updater_data['full_name'] . ' (' . $updater_data['role'] . ')';
+                                            $updater_name = $updater_data['full_name'] . ' (' . $updater_data['role'] . ' - ' . $updater_data['employee_id'] . ')';
                                         }
+                                    } else {
+                                        // Display current admin's info if no previous updater
+                                        $updater_name = $_SESSION['admin_firstname'] . ' ' . $_SESSION['admin_lastname'] . 
+                                                      ' (' . $_SESSION['role'] . ' - ' . $_SESSION['admin_employee_id'] . ')';
                                     }
                                     ?>
                                     <input type="text" class="form-control" value="<?php echo htmlspecialchars($updater_name); ?>" readonly>
-                                    <input type="hidden" name="updated_by" value="<?php echo $_SESSION['admin_id']; ?>">
+                                    <input type="hidden" name="updated_by" value="<?php echo $_SESSION['admin_employee_id']; ?>">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label>Last Update</label>
                                     <input type="text" class="form-control" name="last_update"
-                                           value="<?php echo date('Y-m-d'); ?>" readonly>
+                                           value="<?php echo date('M d, Y h:i A', strtotime($first_book['last_update'] ?? date('Y-m-d H:i:s'))); ?>" readonly>
                                 </div>
                             </div>
                         </div>
@@ -1501,22 +1513,22 @@ document.addEventListener("DOMContentLoaded", function() {
         }
 
         // Update the call number field with new formatted call number
-        if (components.length > 1) {
+                if (components.length > 1) {
             callNumberField.value = components.join(' ');
         }
     }
 
-    // Setup event listeners for fields that affect call numbers
+    // Setup event listeners forfields that affect call numbers
     function setupCallNumberEventListeners() {
-        const bookCopies = document.querySelectorAll('.book-copy');
+                const bookCopies = document.querySelectorAll('.book-copy');
 
         bookCopies.forEach(copy => {
             // Get all relevant fields that should trigger call number updates
             const shelfLocation = copy.querySelector('select[name="shelf_location[]"]');
             const volumeInput = copy.querySelector('input[name="volume[]"]');
-            const partInput = copy.querySelector('input[name="part[]"]');
+            ut = copy.querySelector('input[name="part[]"]');
             const copyNumberInput = copy.querySelector('input[name="copy_number[]"]');
-            const publishYear = document.querySelector('input[name="publish_date"]');
+                        const publishYear = document.querySelector('input[name="publish_date"]');
 
             // Add event listeners to each field to update the call number when they change
             if (shelfLocation) {
