@@ -177,8 +177,8 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
             $marcFields[] = ['260', '##', 'a', $pub['place'], 'b', $pub['publisher'], 'c', $pub['publish_date']];
         }
 
-        // Physical Description
-        $marcFields[] = ['300', '##', 'a', $book['total_pages'] . ' pages', 'c', $book['dimension'] . ' cm'];
+        // Physical Description - removed " cm" from dimension and " pages" from total_pages
+        $marcFields[] = ['300', '##', 'a', $book['total_pages'], 'c', $book['dimension']];
 
         // Subject Headings
         if (!empty($book['subject_category'])) {
@@ -206,7 +206,8 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
         echo "Call Number: " . htmlspecialchars($book['call_number']) . "\n";
         echo "ISBN: " . htmlspecialchars($book['ISBN']) . "\n";
         echo "Language: " . htmlspecialchars($book['language']) . "\n";
-        echo "Physical Description: " . htmlspecialchars($book['total_pages']) . " pages, " . htmlspecialchars($book['dimension']) . " cm\n";
+        // Physical Description - removed " pages" and " cm"
+        echo "Physical Description: " . htmlspecialchars($book['total_pages']) . ", " . htmlspecialchars($book['dimension']) . "\n";
         echo "Publication: " . htmlspecialchars($publications[0]['place'] ?? 'N/A') . "; " . htmlspecialchars($publications[0]['publisher'] ?? 'N/A') . ", " . htmlspecialchars($publications[0]['publish_date'] ?? 'N/A') . "\n";
     } elseif ($exportType === 'marc21') {
         echo "MARC21 Export\n";
@@ -224,7 +225,8 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
         echo "ISBD Export\n";
         echo htmlspecialchars($book['title']) . " / " . htmlspecialchars($primaryAuthor) . "\n";
         echo htmlspecialchars($publications[0]['place'] ?? 'N/A') . " : " . htmlspecialchars($publications[0]['publisher'] ?? 'N/A') . ", " . htmlspecialchars($publications[0]['publish_date'] ?? 'N/A') . "\n";
-        echo htmlspecialchars($book['total_pages']) . " pages ; " . htmlspecialchars($book['dimension']) . " cm\n";
+        // Physical Description - removed " pages" and " cm"
+        echo htmlspecialchars($book['total_pages']) . " ; " . htmlspecialchars($book['dimension']) . "\n";
         echo "ISBN: " . htmlspecialchars($book['ISBN']) . "\n";
     }
 
@@ -627,13 +629,15 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                                             <?php
                                                 $physDesc = [];
                                                 if (!empty($book['total_pages'])) {
-                                                    $physDesc[] = htmlspecialchars($book['total_pages']) . ' pages';
+                                                    // Removed " pages" from total_pages
+                                                    $physDesc[] = htmlspecialchars($book['total_pages']);
                                                 }
                                                 if (!empty($book['supplementary_contents'])) {
                                                     $physDesc[] = htmlspecialchars($book['supplementary_contents']);
                                                 }
                                                 if (!empty($book['dimension'])) {
-                                                    $physDesc[] = htmlspecialchars($book['dimension']) . ' cm';
+                                                    // Dimension already modified to not include " cm"
+                                                    $physDesc[] = htmlspecialchars($book['dimension']);
                                                 }
                                                 echo !empty($physDesc) ? implode(', ', $physDesc) : 'Information not available';
                                             ?>
@@ -955,8 +959,8 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
 
                             // Physical Description
                             $marcFields[] = ['300', '##',
-                                'a', $book['total_pages'] . ' pages' . (isset($book['supplementary_contents']) ? ' ' . $book['supplementary_contents'] : ''),
-                                'c', $book['dimension'] . ' cm'
+                                'a', $book['total_pages'] . (isset($book['supplementary_contents']) ? ' ' . $book['supplementary_contents'] : ''),
+                                'c', $book['dimension']
                             ];
 
                             // Content/Media Type
@@ -1168,86 +1172,86 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
 
                 <!-- ISBD View Tab -->
                 <div class="tab-pane fade" id="isbd" role="tabpanel">
-    <div class="isbd-details p-4">
+                    <div class="isbd-details p-4">
 
-    <?php if (isset($book)): ?>
-        <div class="isbd-record">
-            <?php
-            // Title Line
-            echo '<div class="isbd-area">';
-            echo htmlspecialchars($book['title']);
-            echo '</div>';
+                    <?php if (isset($book)): ?>
+                        <div class="isbd-record">
+                            <?php
+                            // Title Line
+                            echo '<div class="isbd-area">';
+                            echo htmlspecialchars($book['title']);
+                            echo '</div>';
 
-            // Author Line (surname first)
-            if (!empty($authorsList)) {
-                echo '<div class="isbd-area">';
-                echo htmlspecialchars($authorsList[0]);
-                echo '</div>';
-            }
+                            // Author Line (surname first)
+                            if (!empty($authorsList)) {
+                                echo '<div class="isbd-area">';
+                                echo htmlspecialchars($authorsList[0]);
+                                echo '</div>';
+                            }
 
-            // Title/Author/Co-Authors/Editors-Place/Publisher/Year Line
-            echo '<div class="isbd-area">';
-            // Title part
-            echo htmlspecialchars($book['title']) . ' / ';
+                            // Title/Author/Co-Authors/Editors-Place/Publisher/Year Line
+                            echo '<div class="isbd-area">';
+                            // Title part
+                            echo htmlspecialchars($book['title']) . ' / ';
 
-            // Contributors part
-            $allContributors = array();
-            if (!empty($authorsList)) $allContributors[] = implode(', ', $authorsList);
-            if (!empty($coAuthorsList)) $allContributors[] = implode(', ', $coAuthorsList);
-            if (!empty($editorsList)) $allContributors[] = implode(', ', $editorsList);
-            echo htmlspecialchars(implode(', and ', $allContributors));
+                            // Contributors part
+                            $allContributors = array();
+                            if (!empty($authorsList)) $allContributors[] = implode(', ', $authorsList);
+                            if (!empty($coAuthorsList)) $allContributors[] = implode(', ', $coAuthorsList);
+                            if (!empty($editorsList)) $allContributors[] = implode(', ', $editorsList);
+                            echo htmlspecialchars(implode(', and ', $allContributors));
 
-            // Publication information
-            if (!empty($publications)) {
-                $pub = $publications[0];
-                echo ' - ' . htmlspecialchars($pub['place']) . ' ';
-                echo htmlspecialchars($pub['publisher']) . ', ';
-                echo htmlspecialchars($pub['publish_date']);
-            }
+                            // Publication information
+                            if (!empty($publications)) {
+                                $pub = $publications[0];
+                                echo ' - ' . htmlspecialchars($pub['place']) . ' ';
+                                echo htmlspecialchars($pub['publisher']) . ', ';
+                                echo htmlspecialchars($pub['publish_date']);
+                            }
 
-            // Physical description
-            echo ' - ';
-            if (!empty($book['preliminaries'])) {
-                echo htmlspecialchars($book['preliminaries']) . ', ';
-            }
-            echo htmlspecialchars($book['total_pages']) . ' pages' . htmlspecialchars($book['supplementary_contents']);
-            if (!empty($book['illustrations'])) {
-                echo ' : illustrations';
-            }
-            echo ' ; ' . htmlspecialchars($book['dimension']) . ' cm';
-            echo '</div>';
+                            // Physical description - removed " pages" and " cm"
+                            echo ' - ';
+                            if (!empty($book['preliminaries'])) {
+                                echo htmlspecialchars($book['preliminaries']) . ', ';
+                            }
+                            echo htmlspecialchars($book['total_pages']) . ' ' . htmlspecialchars($book['supplementary_contents']);
+                            if (!empty($book['illustrations'])) {
+                                echo ' : illustrations';
+                            }
+                            echo ' ; ' . htmlspecialchars($book['dimension']);
+                            echo '</div>';
 
-            // ISBN Line
-            echo '<div class="isbd-area">';
-            echo 'ISBN: ' . htmlspecialchars($book['ISBN']);
-            echo '</div>';
+                            // ISBN Line
+                            echo '<div class="isbd-area">';
+                            echo 'ISBN: ' . htmlspecialchars($book['ISBN']);
+                            echo '</div>';
 
-            // Subject Category and Details
-            if (!empty($book['subject_category']) || !empty($book['subject_detail'])) {
-                echo '<div class="isbd-area">';
-                if (!empty($book['subject_category'])) {
-                    echo 'Subject Category: ' . htmlspecialchars($book['subject_category']) . '<br>';
-                }
-                if (!empty($book['subject_detail'])) {
-                    $subjects = explode('|', $book['subject_detail']);
-                    foreach ($subjects as $subject) {
-                        echo htmlspecialchars($subject) . '<br>';
-                    }
-                }
-                echo '</div>';
-            }
+                            // Subject Category and Details
+                            if (!empty($book['subject_category']) || !empty($book['subject_detail'])) {
+                                echo '<div class="isbd-area">';
+                                if (!empty($book['subject_category'])) {
+                                    echo 'Subject Category: ' . htmlspecialchars($book['subject_category']) . '<br>';
+                                }
+                                if (!empty($book['subject_detail'])) {
+                                    $subjects = explode('|', $book['subject_detail']);
+                                    foreach ($subjects as $subject) {
+                                        echo htmlspecialchars($subject) . '<br>';
+                                    }
+                                }
+                                echo '</div>';
+                            }
 
-            // LC Classification Number
-            echo '<div class="isbd-area">';
-            echo 'LC Class No.: ' . htmlspecialchars($book['call_number']);
-            echo '</div>';
-            ?>
-        </div>
-        <?php else: ?>
-            <div class="alert alert-danger">Book not found.</div>
-        <?php endif; ?>
-    </div>
-</div>
+                            // LC Classification Number
+                            echo '<div class="isbd-area">';
+                            echo 'LC Class No.: ' . htmlspecialchars($book['call_number']);
+                            echo '</div>';
+                            ?>
+                        </div>
+                        <?php else: ?>
+                            <div class="alert alert-danger">Book not found.</div>
+                        <?php endif; ?>
+                    </div>
+                </div>
 
             </div>
         </div>
@@ -1505,7 +1509,7 @@ document.addEventListener('DOMContentLoaded', function() {
             transition: background-color 0.2s;
         }
         .copy-row:hover {
-            background-color: rgba(78, 115, 223, 0.1);
+            background-color: rgba(0, 123, 255, 0.1);
         }
     `;
     document.head.appendChild(style);
