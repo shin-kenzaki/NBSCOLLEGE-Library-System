@@ -142,7 +142,7 @@ if (isset($_POST['submit'])) {
         }
 
         // Get admin info for update tracking
-        $current_admin_id = $_SESSION['admin_id'];
+        $current_admin_id = $_SESSION['admin_employee_id']; 
         $update_date = date('Y-m-d');
 
         // Properly handle status with default value
@@ -1110,13 +1110,15 @@ if ($first_book) {
                                     <input type="text" class="form-control"
                                            value="<?php
                                                $entered_by_id = $first_book['entered_by'] ?? '';
-                                               $entered_by_name = '';
-                                               foreach ($admins as $admin) {
-                                                   if ($admin['id'] == $entered_by_id) {
-                                                       $entered_by_name = $admin['name'] . ' (' . $admin['role'] . ')';
-                                                       break;
-                                                   }
-                                               }
+                                                $entered_by_name = '';
+                                                $admin_query = "SELECT CONCAT(firstname, ' ', lastname) AS name, role FROM admins WHERE employee_id = ?";
+                                                $stmt = $conn->prepare($admin_query);
+                                                $stmt->bind_param("i", $entered_by_id);
+                                                $stmt->execute();
+                                                $admin_result = $stmt->get_result();
+                                                if ($admin_data = $admin_result->fetch_assoc()) {
+                                                    $entered_by_name = $admin_data['name'] . ' (' . $admin_data['role'] . ')';
+                                                }
                                                echo htmlspecialchars($entered_by_name);
                                            ?>" readonly>
                                     <input type="hidden" name="entered_by[]"
@@ -1140,8 +1142,8 @@ if ($first_book) {
                                     // Get updater details if available
                                     $updater_name = 'Not yet updated';
                                     if (!empty($first_book['updated_by'])) {
-                                        $updater_query = "SELECT CONCAT(firstname, ' ', lastname) as full_name, role
-                                                        FROM admins WHERE id = ?";
+                                        $updater_query = "SELECT CONCAT(firstname, ' ', lastname) as full_name, role, employee_id
+                                                        FROM admins WHERE employee_id = ?";
                                         $stmt = $conn->prepare($updater_query);
                                         $stmt->bind_param("i", $first_book['updated_by']);
                                         $stmt->execute();
@@ -1518,6 +1520,7 @@ document.addEventListener("DOMContentLoaded", function() {
             const copyNumberInput = copy.querySelector('input[name="copy_number[]"]');
             const publishYear = document.querySelector('input[name="publish_date"]');
 
+            // Add event listeners to each field to```javascript
             // Add event listeners to each field to update the call number when they change
             if (shelfLocation) {
                 shelfLocation.addEventListener('change', () => updateCallNumber(copy));
@@ -1814,3 +1817,4 @@ document.addEventListener('DOMContentLoaded', function() {
     updateAspectPreviews('backImagePreview', 'backAspectPreviews');
 });
 </script>
+```
