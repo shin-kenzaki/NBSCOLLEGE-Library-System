@@ -16,6 +16,31 @@ $errorCount = 0;
 $errors = [];
 $importedUsers = [];
 
+// Function to send email to users
+function sendUserEmail($email, $schoolId, $password, $firstname, $lastname) {
+    $mail = require __DIR__ . '/mailer.php'; // Include the PHPMailer instance
+
+    try {
+        $mail->setFrom('cevangelista2021@student.nbscollege.edu.ph', 'Library System');
+        $mail->addAddress($email);
+        $mail->Subject = 'NBS College Library System - Account Created';
+        $mail->Body = "
+            <p>Dear $firstname $lastname,</p>
+            <p>We are pleased to inform you that your account has been successfully created in the NBS College Library System. Below are your login credentials:</p>
+            <p><strong>ID Number:</strong> $schoolId</p>
+            <p><strong>Password:</strong> $password</p>
+            <p>Please visit the library PC to log in and change your password immediately for security purposes.</p>
+            <p>Note: This is an auto-generated email. Please do not reply to this email address.</p>
+            <p>Thank you for using the NBS College Library System.</p>
+            <p>Best regards,</p>
+            <p><strong>NBS College Library System Team</strong></p>
+        ";
+        $mail->send();
+    } catch (Exception $e) {
+        error_log("Email could not be sent to $email. Error: {$mail->ErrorInfo}");
+    }
+}
+
 // Process import
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['import_file'])) {
     $file = $_FILES['import_file'];
@@ -23,12 +48,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['import_file'])) {
     $fileTmpName = $file['tmp_name'];
     $fileSize = $file['size'];
     $fileError = $file['error'];
-    
+
     // Check for errors
     if ($fileError === 0) {
         $fileExt = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
         $allowedExtensions = ['xlsx', 'csv'];
-        
+
         if (in_array($fileExt, $allowedExtensions)) {
             // Process the file based on its type
             if ($fileExt === 'csv') {
@@ -38,12 +63,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['import_file'])) {
                 // Process XLSX file using PhpSpreadsheet
                 $results = processXLSX($fileTmpName, $conn);
             }
-            
+
             $importCount = $results['success'];
             $errorCount = $results['error'];
             $errors = $results['errors'];
             $importedUsers = $results['imported_users'] ?? [];
-            
+
             if ($importCount > 0) {
                 $status = 'success';
                 $message = "Successfully imported $importCount records.";
@@ -79,41 +104,27 @@ function processCSV($filePath, $conn) {
     $error = 0;
     $errors = [];
     $importedUsers = [];
-    
-    // Open the CSV file
+
     if (($handle = fopen($filePath, "r")) !== FALSE) {
-        // Read the header row
         $header = fgetcsv($handle, 1000, ",");
-        
-        // Check if the header matches our expected format
         $expectedHeader = ['ID', 'Firstname', 'Middle Initial', 'Lastname', 'Gender', 'Department', 'Usertype'];
-        $headerMatch = true;
-        
-        // Check if all expected columns exist
+
+        // Validate header
         foreach ($expectedHeader as $index => $column) {
             if (!isset($header[$index]) || strtolower(trim($header[$index])) !== strtolower($column)) {
-                $headerMatch = false;
-                break;
+                return ['success' => 0, 'error' => 1, 'errors' => ["CSV header does not match the expected format."]];
             }
         }
-        
-        if (!$headerMatch) {
-            return ['success' => 0, 'error' => 1, 'errors' => ["CSV header does not match the expected format. Please ensure your file has these columns: " . implode(", ", $expectedHeader)]];
-        }
-        
-        // Process each row
-        $rowNum = 1; // Start from 1 to account for header
+
+        $rowNum = 1;
         while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
             $rowNum++;
-            
-            // Check if we have enough columns
             if (count($data) < 7) {
                 $error++;
                 $errors[] = "Row $rowNum: Not enough columns. Expected 7, got " . count($data);
                 continue;
             }
-            
-            // Extract data
+
             $schoolId = trim($data[0]);
             $firstname = trim($data[1]);
             $middleInit = trim($data[2]);
@@ -121,62 +132,45 @@ function processCSV($filePath, $conn) {
             $gender = trim($data[4]);
             $department = trim($data[5]);
             $usertype = trim($data[6]);
-            
-            // Basic validation
+
             if (empty($schoolId) || !is_numeric($schoolId)) {
                 $error++;
                 $errors[] = "Row $rowNum: Invalid ID number. Must be numeric.";
                 continue;
             }
-            
+
             if (empty($firstname) || empty($lastname)) {
                 $error++;
                 $errors[] = "Row $rowNum: First name and last name are required.";
                 continue;
             }
-            
+
             if (empty($usertype)) {
                 $error++;
                 $errors[] = "Row $rowNum: Usertype is required.";
                 continue;
             }
-            
-            // Generate email with the correct format: first letter of firstname + lastname + 20xx@student.nbscollege.edu.ph
-            // where xx is the first two digits of the school ID
+
+            // Generate email and password
             $firstnameLetter = strtolower(substr($firstname, 0, 1));
             $lastnameForEmail = strtolower(str_replace(' ', '', $lastname));
-            $yearFromId = '20' . substr($schoolId, 0, 2); // Extract first 2 digits and prefix with '20'
+            $yearFromId = '20' . substr($schoolId, 0, 2);
             $email = $firstnameLetter . $lastnameForEmail . $yearFromId . "@student.nbscollege.edu.ph";
-            
-            // Generate random password
             $password = generateStrongPassword(12);
             $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-            
-            // Set default values
-            $contact_no = '';
-            $user_image = '../Images/Profile/default-avatar.jpg';
-            $address = '';
-            $id_type = '';
-            $id_image = '/upload/default-id.png';
-            $status = '1'; // Active
-            
-            // Check if user already exists
+
+            // Insert or update user
             $checkSql = "SELECT id FROM users WHERE school_id = ?";
             $checkStmt = $conn->prepare($checkSql);
             $checkStmt->bind_param("i", $schoolId);
             $checkStmt->execute();
             $checkResult = $checkStmt->get_result();
-            
+
             if ($checkResult->num_rows > 0) {
-                // Update existing record
-                $updateSql = "UPDATE users 
-                              SET firstname = ?, middle_init = ?, lastname = ?, 
-                              department = ?, usertype = ?
-                              WHERE school_id = ?";
+                $updateSql = "UPDATE users SET firstname = ?, middle_init = ?, lastname = ?, department = ?, usertype = ? WHERE school_id = ?";
                 $updateStmt = $conn->prepare($updateSql);
-                $updateStmt->bind_param("sssssi", $firstname, $middleInit, $lastname, 
-                                      $department, $usertype, $schoolId);
-                
+                $updateStmt->bind_param("sssssi", $firstname, $middleInit, $lastname, $department, $usertype, $schoolId);
+
                 if ($updateStmt->execute()) {
                     $success++;
                 } else {
@@ -185,44 +179,30 @@ function processCSV($filePath, $conn) {
                 }
                 $updateStmt->close();
             } else {
-                // Insert new record - fixed bind_param count
-                $insertSql = "INSERT INTO users (
-                    school_id, firstname, middle_init, lastname, 
-                    email, password, contact_no, user_image, 
-                    department, usertype, address, id_type, 
-                    id_image, status
-                ) VALUES (
-                    ?, ?, ?, ?, 
-                    ?, ?, ?, ?,
-                    ?, ?, ?, ?,
-                    ?, ?
-                )";
-                
+                $insertSql = "INSERT INTO users (school_id, firstname, middle_init, lastname, email, password, department, usertype) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
                 $insertStmt = $conn->prepare($insertSql);
-                $insertStmt->bind_param("issssssssssssi", 
-                    $schoolId, $firstname, $middleInit, $lastname,
-                    $email, $hashed_password, $contact_no, $user_image,
-                    $department, $usertype, $address, $id_type,
-                    $id_image, $status
-                );
-                
+                $insertStmt->bind_param("isssssss", $schoolId, $firstname, $middleInit, $lastname, $email, $hashed_password, $department, $usertype);
+
                 if ($insertStmt->execute()) {
                     $success++;
                     $importedUsers[] = [
                         'id' => $schoolId,
                         'name' => "$firstname $middleInit $lastname",
                         'email' => $email,
-                        'password' => $password,
+                        'password' => $password, // Plain text password for email
                         'usertype' => $usertype,
                         'department' => $department
                     ];
+
+                    // Send email to the user
+                    sendUserEmail($email, $schoolId, $password, $firstname, $lastname);
                 } else {
                     $error++;
                     $errors[] = "Row $rowNum: Error inserting record: " . $conn->error;
                 }
                 $insertStmt->close();
             }
-            
+
             $checkStmt->close();
         }
         fclose($handle);
@@ -230,203 +210,7 @@ function processCSV($filePath, $conn) {
         $error++;
         $errors[] = "Failed to open CSV file.";
     }
-    
-    return [
-        'success' => $success,
-        'error' => $error,
-        'errors' => $errors,
-        'imported_users' => $importedUsers
-    ];
-}
 
-/**
- * Process XLSX file
- *
- * @param string $filePath Path to the XLSX file
- * @param mysqli $conn Database connection
- * @return array Results of the import process
- */
-function processXLSX($filePath, $conn) {
-    $success = 0;
-    $error = 0;
-    $errors = [];
-    $importedUsers = [];
-    
-    // Check if PhpSpreadsheet is installed
-    if (!class_exists('PhpOffice\PhpSpreadsheet\IOFactory')) {
-        // Try to include it from vendor directory if available
-        $vendorPath = __DIR__ . '/vendor/autoload.php';
-        if (file_exists($vendorPath)) {
-            require_once $vendorPath;
-        } else {
-            return [
-                'success' => 0,
-                'error' => 1,
-                'errors' => ["PhpSpreadsheet library is not installed. Please install it using Composer or use CSV format instead."]
-            ];
-        }
-    }
-    
-    try {
-        // Load the spreadsheet
-        $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
-        $worksheet = $spreadsheet->getActiveSheet();
-        
-        // Check the header row (row 1)
-        $expectedHeader = ['ID', 'Firstname', 'Middle Initial', 'Lastname', 'Gender', 'Department', 'Usertype'];
-        $headerMatch = true;
-        
-        for ($col = 1; $col <= count($expectedHeader); $col++) {
-            $cellCoordinate = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col) . '1';
-            if (!$worksheet->cellExists($cellCoordinate)) {
-                $headerMatch = false;
-                break;
-            }
-            $cellValue = $worksheet->getCell($cellCoordinate)->getValue();
-            if (strtolower(trim($cellValue)) !== strtolower($expectedHeader[$col - 1])) {
-                $headerMatch = false;
-                break;
-            }
-        }
-        
-        if (!$headerMatch) {
-            return ['success' => 0, 'error' => 1, 'errors' => ["XLSX header does not match the expected format. Please ensure your file has these columns: " . implode(", ", $expectedHeader)]];
-        }
-        
-        // Get the highest row number
-        $highestRow = $worksheet->getHighestRow();
-        
-        // Process each row starting from row 2 (after header)
-        for ($row = 2; $row <= $highestRow; $row++) {
-            $colA = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(1) . $row;
-            $colB = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(2) . $row;
-            $colC = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(3) . $row;
-            $colD = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(4) . $row;
-            $colE = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(5) . $row;
-            $colF = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(6) . $row;
-            $colG = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(7) . $row;
-            
-            $schoolId = trim($worksheet->cellExists($colA) ? $worksheet->getCell($colA)->getValue() : '');
-            $firstname = trim($worksheet->cellExists($colB) ? $worksheet->getCell($colB)->getValue() : '');
-            $middleInit = trim($worksheet->cellExists($colC) ? $worksheet->getCell($colC)->getValue() : '');
-            $lastname = trim($worksheet->cellExists($colD) ? $worksheet->getCell($colD)->getValue() : '');
-            $gender = trim($worksheet->cellExists($colE) ? $worksheet->getCell($colE)->getValue() : '');
-            $department = trim($worksheet->cellExists($colF) ? $worksheet->getCell($colF)->getValue() : '');
-            $usertype = trim($worksheet->cellExists($colG) ? $worksheet->getCell($colG)->getValue() : '');
-            
-            // Skip empty rows
-            if (empty($schoolId) && empty($firstname) && empty($lastname)) {
-                continue;
-            }
-            
-            // Basic validation
-            if (empty($schoolId) || !is_numeric($schoolId)) {
-                $error++;
-                $errors[] = "Row $row: Invalid ID number. Must be numeric.";
-                continue;
-            }
-            
-            if (empty($firstname) || empty($lastname)) {
-                $error++;
-                $errors[] = "Row $row: First name and last name are required.";
-                continue;
-            }
-            
-            if (empty($usertype)) {
-                $error++;
-                $errors[] = "Row $row: Usertype is required.";
-                continue;
-            }
-            
-            // Generate email with the correct format: first letter of firstname + lastname + 20xx@student.nbscollege.edu.ph
-            // where xx is the first two digits of the school ID
-            $firstnameLetter = strtolower(substr($firstname, 0, 1));
-            $lastnameForEmail = strtolower(str_replace(' ', '', $lastname));
-            $yearFromId = '20' . substr($schoolId, 0, 2); // Extract first 2 digits and prefix with '20'
-            $email = $firstnameLetter . $lastnameForEmail . $yearFromId . "@student.nbscollege.edu.ph";
-            
-            // Generate random password
-            $password = generateStrongPassword(12);
-            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-            
-            // Set default values
-            $contact_no = '';
-            $user_image = '../Images/Profile/default-avatar.jpg';
-            $address = '';
-            $id_type = '';
-            $id_image = '/upload/default-id.png';
-            $status = '1'; // Active
-            
-            // Check if user already exists
-            $checkSql = "SELECT id FROM users WHERE school_id = ?";
-            $checkStmt = $conn->prepare($checkSql);
-            $checkStmt->bind_param("i", $schoolId);
-            $checkStmt->execute();
-            $checkResult = $checkStmt->get_result();
-            
-            if ($checkResult->num_rows > 0) {
-                // Update existing record
-                $updateSql = "UPDATE users 
-                              SET firstname = ?, middle_init = ?, lastname = ?, 
-                              department = ?, usertype = ?
-                              WHERE school_id = ?";
-                $updateStmt = $conn->prepare($updateSql);
-                $updateStmt->bind_param("sssssi", $firstname, $middleInit, $lastname, 
-                                      $department, $usertype, $schoolId);
-                
-                if ($updateStmt->execute()) {
-                    $success++;
-                } else {
-                    $error++;
-                    $errors[] = "Row $row: Error updating record: " . $conn->error;
-                }
-                $updateStmt->close();
-            } else {
-                // Insert new record - fixed bind_param count
-                $insertSql = "INSERT INTO users (
-                    school_id, firstname, middle_init, lastname, 
-                    email, password, contact_no, user_image, 
-                    department, usertype, address, id_type, 
-                    id_image, status
-                ) VALUES (
-                    ?, ?, ?, ?, 
-                    ?, ?, ?, ?,
-                    ?, ?, ?, ?,
-                    ?, ?
-                )";
-                
-                $insertStmt = $conn->prepare($insertSql);
-                $insertStmt->bind_param("issssssssssssi", 
-                    $schoolId, $firstname, $middleInit, $lastname,
-                    $email, $hashed_password, $contact_no, $user_image,
-                    $department, $usertype, $address, $id_type,
-                    $id_image, $status
-                );
-                
-                if ($insertStmt->execute()) {
-                    $success++;
-                    $importedUsers[] = [
-                        'id' => $schoolId,
-                        'name' => "$firstname $middleInit $lastname",
-                        'email' => $email,
-                        'password' => $password,
-                        'usertype' => $usertype,
-                        'department' => $department
-                    ];
-                } else {
-                    $error++;
-                    $errors[] = "Row $row: Error inserting record: " . $conn->error;
-                }
-                $insertStmt->close();
-            }
-            
-            $checkStmt->close();
-        }
-    } catch (Exception $e) {
-        $error++;
-        $errors[] = "Error processing XLSX file: " . $e->getMessage();
-    }
-    
     return [
         'success' => $success,
         'error' => $error,
@@ -457,23 +241,23 @@ function generateStrongPassword($length = 12) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Import Users - NBSC Library</title>
-    
+
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="Admin/img/nbslogo.png">
-    
+
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    
+
     <!-- Font Awesome -->
     <link href="Admin/vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
-    
+
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet">
-    
+
     <!-- SweetAlert2 -->
     <link href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bootstrap-4/bootstrap-4.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    
+
     <style>
         body {
             background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('Images/BG/library-background.jpg');
@@ -485,7 +269,7 @@ function generateStrongPassword($length = 12) {
             font-family: 'Nunito', sans-serif;
             padding: 2rem 0;
         }
-        
+
         .page-container {
             max-width: 800px;
             margin: 0 auto;
@@ -495,13 +279,13 @@ function generateStrongPassword($length = 12) {
             border-radius: 15px;
             box-shadow: 0 0 30px rgba(0, 0, 0, 0.2);
         }
-        
+
         h1 {
             color: #4e73df;
             text-align: center;
             margin-bottom: 1.5rem;
         }
-        
+
         .import-steps {
             background-color: rgba(78, 115, 223, 0.1);
             border-left: 4px solid #4e73df;
@@ -509,31 +293,31 @@ function generateStrongPassword($length = 12) {
             margin-bottom: 2rem;
             border-radius: 0 5px 5px 0;
         }
-        
+
         .import-steps ol {
             margin-bottom: 0;
             padding-left: 1.5rem;
         }
-        
+
         .import-steps li {
             margin-bottom: 0.5rem;
         }
-        
+
         .import-steps li:last-child {
             margin-bottom: 0;
         }
-        
+
         .custom-file-label {
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
         }
-        
+
         .table-errors {
             max-height: 300px;
             overflow-y: auto;
         }
-        
+
         .back-link {
             display: inline-block;
             margin-top: 1rem;
@@ -541,12 +325,12 @@ function generateStrongPassword($length = 12) {
             text-decoration: none;
             font-weight: 600;
         }
-        
+
         .back-link:hover {
             text-decoration: underline;
             color: #2e59d9;
         }
-        
+
         .sample-header {
             font-family: monospace;
             background-color: #f8f9fc;
@@ -556,38 +340,38 @@ function generateStrongPassword($length = 12) {
             margin: 15px 0;
             overflow-x: auto;
         }
-        
+
         .password-table {
             margin-top: 1.5rem;
             overflow-x: auto;
         }
-        
+
         .password-table table {
             width: 100%;
             border-collapse: collapse;
         }
-        
-        .password-table th, 
+
+        .password-table th,
         .password-table td {
             padding: 8px 12px;
             border: 1px solid #e3e6f0;
             text-align: left;
         }
-        
+
         .password-table th {
             background-color: #f8f9fc;
             color: #4e73df;
             font-weight: 600;
         }
-        
+
         .password-table tr:nth-child(even) {
             background-color: #f8f9fc;
         }
-        
+
         .password-table tr:hover {
             background-color: rgba(78, 115, 223, 0.1);
         }
-        
+
         .copy-button {
             background-color: #4e73df;
             color: #fff;
@@ -598,11 +382,11 @@ function generateStrongPassword($length = 12) {
             cursor: pointer;
             transition: background-color 0.3s;
         }
-        
+
         .copy-button:hover {
             background-color: #2e59d9;
         }
-        
+
         .password-field {
             font-family: monospace;
             background-color: #f8f9fe;
@@ -612,14 +396,14 @@ function generateStrongPassword($length = 12) {
             display: inline-block;
             min-width: 120px;
         }
-        
+
         .export-buttons {
             margin-top: 1rem;
             display: flex;
             gap: 10px;
             justify-content: center;
         }
-        
+
         .export-btn {
             background-color: #1cc88a;
             color: #fff;
@@ -632,11 +416,11 @@ function generateStrongPassword($length = 12) {
             align-items: center;
             gap: 8px;
         }
-        
+
         .export-btn:hover {
             background-color: #169b6b;
         }
-        
+
         .alert-info {
             background-color: #d1ecf1;
             color: #0c5460;
@@ -647,19 +431,19 @@ function generateStrongPassword($length = 12) {
 <body>
     <div class="container page-container">
         <h1>Import Users</h1>
-        
+
         <?php if ($status === 'success'): ?>
             <div class="alert alert-success">
                 <?php echo $message; ?>
             </div>
-            
+
             <?php if (!empty($importedUsers)): ?>
                 <div class="alert alert-info">
                     <h5 class="mb-3">Important:</h5>
                     <p>The following passwords have been generated for the imported users. Please save this information as it will not be displayed again.</p>
                     <p><strong>Tip:</strong> You can use the "Export to Excel" or "Copy All" buttons to save this information for your records.</p>
                 </div>
-                
+
                 <div class="password-table">
                     <table id="users-password-table">
                         <thead>
@@ -692,7 +476,7 @@ function generateStrongPassword($length = 12) {
                         </tbody>
                     </table>
                 </div>
-                
+
                 <div class="export-buttons">
                     <button type="button" class="export-btn" onclick="exportToExcel()">
                         <i class="fas fa-file-excel"></i> Export to Excel
@@ -714,13 +498,13 @@ function generateStrongPassword($length = 12) {
                     </a>
                 </div>
             <?php endif; ?>
-            
+
         <?php elseif ($status === 'error'): ?>
             <div class="alert alert-danger">
                 <?php echo $message; ?>
             </div>
         <?php endif; ?>
-        
+
         <?php if (!$status): ?>
             <div class="import-steps">
                 <h5>Instructions:</h5>
@@ -739,7 +523,7 @@ function generateStrongPassword($length = 12) {
                     <li>A system-generated email and password will be created for new users</li>
                 </ol>
             </div>
-            
+
             <form method="POST" action="" enctype="multipart/form-data">
                 <div class="mb-3">
                     <label for="import_file" class="form-label">Select File (XLSX or CSV)</label>
@@ -748,7 +532,7 @@ function generateStrongPassword($length = 12) {
                         Maximum file size: 5MB
                     </div>
                 </div>
-                
+
                 <div class="d-grid gap-2 d-md-flex">
                     <button type="submit" class="btn btn-primary flex-grow-1">
                         <i class="fas fa-file-import me-2"></i> Import
@@ -759,7 +543,7 @@ function generateStrongPassword($length = 12) {
                 </div>
             </form>
         <?php endif; ?>
-        
+
         <?php if ($errorCount > 0): ?>
             <div class="mt-4">
                 <h5>Import Errors (<?php echo $errorCount; ?>):</h5>
@@ -783,7 +567,7 @@ function generateStrongPassword($length = 12) {
                 </div>
             </div>
         <?php endif; ?>
-        
+
         <?php if (!$status): ?>
             <div class="text-center mt-4">
                 <a href="library_entrance.php" class="back-link">
@@ -796,17 +580,17 @@ function generateStrongPassword($length = 12) {
             </div>
         <?php endif; ?>
     </div>
-    
+
     <!-- Bootstrap Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-    
+
     <!-- Add SheetJS (for Excel export) -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    
+
     <!-- Add jsPDF for PDF export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
-    
+
     <script>
         function copyPassword(password) {
             const tempInput = document.createElement('input');
@@ -815,11 +599,11 @@ function generateStrongPassword($length = 12) {
             tempInput.select();
             document.execCommand('copy');
             document.body.removeChild(tempInput);
-            
+
             // Show a tooltip or notification
             showToast('Password copied to clipboard');
         }
-        
+
         function showToast(message) {
             // Create toast element
             const toast = document.createElement('div');
@@ -833,10 +617,10 @@ function generateStrongPassword($length = 12) {
             toast.style.padding = '10px 20px';
             toast.style.borderRadius = '5px';
             toast.style.zIndex = '9999';
-            
+
             // Add to document
             document.body.appendChild(toast);
-            
+
             // Remove after timeout
             setTimeout(() => {
                 toast.style.opacity = '0';
@@ -846,19 +630,19 @@ function generateStrongPassword($length = 12) {
                 }, 500);
             }, 2000);
         }
-        
+
         function exportToExcel() {
             const table = document.getElementById('users-password-table');
             const wb = XLSX.utils.table_to_book(table, { sheet: "Imported Users" });
             XLSX.writeFile(wb, 'imported_users_' + new Date().toISOString().slice(0,10) + '.xlsx');
-            
+
             showToast('Exported to Excel successfully');
         }
-        
+
         function exportToPDF() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF('landscape');
-            
+
             // Set document properties
             doc.setProperties({
                 title: 'Imported Users - NBSC Library System',
@@ -866,26 +650,26 @@ function generateStrongPassword($length = 12) {
                 author: 'NBSC Library System',
                 creator: 'NBSC Library System'
             });
-            
+
             // Get page dimensions
             const pageWidth = doc.internal.pageSize.getWidth();
             const pageHeight = doc.internal.pageSize.getHeight();
             const marginLeft = 10;
             const marginRight = 10;
             const availableWidth = pageWidth - marginLeft - marginRight;
-            
+
             // Draw a colored header background for the entire width of the page
             doc.setFillColor(78, 115, 223);
             doc.rect(0, 0, pageWidth, 20, 'F');
-            
+
             // Add title across full width of the page with proper styling
             doc.setFontSize(18);
             doc.setFont(undefined, 'bold');
             doc.setTextColor(255, 255, 255); // White text on blue background
-            doc.text('NBSC Library - Imported Users', pageWidth / 2, 14, { 
+            doc.text('NBSC Library - Imported Users', pageWidth / 2, 14, {
                 align: 'center'
             });
-            
+
             // Add date and info text
             doc.setFontSize(10);
             doc.setFont(undefined, 'normal');
@@ -894,11 +678,11 @@ function generateStrongPassword($length = 12) {
             doc.setTextColor(255, 0, 0);
             doc.text('IMPORTANT: Store these credentials in a secure location.', pageWidth / 2, 30, { align: 'center' });
             doc.setTextColor(0, 0, 0);
-            
+
             // Create data for table
             const table = document.getElementById('users-password-table');
             const tableData = [];
-            
+
             // Get headers
             const headers = [];
             table.querySelectorAll('thead th').forEach((th, index) => {
@@ -907,7 +691,7 @@ function generateStrongPassword($length = 12) {
                     headers.push(th.textContent.trim());
                 }
             });
-            
+
             // Get rows
             table.querySelectorAll('tbody tr').forEach(tr => {
                 const row = [];
@@ -929,16 +713,16 @@ function generateStrongPassword($length = 12) {
                 });
                 tableData.push(row);
             });
-            
+
             // Calculate proportional column widths that use the full page width
             // Set column width proportions (total should be 1)
             const colProportions = [0.08, 0.22, 0.30, 0.15, 0.10, 0.15];
             const colWidths = {};
-            
+
             colProportions.forEach((proportion, index) => {
                 colWidths[index] = availableWidth * proportion;
             });
-            
+
             // Add table to the PDF using autoTable plugin
             doc.autoTable({
                 head: [headers],
@@ -969,7 +753,7 @@ function generateStrongPassword($length = 12) {
                     fillColor: [240, 240, 240]
                 }
             });
-            
+
             // Add footer note
             const pageCount = doc.internal.getNumberOfPages();
             for (let i = 1; i <= pageCount; i++) {
@@ -989,19 +773,19 @@ function generateStrongPassword($length = 12) {
                     { align: 'center' }
                 );
             }
-            
+
             // Save the PDF
             doc.save('imported_users_' + new Date().toISOString().slice(0,10) + '.pdf');
-            
+
             showToast('Exported to PDF successfully');
         }
-        
+
         function copyAllPasswords() {
             const table = document.getElementById('users-password-table');
             const rows = table.querySelectorAll('tbody tr');
-            
+
             let text = "ID\tName\tEmail\tDepartment\tUser Type\tPassword\n";
-            
+
             rows.forEach(row => {
                 const columns = row.querySelectorAll('td');
                 text += columns[0].textContent + "\t"; // ID
@@ -1011,14 +795,14 @@ function generateStrongPassword($length = 12) {
                 text += columns[4].textContent + "\t"; // User Type
                 text += columns[5].textContent.trim() + "\n"; // Password
             });
-            
+
             const tempInput = document.createElement('textarea');
             tempInput.value = text;
             document.body.appendChild(tempInput);
             tempInput.select();
             document.execCommand('copy');
             document.body.removeChild(tempInput);
-            
+
             showToast('All user data copied to clipboard');
         }
     </script>
