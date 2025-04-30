@@ -92,13 +92,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['import_file'])) {
     }
 }
 
-/**
- * Process CSV file
- *
- * @param string $filePath Path to the CSV file
- * @param mysqli $conn Database connection
- * @return array Results of the import process
- */
 function processCSV($filePath, $conn) {
     $success = 0;
     $error = 0;
@@ -133,6 +126,12 @@ function processCSV($filePath, $conn) {
             $department = trim($data[5]);
             $usertype = trim($data[6]);
 
+            // Skip empty rows
+            if (empty($schoolId) && empty($firstname) && empty($lastname)) {
+                continue;
+            }
+
+            // Basic validation
             if (empty($schoolId) || !is_numeric($schoolId)) {
                 $error++;
                 $errors[] = "Row $rowNum: Invalid ID number. Must be numeric.";
@@ -159,7 +158,15 @@ function processCSV($filePath, $conn) {
             $password = generateStrongPassword(12);
             $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
-            // Insert or update user
+            // Set default values
+            $contact_no = '';
+            $user_image = '../Images/Profile/default-avatar.jpg';
+            $address = '';
+            $id_type = '';
+            $id_image = '/upload/default-id.png';
+            $status = '1'; // Active
+
+            // Check if user already exists
             $checkSql = "SELECT id FROM users WHERE school_id = ?";
             $checkStmt = $conn->prepare($checkSql);
             $checkStmt->bind_param("i", $schoolId);
@@ -167,6 +174,7 @@ function processCSV($filePath, $conn) {
             $checkResult = $checkStmt->get_result();
 
             if ($checkResult->num_rows > 0) {
+                // Update existing record
                 $updateSql = "UPDATE users SET firstname = ?, middle_init = ?, lastname = ?, department = ?, usertype = ? WHERE school_id = ?";
                 $updateStmt = $conn->prepare($updateSql);
                 $updateStmt->bind_param("sssssi", $firstname, $middleInit, $lastname, $department, $usertype, $schoolId);
@@ -179,9 +187,10 @@ function processCSV($filePath, $conn) {
                 }
                 $updateStmt->close();
             } else {
-                $insertSql = "INSERT INTO users (school_id, firstname, middle_init, lastname, email, password, department, usertype) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                // Insert new record
+                $insertSql = "INSERT INTO users (school_id, firstname, middle_init, lastname, email, password, contact_no, user_image, department, usertype, address, id_type, id_image, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 $insertStmt = $conn->prepare($insertSql);
-                $insertStmt->bind_param("isssssss", $schoolId, $firstname, $middleInit, $lastname, $email, $hashed_password, $department, $usertype);
+                $insertStmt->bind_param("issssssssssssi", $schoolId, $firstname, $middleInit, $lastname, $email, $hashed_password, $contact_no, $user_image, $department, $usertype, $address, $id_type, $id_image, $status);
 
                 if ($insertStmt->execute()) {
                     $success++;
@@ -209,6 +218,206 @@ function processCSV($filePath, $conn) {
     } else {
         $error++;
         $errors[] = "Failed to open CSV file.";
+    }
+
+    return [
+        'success' => $success,
+        'error' => $error,
+        'errors' => $errors,
+        'imported_users' => $importedUsers
+    ];
+}
+
+
+/**
+ * Process XLSX file
+ *
+ * @param string $filePath Path to the XLSX file
+ * @param mysqli $conn Database connection
+ * @return array Results of the import process
+ */
+function processXLSX($filePath, $conn) {
+    $success = 0;
+    $error = 0;
+    $errors = [];
+    $importedUsers = [];
+
+    // Check if PhpSpreadsheet is installed
+    if (!class_exists('PhpOffice\PhpSpreadsheet\IOFactory')) {
+        // Try to include it from vendor directory if available
+        $vendorPath = __DIR__ . '/vendor/autoload.php';
+        if (file_exists($vendorPath)) {
+            require_once $vendorPath;
+        } else {
+            return [
+                'success' => 0,
+                'error' => 1,
+                'errors' => ["PhpSpreadsheet library is not installed. Please install it using Composer or use CSV format instead."]
+            ];
+        }
+    }
+
+    try {
+        // Load the spreadsheet
+        $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
+        $worksheet = $spreadsheet->getActiveSheet();
+
+        // Check the header row (row 1)
+        $expectedHeader = ['ID', 'Firstname', 'Middle Initial', 'Lastname', 'Gender', 'Department', 'Usertype'];
+        $headerMatch = true;
+
+        for ($col = 1; $col <= count($expectedHeader); $col++) {
+            $cellCoordinate = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col) . '1';
+            if (!$worksheet->cellExists($cellCoordinate)) {
+                $headerMatch = false;
+                break;
+            }
+            $cellValue = $worksheet->getCell($cellCoordinate)->getValue();
+            if (strtolower(trim($cellValue)) !== strtolower($expectedHeader[$col - 1])) {
+                $headerMatch = false;
+                break;
+            }
+        }
+
+        if (!$headerMatch) {
+            return ['success' => 0, 'error' => 1, 'errors' => ["XLSX header does not match the expected format. Please ensure your file has these columns: " . implode(", ", $expectedHeader)]];
+        }
+
+        // Get the highest row number
+        $highestRow = $worksheet->getHighestRow();
+
+        // Process each row starting from row 2 (after header)
+        for ($row = 2; $row <= $highestRow; $row++) {
+            $colA = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(1) . $row;
+            $colB = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(2) . $row;
+            $colC = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(3) . $row;
+            $colD = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(4) . $row;
+            $colE = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(5) . $row;
+            $colF = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(6) . $row;
+            $colG = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(7) . $row;
+
+            $schoolId = trim($worksheet->cellExists($colA) ? $worksheet->getCell($colA)->getValue() : '');
+            $firstname = trim($worksheet->cellExists($colB) ? $worksheet->getCell($colB)->getValue() : '');
+            $middleInit = trim($worksheet->cellExists($colC) ? $worksheet->getCell($colC)->getValue() : '');
+            $lastname = trim($worksheet->cellExists($colD) ? $worksheet->getCell($colD)->getValue() : '');
+            $gender = trim($worksheet->cellExists($colE) ? $worksheet->getCell($colE)->getValue() : '');
+            $department = trim($worksheet->cellExists($colF) ? $worksheet->getCell($colF)->getValue() : '');
+            $usertype = trim($worksheet->cellExists($colG) ? $worksheet->getCell($colG)->getValue() : '');
+
+            // Skip empty rows
+            if (empty($schoolId) && empty($firstname) && empty($lastname)) {
+                continue;
+            }
+
+            // Basic validation
+            if (empty($schoolId) || !is_numeric($schoolId)) {
+                $error++;
+                $errors[] = "Row $row: Invalid ID number. Must be numeric.";
+                continue;
+            }
+
+            if (empty($firstname) || empty($lastname)) {
+                $error++;
+                $errors[] = "Row $row: First name and last name are required.";
+                continue;
+            }
+
+            if (empty($usertype)) {
+                $error++;
+                $errors[] = "Row $row: Usertype is required.";
+                continue;
+            }
+
+            // Generate email with the correct format: first letter of firstname + lastname + 20xx@student.nbscollege.edu.ph
+            // where xx is the first two digits of the school ID
+            $firstnameLetter = strtolower(substr($firstname, 0, 1));
+            $lastnameForEmail = strtolower(str_replace(' ', '', $lastname));
+            $yearFromId = '20' . substr($schoolId, 0, 2); // Extract first 2 digits and prefix with '20'
+            $email = $firstnameLetter . $lastnameForEmail . $yearFromId . "@student.nbscollege.edu.ph";
+
+            // Generate random password
+            $password = generateStrongPassword(12);
+            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+
+            // Set default values
+            $contact_no = '';
+            $user_image = '../Images/Profile/default-avatar.jpg';
+            $address = '';
+            $id_type = '';
+            $id_image = '/upload/default-id.png';
+            $status = '1'; // Active
+
+            // Check if user already exists
+            $checkSql = "SELECT id FROM users WHERE school_id = ?";
+            $checkStmt = $conn->prepare($checkSql);
+            $checkStmt->bind_param("i", $schoolId);
+            $checkStmt->execute();
+            $checkResult = $checkStmt->get_result();
+
+            if ($checkResult->num_rows > 0) {
+                // Update existing record
+                $updateSql = "UPDATE users
+                              SET firstname = ?, middle_init = ?, lastname = ?,
+                              department = ?, usertype = ?
+                              WHERE school_id = ?";
+                $updateStmt = $conn->prepare($updateSql);
+                $updateStmt->bind_param("sssssi", $firstname, $middleInit, $lastname,
+                                      $department, $usertype, $schoolId);
+
+                if ($updateStmt->execute()) {
+                    $success++;
+                } else {
+                    $error++;
+                    $errors[] = "Row $row: Error updating record: " . $conn->error;
+                }
+                $updateStmt->close();
+            } else {
+                // Insert new record - fixed bind_param count
+                $insertSql = "INSERT INTO users (
+                    school_id, firstname, middle_init, lastname,
+                    email, password, contact_no, user_image,
+                    department, usertype, address, id_type,
+                    id_image, status
+                ) VALUES (
+                    ?, ?, ?, ?,
+                    ?, ?, ?, ?,
+                    ?, ?, ?, ?,
+                    ?, ?
+                )";
+
+                $insertStmt = $conn->prepare($insertSql);
+                $insertStmt->bind_param("issssssssssssi",
+                    $schoolId, $firstname, $middleInit, $lastname,
+                    $email, $hashed_password, $contact_no, $user_image,
+                    $department, $usertype, $address, $id_type,
+                    $id_image, $status
+                );
+
+                if ($insertStmt->execute()) {
+                    $success++;
+                    $importedUsers[] = [
+                        'id' => $schoolId,
+                        'name' => "$firstname $middleInit $lastname",
+                        'email' => $email,
+                        'password' => $password,
+                        'usertype' => $usertype,
+                        'department' => $department
+                    ];
+
+                     // Send email to the user
+                     sendUserEmail($email, $schoolId, $password, $firstname, $lastname);
+                } else {
+                    $error++;
+                    $errors[] = "Row $row: Error inserting record: " . $conn->error;
+                }
+                $insertStmt->close();
+            }
+
+            $checkStmt->close();
+        }
+    } catch (Exception $e) {
+        $error++;
+        $errors[] = "Error processing XLSX file: " . $e->getMessage();
     }
 
     return [
