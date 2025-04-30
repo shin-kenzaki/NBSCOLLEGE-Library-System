@@ -596,7 +596,7 @@ $accession_error = '';
                                     <div class="col-md-6">
                                         <div class="form-group">
                                             <label>Supplementary Content</label>
-                                            <select class="form-control" name="supplementary_content[]" multiple>
+                                            <select class="form-control" name="supplementary_content[]" multiple id="supplementarySelect" onchange="updateSupplementaryPreview()">
                                                 <option value="Appendix">Appendix</option>
                                                 <option value="Bibliography">Bibliography</option>
                                                 <option value="Glossary">Glossary</option>
@@ -605,6 +605,11 @@ $accession_error = '';
                                                 <option value="Maps">Maps</option>
                                                 <option value="Tables">Tables</option>
                                             </select>
+                                            <!-- Supplementary Content Preview -->
+                                            <div class="preview-container supplementary-preview">
+                                                <div id="supplementaryPreview" class="selected-preview mt-2"></div>
+                                                <div id="supplementaryCount" class="selection-count-badge supplementary-badge">0</div>
+                                            </div>
                                             <small class="text-primary d-block mb-1">
                                                 <i class="fas fa-keyboard mr-1"></i> Hold <kbd>Ctrl</kbd> (Windows) or <kbd>⌘ Cmd</kbd> (Mac) to select multiple items
                                             </small>
@@ -612,6 +617,124 @@ $accession_error = '';
                                                 <i class="fas fa-info-circle mr-1"></i> Select any additional content included in the book.
                                             </small>
                                         </div>
+                                        
+                                        <script>
+                                        function updateSupplementaryPreview() {
+                                            const select = document.getElementById('supplementarySelect');
+                                            const preview = document.getElementById('supplementaryPreview');
+                                            const countBadge = document.getElementById('supplementaryCount');
+                                            
+                                            // Clear current preview
+                                            preview.innerHTML = '';
+                                            const selectedCount = select.selectedOptions.length;
+                                            
+                                            // Update count badge
+                                            countBadge.textContent = selectedCount;
+                                            countBadge.style.display = selectedCount > 0 ? 'flex' : 'none';
+                                            
+                                            if (selectedCount > 0) {
+                                                countBadge.classList.remove('pulse');
+                                                setTimeout(() => countBadge.classList.add('pulse'), 10);
+                                            }
+                                            
+                                            // Generate preview badges
+                                            Array.from(select.selectedOptions).forEach((option, index) => {
+                                                const badge = document.createElement('span');
+                                                badge.className = 'preview-badge supplementary-item';
+                                                badge.style.animationDelay = `${index * 0.05}s`;
+                                                
+                                                let displayName = option.text;
+                                                if (displayName.length > 30) {
+                                                    displayName = displayName.substring(0, 27) + '...';
+                                                    badge.title = option.text;
+                                                }
+                                                
+                                                badge.innerHTML = `${displayName} <i class="fas fa-times remove-icon" data-value="${option.value}"></i>`;
+                                                preview.appendChild(badge);
+                                            });
+                                            
+                                            // Add click handlers to remove icons
+                                            preview.querySelectorAll('.remove-icon').forEach(icon => {
+                                                icon.addEventListener('click', function(e) {
+                                                    e.stopPropagation();
+                                                    const value = this.getAttribute('data-value');
+                                                    const option = Array.from(select.options).find(opt => opt.value === value);
+                                                    if (option) option.selected = false;
+                                                    updateSupplementaryPreview();
+                                                });
+                                            });
+                                            
+                                            // Save selected values to form data if available
+                                            if (typeof saveFormData === 'function') {
+                                                saveFormData();
+                                            }
+                                        }
+                                        
+                                        // Initialize preview when DOM is loaded
+                                        document.addEventListener('DOMContentLoaded', function() {
+                                            // First check if we need to restore selections from saved form data
+                                            const savedData = localStorage.getItem('bookFormData');
+                                            if (savedData) {
+                                                try {
+                                                    const formData = JSON.parse(savedData);
+                                                    const supplementarySelect = document.getElementById('supplementarySelect');
+                                                    
+                                                    if (formData['supplementary_content[]'] && Array.isArray(formData['supplementary_content[]'])) {
+                                                        // Restore selected options
+                                                        Array.from(supplementarySelect.options).forEach(option => {
+                                                            option.selected = formData['supplementary_content[]'].includes(option.value);
+                                                        });
+                                                    }
+                                                } catch (e) {
+                                                    console.error('Error restoring supplementary content selections:', e);
+                                                }
+                                            }
+                                            
+                                            // Initialize supplementary content preview
+                                            updateSupplementaryPreview();
+                                            
+                                            // Hook into the form clear functionality
+                                            const clearFormBtn = document.querySelector('[data-clear-form]');
+                                            const clearTabBtns = document.querySelectorAll('.clear-tab-btn');
+                                            
+                                            if (clearFormBtn) {
+                                                const originalClickHandler = clearFormBtn.onclick;
+                                                clearFormBtn.onclick = function(e) {
+                                                    if (originalClickHandler) originalClickHandler.call(this, e);
+                                                    // Reset supplementary select and update preview
+                                                    const supplementarySelect = document.getElementById('supplementarySelect');
+                                                    Array.from(supplementarySelect.options).forEach(option => {
+                                                        option.selected = false;
+                                                    });
+                                                    updateSupplementaryPreview();
+                                                };
+                                            }
+                                            
+                                            // Handle clearing when "Clear Tab" is clicked for the description tab
+                                            clearTabBtns.forEach(btn => {
+                                                if (btn.getAttribute('data-tab-id') === 'description') {
+                                                    btn.addEventListener('click', function() {
+                                                        // Reset supplementary select and update preview
+                                                        const supplementarySelect = document.getElementById('supplementarySelect');
+                                                        Array.from(supplementarySelect.options).forEach(option => {
+                                                            option.selected = false;
+                                                        });
+                                                        updateSupplementaryPreview();
+                                                    });
+                                                }
+                                            });
+                                        });
+                                        </script>
+                                        
+                                        <style>
+                                        .supplementary-preview .preview-badge {
+                                            background: linear-gradient(135deg, #4169E1 0%, #0000CD 100%);
+                                        }
+                                        
+                                        .supplementary-badge {
+                                            background-color: #4169E1 !important;
+                                        }
+                                        </style>
                                     </div>
                                 </div>
                             </div>
@@ -818,12 +941,65 @@ $accession_error = '';
                                             <select class="form-control" id="publisher" name="publisher" required>
                                                 <option value="">Select Publisher</option>
                                                 <?php foreach ($publishers as $publisher): ?>
-                                                    <option value="<?php echo $publisher['publisher']; ?>"><?php echo $publisher['place']; ?> ; <?php echo $publisher['publisher'] ?? 'Unknown'; ?></option>
+                                                    <option value="<?php echo $publisher['publisher']; ?>" data-place="<?php echo $publisher['place']; ?>"><?php echo $publisher['place']; ?> ; <?php echo $publisher['publisher'] ?? 'Unknown'; ?></option>
                                                 <?php endforeach; ?>
                                             </select>
                                             <small class="form-text text-muted mt-1">
                                                 <i class="fas fa-info-circle mr-1"></i> Format: Place of publication ; Publisher name
                                             </small>
+                                            <script>
+                                                document.addEventListener('DOMContentLoaded', function() {
+                                                    const publisherSearch = document.getElementById('publisherSearch');
+                                                    const publisherSelect = document.getElementById('publisher');
+                                                    const publisherOptions = Array.from(publisherSelect.options);
+                                                    
+                                                    publisherSearch.addEventListener('input', function() {
+                                                        const searchText = this.value.toLowerCase();
+                                                        
+                                                        // Clear current options except the first one
+                                                        while (publisherSelect.options.length > 1) {
+                                                            publisherSelect.remove(1);
+                                                        }
+                                                        
+                                                        // Filter and add matching options
+                                                        publisherOptions.forEach(option => {
+                                                            if (option.value === '') return; // Skip the first empty option
+                                                            
+                                                            const optionText = option.textContent.toLowerCase();
+                                                            const place = option.getAttribute('data-place')?.toLowerCase() || '';
+                                                            const publisher = option.value.toLowerCase();
+                                                            
+                                                            if (optionText.includes(searchText) || 
+                                                                place.includes(searchText) || 
+                                                                publisher.includes(searchText)) {
+                                                                publisherSelect.add(option.cloneNode(true));
+                                                            }
+                                                        });
+                                                        
+                                                        // If no search text, clear dropdown first then restore all options
+                                                        if (searchText === '') {
+                                                            // Clear all options except the first placeholder
+                                                            while (publisherSelect.options.length > 1) {
+                                                                publisherSelect.remove(1);
+                                                            }
+                                                            
+                                                            // Then add all options back
+                                                            publisherOptions.forEach(option => {
+                                                                if (option.value !== '') {
+                                                                    publisherSelect.add(option.cloneNode(true));
+                                                                }
+                                                            });
+                                                        }
+                                                        
+                                                        // Auto-select first result if available
+                                                        if (publisherSelect.options.length > 1) {
+                                                            publisherSelect.selectedIndex = 1;
+                                                            // Trigger change event to update any dependent UI
+                                                            publisherSelect.dispatchEvent(new Event('change'));
+                                                        }
+                                                    });
+                                                });
+                                            </script>
                                         </div>
                                     </div>
                                     <div class="col-md-4">
@@ -859,11 +1035,16 @@ $accession_error = '';
                                                             </button>
                                                         </div>
                                                     </div>
-                                                    <select id="authorSelect" name="author[]" class="form-control" multiple>
+                                                    <select id="authorSelect" name="author[]" class="form-control" multiple onchange="updatePreviewRealtime('authorSelect', 'authorPreview')">
                                                         <?php foreach ($writers as $writer): ?>
                                                             <option value="<?php echo $writer['id']; ?>"><?php echo $writer['name']; ?></option>
                                                         <?php endforeach; ?>
                                                     </select>
+                                                    <!-- Author Preview -->
+                                                    <div class="preview-container">
+                                                        <div id="authorPreview" class="selected-preview mt-2"></div>
+                                                        <div id="authorCount" class="selection-count-badge">0</div>
+                                                    </div>
                                                     <div class="mt-2">
                                                         <small class="text-primary d-block mb-1">
                                                             <i class="fas fa-keyboard mr-1"></i> Hold <kbd>Ctrl</kbd> (Windows) or <kbd>⌘ Cmd</kbd> (Mac) to select multiple items
@@ -881,11 +1062,16 @@ $accession_error = '';
                                                     <div class="input-group mb-2">
                                                         <input type="text" id="coAuthorsSearch" class="form-control" placeholder="Search co-authors...">
                                                     </div>
-                                                    <select id="coAuthorsSelect" name="co_authors[]" class="form-control" multiple>
+                                                    <select id="coAuthorsSelect" name="co_authors[]" class="form-control" multiple onchange="updatePreviewRealtime('coAuthorsSelect', 'coAuthorsPreview')">
                                                         <?php foreach ($writers as $writer): ?>
                                                             <option value="<?php echo $writer['id']; ?>"><?php echo $writer['name']; ?></option>
                                                         <?php endforeach; ?>
                                                     </select>
+                                                    <!-- Co-Authors Preview -->
+                                                    <div class="preview-container">
+                                                        <div id="coAuthorsPreview" class="selected-preview mt-2"></div>
+                                                        <div id="coAuthorCount" class="selection-count-badge">0</div>
+                                                    </div>
                                                     <div class="mt-2">
                                                         <small class="text-primary d-block mb-1">
                                                             <i class="fas fa-keyboard mr-1"></i> Hold <kbd>Ctrl</kbd> (Windows) or <kbd>⌘ Cmd</kbd> (Mac) to select multiple items
@@ -903,11 +1089,16 @@ $accession_error = '';
                                                     <div class="input-group mb-2">
                                                         <input type="text" id="editorsSearch" class="form-control" placeholder="Search editors...">
                                                     </div>
-                                                    <select id="editorsSelect" name="editors[]" class="form-control" multiple>
+                                                    <select id="editorsSelect" name="editors[]" class="form-control" multiple onchange="updatePreviewRealtime('editorsSelect', 'editorsPreview')">
                                                         <?php foreach ($writers as $writer): ?>
                                                             <option value="<?php echo $writer['id']; ?>"><?php echo $writer['name']; ?></option>
                                                         <?php endforeach; ?>
                                                     </select>
+                                                    <!-- Editors Preview -->
+                                                    <div class="preview-container">
+                                                        <div id="editorsPreview" class="selected-preview mt-2"></div>
+                                                        <div id="editorCount" class="selection-count-badge">0</div>
+                                                    </div>
                                                     <div class="mt-2">
                                                         <small class="text-primary d-block mb-1">
                                                             <i class="fas fa-keyboard mr-1"></i> Hold <kbd>Ctrl</kbd> (Windows) or <kbd>⌘ Cmd</kbd> (Mac) to select multiple items
@@ -919,6 +1110,310 @@ $accession_error = '';
                                                 </div>
                                             </div>
                                         </div>
+
+                                        <!-- Enhanced preview styles -->
+                                        <style>
+                                        .preview-container {
+                                            position: relative;
+                                            margin-top: 0.5rem;
+                                        }
+                                        
+                                        .selected-preview {
+                                            min-height: 36px;
+                                            max-height: 120px;
+                                            overflow-y: auto;
+                                            padding: 5px;
+                                            border: 1px solid #e3e6f0;
+                                            border-radius: 4px;
+                                            background-color: #f8f9fc;
+                                            display: flex;
+                                            flex-wrap: wrap;
+                                            align-content: flex-start;
+                                        }
+                                        
+                                        .selected-preview:empty {
+                                            display: flex;
+                                            justify-content: center;
+                                            align-items: center;
+                                        }
+                                        
+                                        .selected-preview:empty::after {
+                                            content: "No items selected";
+                                            color: #858796;
+                                            font-style: italic;
+                                            font-size: 0.85rem;
+                                        }
+                                        
+                                        .selected-preview .preview-badge {
+                                            display: inline-flex;
+                                            align-items: center;
+                                            margin: 3px;
+                                            padding: 4px 8px;
+                                            background: linear-gradient(135deg, #4e73df 0%, #2e59d9 100%);
+                                            color: white;
+                                            border-radius: 30px;
+                                            font-size: 0.85rem;
+                                            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                                            transition: all 0.2s ease-in-out;
+                                            position: relative;
+                                            overflow: hidden;
+                                        }
+                                        
+                                        .selected-preview .preview-badge::before {
+                                            content: '';
+                                            position: absolute;
+                                            top: 0;
+                                            left: 0;
+                                            width: 100%;
+                                            height: 100%;
+                                            background: rgba(255,255,255,0.1);
+                                            transform: translateX(-100%);
+                                            transition: transform 0.3s ease-out;
+                                        }
+                                        
+                                        .selected-preview .preview-badge:hover {
+                                            transform: translateY(-2px);
+                                            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+                                        }
+                                        
+                                        .selected-preview .preview-badge:hover::before {
+                                            transform: translateX(0);
+                                        }
+                                        
+                                        .selected-preview .remove-icon {
+                                            margin-left: 6px;
+                                            cursor: pointer;
+                                            opacity: 0.7;
+                                            transition: all 0.2s ease;
+                                            background: rgba(255,255,255,0.2);
+                                            border-radius: 50%;
+                                            width: 18px;
+                                            height: 18px;
+                                            display: inline-flex;
+                                            align-items: center;
+                                            justify-content: center;
+                                            font-size: 10px;
+                                        }
+                                        
+                                        .selected-preview .remove-icon:hover {
+                                            opacity: 1;
+                                            background: rgba(255,255,255,0.3);
+                                            transform: scale(1.1);
+                                        }
+
+                                        .preview-badge.author-badge { background: linear-gradient(135deg, #FF0000 0%, #B22222 100%); }
+                                        .preview-badge.coauthor-badge { background: linear-gradient(135deg, #4169E1 0%, #0000CD 100%); }
+                                        .preview-badge.editor-badge { background: linear-gradient(135deg, #808080 0%, #696969 100%); color: white; }
+                                        
+                                        @keyframes fadeIn {
+                                            from { opacity: 0; transform: translateY(5px); }
+                                            to { opacity: 1; transform: translateY(0); }
+                                        }
+                                        
+                                        .preview-badge {
+                                            animation: fadeIn 0.3s ease forwards;
+                                        }
+                                        
+                                        /* Enhanced Number badge styling - positioned at corner of preview */
+                                        .selection-count-badge {
+                                            position: absolute;
+                                            top: -8px;
+                                            right: -8px;
+                                            display: flex;
+                                            align-items: center;
+                                            justify-content: center;
+                                            min-width: 24px;
+                                            height: 24px;
+                                            border-radius: 50%;
+                                            color: white;
+                                            font-size: 0.75rem;
+                                            font-weight: bold;
+                                            padding: 0 4px;
+                                            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+                                            z-index: 5;
+                                            transition: all 0.3s ease;
+                                            border: 2px solid #fff;
+                                        }
+                                        
+                                        /* Different colors for different sections */
+                                        #authorCount {
+                                            background-color: #FF0000;
+                                        }
+                                        
+                                        #coAuthorCount {
+                                            background-color: #4169E1;
+                                        }
+                                        
+                                        #editorCount {
+                                            background-color: #808080;
+                                            color: white;
+                                        }
+                                        
+                                        /* Make badge pulse when count changes */
+                                        @keyframes pulse {
+                                            0% { transform: scale(1); }
+                                            50% { transform: scale(1.3); }
+                                            100% { transform: scale(1); }
+                                        }
+                                        
+                                        .pulse {
+                                            animation: pulse 0.4s ease-in-out;
+                                        }
+                                        </style>
+
+                                        <!-- Add real-time preview script -->
+                                        <script>
+                                        // Function to update preview in real-time
+                                        function updatePreviewRealtime(selectId, previewId) {
+                                            const select = document.getElementById(selectId);
+                                            const preview = document.getElementById(previewId);
+                                            
+                                            // Clear current preview
+                                            preview.innerHTML = '';
+                                            
+                                            // Determine badge type and count badge ID based on selectId
+                                            let badgeClass = 'author-badge';
+                                            let countBadgeId = 'authorCount';
+                                            
+                                            if (selectId === 'coAuthorsSelect') {
+                                                badgeClass = 'coauthor-badge';
+                                                countBadgeId = 'coAuthorCount';
+                                            }
+                                            
+                                            if (selectId === 'editorsSelect') {
+                                                badgeClass = 'editor-badge';
+                                                countBadgeId = 'editorCount';
+                                            }
+                                            
+                                            // Get the count badge element
+                                            const countBadge = document.getElementById(countBadgeId);
+                                            const selectedCount = select.selectedOptions.length;
+                                            
+                                            // Update the count
+                                            const oldCount = parseInt(countBadge.textContent);
+                                            countBadge.textContent = selectedCount;
+                                            
+                                            // Add pulse animation if count changed
+                                            if (oldCount !== selectedCount) {
+                                                countBadge.classList.remove('pulse');
+                                                setTimeout(() => {
+                                                    countBadge.classList.add('pulse');
+                                                }, 10);
+                                            }
+                                            
+                                            // Show/hide badge based on count
+                                            if (selectedCount > 0) {
+                                                countBadge.style.display = 'flex';
+                                            } else {
+                                                countBadge.style.display = 'none';
+                                            }
+                                            
+                                            // Generate badges for each selected option with staggered animation
+                                            Array.from(select.selectedOptions).forEach((option, index) => {
+                                                const badge = document.createElement('span');
+                                                badge.className = `preview-badge ${badgeClass}`;
+                                                badge.style.animationDelay = `${index * 0.05}s`;
+                                                
+                                                // Truncate very long names
+                                                let displayName = option.text;
+                                                if (displayName.length > 30) {
+                                                    displayName = displayName.substring(0, 27) + '...';
+                                                    badge.title = option.text; // Show full name on hover
+                                                }
+                                                
+                                                badge.innerHTML = `${displayName} <i class="fas fa-times remove-icon" data-select="${selectId}" data-value="${option.value}"></i>`;
+                                                preview.appendChild(badge);
+                                            });
+                                            
+                                            // Add click handlers to remove icons
+                                            preview.querySelectorAll('.remove-icon').forEach(icon => {
+                                                icon.addEventListener('click', function(e) {
+                                                    e.stopPropagation(); // Prevent event bubbling
+                                                    
+                                                    const selectElement = document.getElementById(this.dataset.select);
+                                                    const value = this.dataset.value;
+                                                    const badge = this.closest('.preview-badge');
+                                                    
+                                                    // Animation for removal
+                                                    badge.style.transition = 'all 0.2s ease-out';
+                                                    badge.style.transform = 'scale(0.8)';
+                                                    badge.style.opacity = '0';
+                                                    
+                                                    setTimeout(() => {
+                                                        // Find and unselect the option
+                                                        for(let i = 0; i < selectElement.options.length; i++) {
+                                                            if(selectElement.options[i].value === value) {
+                                                                selectElement.options[i].selected = false;
+                                                                break;
+                                                            }
+                                                        }
+                                                        
+                                                        // Update the preview
+                                                        updatePreviewRealtime(this.dataset.select, previewId);
+                                                    }, 200);
+                                                });
+                                            });
+                                            
+                                            // Make the badges clickable to show the full name if truncated
+                                            preview.querySelectorAll('.preview-badge').forEach(badge => {
+                                                if (badge.title) {
+                                                    badge.style.cursor = 'help';
+                                                }
+                                            });
+                                        }
+                                        
+                                        // Initialize previews on page load
+                                        document.addEventListener('DOMContentLoaded', function() {
+                                            // Initialize count badges to be hidden if empty
+                                            document.querySelectorAll('.selection-count-badge').forEach(badge => {
+                                                if (badge.textContent === '0') {
+                                                    badge.style.display = 'none';
+                                                }
+                                            });
+                                            
+                                            updatePreviewRealtime('authorSelect', 'authorPreview');
+                                            updatePreviewRealtime('coAuthorsSelect', 'coAuthorsPreview');
+                                            updatePreviewRealtime('editorsSelect', 'editorsPreview');
+                                            
+                                            // Make search fields also update the preview in real-time
+                                            document.getElementById('authorSearch').addEventListener('input', function() {
+                                                setTimeout(() => updatePreviewRealtime('authorSelect', 'authorPreview'), 100);
+                                            });
+                                            
+                                            document.getElementById('coAuthorsSearch').addEventListener('input', function() {
+                                                setTimeout(() => updatePreviewRealtime('coAuthorsSelect', 'coAuthorsPreview'), 100);
+                                            });
+                                            
+                                            document.getElementById('editorsSearch').addEventListener('input', function() {
+                                                setTimeout(() => updatePreviewRealtime('editorsSelect', 'editorsPreview'), 100);
+                                            });
+                                            
+                                            // Add filtering functionality for search boxes
+                                            setupFilterDropdown('authorSearch', 'authorSelect');
+                                            setupFilterDropdown('coAuthorsSearch', 'coAuthorsSelect');
+                                            setupFilterDropdown('editorsSearch', 'editorsSelect');
+                                        });
+                                        
+                                        // Setup dropdown filtering function
+                                        function setupFilterDropdown(inputId, selectId) {
+                                            const input = document.getElementById(inputId);
+                                            const select = document.getElementById(selectId);
+                                            
+                                            if (input && select) {
+                                                input.addEventListener('input', function() {
+                                                    const filterText = this.value.toLowerCase();
+                                                    
+                                                    Array.from(select.options).forEach(option => {
+                                                        const optionText = option.text.toLowerCase();
+                                                        const match = optionText.includes(filterText);
+                                                        
+                                                        // Use modern approach for hiding options
+                                                        option.style.display = match ? '' : 'none';
+                                                    });
+                                                });
+                                            }
+                                        }
+                                        </script>
                                     </div>
                                 </div>
                                 <!-- System Info -->
@@ -2158,6 +2653,14 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // Validate tabs after a short delay to ensure all fields are properly loaded
     setTimeout(validateAllTabs, 500);
+    
+    // Update all previews after form data is restored
+    setTimeout(function() {
+        // Update previews for author, co-author, and editor selections
+        updatePreviewRealtime('authorSelect', 'authorPreview');
+        updatePreviewRealtime('coAuthorsSelect', 'coAuthorsPreview');
+        updatePreviewRealtime('editorsSelect', 'editorsPreview');
+    }, 600);
 
     // Helper function for updating multi-select previews
     function updatePreview(selectId, previewId) {
