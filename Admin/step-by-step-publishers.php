@@ -164,27 +164,38 @@ if (isset($_POST['save_selection'])) {
     if (!empty($_POST['publisher_id'])) {
         $publisher_id = (int)$_POST['publisher_id'];
         $publish_year = isset($_POST['publish_year'][$publisher_id]) ? (int)$_POST['publish_year'][$publisher_id] : date('Y');
-        
+
+        // Fetch publisher name
+        $publisher_name = 'Unknown Publisher'; // Default value
+        $stmt = $conn->prepare("SELECT publisher FROM publishers WHERE id = ?");
+        $stmt->bind_param("i", $publisher_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if ($row = $result->fetch_assoc()) {
+            $publisher_name = htmlspecialchars($row['publisher']);
+        }
+        $stmt->close();
+
         $_SESSION['book_shortcut']['publisher_id'] = $publisher_id;
         $_SESSION['book_shortcut']['publish_year'] = $publish_year;
         $_SESSION['book_shortcut']['steps_completed']['publisher'] = true;
-        
-        // Move to the next step automatically
+
+        // Move to the next step automatically - Keep this logic if needed elsewhere
         $_SESSION['book_shortcut']['current_step'] = 3;
-        
-        // Determine where to redirect based on session
-        $redirect_page = $_SESSION['return_to_form'] ? 'step-by-step-add-book-form.php' : 'step-by-step-add-book.php';
-        
+
+        // Display success message and navigate on OK click
         echo "<script>
             Swal.fire({
                 title: 'Success!',
-                text: 'Publisher and publication year saved successfully!',
+                text: 'Publisher \"{$publisher_name}\" (Year: {$publish_year}) saved successfully!', // Updated text
                 icon: 'success',
+                showConfirmButton: true, // Show the OK button
                 confirmButtonColor: '#3085d6',
                 confirmButtonText: 'OK'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    window.location.href='$redirect_page';
+                    // Navigate back to the progress form when OK is clicked
+                    window.location.href = 'step-by-step-add-book.php';
                 }
             });
         </script>";
@@ -200,8 +211,6 @@ if (isset($_POST['save_selection'])) {
         </script>";
     }
 }
-
-// Add this after your existing form submission handlers:
 
 // Handle publisher deletion
 if (isset($_POST['delete_publishers'])) {

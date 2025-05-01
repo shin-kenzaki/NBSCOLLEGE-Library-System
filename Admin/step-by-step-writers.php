@@ -41,13 +41,28 @@ if (isset($_POST['ajax_select_writers'])) {
             
             // Store all selected writers and their roles
             $_SESSION['book_shortcut']['selected_writers'] = [];
+            $writer_details_html = '<ul class="list-unstyled text-left">'; // Start HTML list
+            
             foreach ($selected_writers as $writer_id) {
                 $role = isset($writer_roles[$writer_id]) ? $writer_roles[$writer_id] : 'Author';
                 $_SESSION['book_shortcut']['selected_writers'][] = [
                     'id' => $writer_id,
                     'role' => $role
                 ];
+                
+                // Fetch writer name for the message
+                $stmt = $conn->prepare("SELECT firstname, middle_init, lastname FROM writers WHERE id = ?");
+                $stmt->bind_param("i", $writer_id);
+                $stmt->execute();
+                $writer_result = $stmt->get_result();
+                if ($writer_result && $writer_result->num_rows > 0) {
+                    $writer = $writer_result->fetch_assoc();
+                    $writer_name = htmlspecialchars(trim($writer['firstname'] . ' ' . $writer['middle_init'] . ' ' . $writer['lastname']));
+                    $writer_details_html .= '<li><span class="badge badge-'.($role == 'Author' ? 'primary' : ($role == 'Co-Author' ? 'info' : 'secondary')) . '">' . htmlspecialchars($role) . '</span> ' . $writer_name . '</li>';
+                }
+                $stmt->close();
             }
+            $writer_details_html .= '</ul>'; // End HTML list
             
             $_SESSION['book_shortcut']['steps_completed']['writer'] = true;
             
@@ -55,7 +70,9 @@ if (isset($_POST['ajax_select_writers'])) {
             $_SESSION['book_shortcut']['current_step'] = 2;
             
             $response['success'] = true;
-            $response['message'] = 'Writers selected successfully';
+            // Update message to include HTML details
+            $response['message'] = 'Writers selected successfully!';
+            $response['details_html'] = $writer_details_html;
         }
 
         // Determine where to redirect based on session
@@ -63,7 +80,8 @@ if (isset($_POST['ajax_select_writers'])) {
 
         echo json_encode([
             'success' => true,
-            'message' => 'Writers selected successfully',
+            'message' => $response['message'], // Use the updated message
+            'details_html' => $response['details_html'] ?? '', // Pass the HTML details
             'redirect' => $redirect_page
         ]);
         
@@ -187,22 +205,39 @@ if (isset($_POST['select_writers'])) {
         
         // Store all selected writers and their roles
         $_SESSION['book_shortcut']['selected_writers'] = [];
+        $writer_details_html = '<ul class="list-unstyled text-left">'; // Start HTML list
+        
         foreach ($selected_writers as $writer_id) {
             $role = isset($writer_roles[$writer_id]) ? $writer_roles[$writer_id] : 'Author';
             $_SESSION['book_shortcut']['selected_writers'][] = [
                 'id' => $writer_id,
                 'role' => $role
             ];
+            
+            // Fetch writer name for the message
+            $stmt = $conn->prepare("SELECT firstname, middle_init, lastname FROM writers WHERE id = ?");
+            $stmt->bind_param("i", $writer_id);
+            $stmt->execute();
+            $writer_result = $stmt->get_result();
+            if ($writer_result && $writer_result->num_rows > 0) {
+                $writer = $writer_result->fetch_assoc();
+                $writer_name = htmlspecialchars(trim($writer['firstname'] . ' ' . $writer['middle_init'] . ' ' . $writer['lastname']));
+                $writer_details_html .= '<li><span class="badge badge-'.($role == 'Author' ? 'primary' : ($role == 'Co-Author' ? 'info' : 'secondary')) . '">' . htmlspecialchars($role) . '</span> ' . $writer_name . '</li>';
+            }
+            $stmt->close();
         }
+        $writer_details_html .= '</ul>'; // End HTML list
         
         $_SESSION['book_shortcut']['steps_completed']['writer'] = true;
         
         // Move to the next step automatically
         $_SESSION['book_shortcut']['current_step'] = 2;
         
+        // Store detailed HTML message in session alert
         $_SESSION['writer_alert'] = [
             'type' => 'success',
-            'message' => 'Writers selected successfully'
+            'message' => 'Writers selected successfully!',
+            'details_html' => $writer_details_html // Store HTML details
         ];
         
         // Redirect based on where we came from (form or progress)
@@ -349,8 +384,12 @@ $(document).ready(function() {
         Swal.fire({
             icon: '<?php echo $_SESSION['writer_alert']['type']; ?>',
             title: '<?php echo $_SESSION['writer_alert']['message']; ?>',
+            // Use html property if details_html exists
+            <?php if(isset($_SESSION['writer_alert']['details_html'])): ?>
+            html: '<?php echo addslashes($_SESSION['writer_alert']['details_html']); ?>',
+            <?php endif; ?>,
             showConfirmButton: true,
-            timer: 3000
+            timer: 5000 // Increased timer for detailed view
         });
         <?php 
         // Clear the alert from session after displaying
@@ -460,10 +499,14 @@ $(document).ready(function() {
                                 Swal.fire({
                                     icon: 'success',
                                     title: response.message,
-                                    showConfirmButton: false,
-                                    timer: 1500
-                                }).then(() => {
-                                    if (response.redirect) {
+                                    // Use html property for detailed message
+                                    html: response.details_html || '', 
+                                    showConfirmButton: true, // Show the OK button
+                                    confirmButtonColor: '#3085d6',
+                                    confirmButtonText: 'OK'
+                                }).then((result) => {
+                                    // Navigate only when the OK button is clicked
+                                    if (result.isConfirmed && response.redirect) { 
                                         window.location.href = response.redirect;
                                     }
                                 });

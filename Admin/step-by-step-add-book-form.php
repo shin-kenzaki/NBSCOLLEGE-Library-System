@@ -310,16 +310,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             mysqli_commit($conn);
         }
 
-        // Store book information in session for success message
-        $_SESSION['success_message'] = "Successfully added all books!";
-        $_SESSION['added_book_title'] = $title;
-        $_SESSION['added_book_copies'] = $success_count;
+        // Set success flag for the step-by-step page
+        $_SESSION['book_shortcut_success'] = true;
+        $_SESSION['success_message'] = "Book \"$title\" ($success_count copies) added successfully!"; // Keep a general success message
 
-        // Clear the book shortcut session data
+        // Clear the book shortcut session data to reset the process
         unset($_SESSION['book_shortcut']);
+        // Also clear the return_to_form flag
+        unset($_SESSION['return_to_form']);
 
-        // Redirect to book_list.php
-        header("Location: book_list.php");
+        // Redirect back to the main step-by-step page
+        header("Location: step-by-step-add-book.php");
         exit();
     } catch (Exception $e) {
         if ($transactionSupported) {
@@ -1545,6 +1546,7 @@ document.addEventListener('input', function(e) {
 // Modified add-accession handler
 document.addEventListener('click', function(e) {
     if (e.target && e.target.classList.contains('add-accession')) {
+        const accessionContainer = document.getElementById('accessionContainer'); // Ensure container is defined here
         const groupCount = document.querySelectorAll('.accession-group').length + 1;
         const newGroup = document.createElement('div');
         newGroup.className = 'accession-group mb-3';
@@ -1577,6 +1579,12 @@ document.addEventListener('click', function(e) {
         `;
         accessionContainer.appendChild(newGroup);
         updateISBNFields();
+
+        // Find the new input field and focus it
+        const newAccessionInput = newGroup.querySelector('.accession-input');
+        if (newAccessionInput) {
+            newAccessionInput.focus();
+        }
     }
 
     if (e.target && e.target.classList.contains('remove-accession')) {
