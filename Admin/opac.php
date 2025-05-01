@@ -655,12 +655,6 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                                             }
                                             ?>
                                         </div>
-
-                                        <!-- Program Field -->
-                                        <div class="mb-3">
-                                            <strong>Program:</strong>
-                                            <?php echo !empty($book['program']) ? htmlspecialchars($book['program']) : 'N/A'; ?>
-                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -707,15 +701,24 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                                 <h6 class="m-0 font-weight-bold text-primary">Subject Information</h6>
                             </div>
                             <div class="card-body">
-                                <?php if (!empty($book['subject_category']) || !empty($book['subject_specification']) || !empty($book['subject_detail'])): ?>
+                                <?php if (!empty($book['subject_category']) || !empty($book['subject_specification']) || !empty($book['subject_detail']) || !empty($book['program'])): ?>
                                     <div class="row">
                                         <?php if (!empty($book['subject_category'])): ?>
-                                            <div class="col-md-4 mb-3">
+                                            <div class="col-md-2 mb-3">
                                                 <h6 class="text-dark">Subject Categories</h6>
                                                 <ul class="list-group list-group-flush">
                                                     <?php foreach (explode(';', $book['subject_category']) as $category): ?>
                                                         <li class="list-group-item bg-light"><?php echo htmlspecialchars(trim($category)); ?></li>
                                                     <?php endforeach; ?>
+                                                </ul>
+                                            </div>
+                                        <?php endif; ?>
+                                        
+                                        <?php if (!empty($book['program'])): ?>
+                                            <div class="col-md-2 mb-3">
+                                                <h6 class="text-dark">Dedicated Program</h6>
+                                                <ul class="list-group list-group-flush">
+                                                    <li class="list-group-item bg-light"><?php echo htmlspecialchars($book['program']); ?></li>
                                                 </ul>
                                             </div>
                                         <?php endif; ?>
@@ -810,41 +813,43 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                                             <i class="fas fa-arrows-alt-h"></i> Swipe horizontally to see more details
                                         </div>
                                         <table class="table table-bordered table-striped table-holdings" width="100%" cellspacing="0">
-                                            <thead class="thead-light">
+                                            <thead class="bg-primary text-white">
                                                 <tr>
-                                                    <th style="min-width: 100px;">Accession</th>
-                                                    <th style="min-width: 120px;">Call Number</th>
-                                                    <th style="min-width: 60px;">Copy</th>
-                                                    <th style="min-width: 90px;">Status</th>
-                                                    <th style="min-width: 120px;">Location</th>
-                                                    <th style="min-width: 100px;">Last Update</th>
-                                                    <th style="min-width: 100px;">Series</th>
-                                                    <th style="min-width: 80px;">Volume</th>
-                                                    <th style="min-width: 80px;">Part</th>
-                                                    <th style="min-width: 80px;">Edition</th>
-                                                    <th style="min-width: 120px;">ISBN</th>
-                                                    <th style="min-width: 80px;">Actions</th>
+                                                    <th style="min-width: 100px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Accession</th>
+                                                    <th style="min-width: 120px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Call Number</th>
+                                                    <th style="min-width: 60px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Copy</th>
+                                                    <th style="min-width: 90px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Status</th>
+                                                    <th style="min-width: 120px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Location</th>
+                                                    <th style="min-width: 100px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Last Update</th>
+                                                    <th style="min-width: 100px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Series</th>
+                                                    <th style="min-width: 80px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Volume</th>
+                                                    <th style="min-width: 80px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Part</th>
+                                                    <th style="min-width: 80px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Edition</th>
+                                                    <th style="min-width: 120px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">ISBN</th>
+                                                    <th style="min-width: 80px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Actions</th>
                                                 </tr>
                                             </thead>
-                                            <tbody>
-                                                <?php foreach ($allCopies as $copy): ?>
-                                                    <tr data-book-id="<?php echo htmlspecialchars($copy['id']); ?>" class="copy-row <?php echo ($copy['id'] == $bookId) ? 'table-primary' : ''; ?>">
-                                                        <td><?php echo htmlspecialchars($copy['accession']); ?></td>
-                                                        <td><?php echo htmlspecialchars($copy['call_number']); ?></td>
-                                                        <td><?php echo htmlspecialchars($copy['copy_number']); ?></td>
-                                                        <td>
-                                                            <span class="badge bg-<?php echo ($copy['status'] == 'Available') ? 'success' : 'warning'; ?> text-white">
+                                            <tbody class="table-group-divider">
+                                                <?php foreach ($allCopies as $index => $copy): ?>
+                                                    <tr data-book-id="<?php echo htmlspecialchars($copy['id']); ?>" 
+                                                        class="copy-row <?php echo ($copy['id'] == $bookId) ? 'table-primary' : ($index % 2 == 0 ? 'table-light' : 'table-white'); ?>"
+                                                        style="transition: all 0.2s ease;">
+                                                        <td style="text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?php echo htmlspecialchars($copy['accession']); ?></td>
+                                                        <td style="text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?php echo htmlspecialchars($copy['call_number']); ?></td>
+                                                        <td style="text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?php echo htmlspecialchars($copy['copy_number']); ?></td>
+                                                        <td style="text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                                            <span class="badge bg-<?php echo ($copy['status'] == 'Available') ? 'success' : 'warning'; ?> text-white fw-bold">
                                                                 <?php echo htmlspecialchars($copy['status']); ?>
                                                             </span>
                                                         </td>
-                                                        <td><?php echo htmlspecialchars($copy['shelf_location']); ?></td>
-                                                        <td><?php echo htmlspecialchars(date('Y-m-d', strtotime($copy['last_update']))); ?></td>
-                                                        <td><?php echo !empty($copy['series']) ? htmlspecialchars($copy['series']) : '-'; ?></td>
-                                                        <td><?php echo !empty($copy['volume']) ? htmlspecialchars($copy['volume']) : '-'; ?></td>
-                                                        <td><?php echo !empty($copy['part']) ? htmlspecialchars($copy['part']) : '-'; ?></td>
-                                                        <td><?php echo !empty($copy['edition']) ? htmlspecialchars($copy['edition']) : '-'; ?></td>
-                                                        <td><?php echo !empty($copy['ISBN']) ? htmlspecialchars($copy['ISBN']) : '-'; ?></td>
-                                                        <td>
+                                                        <td style="text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?php echo htmlspecialchars($copy['shelf_location']); ?></td>
+                                                        <td style="text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?php echo htmlspecialchars(date('Y-m-d', strtotime($copy['last_update']))); ?></td>
+                                                        <td style="text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?php echo !empty($copy['series']) ? htmlspecialchars($copy['series']) : '-'; ?></td>
+                                                        <td style="text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?php echo !empty($copy['volume']) ? htmlspecialchars($copy['volume']) : '-'; ?></td>
+                                                        <td style="text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?php echo !empty($copy['part']) ? htmlspecialchars($copy['part']) : '-'; ?></td>
+                                                        <td style="text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?php echo !empty($copy['edition']) ? htmlspecialchars($copy['edition']) : '-'; ?></td>
+                                                        <td style="text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?php echo !empty($copy['ISBN']) ? htmlspecialchars($copy['ISBN']) : '-'; ?></td>
+                                                        <td style="text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                                             <button type="button" class="btn btn-danger btn-sm" onclick="confirmDeleteCopy(<?php echo htmlspecialchars($copy['id']); ?>, '<?php echo htmlspecialchars($copy['accession']); ?>')">
                                                                 <i class="fas fa-trash"></i>
                                                             </button>
