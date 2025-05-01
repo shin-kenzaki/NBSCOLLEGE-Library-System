@@ -1633,8 +1633,8 @@ $accession_error = '';
             </form> <!-- Form closing tag -->
         </div>
     </div>
-    <?php include 'inc/footer.php'; ?>
 </div>
+<?php include 'inc/footer.php'; ?>
 
 <!-- Instructions Modal (detailed version) -->
 <div class="modal fade" id="instructionsModal" tabindex="-1" role="dialog" aria-labelledby="instructionsModalLabel" aria-hidden="true">

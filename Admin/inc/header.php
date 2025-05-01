@@ -517,26 +517,6 @@
         $('#pageIndicator').text('You are in: ' + pageTitle);
     }
     
-    // Function to show page indicator briefly
-    function showPageIndicator() {
-        const indicator = $('#pageIndicator');
-        indicator.fadeIn(300);
-        
-        // Auto-hide after 3 seconds
-        setTimeout(() => {
-            indicator.fadeOut(500);
-        }, 3000);
-        
-        // Show on hover near top of page
-        $(document).on('mousemove', function(e) {
-            if (e.clientY < 30) {
-                indicator.fadeIn(300);
-            } else if (indicator.is(':visible') && e.clientY > 50) {
-                indicator.fadeOut(500);
-            }
-        });
-    }
-    
     // Function to update message count
     function updateMessageCount() {
         fetch('ajax/get_unread_count.php')
