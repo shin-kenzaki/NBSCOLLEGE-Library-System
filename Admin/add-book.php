@@ -338,6 +338,64 @@ $accession_error = '';
 .file-upload-container.is-invalid .invalid-feedback {
   display: block;
 }
+
+/* Live validation indicators styles */
+.validation-indicator {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #e74a3b;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.validation-indicator.show {
+  opacity: 1;
+}
+
+.form-control.live-validate:invalid,
+.form-control.live-validate.is-invalid {
+  border-color: #e74a3b;
+  padding-right: 30px;
+  background-image: none;
+}
+
+.form-control.live-validate:valid,
+.form-control.live-validate.is-valid {
+  border-color: #1cc88a;
+  padding-right: 30px;
+  background-image: none;
+}
+
+.form-group {
+  position: relative;
+}
+
+.validation-message {
+  display: none;
+  font-size: 80%;
+  color: #e74a3b;
+  margin-top: 0.25rem;
+}
+
+.form-control.is-invalid + .validation-message {
+  display: block;
+}
+
+.validation-check {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #1cc88a;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.validation-check.show {
+  opacity: 1;
+}
 </style>
 
 <!-- Main Content -->
@@ -385,14 +443,164 @@ $accession_error = '';
                         <!-- Tab Navigation - Make scrollable on mobile -->
                         <div class="nav-tab-wrapper overflow-auto">
                             <ul class="nav nav-tabs flex-nowrap" id="formTabs" role="tablist" style="white-space: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 5px;">
-                                <li class="nav-item"><a class="nav-link active" id="title-tab" data-toggle="tab" href="#title-proper" role="tab"><i class="fas fa-book"></i> Title Proper</a></li>
-                                <li class="nav-item"><a class="nav-link" id="subject-tab" data-toggle="tab" href="#subject-entry" role="tab"><i class="fas fa-tag"></i> Access Point</a></li>
-                                <li class="nav-item"><a class="nav-link" id="abstracts-tab" data-toggle="tab" href="#abstracts" role="tab"><i class="fas fa-file-alt"></i> Abstract & Notes</a></li>
-                                <li class="nav-item"><a class="nav-link" id="description-tab" data-toggle="tab" href="#description" role="tab"><i class="fas fa-info-circle"></i> Description</a></li>
-                                <li class="nav-item"><a class="nav-link" id="local-info-tab" data-toggle="tab" href="#local-info" role="tab"><i class="fas fa-map-marker-alt"></i> Local Information</a></li>
-                                <li class="nav-item"><a class="nav-link" id="publication-tab" data-toggle="tab" href="#publication" role="tab"><i class="fas fa-print"></i> Publication</a></li>
+                                <li class="nav-item">
+                                    <a class="nav-link active" id="title-tab" data-toggle="tab" href="#title-proper" role="tab">
+                                        <i class="fas fa-book"></i> Title Proper
+                                        <span class="tab-status-indicator" id="title-tab-indicator"></span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" id="subject-tab" data-toggle="tab" href="#subject-entry" role="tab">
+                                        <i class="fas fa-tag"></i> Access Point
+                                        <span class="tab-status-indicator" id="subject-tab-indicator"></span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" id="abstracts-tab" data-toggle="tab" href="#abstracts" role="tab">
+                                        <i class="fas fa-file-alt"></i> Abstract & Notes
+                                        <span class="tab-status-indicator" id="abstracts-tab-indicator"></span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" id="description-tab" data-toggle="tab" href="#description" role="tab">
+                                        <i class="fas fa-info-circle"></i> Description
+                                        <span class="tab-status-indicator" id="description-tab-indicator"></span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" id="local-info-tab" data-toggle="tab" href="#local-info" role="tab">
+                                        <i class="fas fa-map-marker-alt"></i> Local Information
+                                        <span class="tab-status-indicator" id="local-info-tab-indicator"></span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" id="publication-tab" data-toggle="tab" href="#publication" role="tab">
+                                        <i class="fas fa-print"></i> Publication
+                                        <span class="tab-status-indicator" id="publication-tab-indicator"></span>
+                                    </a>
+                                </li>
                             </ul>
                         </div>
+
+                        <style>
+                        /* Tab status indicator styling */
+                        .tab-status-indicator {
+                            position: relative;
+                            display: inline-block;
+                            width: 8px;
+                            height: 8px;
+                            border-radius: 50%;
+                            margin-left: 5px;
+                        }
+                        
+                        .tab-status-indicator.required {
+                            background-color: #e74a3b; /* Red for missing required fields */
+                            animation: pulse-red 1.5s infinite;
+                        }
+                        
+                        .tab-status-indicator.complete {
+                            background-color: #1cc88a; /* Green for completed */
+                        }
+                        
+                        .tab-status-indicator.partial {
+                            background-color: #f6c23e; /* Yellow for partially completed */
+                        }
+                        
+                        @keyframes pulse-red {
+                            0% { box-shadow: 0 0 0 0 rgba(231, 74, 59, 0.4); }
+                            70% { box-shadow: 0 0 0 6px rgba(231, 74, 59, 0); }
+                            100% { box-shadow: 0 0 0 0 rgba(231, 74, 59, 0); }
+                        }
+                        </style>
+
+                        <script>
+                        // Function to update tab indicators based on field validation
+                        function updateTabIndicators() {
+                            // Map of tab IDs to their corresponding content panes
+                            const tabMap = {
+                                'title-tab': 'title-proper',
+                                'subject-tab': 'subject-entry',
+                                'abstracts-tab': 'abstracts',
+                                'description-tab': 'description',
+                                'local-info-tab': 'local-info',
+                                'publication-tab': 'publication'
+                            };
+                            
+                            // Check each tab
+                            Object.entries(tabMap).forEach(([tabId, contentId]) => {
+                                const tabPane = document.getElementById(contentId);
+                                const indicator = document.getElementById(`${tabId}-indicator`);
+                                
+                                if (!tabPane || !indicator) return;
+                                
+                                // Find all required fields in this tab
+                                const requiredFields = tabPane.querySelectorAll('input[required], select[required], textarea[required]');
+                                
+                                if (requiredFields.length === 0) {
+                                    // No required fields in this tab
+                                    indicator.className = 'tab-status-indicator';
+                                    return;
+                                }
+                                
+                                // Count how many required fields are filled
+                                let filledCount = 0;
+                                requiredFields.forEach(field => {
+                                    if (field.value.trim() !== '') {
+                                        filledCount++;
+                                    }
+                                });
+                                
+                                // Update indicator class based on completion status
+                                if (filledCount === 0) {
+                                    indicator.className = 'tab-status-indicator required';
+                                    indicator.title = 'Required fields need attention';
+                                } else if (filledCount === requiredFields.length) {
+                                    indicator.className = 'tab-status-indicator complete';
+                                    indicator.title = 'All required fields completed';
+                                } else {
+                                    indicator.className = 'tab-status-indicator partial';
+                                    indicator.title = `${filledCount} of ${requiredFields.length} required fields completed`;
+                                }
+                            });
+                        }
+                        
+                        // Run on page load
+                        document.addEventListener('DOMContentLoaded', function() {
+                            // Initial check
+                            updateTabIndicators();
+                            
+                            // Update on any input change
+                            document.querySelectorAll('input, select, textarea').forEach(input => {
+                                input.addEventListener('input', updateTabIndicators);
+                                input.addEventListener('change', updateTabIndicators);
+                            });
+                            
+                            // Special handling for dynamically added inputs (like in accession groups)
+                            const observer = new MutationObserver(function(mutations) {
+                                updateTabIndicators();
+                                
+                                // Add listeners to any new inputs
+                                mutations.forEach(function(mutation) {
+                                    if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                                        mutation.addedNodes.forEach(function(node) {
+                                            if (node.nodeType === Node.ELEMENT_NODE) {
+                                                node.querySelectorAll('input, select, textarea').forEach(input => {
+                                                    input.addEventListener('input', updateTabIndicators);
+                                                    input.addEventListener('change', updateTabIndicators);
+                                                });
+                                            }
+                                        });
+                                    }
+                                });
+                            });
+                            
+                            // Observe the entire form for changes
+                            const form = document.getElementById('bookForm');
+                            if (form) {
+                                observer.observe(form, { childList: true, subtree: true });
+                            }
+                        });
+                        </script>
 
                         <!-- Tab content with responsive styling -->
                         <div class="tab-content card border-0 shadow-sm p-3 p-md-4 mt-3" id="formTabsContent">
@@ -3709,6 +3917,12 @@ function addAccessionGroup() {
 
     // Scroll to the newly added group
     newGroup.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    
+    // Focus on the accession input field in the newly added group
+    const accessionInput = newGroup.querySelector('.accession-input');
+    if (accessionInput) {
+        setTimeout(() => accessionInput.focus(), 100);
+    }
 }
 
 // Initialize the first accession group with its own details section
@@ -5518,4 +5732,301 @@ function formatFileSize(bytes) {
 document.addEventListener('DOMContentLoaded', function() {
   initializeFileUploads();
 });
+</script>
+
+<!-- Add this JavaScript for validation indicators -->
+<script>
+/**
+ * Live validation indicators for required fields
+ */
+document.addEventListener('DOMContentLoaded', function() {
+  // Find all required inputs and add validation classes and indicators
+  const requiredInputs = document.querySelectorAll('input[required], textarea[required], select[required]');
+  
+  requiredInputs.forEach(input => {
+    // Add live validation class
+    input.classList.add('live-validate');
+    
+    // Create validation indicator (exclamation mark)
+    const validationIndicator = document.createElement('i');
+    validationIndicator.className = 'fas fa-exclamation-circle validation-indicator';
+    validationIndicator.setAttribute('aria-hidden', 'true');
+    
+    // Create validation check mark (for valid inputs)
+    const validationCheck = document.createElement('i');
+    validationCheck.className = 'fas fa-check-circle validation-check';
+    validationCheck.setAttribute('aria-hidden', 'true');
+    
+    // Create validation message
+    const validationMessage = document.createElement('div');
+    validationMessage.className = 'validation-message';
+    validationMessage.textContent = 'This field is required';
+    
+    // Add indicators and message to parent container
+    const parentElement = input.closest('.form-group');
+    if (parentElement) {
+      parentElement.style.position = 'relative';
+      parentElement.appendChild(validationIndicator);
+      parentElement.appendChild(validationCheck);
+      parentElement.appendChild(validationMessage);
+    }
+    
+    // Function to validate this input
+    function validateInput() {
+      const isValid = input.value.trim() !== '';
+      if (isValid) {
+        input.classList.remove('is-invalid');
+        input.classList.add('is-valid');
+        validationIndicator.classList.remove('show');
+        validationCheck.classList.add('show');
+      } else {
+        input.classList.remove('is-valid');
+        input.classList.add('is-invalid');
+        validationIndicator.classList.add('show');
+        validationCheck.classList.remove('show');
+      }
+    }
+    
+    // Validate on input
+    input.addEventListener('input', validateInput);
+    
+    // Validate on blur (when user leaves the field)
+    input.addEventListener('blur', validateInput);
+    
+    // Initial validation for pre-filled fields
+    if (input.value.trim() !== '') {
+      input.classList.add('is-valid');
+      validationCheck.classList.add('show');
+    }
+  });
+  
+  // Special handling for accession inputs
+  const accessionInputs = document.querySelectorAll('.accession-input');
+  accessionInputs.forEach(input => {
+    // Use MutationObserver to watch for dynamically added accession fields
+    if (input.closest('.accession-group')) {
+      // Initial validation
+      validateAccessionInput(input);
+      
+      // Set up event listeners
+      input.addEventListener('input', function() {
+        validateAccessionInput(this);
+      });
+      
+      input.addEventListener('blur', function() {
+        validateAccessionInput(this);
+      });
+    }
+  });
+  
+  // Function to validate accession input (specialized for accession groups)
+  function validateAccessionInput(input) {
+    const isValid = input.value.trim() !== '';
+    const parentGroup = input.closest('.accession-group');
+    
+    if (parentGroup) {
+      if (isValid) {
+        parentGroup.classList.remove('is-invalid');
+        parentGroup.classList.add('is-valid');
+        input.classList.remove('is-invalid');
+        input.classList.add('is-valid');
+      } else {
+        parentGroup.classList.remove('is-valid');
+        parentGroup.classList.add('is-invalid');
+        input.classList.remove('is-valid');
+        input.classList.add('is-invalid');
+      }
+      
+      // Find or create indicators
+      let indicator = parentGroup.querySelector('.validation-indicator');
+      let check = parentGroup.querySelector('.validation-check');
+      
+      if (!indicator) {
+        indicator = document.createElement('i');
+        indicator.className = 'fas fa-exclamation-circle validation-indicator';
+        input.parentNode.appendChild(indicator);
+      }
+      
+      if (!check) {
+        check = document.createElement('i');
+        check.className = 'fas fa-check-circle validation-check';
+        input.parentNode.appendChild(check);
+      }
+      
+      // Show/hide indicators
+      if (isValid) {
+        indicator.classList.remove('show');
+        check.classList.add('show');
+      } else {
+        indicator.classList.add('show');
+        check.classList.remove('show');
+      }
+    }
+  }
+  
+  // Set up observer for dynamically added elements
+  const accessionContainer = document.getElementById('accessionContainer');
+  if (accessionContainer) {
+    const observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+          mutation.addedNodes.forEach(function(node) {
+            if (node.nodeType === Node.ELEMENT_NODE && node.classList.contains('accession-group')) {
+              const newInput = node.querySelector('.accession-input');
+              if (newInput) {
+                // Set up validation for the new input
+                validateAccessionInput(newInput);
+                
+                newInput.addEventListener('input', function() {
+                  validateAccessionInput(this);
+                });
+                
+                newInput.addEventListener('blur', function() {
+                  validateAccessionInput(this);
+                });
+              }
+            }
+          });
+        }
+      });
+    });
+    
+    // Start observing
+    observer.observe(accessionContainer, { childList: true });
+  }
+  
+  // Add validation to the main title field
+  const titleInput = document.getElementById('title');
+  if (titleInput) {
+    // Special styling for the title field
+    const titleForm = titleInput.closest('.form-group');
+    if (titleForm) {
+      titleForm.style.position = 'relative';
+    }
+    
+    function validateTitleField() {
+      const isValid = titleInput.value.trim() !== '';
+      if (isValid) {
+        titleInput.classList.remove('is-invalid');
+        titleInput.classList.add('is-valid');
+      } else {
+        titleInput.classList.remove('is-valid');
+        titleInput.classList.add('is-invalid');
+      }
+      
+      // Find or create indicators
+      let parentElement = titleInput.closest('.form-group');
+      let indicator = parentElement.querySelector('.validation-indicator');
+      let check = parentElement.querySelector('.validation-check');
+      
+      if (!indicator) {
+        indicator = document.createElement('i');
+        indicator.className = 'fas fa-exclamation-circle validation-indicator';
+        parentElement.appendChild(indicator);
+      }
+      
+      if (!check) {
+        check = document.createElement('i');
+        check.className = 'fas fa-check-circle validation-check';
+        parentElement.appendChild(check);
+      }
+      
+      // Show/hide indicators
+      if (isValid) {
+        indicator.classList.remove('show');
+        check.classList.add('show');
+      } else {
+        indicator.classList.add('show');
+        check.classList.remove('show');
+      }
+    }
+    
+    // Initial validation
+    validateTitleField();
+    
+    // Set up listeners
+    titleInput.addEventListener('input', validateTitleField);
+    titleInput.addEventListener('blur', validateTitleField);
+  }
+});
+
+// Extend the addAccessionGroup function to handle validation for new groups
+const originalAddAccessionGroup = addAccessionGroup;
+addAccessionGroup = function() {
+  // Call the original function
+  originalAddAccessionGroup();
+  
+  // Then find the newly added accession group
+  const accessionContainer = document.getElementById('accessionContainer');
+  if (accessionContainer) {
+    const groups = accessionContainer.querySelectorAll('.accession-group');
+    const newGroup = groups[groups.length - 1];
+    
+    if (newGroup) {
+      const newInput = newGroup.querySelector('.accession-input');
+      if (newInput) {
+        // Set up validation for the new input
+        const isValid = newInput.value.trim() !== '';
+        
+        if (isValid) {
+          newInput.classList.remove('is-invalid');
+          newInput.classList.add('is-valid');
+        } else {
+          newInput.classList.remove('is-valid');
+          newInput.classList.add('is-invalid');
+        }
+        
+        // Add validation indicators
+        const parentElement = newInput.closest('.form-group');
+        if (parentElement) {
+          let indicator = document.createElement('i');
+          indicator.className = 'fas fa-exclamation-circle validation-indicator';
+          if (!isValid) indicator.classList.add('show');
+          
+          let check = document.createElement('i');
+          check.className = 'fas fa-check-circle validation-check';
+          if (isValid) check.classList.add('show');
+          
+          parentElement.style.position = 'relative';
+          parentElement.appendChild(indicator);
+          parentElement.appendChild(check);
+        }
+        
+        // Add event listeners
+        newInput.addEventListener('input', function() {
+          const isValid = this.value.trim() !== '';
+          
+          if (isValid) {
+            this.classList.remove('is-invalid');
+            this.classList.add('is-valid');
+            
+            const parentElement = this.closest('.form-group');
+            if (parentElement) {
+              const indicator = parentElement.querySelector('.validation-indicator');
+              const check = parentElement.querySelector('.validation-check');
+              
+              if (indicator) indicator.classList.remove('show');
+              if (check) check.classList.add('show');
+            }
+          } else {
+            this.classList.remove('is-valid');
+            this.classList.add('is-invalid');
+            
+            const parentElement = this.closest('.form-group');
+            if (parentElement) {
+              const indicator = parentElement.querySelector('.validation-indicator');
+              const check = parentElement.querySelector('.validation-check');
+              
+              if (indicator) indicator.classList.add('show');
+              if (check) check.classList.remove('show');
+            }
+          }
+        });
+        
+        // Trigger focus after validation setup
+        setTimeout(() => newInput.focus(), 100);
+      }
+    }
+  }
+};
 </script>
