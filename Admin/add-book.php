@@ -515,7 +515,7 @@ $accession_error = '';
                                     <div class="col-md-6">
                                         <div class="form-group">
                                             <label>Front Cover Image</label>
-                                            <div class="file-upload-container">
+                                            <div class="file-upload-container" id="front-cover-upload">
                                                 <div class="file-upload-area">
                                                     <i class="fas fa-cloud-upload-alt upload-icon"></i>
                                                     <div class="upload-text">Drag & drop front cover image or click to browse</div>
@@ -539,7 +539,7 @@ $accession_error = '';
                                     <div class="col-md-6">
                                         <div class="form-group">
                                             <label>Back Cover Image</label>
-                                            <div class="file-upload-container">
+                                            <div class="file-upload-container" id="back-cover-upload">
                                                 <div class="file-upload-area">
                                                     <i class="fas fa-cloud-upload-alt upload-icon"></i>
                                                     <div class="upload-text">Drag & drop back cover image or click to browse</div>
@@ -560,6 +560,68 @@ $accession_error = '';
                                         </div>
                                     </div>
                                 </div>
+
+                                <script>
+                                // Add function to clear all file uploads
+                                window.clearFileUploads = function() {
+                                  const fileUploads = document.querySelectorAll('.file-upload-container');
+                                  
+                                  fileUploads.forEach(container => {
+                                    const input = container.querySelector('.file-upload-input');
+                                    const previewContainer = container.querySelector('.file-preview-container');
+                                    const preview = container.querySelector('.file-preview');
+                                    const fileName = container.querySelector('.file-name');
+                                    const fileSize = container.querySelector('.file-size');
+                                    
+                                    // Clear file input
+                                    if (input) input.value = '';
+                                    
+                                    // Reset preview
+                                    if (preview) preview.style.backgroundImage = '';
+                                    
+                                    // Hide preview container
+                                    if (previewContainer) previewContainer.classList.remove('show');
+                                    
+                                    // Clear file info
+                                    if (fileName) fileName.textContent = '';
+                                    if (fileSize) fileSize.textContent = '';
+                                    
+                                    // Remove any validation classes
+                                    container.classList.remove('is-invalid');
+                                  });
+                                };
+
+                                // Connect the clearFileUploads function to the existing clear form functionality
+                                document.addEventListener('DOMContentLoaded', function() {
+                                  const clearFormBtn = document.querySelector('[data-clear-form]');
+                                  const clearTabBtns = document.querySelectorAll('.clear-tab-btn');
+                                  
+                                  if (clearFormBtn) {
+                                    const originalHandler = clearFormBtn.onclick;
+                                    clearFormBtn.onclick = function(e) {
+                                      // Call the original handler if it exists
+                                      if (originalHandler) originalHandler.call(this, e);
+                                      
+                                      // Clear file uploads
+                                      window.clearFileUploads();
+                                    };
+                                  }
+                                  
+                                  // Also handle "Clear Tab" for the description tab
+                                  clearTabBtns.forEach(btn => {
+                                    if (btn.getAttribute('data-tab-id') === 'description') {
+                                      const originalHandler = btn.onclick;
+                                      btn.onclick = function(e) {
+                                        // Call the original handler if it exists
+                                        if (originalHandler) originalHandler.call(this, e);
+                                        
+                                        // Clear file uploads
+                                        window.clearFileUploads();
+                                      };
+                                    }
+                                  });
+                                });
+                                </script>
                                 <div class="row">
                                     <div class="col-md-6">
                                         <label>Dimension (cm²)</label>
@@ -764,7 +826,7 @@ $accession_error = '';
                                                                 placeholder="e.g., 00001, 00002, etc." required>
                                                             <div class="mt-2">
                                                                 <small class="form-text text-muted">
-                                                                    <i class="fas fa-info-circle mr-1"></i> If you enter 2023-0001 and set 3 copies, it will create: 2023-0001, 2023-0002, 2023-0003
+                                                                    <i class="fas fa-info-circle mr-1"></i> If you enter 0001 and set 3 copies, it will create: 0001, 0002, 0003
                                                                 </small>
                                                             </div>
                                                         </div>
@@ -800,24 +862,35 @@ $accession_error = '';
                                 <div class="card mb-4">
                                     <div class="card-header">
                                         <h5 class="mb-0">Call Numbers</h5>
-                                        <small class="text-info">Note: The full formatted call number (including shelf location, call number, year, and copy number) will be saved to the database.</small>
-                                        <small class="text-danger d-block mt-1"><strong>Important:</strong> Follow proper call number formatting:</small>
-                                        <ul class="text-danger mb-0 small pl-4 mt-1">
-                                            <li>Enter classification number and author cutter with a single space between them (e.g., "HD69.B7 W56")</li>
-                                            <li>Avoid extra spaces at beginning or end of your call number</li>
-                                            <li>Trailing spaces will be automatically removed</li>
-                                            <li>The system adds proper spacing between components (shelf location, call number, year, volume, copy)</li>
-                                            <li>Example: "REF HD69.B7 W56 c2024 vol1 c1" (shelf location + classification + author cutter + year + vol + copy)</li>
-                                        </ul>
+                                        
+                                        <div class="alert alert-info py-2 mb-3 mt-3">
+                                            <i class="fas fa-info-circle mr-1"></i> 
+                                            <strong>How It Works:</strong> You only need to enter the classification number and author cutter. The system automatically adds shelf location, year, volume, part, and copy number to create the complete call number.
+                                        </div>
+                                        
+                                        <div class="alert alert-warning py-2">
+                                            <i class="fas fa-exclamation-triangle mr-1"></i>
+                                            <strong>Call Number Format Guidelines:</strong>
+                                            <ul class="mb-0 small pl-4 mt-2">
+                                                <li>Enter only the main classification and author cutter (e.g., "HD69.B7 W56")</li>
+                                                <li>Use a single space between classification and author cutter</li>
+                                                <li>Don't include the shelf location, year, volume, part or copy number - these are added automatically</li>
+                                                <li>Preview shows the complete formatted call number that will be saved</li>
+                                                <li><strong>Example:</strong> You enter "HD69.B7 W56" → System saves as "REF HD69.B7 W56 c2023 v.2 pt.3 c1"</li>
+                                            </ul>
+                                        </div>
                                     </div>
+                                    
                                     <div class="card-body">
-                                        <div id="callNumberContainer">
+                                        <div id="callNumberContainer" class="mb-4">
                                             <!-- Call numbers will be generated here by JavaScript -->
                                         </div>
-                                        <div class="mt-2">
+                                        
+                                        <div class="mt-3">
                                             <button type="button" id="generateCallNumbersBtn" class="btn btn-sm btn-outline-secondary">
-                                                <i class="fas fa-sync"></i> Reset Call Numbers
+                                                <i class="fas fa-sync mr-1"></i> Reset Call Numbers
                                             </button>
+                                            
                                             <div class="mt-2">
                                                 <small class="form-text text-muted">
                                                     <i class="fas fa-info-circle mr-1"></i> Click this button to regenerate call numbers if they don't appear automatically
@@ -901,11 +974,11 @@ $accession_error = '';
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="url">URL (if applicable)</label>
-                                    <input type="url" class="form-control" id="url" name="url" placeholder="https://example.com">
+                                    <label for="url">URL or Text (if applicable)</label>
+                                    <input type="text" class="form-control" id="url" name="url" placeholder="Enter URL or any text">
                                     <div class="mt-2">
                                         <small class="form-text text-muted">
-                                            <i class="fas fa-info-circle mr-1"></i> For digital resources, enter the web address where the resource can be accessed
+                                            <i class="fas fa-info-circle mr-1"></i> For digital resources, enter the web address or any descriptive text about resource access
                                         </small>
                                     </div>
                                 </div>
@@ -953,6 +1026,27 @@ $accession_error = '';
                                                     const publisherSelect = document.getElementById('publisher');
                                                     const publisherOptions = Array.from(publisherSelect.options);
                                                     
+                                                    // Function to restore all publisher options
+                                                    window.restorePublisherOptions = function() {
+                                                        // Clear all options except the first placeholder
+                                                        while (publisherSelect.options.length > 1) {
+                                                            publisherSelect.remove(1);
+                                                        }
+                                                        
+                                                        // Add all options back
+                                                        publisherOptions.forEach(option => {
+                                                            if (option.value !== '') {
+                                                                publisherSelect.add(option.cloneNode(true));
+                                                            }
+                                                        });
+                                                        
+                                                        // Reset the search input
+                                                        publisherSearch.value = '';
+                                                        
+                                                        // Reset selection to placeholder
+                                                        publisherSelect.selectedIndex = 0;
+                                                    };
+                                                    
                                                     publisherSearch.addEventListener('input', function() {
                                                         const searchText = this.value.toLowerCase();
                                                         
@@ -997,6 +1091,18 @@ $accession_error = '';
                                                             // Trigger change event to update any dependent UI
                                                             publisherSelect.dispatchEvent(new Event('change'));
                                                         }
+                                                    });
+                                                    
+                                                    // Hook into form clear functionality
+                                                    document.querySelector('[data-clear-form]')?.addEventListener('click', function() {
+                                                        // Restore publisher options after a small delay to ensure form reset is complete
+                                                        setTimeout(window.restorePublisherOptions, 100);
+                                                    });
+                                                    
+                                                    // Also hook into "Clear Tab" for publication tab
+                                                    document.querySelector('.clear-tab-btn[data-tab-id="publication"]')?.addEventListener('click', function() {
+                                                        // Restore publisher options after a small delay
+                                                        setTimeout(window.restorePublisherOptions, 100);
                                                     });
                                                 });
                                             </script>
@@ -1362,6 +1468,33 @@ $accession_error = '';
                                             });
                                         }
                                         
+                                        // Function to clear all author previews
+                                        function clearAuthorPreviews() {
+                                            // Clear all selections
+                                            ['authorSelect', 'coAuthorsSelect', 'editorsSelect'].forEach(selectId => {
+                                                const select = document.getElementById(selectId);
+                                                if (select) {
+                                                    // Deselect all options
+                                                    for(let i = 0; i < select.options.length; i++) {
+                                                        select.options[i].selected = false;
+                                                    }
+                                                }
+                                            });
+                                            
+                                            // Update all previews
+                                            updatePreviewRealtime('authorSelect', 'authorPreview');
+                                            updatePreviewRealtime('coAuthorsSelect', 'coAuthorsPreview');
+                                            updatePreviewRealtime('editorsSelect', 'editorsPreview');
+                                            
+                                            // Hide count badges
+                                            document.getElementById('authorCount').style.display = 'none';
+                                            document.getElementById('authorCount').textContent = '0';
+                                            document.getElementById('coAuthorCount').style.display = 'none';
+                                            document.getElementById('coAuthorCount').textContent = '0';
+                                            document.getElementById('editorCount').style.display = 'none';
+                                            document.getElementById('editorCount').textContent = '0';
+                                        }
+                                        
                                         // Initialize previews on page load
                                         document.addEventListener('DOMContentLoaded', function() {
                                             // Initialize count badges to be hidden if empty
@@ -1392,6 +1525,31 @@ $accession_error = '';
                                             setupFilterDropdown('authorSearch', 'authorSelect');
                                             setupFilterDropdown('coAuthorsSearch', 'coAuthorsSelect');
                                             setupFilterDropdown('editorsSearch', 'editorsSelect');
+                                            
+                                            // Hook into the "Clear Form" and "Clear Tab" functionality
+                                            const clearFormBtn = document.querySelector('[data-clear-form]');
+                                            const clearTabBtns = document.querySelectorAll('.clear-tab-btn');
+                                            
+                                            if (clearFormBtn) {
+                                                const originalClickHandler = clearFormBtn.onclick;
+                                                clearFormBtn.onclick = function(e) {
+                                                    if (originalClickHandler) originalClickHandler.call(this, e);
+                                                    // Clear author previews
+                                                    clearAuthorPreviews();
+                                                };
+                                            }
+                                            
+                                            // Add clear functionality for publication tab specifically
+                                            clearTabBtns.forEach(btn => {
+                                                if (btn.getAttribute('data-tab-id') === 'publication') {
+                                                    const originalClickHandler = btn.onclick;
+                                                    btn.onclick = function(e) {
+                                                        if (originalClickHandler) originalClickHandler.call(this, e);
+                                                        // Clear author previews
+                                                        clearAuthorPreviews();
+                                                    };
+                                                }
+                                            });
                                         });
                                         
                                         // Setup dropdown filtering function
@@ -1494,67 +1652,58 @@ $accession_error = '';
                 <!-- Add new tab for book entry methods -->
                 <ul class="nav nav-tabs mb-3" id="instructionMethodTabs" role="tablist">
                     <li class="nav-item">
-                        <a class="nav-link active" id="methods-tab" data-toggle="tab" href="#methods" role="tab" aria-controls="methods" aria-selected="true">Book Entry Methods</a>
+                        <a class="nav-link active" id="overview-tab" data-toggle="tab" href="#overview" role="tab" aria-controls="overview" aria-selected="true">Overview</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" id="navigation-tab" data-toggle="tab" href="#navigation" role="tab" aria-controls="navigation" aria-selected="false">Form Navigation</a>
+                        <a class="nav-link" id="formtabs-tab" data-toggle="tab" href="#formtabs" role="tab" aria-controls="formtabs" aria-selected="false">Form Tabs</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" id="accession-tab" data-toggle="tab" href="#accession" role="tab" aria-controls="accession" aria-selected="false">Accession & Call Numbers</a>
+                        <a class="nav-link" id="features-tab" data-toggle="tab" href="#features" role="tab" aria-controls="features" aria-selected="false">Special Features</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" id="author-tab" data-toggle="tab" href="#author" role="tab" aria-controls="author" aria-selected="false">Author & Publisher Information</a>
+                        <a class="nav-link" id="callnumber-tab" data-toggle="tab" href="#callnumber" role="tab" aria-controls="callnumber" aria-selected="false">Call Numbers</a>
                     </li>
                 </ul>
 
                 <div class="tab-content" id="instructionTabsContent">
-                    <!-- New Tab: Book Entry Methods -->
-                    <div class="tab-pane fade show active" id="methods" role="tabpanel" aria-labelledby="methods-tab">
+                    <!-- Overview Tab -->
+                    <div class="tab-pane fade show active" id="overview" role="tabpanel" aria-labelledby="overview-tab">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> The Add Book form is organized into six tabs to help you enter complete bibliographic data.
+                        </div>
+                        
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="card mb-3">
                                     <div class="card-header bg-primary text-white">
-                                        <h6 class="m-0 font-weight-bold">Advanced Form (Current)</h6>
+                                        <h6 class="m-0 font-weight-bold">Form Organization</h6>
                                     </div>
                                     <div class="card-body">
-                                        <p><strong>Purpose:</strong> Complete, detailed book cataloging with all possible metadata.</p>
-                                        <h6 class="font-weight-bold">Features:</h6>
-                                        <ul>
-                                            <li>Multiple tabs for organizing different types of information</li>
-                                            <li>Support for multiple accession numbers and copies</li>
-                                            <li>Full MARC21-compatible fields</li>
-                                            <li>Comprehensive subject categorization</li>
-                                            <li>Supports complex publication information</li>
-                                        </ul>
-                                        <p><strong>Who should use this:</strong></p>
-                                        <ul>
-                                            <li>Librarians with cataloging experience</li>
-                                            <li>When adding rare or special collection items</li>
-                                            <li>When full bibliographic details are required</li>
-                                        </ul>
+                                        <p><strong>The six main tabs:</strong></p>
+                                        <ol>
+                                            <li><strong>Title Proper</strong> - Basic title information</li>
+                                            <li><strong>Access Point</strong> - Subject categorization</li>
+                                            <li><strong>Abstract & Notes</strong> - Content summaries</li>
+                                            <li><strong>Description</strong> - Physical attributes & images</li>
+                                            <li><strong>Local Information</strong> - Accession & call numbers</li>
+                                            <li><strong>Publication</strong> - Publishing details & contributors</li>
+                                        </ol>
+                                        <p class="text-muted small"><i class="fas fa-lightbulb"></i> Tip: You can clear individual tabs using the "Clear Tab" button in each section.</p>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="card mb-3">
                                     <div class="card-header bg-success text-white">
-                                        <h6 class="m-0 font-weight-bold">Step-by-Step Form</h6>
+                                        <h6 class="m-0 font-weight-bold">Time-Saving Features</h6>
                                     </div>
                                     <div class="card-body">
-                                        <p><strong>Purpose:</strong> Simplified, guided book entry with contextual help.</p>
-                                        <h6 class="font-weight-bold">Features:</h6>
                                         <ul>
-                                            <li>One screen at a time with clear instructions</li>
-                                            <li>Required fields clearly marked</li>
-                                            <li>Help text for each field</li>
-                                            <li>Automatic data validation</li>
-                                            <li>Preview of entered information before submission</li>
-                                        </ul>
-                                        <p><strong>Who should use this:</strong></p>
-                                        <ul>
-                                            <li>New library staff members</li>
-                                            <li>When adding standard books with basic information</li>
-                                            <li>When training new catalogers</li>
+                                            <li><strong>Autosave</strong> - Your work is automatically saved</li>
+                                            <li><strong>Smart Call Numbers</strong> - Auto-formatted call numbers</li>
+                                            <li><strong>Drag & Drop</strong> - Easy image uploads for book covers</li>
+                                            <li><strong>Quick Add</strong> - Add new authors and publishers on the fly</li>
+                                            <li><strong>Preview</strong> - Visual preview of selected contributors</li>
                                         </ul>
                                         <div class="mt-3">
                                             <a href="step-by-step-add-book.php" class="btn btn-success btn-sm">
@@ -1567,51 +1716,270 @@ $accession_error = '';
                         </div>
                     </div>
 
-                    <!-- Existing Tabs -->
-                    <div class="tab-pane fade" id="navigation" role="tabpanel" aria-labelledby="navigation-tab">
-                        <!-- Existing navigation content -->
-                        <div class="card mb-3">
-                            <div class="card-header bg-light">
-                                <h6 class="m-0 font-weight-bold">Form Navigation</h6>
+                    <!-- Form Tabs Tab -->
+                    <div class="tab-pane fade" id="formtabs" role="tabpanel" aria-labelledby="formtabs-tab">
+                        <div class="accordion" id="tabsAccordion">
+                            <div class="card">
+                                <div class="card-header" id="titleProperHeading">
+                                    <h2 class="mb-0">
+                                        <button class="btn btn-link btn-block text-left" type="button" data-toggle="collapse" data-target="#titleProperContent" aria-expanded="true" aria-controls="titleProperContent">
+                                            <i class="fas fa-book"></i> Title Proper
+                                        </button>
+                                    </h2>
+                                </div>
+                                <div id="titleProperContent" class="collapse show" aria-labelledby="titleProperHeading" data-parent="#tabsAccordion">
+                                    <div class="card-body">
+                                        <p>Enter the book's primary title information:</p>
+                                        <ul>
+                                            <li><strong>Title Proper</strong> - The main title as it appears on the book</li>
+                                            <li><strong>Preferred Title</strong> - Alternative title (if applicable)</li>
+                                            <li><strong>Parallel Title</strong> - Title in another language</li>
+                                        </ul>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="card-body">
-                                <ul>
-                                    <li>This form is divided into multiple tabs for easier data entry.</li>
-                                    <li>Complete each tab before proceeding to the next.</li>
-                                    <li>Required fields are marked with an asterisk (*).</li>
-                                    <li>Use the tab navigation to move between sections.</li>
-                                </ul>
+                            
+                            <div class="card">
+                                <div class="card-header" id="accessPointHeading">
+                                    <h2 class="mb-0">
+                                        <button class="btn btn-link btn-block text-left collapsed" type="button" data-toggle="collapse" data-target="#accessPointContent" aria-expanded="false" aria-controls="accessPointContent">
+                                            <i class="fas fa-tag"></i> Access Point
+                                        </button>
+                                    </h2>
+                                </div>
+                                <div id="accessPointContent" class="collapse" aria-labelledby="accessPointHeading" data-parent="#tabsAccordion">
+                                    <div class="card-body">
+                                        <p>Categorize the book to make it easier to find:</p>
+                                        <ul>
+                                            <li><strong>Subject Category</strong> - Primary classification (Topical, Personal, etc.)</li>
+                                            <li><strong>Program</strong> - Relevant academic program</li>
+                                            <li><strong>Details</strong> - Additional subject terms and keywords</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="card-header" id="abstractsHeading">
+                                    <h2 class="mb-0">
+                                        <button class="btn btn-link btn-block text-left collapsed" type="button" data-toggle="collapse" data-target="#abstractsContent" aria-expanded="false" aria-controls="abstractsContent">
+                                            <i class="fas fa-file-alt"></i> Abstract & Notes
+                                        </button>
+                                    </h2>
+                                </div>
+                                <div id="abstractsContent" class="collapse" aria-labelledby="abstractsHeading" data-parent="#tabsAccordion">
+                                    <div class="card-body">
+                                        <p>Document the book's content and special notes:</p>
+                                        <ul>
+                                            <li><strong>Summary/Abstract</strong> - Brief overview of the book's content</li>
+                                            <li><strong>Notes/Contents</strong> - Additional information about the book</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="card-header" id="descriptionHeading">
+                                    <h2 class="mb-0">
+                                        <button class="btn btn-link btn-block text-left collapsed" type="button" data-toggle="collapse" data-target="#descriptionContent" aria-expanded="false" aria-controls="descriptionContent">
+                                            <i class="fas fa-info-circle"></i> Description
+                                        </button>
+                                    </h2>
+                                </div>
+                                <div id="descriptionContent" class="collapse" aria-labelledby="descriptionHeading" data-parent="#tabsAccordion">
+                                    <div class="card-body">
+                                        <p>Document physical characteristics of the book:</p>
+                                        <ul>
+                                            <li><strong>Cover Images</strong> - Upload front and back cover images (drag & drop supported)</li>
+                                            <li><strong>Dimension</strong> - Physical size of the book</li>
+                                            <li><strong>Pages</strong> - Prefix pages (Roman numerals) and main pages</li>
+                                            <li><strong>Supplementary Content</strong> - Additional materials included (index, illustrations, etc.)</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="card-header" id="localInfoHeading">
+                                    <h2 class="mb-0">
+                                        <button class="btn btn-link btn-block text-left collapsed" type="button" data-toggle="collapse" data-target="#localInfoContent" aria-expanded="false" aria-controls="localInfoContent">
+                                            <i class="fas fa-map-marker-alt"></i> Local Information
+                                        </button>
+                                    </h2>
+                                </div>
+                                <div id="localInfoContent" class="collapse" aria-labelledby="localInfoHeading" data-parent="#tabsAccordion">
+                                    <div class="card-body">
+                                        <p>Library-specific information:</p>
+                                        <ul>
+                                            <li><strong>Accession Numbers</strong> - Unique identifiers for each physical copy</li>
+                                            <li><strong>Call Numbers</strong> - Classification for shelf location</li>
+                                            <li><strong>Content/Media/Carrier Types</strong> - Format specifications</li>
+                                            <li><strong>Language</strong> - Primary language of the resource</li>
+                                            <li><strong>URL</strong> - For digital resources</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="card-header" id="publicationHeading">
+                                    <h2 class="mb-0">
+                                        <button class="btn btn-link btn-block text-left collapsed" type="button" data-toggle="collapse" data-target="#publicationContent" aria-expanded="false" aria-controls="publicationContent">
+                                            <i class="fas fa-print"></i> Publication
+                                        </button>
+                                    </h2>
+                                </div>
+                                <div id="publicationContent" class="collapse" aria-labelledby="publicationHeading" data-parent="#tabsAccordion">
+                                    <div class="card-body">
+                                        <p>Publishing details and contributors:</p>
+                                        <ul>
+                                            <li><strong>Publisher Information</strong> - Publisher name and location</li>
+                                            <li><strong>Publication Year</strong> - When the book was published</li>
+                                            <li><strong>ISBN/Series/Volume/Edition</strong> - Bibliographic identifiers</li>
+                                            <li><strong>Contributors</strong> - Authors, co-authors, and editors</li>
+                                            <li><strong>System Information</strong> - Entry tracking data</li>
+                                        </ul>
+                                        <p class="text-primary"><i class="fas fa-save"></i> The "Save Book" button is on this tab.</p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="tab-pane fade" id="accession" role="tabpanel" aria-labelledby="accession-tab">
-                        <div class="card mb-3">
-                            <div class="card-header bg-light">
-                                <h6 class="m-0 font-weight-bold">Accession and Call Numbers</h6>
+                    <!-- Special Features Tab -->
+                    <div class="tab-pane fade" id="features" role="tabpanel" aria-labelledby="features-tab">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card mb-3">
+                                    <div class="card-header bg-info text-white">
+                                        <h6 class="m-0 font-weight-bold">Enhanced Image Upload</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <p>The Description tab includes a modern drag & drop interface for uploading book covers:</p>
+                                        <ul>
+                                            <li>Drag images directly onto the upload area</li>
+                                            <li>Click to browse your files</li>
+                                            <li>Preview images before submission</li>
+                                            <li>Supports JPG, PNG, and GIF formats up to 5MB</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                
+                                <div class="card mb-3">
+                                    <div class="card-header bg-info text-white">
+                                        <h6 class="m-0 font-weight-bold">Contributors Selection</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <p>Easily manage authors and contributors in the Publication tab:</p>
+                                        <ul>
+                                            <li>Search for existing authors</li>
+                                            <li>Hold Ctrl/Cmd to select multiple contributors</li>
+                                            <li>Visual preview of selected contributors</li>
+                                            <li>Add new authors on the fly with the "New Author" button</li>
+                                        </ul>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="card-body">
-                                <ul>
-                                    <li><strong>Accession Number</strong>: Enter a unique identifier for each physical copy.</li>
-                                    <li><strong>Call Number</strong>: Format should follow library standards (e.g., "TR Z936.98 L39 c2023 c1").</li>
-                                    <li><strong>Multiple Copies</strong>: You can specify multiple copies, and the system will auto-increment accession numbers.</li>
-                                </ul>
+                            
+                            <div class="col-md-6">
+                                <div class="card mb-3">
+                                    <div class="card-header bg-info text-white">
+                                        <h6 class="m-0 font-weight-bold">Autosave Functionality</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <p>Your work is automatically saved as you type:</p>
+                                        <ul>
+                                            <li>No data loss if you navigate away accidentally</li>
+                                            <li>Resume work where you left off</li>
+                                            <li>Clear form button available if you want to start over</li>
+                                            <li>Individual tabs can be cleared with "Clear Tab" button</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                
+                                <div class="card mb-3">
+                                    <div class="card-header bg-info text-white">
+                                        <h6 class="m-0 font-weight-bold">Accession Groups</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <p>Efficiently add multiple copies or editions:</p>
+                                        <ul>
+                                            <li>Create separate accession groups for different editions/ISBNs</li>
+                                            <li>Specify multiple copies within each group</li>
+                                            <li>System auto-increments accession numbers</li>
+                                            <li>Each group can have unique details (ISBN, volume, edition)</li>
+                                        </ul>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="tab-pane fade" id="author" role="tabpanel" aria-labelledby="author-tab">
+                    <!-- Call Numbers Tab -->
+                    <div class="tab-pane fade" id="callnumber" role="tabpanel" aria-labelledby="callnumber-tab">
                         <div class="card mb-3">
                             <div class="card-header bg-light">
-                                <h6 class="m-0 font-weight-bold">Author, Publisher, and Subject Information</h6>
+                                <h6 class="m-0 font-weight-bold">Understanding Call Numbers</h6>
                             </div>
                             <div class="card-body">
-                                <ul>
-                                    <li>Select authors from the dropdown or add new authors if needed.</li>
-                                    <li>You can specify co-authors and editors separately.</li>
-                                    <li>Subject categories help with classification and searching.</li>
-                                    <li>Multiple subject entries can be added for more detailed cataloging.</li>
-                                </ul>
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i> Call numbers follow a specific format for proper shelf organization.
+                                </div>
+                                
+                                <h6><strong>Call Number Format:</strong></h6>
+                                <p>The system will automatically format your call number following this pattern:</p>
+                                <code>LOCATION CALLNUMBER cYEAR VOLUME PART c#</code>
+                                
+                                <div class="table-responsive mt-3">
+                                    <table class="table table-bordered table-sm">
+                                        <thead class="thead-light">
+                                            <tr>
+                                                <th>Component</th>
+                                                <th>Description</th>
+                                                <th>Example</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>LOCATION</td>
+                                                <td>Shelf location code</td>
+                                                <td>REF, CIR, TR, FIL</td>
+                                            </tr>
+                                            <tr>
+                                                <td>CALLNUMBER</td>
+                                                <td>Classification and author cutter</td>
+                                                <td>HD69.B7 W56</td>
+                                            </tr>
+                                            <tr>
+                                                <td>cYEAR</td>
+                                                <td>Publication year with 'c' prefix</td>
+                                                <td>c2023</td>
+                                            </tr>
+                                            <tr>
+                                                <td>VOLUME</td>
+                                                <td>Volume number (if applicable)</td>
+                                                <td>v.2</td>
+                                            </tr>
+                                            <tr>
+                                                <td>PART</td>
+                                                <td>Part number with 'pt.' prefix (if applicable)</td>
+                                                <td>pt.3</td>
+                                            </tr>
+                                            <tr>
+                                                <td>c#</td>
+                                                <td>Copy number with 'c' prefix</td>
+                                                <td>c3</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <h6 class="mt-3"><strong>Example:</strong></h6>
+                                <p><code>REF HD69.B7 W56 c2023 v.2 pt.3 c1</code></p>
+                                
+                                <div class="alert alert-warning mt-3">
+                                    <i class="fas fa-exclamation-triangle"></i> <strong>Important:</strong> Enter only the classification and author cutter in the call number field. The system will automatically add the location, year, volume, part, and copy number.
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -2130,6 +2498,34 @@ document.addEventListener('DOMContentLoaded', function() {
     const isbnContainer = document.getElementById('isbnContainer');
     if (isbnContainer) {
         isbnContainer.innerHTML = '';
+    }
+    
+    // NEW: Reset supplementary content selection and update its preview
+    const supplementarySelect = document.getElementById('supplementarySelect');
+    if (supplementarySelect) {
+        // Deselect all options
+        Array.from(supplementarySelect.options).forEach(option => {
+            option.selected = false;
+        });
+        
+        // Update the preview to reflect empty selection
+        if (typeof updateSupplementaryPreview === 'function') {
+            updateSupplementaryPreview();
+        } else {
+            // Fallback if function isn't available - manually clear the preview
+            const supplementaryPreview = document.getElementById('supplementaryPreview');
+            const supplementaryCount = document.getElementById('supplementaryCount');
+            if (supplementaryPreview) supplementaryPreview.innerHTML = '';
+            if (supplementaryCount) {
+                supplementaryCount.textContent = '0';
+                supplementaryCount.style.display = 'none';
+            }
+        }
+    }
+
+    // Also reset file uploads by clearing the preview containers
+    if (typeof clearFileUploads === 'function') {
+        clearFileUploads();
     }
 
     // Activate the first tab
@@ -2684,10 +3080,10 @@ document.addEventListener("DOMContentLoaded", function() {
                     <div class="form-group">
                         <label>Accession Group ${copyNumber}</label>
                         <input type="text" class="form-control accession-input" name="accession[]"
-                            placeholder="e.g., 2023-0001" required>
+                            placeholder="e.g., 0001" required>
                         <div class="mt-2">
                             <small class="form-text text-muted">
-                                <i class="fas fa-info-circle mr-1"></i> If you enter 2023-0001 and set 3 copies, it will create: 2023-0001, 2023-0002, 2023-0003
+                                <i class="fas fa-info-circle mr-1"></i> If you enter 0001 and set 3 copies, it will create: 0001, 0002, 0003
                             </small>
                         </div>
                     </div>
@@ -3239,7 +3635,7 @@ function updateISBNFields() {
 function calculateAccession(baseAccession, increment) {
     if (!baseAccession) return '(undefined)';
 
-    // Handle formats like "2023-0001" or "2023-001" or just "0001"
+    // Handle formats like "0001" or "001"
     const match = baseAccession.match(/^(.*?)(\d+)$/);
     if (!match) return baseAccession;
 
@@ -3271,7 +3667,7 @@ function addAccessionGroup() {
                         placeholder="e.g., 00001, 00002, etc." required>
                     <div class="mt-2">
                         <small class="form-text text-muted">
-                            <i class="fas fa-info-circle mr-1"></i> If you enter 2023-0001 and set 3 copies, it will create: 2023-0001, 2023-0002, 2023-0003
+                            <i class="fas fa-info-circle mr-1"></i> If you enter 0001 and set 3 copies, it will create: 0001, 0002, 0003
                         </small>
                     </div>
                 </div>
