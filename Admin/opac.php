@@ -702,30 +702,46 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                             </div>
                             <div class="card-body">
                                 <?php if (!empty($book['subject_category']) || !empty($book['subject_specification']) || !empty($book['subject_detail']) || !empty($book['program'])): ?>
-                                    <div class="row">
-                                        <?php if (!empty($book['subject_category'])): ?>
-                                            <div class="col-md-2 mb-3">
-                                                <h6 class="text-dark">Subject Categories</h6>
-                                                <ul class="list-group list-group-flush">
-                                                    <?php foreach (explode(';', $book['subject_category']) as $category): ?>
-                                                        <li class="list-group-item bg-light"><?php echo htmlspecialchars(trim($category)); ?></li>
-                                                    <?php endforeach; ?>
-                                                </ul>
+                                    <div class="mb-4">
+                                        <!-- Subject Categories and Dedicated Program in the same row -->
+                                        <div class="row mb-3">
+                                            <!-- Subject Categories Column -->
+                                            <div class="col-md-6 mb-3 mb-md-0">
+                                                <?php if (!empty($book['subject_category'])): ?>
+                                                    <h6 class="text-dark mb-2">Subject Categories</h6>
+                                                    <ul class="list-group">
+                                                        <?php foreach (explode(';', $book['subject_category']) as $category): ?>
+                                                            <li class="list-group-item bg-light"><?php echo htmlspecialchars(trim($category)); ?></li>
+                                                        <?php endforeach; ?>
+                                                    </ul>
+                                                <?php else: ?>
+                                                    <h6 class="text-dark mb-2">Subject Categories</h6>
+                                                    <ul class="list-group">
+                                                        <li class="list-group-item bg-light text-muted">No subject categories available</li>
+                                                    </ul>
+                                                <?php endif; ?>
                                             </div>
-                                        <?php endif; ?>
-                                        
-                                        <?php if (!empty($book['program'])): ?>
-                                            <div class="col-md-2 mb-3">
-                                                <h6 class="text-dark">Dedicated Program</h6>
-                                                <ul class="list-group list-group-flush">
-                                                    <li class="list-group-item bg-light"><?php echo htmlspecialchars($book['program']); ?></li>
-                                                </ul>
+                                            
+                                            <!-- Dedicated Program Column -->
+                                            <div class="col-md-6">
+                                                <?php if (!empty($book['program'])): ?>
+                                                    <h6 class="text-dark mb-2">Dedicated Program</h6>
+                                                    <ul class="list-group">
+                                                        <li class="list-group-item bg-light"><?php echo htmlspecialchars($book['program']); ?></li>
+                                                    </ul>
+                                                <?php else: ?>
+                                                    <h6 class="text-dark mb-2">Dedicated Program</h6>
+                                                    <ul class="list-group">
+                                                        <li class="list-group-item bg-light text-muted">No program specified</li>
+                                                    </ul>
+                                                <?php endif; ?>
                                             </div>
-                                        <?php endif; ?>
+                                        </div>
 
-                                        <div class="col-md-8 mb-3">
-                                            <h6 class="text-dark">Subject Details</h6>
-                                            <ul class="list-group list-group-flush">
+                                        <!-- Subject Details Section -->
+                                        <h6 class="text-dark mb-2">Subject Details</h6>
+                                        <div>
+                                            <ul class="list-group">
                                                 <?php if (!empty($book['subject_specification'])): ?>
                                                     <?php foreach (explode(';', $book['subject_specification']) as $spec): ?>
                                                         <li class="list-group-item bg-light"><strong>Specific:</strong> <?php echo htmlspecialchars(trim($spec)); ?></li>
@@ -736,6 +752,10 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                                                     <?php foreach (explode(';', $book['subject_detail']) as $detail): ?>
                                                         <li class="list-group-item bg-light"><?php echo htmlspecialchars(trim($detail)); ?></li>
                                                     <?php endforeach; ?>
+                                                <?php endif; ?>
+                                                
+                                                <?php if (empty($book['subject_specification']) && empty($book['subject_detail'])): ?>
+                                                    <li class="list-group-item bg-light text-muted">No detailed subject information available</li>
                                                 <?php endif; ?>
                                             </ul>
                                         </div>
