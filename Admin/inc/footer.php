@@ -59,13 +59,15 @@ body {
     bottom: 1rem;
     width: 2.75rem;
     height: 2.75rem;
-    text-align: center;
     color: white;
     background: rgba(90, 92, 105, 0.5);
-    line-height: 2.75rem;
-    z-index: 1050; /* Higher z-index to ensure it appears above cards */
+    z-index: 1055; /* Increased z-index */
     border-radius: 0.35rem !important;
     transition: background-color 0.3s ease;
+    /* Added Flexbox for centering */
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .scroll-to-top:hover {
