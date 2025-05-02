@@ -26,7 +26,7 @@ try {
 function calculateAccession($baseAccession, $increment) {
     if (!$baseAccession) return '';
 
-    // Handle formats like "2023-0001" or "2023-001" or just "0001"
+    // Handle formats like "0001"
     $match = preg_match('/^(.*?)(\d+)$/', $baseAccession, $matches);
     if (!$match) return $baseAccession;
     
@@ -520,6 +520,64 @@ $accession_error = '';
 .file-upload-container.is-invalid .invalid-feedback {
   display: block;
 }
+
+/* Live validation indicators styles */
+.validation-indicator {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #e74a3b;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.validation-indicator.show {
+  opacity: 1;
+}
+
+.form-control.live-validate:invalid,
+.form-control.live-validate.is-invalid {
+  border-color: #e74a3b;
+  padding-right: 30px;
+  background-image: none;
+}
+
+.form-control.live-validate:valid,
+.form-control.live-validate.is-valid {
+  border-color: #1cc88a;
+  padding-right: 30px;
+  background-image: none;
+}
+
+.form-group {
+  position: relative;
+}
+
+.validation-message {
+  display: none;
+  font-size: 80%;
+  color: #e74a3b;
+  margin-top: 0.25rem;
+}
+
+.form-control.is-invalid + .validation-message {
+  display: block;
+}
+
+.validation-check {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #1cc88a;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.validation-check.show {
+  opacity: 1;
+}
 </style>
 
 <!-- Main Content -->
@@ -966,9 +1024,9 @@ $accession_error = '';
                                                         <div class="form-group">
                                                             <label>Accession Group 1</label>
                                                             <input type="text" class="form-control accession-input" name="accession[]"
-                                                                placeholder="e.g., 2023-0001 (will auto-increment based on copies)" required>
+                                                                placeholder="e.g., 0001 (will auto-increment based on copies)" required>
                                                                 <small class="form-text text-muted">
-                                                                    <i class="fas fa-info-circle mr-1"></i> If you enter 2023-0001 and set 3 copies, it will create: 2023-0001, 2023-0002, 2023-0003
+                                                                    <i class="fas fa-info-circle mr-1"></i> If you enter 0001 and set 3 copies, it will create: 0001, 0002, 0003
                                                                 </small>
                                                             <?php if ($accession_error): ?>
                                                                 <small class="text-danger"><?php echo $accession_error; ?></small>
@@ -1522,7 +1580,7 @@ function updateISBNFields() {
 function calculateAccession(baseAccession, increment) {
     if (!baseAccession) return '(undefined)';
 
-    // Handle formats like "2023-0001" or "2023-001" or just "0001"
+    // Handle formats like "0001"
     const match = baseAccession.match(/^(.*?)(\d+)$/);
     if (!match) return baseAccession;
 
@@ -1556,9 +1614,9 @@ document.addEventListener('click', function(e) {
                     <div class="form-group">
                         <label>Accession Group ${groupCount}</label>
                         <input type="text" class="form-control accession-input" name="accession[]"
-                            placeholder="e.g., 2023-0001" required>
+                            placeholder="e.g., 0001" required>
                             <small class="form-text text-muted">
-                                <i class="fas fa-info-circle mr-1"></i> If you enter 2023-0001 and set 3 copies, it will create: 2023-0001, 2023-0002, 2023-0003
+                                <i class="fas fa-info-circle mr-1"></i> If you enter 0001 and set 3 copies, it will create: 0001, 0002, 0003
                             </small>
                     </div>
                 </div>
@@ -1919,4 +1977,396 @@ function formatFileSize(bytes) {
 document.addEventListener('DOMContentLoaded', function() {
   initializeFileUploads();
 });
+
+/**
+ * Live validation indicators for required fields
+ */
+document.addEventListener('DOMContentLoaded', function() {
+  // Find all required inputs and add validation classes and indicators
+  const requiredInputs = document.querySelectorAll('input[required], textarea[required], select[required]');
+  
+  // Add explicit validation for specific fields: title, publisher, publish_year
+  const specificFields = ['title', 'publisher', 'publish_year'];
+  specificFields.forEach(fieldId => {
+    const field = document.getElementById(fieldId);
+    if (field && !field.hasAttribute('required')) {
+      field.classList.add('live-validate');
+      setupFieldValidation(field);
+    }
+  });
+  
+  requiredInputs.forEach(input => {
+    // Add live validation class
+    input.classList.add('live-validate');
+    setupFieldValidation(input);
+  });
+  
+  // Function to set up validation for a field
+  function setupFieldValidation(input) {
+    // Create validation indicator (exclamation mark)
+    const validationIndicator = document.createElement('i');
+    validationIndicator.className = 'fas fa-exclamation-circle validation-indicator';
+    validationIndicator.setAttribute('aria-hidden', 'true');
+    
+    // Create validation check mark (for valid inputs)
+    const validationCheck = document.createElement('i');
+    validationCheck.className = 'fas fa-check-circle validation-check';
+    validationCheck.setAttribute('aria-hidden', 'true');
+    
+    // Create validation message
+    const validationMessage = document.createElement('div');
+    validationMessage.className = 'validation-message';
+    validationMessage.textContent = 'This field is required';
+    
+    // Add indicators and message to parent container
+    const parentElement = input.closest('.form-group');
+    if (parentElement) {
+      parentElement.style.position = 'relative';
+      parentElement.appendChild(validationIndicator);
+      parentElement.appendChild(validationCheck);
+      parentElement.appendChild(validationMessage);
+    }
+    
+    // Function to validate this input
+    function validateInput() {
+      const isValid = input.value.trim() !== '';
+      if (isValid) {
+        input.classList.remove('is-invalid');
+        input.classList.add('is-valid');
+        validationIndicator.classList.remove('show');
+        validationCheck.classList.add('show');
+      } else {
+        input.classList.remove('is-valid');
+        input.classList.add('is-invalid');
+        validationIndicator.classList.add('show');
+        validationCheck.classList.remove('show');
+      }
+    }
+    
+    // Validate on input
+    input.addEventListener('input', validateInput);
+    
+    // Validate on blur (when user leaves the field)
+    input.addEventListener('blur', validateInput);
+    
+    // Initial validation for pre-filled fields
+    if (input.value.trim() !== '') {
+      input.classList.add('is-valid');
+      validationCheck.classList.add('show');
+    } else if (isKeyField(input)) {
+      // For important fields like title, publisher, etc., show validation state even initially
+      input.classList.add('is-invalid');
+      validationIndicator.classList.add('show');
+    }
+  }
+  
+  // Helper function to check if a field is one of our key monitored fields
+  function isKeyField(input) {
+    const keyFields = ['title', 'publisher', 'publish_year'];
+    return keyFields.includes(input.id);
+  }
+  
+  // Special handling for accession inputs
+  const accessionInputs = document.querySelectorAll('.accession-input');
+  accessionInputs.forEach(input => {
+    // Use MutationObserver to watch for dynamically added accession fields
+    if (input.closest('.accession-group')) {
+      // Initial validation
+      validateAccessionInput(input);
+      
+      // Set up event listeners
+      input.addEventListener('input', function() {
+        validateAccessionInput(this);
+      });
+      
+      input.addEventListener('blur', function() {
+        validateAccessionInput(this);
+      });
+    }
+  });
+  
+  // Function to validate accession input (specialized for accession groups)
+  function validateAccessionInput(input) {
+    const isValid = input.value.trim() !== '';
+    const parentGroup = input.closest('.accession-group');
+    
+    if (parentGroup) {
+      if (isValid) {
+        parentGroup.classList.remove('is-invalid');
+        parentGroup.classList.add('is-valid');
+        input.classList.remove('is-invalid');
+        input.classList.add('is-valid');
+      } else {
+        parentGroup.classList.remove('is-valid');
+        parentGroup.classList.add('is-invalid');
+        input.classList.remove('is-valid');
+        input.classList.add('is-invalid');
+      }
+      
+      // Find or create indicators
+      let indicator = parentGroup.querySelector('.validation-indicator');
+      let check = parentGroup.querySelector('.validation-check');
+      
+      if (!indicator) {
+        indicator = document.createElement('i');
+        indicator.className = 'fas fa-exclamation-circle validation-indicator';
+        input.parentNode.appendChild(indicator);
+      }
+      
+      if (!check) {
+        check = document.createElement('i');
+        check.className = 'fas fa-check-circle validation-check';
+        input.parentNode.appendChild(check);
+      }
+      
+      // Show/hide indicators
+      if (isValid) {
+        indicator.classList.remove('show');
+        check.classList.add('show');
+      } else {
+        indicator.classList.add('show');
+        check.classList.remove('show');
+      }
+    }
+  }
+  
+  // Set up observer for dynamically added elements
+  const accessionContainer = document.getElementById('accessionContainer');
+  if (accessionContainer) {
+    // ...existing code...
+  }
+  
+  // Add validation to the main title field
+  const titleInput = document.getElementById('title');
+  if (titleInput) {
+    // Special styling for the title field
+    const titleForm = titleInput.closest('.form-group');
+    if (titleForm) {
+      titleForm.style.position = 'relative';
+    }
+    
+    function validateTitleField() {
+      const isValid = titleInput.value.trim() !== '';
+      if (isValid) {
+        titleInput.classList.remove('is-invalid');
+        titleInput.classList.add('is-valid');
+      } else {
+        titleInput.classList.remove('is-valid');
+        titleInput.classList.add('is-invalid');
+      }
+      
+      // Find or create indicators
+      let parentElement = titleInput.closest('.form-group');
+      let indicator = parentElement.querySelector('.validation-indicator');
+      let check = parentElement.querySelector('.validation-check');
+      
+      if (!indicator) {
+        indicator = document.createElement('i');
+        indicator.className = 'fas fa-exclamation-circle validation-indicator';
+        parentElement.appendChild(indicator);
+      }
+      
+      if (!check) {
+        check = document.createElement('i');
+        check.className = 'fas fa-check-circle validation-check';
+        parentElement.appendChild(check);
+      }
+      
+      // Show/hide indicators
+      if (isValid) {
+        indicator.classList.remove('show');
+        check.classList.add('show');
+      } else {
+        indicator.classList.add('show');
+        check.classList.remove('show');
+      }
+    }
+    
+    // Initial validation
+    validateTitleField();
+    
+    // Set up listeners
+    titleInput.addEventListener('input', validateTitleField);
+    titleInput.addEventListener('blur', validateTitleField);
+  }
+  
+  // Add validation to the publisher field
+  const publisherField = document.getElementById('publisher');
+  if (publisherField) {
+    // Special styling for the publisher field
+    const publisherForm = publisherField.closest('.form-group');
+    if (publisherForm) {
+      publisherForm.style.position = 'relative';
+    }
+    
+    function validatePublisherField() {
+      const isValid = publisherField.value.trim() !== '';
+      if (isValid) {
+        publisherField.classList.remove('is-invalid');
+        publisherField.classList.add('is-valid');
+      } else {
+        publisherField.classList.remove('is-valid');
+        publisherField.classList.add('is-invalid');
+      }
+      
+      // Find or create indicators
+      let parentElement = publisherField.closest('.form-group');
+      let indicator = parentElement.querySelector('.validation-indicator');
+      let check = parentElement.querySelector('.validation-check');
+      
+      if (!indicator) {
+        indicator = document.createElement('i');
+        indicator.className = 'fas fa-exclamation-circle validation-indicator';
+        parentElement.appendChild(indicator);
+      }
+      
+      if (!check) {
+        check = document.createElement('i');
+        check.className = 'fas fa-check-circle validation-check';
+        parentElement.appendChild(check);
+      }
+      
+      // Show/hide indicators
+      if (isValid) {
+        indicator.classList.remove('show');
+        check.classList.add('show');
+      } else {
+        indicator.classList.add('show');
+        check.classList.remove('show');
+      }
+    }
+    
+    // Initial validation
+    validatePublisherField();
+    
+    // Set up listeners
+    publisherField.addEventListener('input', validatePublisherField);
+    publisherField.addEventListener('blur', validatePublisherField);
+    publisherField.addEventListener('change', validatePublisherField);
+  }
+  
+  // Add validation to the publication year field
+  const publishYearField = document.getElementById('publish_year');
+  if (publishYearField) {
+    // Special styling for the publication year field
+    const publishYearForm = publishYearField.closest('.form-group');
+    if (publishYearForm) {
+      publishYearForm.style.position = 'relative';
+    }
+    
+    function validatePublishYearField() {
+      const isValid = publishYearField.value.trim() !== '';
+      const yearValue = parseInt(publishYearField.value);
+      const currentYear = new Date().getFullYear();
+      const isValidYear = isValid && !isNaN(yearValue) && yearValue > 0 && yearValue <= currentYear + 1;
+      
+      if (isValidYear) {
+        publishYearField.classList.remove('is-invalid');
+        publishYearField.classList.add('is-valid');
+      } else {
+        publishYearField.classList.remove('is-valid');
+        publishYearField.classList.add('is-invalid');
+      }
+      
+      // Find or create indicators
+      let parentElement = publishYearField.closest('.form-group');
+      let indicator = parentElement.querySelector('.validation-indicator');
+      let check = parentElement.querySelector('.validation-check');
+      
+      if (!indicator) {
+        indicator = document.createElement('i');
+        indicator.className = 'fas fa-exclamation-circle validation-indicator';
+        parentElement.appendChild(indicator);
+      }
+      
+      if (!check) {
+        check = document.createElement('i');
+        check.className = 'fas fa-check-circle validation-check';
+        parentElement.appendChild(check);
+      }
+      
+      // Show/hide indicators
+      if (isValidYear) {
+        indicator.classList.remove('show');
+        check.classList.add('show');
+      } else {
+        indicator.classList.add('show');
+        check.classList.remove('show');
+      }
+      
+      // Update validation message
+      const validationMessage = parentElement.querySelector('.validation-message');
+      if (validationMessage) {
+        if (!isValid) {
+          validationMessage.textContent = 'Publication year is required';
+        } else if (!isValidYear) {
+          validationMessage.textContent = 'Please enter a valid year (not in the future)';
+        }
+      }
+    }
+    
+    // Initial validation
+    validatePublishYearField();
+    
+    // Set up listeners
+    publishYearField.addEventListener('input', validatePublishYearField);
+    publishYearField.addEventListener('blur', validatePublishYearField);
+    publishYearField.addEventListener('change', validatePublishYearField);
+  }
+});
+
+// ...existing code...
+
+// Add validation check to the form submission
+document.getElementById('bookForm').addEventListener('submit', function(e) {
+  // Check the key fields for validation
+  const keyFields = ['title', 'publisher', 'publish_year'];
+  let hasErrors = false;
+  
+  keyFields.forEach(fieldId => {
+    const field = document.getElementById(fieldId);
+    if (field) {
+      if (!field.value.trim()) {
+        field.classList.add('is-invalid');
+        
+        // Show the validation indicator
+        const parentElement = field.closest('.form-group');
+        if (parentElement) {
+          const indicator = parentElement.querySelector('.validation-indicator');
+          if (indicator) {
+            indicator.classList.add('show');
+          }
+        }
+        
+        hasErrors = true;
+      }
+    }
+  });
+  
+  // Also check accession inputs
+  document.querySelectorAll('.accession-input').forEach(input => {
+    if (!input.value.trim()) {
+      input.classList.add('is-invalid');
+      hasErrors = true;
+      
+      // Show the validation indicator
+      const parentGroup = input.closest('.accession-group');
+      if (parentGroup) {
+        const indicator = parentGroup.querySelector('.validation-indicator');
+        if (indicator) {
+          indicator.classList.add('show');
+        }
+      }
+    }
+  });
+  
+  if (hasErrors) {
+    e.preventDefault();
+    alert('Please fill in all required fields (Title, Publisher, Publication Year, and Accession) before submitting.');
+    return false;
+  }
+  
+  return true;
+});
+
 </script>
