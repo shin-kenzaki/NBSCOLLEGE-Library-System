@@ -3514,9 +3514,9 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     });
 
-    // Add event listeners for publication year, volume, and copy number changes
+    // Add event listeners for volume and copy number changes
     document.addEventListener('change', function(e) {
-        if (e.target && (e.target.id === 'publish_date' || e.target.name === 'volume[]' || e.target.classList.contains('copy-number-input'))) {
+        if (e.target && (e.target.name === 'volume[]' || e.target.classList.contains('copy-number-input'))) {
             // Update all call number displays when these fields change
             document.querySelectorAll('.call-number-input').forEach(input => {
                 formatCallNumberDisplay(input);
@@ -4274,9 +4274,6 @@ function formatCallNumberDisplay(callNumberInput) {
     // Get copy number
     const copyNumber = copyNumberInput.value;
 
-    // Get publication year from the form
-    const publishYear = document.getElementById('publish_date')?.value || '';
-
     // Get volume if available - find the volume input for this accession group
     let volume = '';
     let part = ''; // Add part variable
@@ -4305,8 +4302,9 @@ function formatCallNumberDisplay(callNumberInput) {
     // Add base call number as-is without splitting/trimming to preserve spaces
     formattedCallNumber.push(baseCallNumber);
 
-    // Add 'c' before year to indicate copyright
-    if (publishYear) formattedCallNumber.push('c' + publishYear);
+    // REMOVED: Copyright year is no longer included in call number format
+    // Requested By Ms.Vel Villanueva
+    // if (publishYear) formattedCallNumber.push('c' + publishYear);
     if (volume) formattedCallNumber.push(volume);
     if (part) formattedCallNumber.push(part); // Add part to call number if present
     formattedCallNumber.push('c.' + copyNumber);
