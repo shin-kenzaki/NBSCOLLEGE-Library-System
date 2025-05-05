@@ -409,17 +409,17 @@ if (isset($_POST['submit'])) {
                                     subject_category = CASE
                                         WHEN subject_category IS NULL OR subject_category = ''
                                         THEN '$category'
-                                        ELSE CONCAT(subject_category, '; ', '$category')
+                                        ELSE CONCAT(subject_category, ': ', '$category')
                                     END,
                                     program = CASE
                                         WHEN program IS NULL OR program = ''
                                         THEN '$program'
-                                        ELSE CONCAT(program, '; ', '$program')
+                                        ELSE CONCAT(program, ': ', '$program')
                                     END,
                                     subject_detail = CASE
                                         WHEN subject_detail IS NULL OR subject_detail = ''
                                         THEN '$detail'
-                                        ELSE CONCAT(subject_detail, '; ', '$detail')
+                                        ELSE CONCAT(subject_detail, ': ', '$detail')
                                     END,
                                     updated_by = '$entered_by',
                                     last_update = NOW()

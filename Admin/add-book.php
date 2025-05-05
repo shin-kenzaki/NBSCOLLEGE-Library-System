@@ -1222,7 +1222,7 @@ $accession_error = '';
                                             <select class="form-control" id="publisher" name="publisher" required>
                                                 <option value="">Select Publisher</option>
                                                 <?php foreach ($publishers as $publisher): ?>
-                                                    <option value="<?php echo $publisher['publisher']; ?>" data-place="<?php echo $publisher['place']; ?>"><?php echo $publisher['place']; ?> ; <?php echo $publisher['publisher'] ?? 'Unknown'; ?></option>
+                                                    <option value="<?php echo $publisher['publisher']; ?>" data-place="<?php echo $publisher['place']; ?>"><?php echo $publisher['place']; ?> : <?php echo $publisher['publisher'] ?? 'Unknown'; ?></option>
                                                 <?php endforeach; ?>
                                             </select>
                                             <small class="form-text text-muted mt-1">
