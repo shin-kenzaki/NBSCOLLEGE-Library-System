@@ -649,7 +649,7 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                                             <?php
                                             if (!empty($publications)) {
                                                 $pub = $publications[0];
-                                                echo htmlspecialchars($pub['place'] . '; ' . $pub['publisher'] . ', ' . $pub['publish_date']);
+                                                echo htmlspecialchars($pub['place'] . ': ' . $pub['publisher'] . ', ' . $pub['publish_date']);
                                             } else {
                                                 echo 'Information not available';
                                             }
