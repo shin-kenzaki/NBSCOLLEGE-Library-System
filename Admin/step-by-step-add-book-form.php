@@ -149,11 +149,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                 // Format the call number - include volume information if present
                 if (!empty($current_volume)) {
-                    // With volume, format: [shelf_location] [call_number] c[publish_year] vol[volume_number] c[copy_number]
-                    $publish_year = $_SESSION['book_shortcut']['publish_year'] ?? date('Y');
-
+                    // With volume, format: [shelf_location] [call_number] vol[volume_number] c[copy_number]
                     // Build formatted call number with parts
-                    $formatted_call_number = $current_shelf_location . ' ' . $current_call_number . ' c' . $publish_year . ' vol.' . $current_volume;
+                    $formatted_call_number = $current_shelf_location . ' ' . $current_call_number . ' vol.' . $current_volume;
 
                     // Add part if present
                     if (!empty($current_part)) {
@@ -164,7 +162,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $formatted_call_number .= ' c.' . $current_copy_number;
                 } else {
                     // Without volume, use standard format: [shelf_location] [call_number] c[copy_number]
-                    $formatted_call_number = $current_shelf_location . ' ' . $current_call_number . ' c' . $current_copy_number;
+                    $formatted_call_number = $current_shelf_location . ' ' . $current_call_number . ' c.' . $current_copy_number;
                 }
 
                 // Check for duplicate accession
@@ -1815,7 +1813,6 @@ document.addEventListener('change', function(e) {
 // Function to format call number for each copy
 function formatCallNumber() {
     const rawCallNumber = document.querySelector('input[name="raw_call_number"]').value.trim();
-    const publishYear = document.querySelector('input[name="publish_date"]').value;
     const copies = document.querySelectorAll('.book-copy');
 
     copies.forEach((copy, index) => {
@@ -1824,12 +1821,11 @@ function formatCallNumber() {
         const copyNumber = copyNumberInput ? copyNumberInput.value : (index + 1);
         const shelfLocation = copy.querySelector('select[name="shelf_location[]"]').value;
 
-        // Ensure proper spacing between components
+        // Ensure proper spacing between components (removed publish year)
         const formattedCallNumber = [
             shelfLocation,
             rawCallNumber,
-            publishYear ? 'c' + publishYear : '',
-            `c${copyNumber}`
+            `c.${copyNumber}`
         ].filter(Boolean).join(' ');
 
         // Update hidden input
@@ -1866,13 +1862,11 @@ function formatCallNumberDisplay(callNumberInput) {
     // Use user's copy number value rather than auto-generated
     const copyNumber = copyNumberInput.value || '1';
     const shelfLocation = shelfLocationSelect.value;
-    const publishYear = document.getElementById('publish_date')?.value || '';
 
-    // Build formatted call number with proper spacing
+    // Build formatted call number with proper spacing (removed publish year)
     const formattedCallNumber = [
         shelfLocation,
-        baseCallNumber,
-        publishYear ? 'c' + publishYear : ''
+        baseCallNumber
     ].filter(Boolean).join(' ');
 
     // Get the volume and part if available
@@ -1892,7 +1886,7 @@ function formatCallNumberDisplay(callNumberInput) {
         }
     }
 
-    // Build the final call number with all components
+    // Build the final call number with all components (removed publish year)
     const finalCallNumber = [
         formattedCallNumber,
         volumeText,

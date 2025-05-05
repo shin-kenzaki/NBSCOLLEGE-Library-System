@@ -211,6 +211,22 @@ if (isset($_POST['submit'])) {
                         $formatted_call_number .= ' c.' . $copy_number;
                     }
 
+                    // If volume exists, insert it before copy number
+                    if (!empty($volume)) {
+                        $parts = explode(' c.', $formatted_call_number);
+                        $formatted_call_number = $parts[0] . ' vol.' . $volume;
+                        
+                        // Add part if present
+                        if (!empty($part)) {
+                            $formatted_call_number .= ' pt.' . $part;
+                        }
+                        
+                        // Add back the copy number
+                        if (isset($parts[1])) {
+                            $formatted_call_number .= ' c.' . $parts[1];
+                        }
+                    }
+
                     // Insert into books table with the properly formatted call number
                     $insert_book_query = "INSERT INTO books (
                         accession, title, preferred_title, parallel_title, 
