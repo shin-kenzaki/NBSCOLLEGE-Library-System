@@ -47,7 +47,7 @@ if (isset($_POST['ajax_select_writers'])) {
                 $role = isset($writer_roles[$writer_id]) ? $writer_roles[$writer_id] : 'Author';
                 $_SESSION['book_shortcut']['selected_writers'][] = [
                     'id' => $writer_id,
-                    'role' => $role
+                    'role' => $role  // This correctly captures any role selected, including Illustrator and Translator
                 ];
                 
                 // Fetch writer name for the message
@@ -211,7 +211,7 @@ if (isset($_POST['select_writers'])) {
             $role = isset($writer_roles[$writer_id]) ? $writer_roles[$writer_id] : 'Author';
             $_SESSION['book_shortcut']['selected_writers'][] = [
                 'id' => $writer_id,
-                'role' => $role
+                'role' => $role  // This correctly captures any role selected, including Illustrator and Translator
             ];
             
             // Fetch writer name for the message
@@ -324,6 +324,8 @@ include 'inc/header.php';
                                                     <option value='Author'>Author</option>
                                                     <option value='Co-Author'>Co-Author</option>
                                                     <option value='Editor'>Editor</option>
+                                                    <option value='Illustrator'>Illustrator</option>
+                                                    <option value='Translator'>Translator</option>
                                                 </select>
                                             </td>
                                         </tr>";
