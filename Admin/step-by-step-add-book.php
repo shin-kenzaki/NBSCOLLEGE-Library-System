@@ -12,71 +12,83 @@ if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Lib
 $show_success_message = false;
 if (isset($_SESSION['book_shortcut_success']) && $_SESSION['book_shortcut_success']) {
     $show_success_message = true;
-    $success_alert_message = $_SESSION['success_message'] ?? 'Book added successfully!'; // Use the message from the form if set
-    // Clear the flags immediately after reading them
+    $success_alert_message = $_SESSION['success_message'] ?? 'Book added successfully!';
     unset($_SESSION['book_shortcut_success']);
     unset($_SESSION['success_message']);
-    // Ensure the shortcut data is cleared if success flag was set
     unset($_SESSION['book_shortcut']);
 }
 
-// Reset the return_to_form flag since we're on the main progress page
 $_SESSION['return_to_form'] = false;
 
 // Handle reset progress action (also used by "Add Another Book")
 if (isset($_POST['reset_progress'])) {
-    // Reset the book shortcut session data
     $_SESSION['book_shortcut'] = [
         'current_step' => 1,
         'selected_writers' => [],
+        'selected_corporates' => [],
         'publisher_id' => null,
         'publish_year' => null,
         'book_title' => '',
+        'contributor_type' => '',
         'steps_completed' => [
             'writer' => false,
+            'corporate' => false,
             'publisher' => false,
             'title' => false
         ]
     ];
-    // Clear any lingering success flags if reset is clicked
     unset($_SESSION['book_shortcut_success']);
     unset($_SESSION['success_message']);
-
-    // Redirect to prevent form resubmission
     header("Location: step-by-step-add-book.php");
     exit();
 }
 
 // Initialize the progress session if not already set AND success message is not being shown
-// If success message is shown, we don't initialize until "Add Another Book" is clicked
 if (!isset($_SESSION['book_shortcut']) && !$show_success_message) {
     $_SESSION['book_shortcut'] = [
         'current_step' => 1,
         'selected_writers' => [],
+        'selected_corporates' => [],
         'publisher_id' => null,
         'publish_year' => null,
         'book_title' => '',
+        'contributor_type' => '',
         'steps_completed' => [
             'writer' => false,
+            'corporate' => false,
             'publisher' => false,
             'title' => false
         ]
     ];
 }
 
+// Handle contributor type selection
+if (isset($_POST['contributor_type'])) {
+    $_SESSION['book_shortcut']['contributor_type'] = $_POST['contributor_type'];
+    if ($_POST['contributor_type'] === 'corporate_only') {
+        $_SESSION['book_shortcut']['steps_completed']['writer'] = true;
+        $_SESSION['book_shortcut']['current_step'] = 2;
+    }
+    if ($_POST['contributor_type'] === 'individual_only') {
+        $_SESSION['book_shortcut']['steps_completed']['corporate'] = true;
+    }
+    header("Location: step-by-step-add-book.php");
+    exit();
+}
+
 // Determine the active step based on completion status if not explicitly set
-// Only run this if shortcut data exists (i.e., not immediately after success)
 if (isset($_SESSION['book_shortcut'])) {
     if (!isset($_POST['step'])) {
         if (!$_SESSION['book_shortcut']['steps_completed']['writer']) {
             $_SESSION['book_shortcut']['current_step'] = 1;
-        } elseif (!$_SESSION['book_shortcut']['steps_completed']['publisher']) {
+        } elseif (!$_SESSION['book_shortcut']['steps_completed']['corporate']) {
             $_SESSION['book_shortcut']['current_step'] = 2;
+        } elseif (!$_SESSION['book_shortcut']['steps_completed']['publisher']) {
+            $_SESSION['book_shortcut']['current_step'] = 3;
         } elseif (!$_SESSION['book_shortcut']['steps_completed']['title']) {
-            $_SESSION['book_shortcut']['current_step'] = 3;
+            $_SESSION['book_shortcut']['current_step'] = 4;
         } else {
-            // If all steps were somehow completed but form wasn't reached, default to step 3
-            $_SESSION['book_shortcut']['current_step'] = 3;
+            $_SESSION['book_shortcut']['current_step'] = 4;
         }
     } else {
         $_SESSION['book_shortcut']['current_step'] = (int)$_POST['step'];
@@ -85,23 +97,19 @@ if (isset($_SESSION['book_shortcut'])) {
     $current_step = $_SESSION['book_shortcut']['current_step'];
     $steps_completed = $_SESSION['book_shortcut']['steps_completed'];
 } else {
-    // Default values if shortcut is not set (e.g., after success)
     $current_step = 1;
     $steps_completed = [
         'writer' => false,
+        'corporate' => false,
         'publisher' => false,
         'title' => false
     ];
 }
 
-
-// Include header AFTER all potential redirects and session checks
 include 'inc/header.php';
 
-// Helper function to determine tab class
 function get_tab_class($step_num, $current_step, $is_completed) {
     $class = 'nav-link';
-    // Disable all tabs if success message is shown
     if (isset($GLOBALS['show_success_message']) && $GLOBALS['show_success_message']) {
         return $class . ' disabled';
     }
@@ -111,16 +119,25 @@ function get_tab_class($step_num, $current_step, $is_completed) {
     if ($is_completed) {
         $class .= ' completed';
     }
-    // Check dependencies based on session data if it exists
     if (isset($_SESSION['book_shortcut'])) {
         if ($step_num == 2 && !$_SESSION['book_shortcut']['steps_completed']['writer']) {
             $class .= ' disabled';
         }
-        if ($step_num == 3 && (!$_SESSION['book_shortcut']['steps_completed']['writer'] || !$_SESSION['book_shortcut']['steps_completed']['publisher'])) {
+        if ($step_num == 2 && isset($_SESSION['book_shortcut']['contributor_type']) && 
+            $_SESSION['book_shortcut']['contributor_type'] === 'individual_only') {
+            $class .= ' skipped';
+        }
+        if ($step_num == 1 && isset($_SESSION['book_shortcut']['contributor_type']) && 
+            $_SESSION['book_shortcut']['contributor_type'] === 'corporate_only') {
+            $class .= ' skipped';
+        }
+        if ($step_num == 3 && (!$_SESSION['book_shortcut']['steps_completed']['writer'] || !$_SESSION['book_shortcut']['steps_completed']['corporate'])) {
+            $class .= ' disabled';
+        }
+        if ($step_num == 4 && (!$_SESSION['book_shortcut']['steps_completed']['writer'] || !$_SESSION['book_shortcut']['steps_completed']['corporate'] || !$_SESSION['book_shortcut']['steps_completed']['publisher'])) {
             $class .= ' disabled';
         }
     } else {
-        // If no session data, disable steps 2 and 3
         if ($step_num > 1) {
             $class .= ' disabled';
         }
@@ -128,9 +145,7 @@ function get_tab_class($step_num, $current_step, $is_completed) {
     return $class;
 }
 
-// Helper function to determine tab pane class
 function get_pane_class($step_num, $current_step) {
-    // If success message is shown, no panes should be active
     if (isset($GLOBALS['show_success_message']) && $GLOBALS['show_success_message']) {
         return 'tab-pane fade';
     }
@@ -165,11 +180,9 @@ function get_pane_class($step_num, $current_step) {
         </div>
         <?php endif; ?>
 
-
         <div class="card shadow mb-4">
             <div class="card-header py-3 d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center">
                 <h6 class="m-0 font-weight-bold text-primary mb-2 mb-sm-0">Add Book Shortcut</h6>
-                <!-- Reset Progress Button - Hide if success message is shown -->
                 <?php if (!$show_success_message): ?>
                 <form method="post" onsubmit="return confirmReset()">
                     <button type="submit" name="reset_progress" class="btn btn-danger btn-sm">
@@ -179,14 +192,13 @@ function get_pane_class($step_num, $current_step) {
                 <?php endif; ?>
             </div>
             <div class="card-body">
-                <!-- Progress Bar -->
                 <?php
-                    // Calculate progress only if shortcut data exists
                     $progress_percent = 0;
                     if (isset($_SESSION['book_shortcut'])) {
-                        if ($steps_completed['writer']) $progress_percent += 33.33;
-                        if ($steps_completed['publisher']) $progress_percent += 33.33;
-                        if ($steps_completed['title']) $progress_percent += 33.33;
+                        if ($steps_completed['writer']) $progress_percent += 25;
+                        if ($steps_completed['corporate']) $progress_percent += 25;
+                        if ($steps_completed['publisher']) $progress_percent += 25;
+                        if ($steps_completed['title']) $progress_percent += 25;
                         $progress_percent = min(100, round($progress_percent, 2));
                     }
                 ?>
@@ -197,75 +209,121 @@ function get_pane_class($step_num, $current_step) {
                     </div>
                 </div>
 
-                <!-- Tab Navigation -->
+                <!-- Contributor Type Selection -->
+                <?php if (!$show_success_message && (!isset($_SESSION['book_shortcut']['contributor_type']) || empty($_SESSION['book_shortcut']['contributor_type']))): ?>
+                <div class="alert alert-info">
+                    <h5 class="mb-3">Select Contributor Type</h5>
+                    <p>Before proceeding, please select the type of contributors for this book:</p>
+                    
+                    <form method="post" action="">
+                        <div class="form-group">
+                            <div class="custom-control custom-radio mb-2">
+                                <input type="radio" id="individual_only" name="contributor_type" value="individual_only" class="custom-control-input">
+                                <label class="custom-control-label" for="individual_only">
+                                    <strong>Individual Contributors Only</strong> - Authors, editors, illustrators, etc.
+                                </label>
+                            </div>
+                            <div class="custom-control custom-radio mb-2">
+                                <input type="radio" id="corporate_only" name="contributor_type" value="corporate_only" class="custom-control-input">
+                                <label class="custom-control-label" for="corporate_only">
+                                    <strong>Corporate Contributors Only</strong> - Organizations, institutions, government agencies, etc.
+                                </label>
+                            </div>
+                            <div class="custom-control custom-radio mb-2">
+                                <input type="radio" id="both" name="contributor_type" value="both" class="custom-control-input">
+                                <label class="custom-control-label" for="both">
+                                    <strong>Both Individual and Corporate Contributors</strong>
+                                </label>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Continue</button>
+                    </form>
+                </div>
+                <?php endif; ?>
+
+                <!-- Tab Navigation - Only show if contributor type is selected -->
+                <?php if ($show_success_message || (isset($_SESSION['book_shortcut']['contributor_type']) && !empty($_SESSION['book_shortcut']['contributor_type']))): ?>
                 <ul class="nav nav-tabs mb-4" id="addBookTabs" role="tablist">
                     <li class="nav-item" role="presentation">
-                        <a class="<?php echo get_tab_class(1, $current_step, $steps_completed['writer']); ?>"
+                        <a class="<?php echo get_tab_class(1, $current_step, $steps_completed['writer']); ?> <?php echo isset($_SESSION['book_shortcut']['contributor_type']) && $_SESSION['book_shortcut']['contributor_type'] === 'corporate_only' ? 'd-none' : ''; ?>"
                            id="step1-tab" data-toggle="tab" href="#step1" role="tab" aria-controls="step1"
                            aria-selected="<?php echo $current_step == 1 && !$show_success_message ? 'true' : 'false'; ?>">
                            <span class="step-number">1</span> Check/Add Writer <?php if ($steps_completed['writer']) echo '<i class="fas fa-check text-success ml-1"></i>'; ?>
                         </a>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <a class="<?php echo get_tab_class(2, $current_step, $steps_completed['publisher']); ?>"
+                        <a class="<?php echo get_tab_class(2, $current_step, $steps_completed['corporate']); ?> <?php echo isset($_SESSION['book_shortcut']['contributor_type']) && $_SESSION['book_shortcut']['contributor_type'] === 'individual_only' ? 'd-none' : ''; ?>"
                            id="step2-tab" data-toggle="tab" href="#step2" role="tab" aria-controls="step2"
                            aria-selected="<?php echo $current_step == 2 && !$show_success_message ? 'true' : 'false'; ?>">
-                           <span class="step-number">2</span> Check/Add Publisher <?php if ($steps_completed['publisher']) echo '<i class="fas fa-check text-success ml-1"></i>'; ?>
+                           <span class="step-number">2</span> Check/Add Corporate <?php if ($steps_completed['corporate']) echo '<i class="fas fa-check text-success ml-1"></i>'; ?>
                         </a>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <a class="<?php echo get_tab_class(3, $current_step, $steps_completed['title']); ?>"
+                        <a class="<?php echo get_tab_class(3, $current_step, $steps_completed['publisher']); ?>"
                            id="step3-tab" data-toggle="tab" href="#step3" role="tab" aria-controls="step3"
                            aria-selected="<?php echo $current_step == 3 && !$show_success_message ? 'true' : 'false'; ?>">
-                           <span class="step-number">3</span> Book Details & Add <?php if ($steps_completed['title']) echo '<i class="fas fa-check text-success ml-1"></i>'; ?>
+                           <span class="step-number">3</span> Check/Add Publisher <?php if ($steps_completed['publisher']) echo '<i class="fas fa-check text-success ml-1"></i>'; ?>
+                        </a>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <a class="<?php echo get_tab_class(4, $current_step, $steps_completed['title']); ?>"
+                           id="step4-tab" data-toggle="tab" href="#step4" role="tab" aria-controls="step4"
+                           aria-selected="<?php echo $current_step == 4 && !$show_success_message ? 'true' : 'false'; ?>">
+                           <span class="step-number">4</span> Book Details & Add <?php if ($steps_completed['title']) echo '<i class="fas fa-check text-success ml-1"></i>'; ?>
                         </a>
                     </li>
                 </ul>
 
                 <!-- Tab Content -->
                 <div class="tab-content" id="addBookTabsContent">
-                    <!-- Step 1 Content -->
                     <div class="<?php echo get_pane_class(1, $current_step); ?>" id="step1" role="tabpanel" aria-labelledby="step1-tab">
                         <div class="text-center mb-4">
                             <h4>Step 1: Check/Add Writer(s)</h4>
                             <p>Check if the writer(s) already exist in the system or add new ones. Select the primary author and any co-authors/contributors.</p>
-                            <!-- Disable button if success message is shown -->
                             <a href="step-by-step-writers.php" class="btn btn-primary <?php echo $show_success_message ? 'disabled' : ''; ?>"
                                <?php echo $show_success_message ? 'aria-disabled="true" tabindex="-1"' : ''; ?>>
                                Manage Writers
                             </a>
                         </div>
                     </div>
-                    <!-- Step 2 Content -->
                     <div class="<?php echo get_pane_class(2, $current_step); ?>" id="step2" role="tabpanel" aria-labelledby="step2-tab">
                         <div class="text-center mb-4">
-                            <h4>Step 2: Check/Add Publisher</h4>
-                            <p>Check if the publisher already exists in the system or add a new publisher. Select the publisher and enter the publication year.</p>
-                            <!-- Disable button if success message is shown or step 1 not complete -->
-                            <a href="step-by-step-publishers.php" class="btn btn-primary <?php echo ($show_success_message || !$steps_completed['writer']) ? 'disabled' : ''; ?>"
+                            <h4>Step 2: Check/Add Corporate Contributors</h4>
+                            <p>Check if the corporate contributors already exist in the system or add new ones. Select institutions, organizations, or other corporate entities that contributed to this book.</p>
+                            <a href="step-by-step-corporates.php" class="btn btn-primary <?php echo ($show_success_message || !$steps_completed['writer']) ? 'disabled' : ''; ?>"
                                <?php echo ($show_success_message || !$steps_completed['writer']) ? 'aria-disabled="true" tabindex="-1"' : ''; ?>>
-                               Manage Publishers
+                               Manage Corporate Contributors
                             </a>
                              <?php if (!$steps_completed['writer'] && !$show_success_message): ?>
                                 <small class="d-block text-muted mt-2">Please complete Step 1 first.</small>
                             <?php endif; ?>
                         </div>
                     </div>
-                    <!-- Step 3 Content -->
                     <div class="<?php echo get_pane_class(3, $current_step); ?>" id="step3" role="tabpanel" aria-labelledby="step3-tab">
                         <div class="text-center mb-4">
-                            <h4>Step 3: Book Title Check & Add Book</h4>
+                            <h4>Step 3: Check/Add Publisher</h4>
+                            <p>Check if the publisher already exists in the system or add a new publisher. Select the publisher and enter the publication year.</p>
+                            <a href="step-by-step-publishers.php" class="btn btn-primary <?php echo ($show_success_message || !$steps_completed['corporate']) ? 'disabled' : ''; ?>"
+                               <?php echo ($show_success_message || !$steps_completed['corporate']) ? 'aria-disabled="true" tabindex="-1"' : ''; ?>>
+                               Manage Publishers
+                            </a>
+                             <?php if (!$steps_completed['corporate'] && !$show_success_message): ?>
+                                <small class="d-block text-muted mt-2">Please complete Step 2 first.</small>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <div class="<?php echo get_pane_class(4, $current_step); ?>" id="step4" role="tabpanel" aria-labelledby="step4-tab">
+                        <div class="text-center mb-4">
+                            <h4>Step 4: Book Title Check & Add Book</h4>
                             <p>Check if the book title already exists or proceed to add the new book with all collected details.</p>
-                             <!-- Disable button if success message is shown or step 2 not complete -->
                              <a href="step-by-step-books.php" class="btn btn-primary <?php echo ($show_success_message || !$steps_completed['publisher']) ? 'disabled' : ''; ?>"
                                 <?php echo ($show_success_message || !$steps_completed['publisher']) ? 'aria-disabled="true" tabindex="-1"' : ''; ?>>
                                 Check/Enter Book Title
                              </a>
                              <?php if (!$steps_completed['publisher'] && !$show_success_message): ?>
-                                <small class="d-block text-muted mt-2">Please complete Step 2 first.</small>
+                                <small class="d-block text-muted mt-2">Please complete Step 3 first.</small>
                             <?php endif; ?>
-
-                             <?php if ($steps_completed['writer'] && $steps_completed['publisher'] && $steps_completed['title'] && !$show_success_message): ?>
+                             <?php if ($steps_completed['writer'] && $steps_completed['corporate'] && $steps_completed['publisher'] && $steps_completed['title'] && !$show_success_message): ?>
                                 <div class="mt-3">
                                     <p class="text-success font-weight-bold">All preliminary steps completed!</p>
                                     <a href="step-by-step-add-book-form.php" class="btn btn-success">
@@ -276,13 +334,35 @@ function get_pane_class($step_num, $current_step) {
                         </div>
                     </div>
                 </div>
+                <?php endif; ?>
 
                 <!-- Progress Summary - Hide if success message is shown -->
                 <?php if (!$show_success_message && isset($_SESSION['book_shortcut'])): ?>
                 <div class="mt-4 p-3 bg-light rounded">
                     <h6>Progress Summary:</h6>
                     <ul class="list-unstyled summary-list">
-                        <li class="mb-2">Writer(s):
+                        <?php if (isset($_SESSION['book_shortcut']['contributor_type']) && !empty($_SESSION['book_shortcut']['contributor_type'])): ?>
+                        <li class="mb-2">Contributor Type: 
+                            <span class="font-weight-bold">
+                                <?php 
+                                    switch($_SESSION['book_shortcut']['contributor_type']) {
+                                        case 'individual_only':
+                                            echo 'Individual Contributors Only';
+                                            break;
+                                        case 'corporate_only':
+                                            echo 'Corporate Contributors Only';
+                                            break;
+                                        case 'both':
+                                            echo 'Both Individual and Corporate Contributors';
+                                            break;
+                                        default:
+                                            echo 'Not selected';
+                                    }
+                                ?>
+                            </span>
+                        </li>
+                        <?php endif; ?>
+                        <li class="mb-2">Individual Contributor(s):
                             <?php
                             if (!empty($_SESSION['book_shortcut']['selected_writers'])) {
                                 $writer_names = [];
@@ -305,6 +385,32 @@ function get_pane_class($step_num, $current_step) {
                                 echo implode('<br>', $writer_names);
                             } else {
                                 echo '<span class="text-warning">Not selected</span>';
+                            }
+                            ?>
+                        </li>
+                        <li class="mb-2">Corporate Contributor(s):
+                            <?php
+                            if (!empty($_SESSION['book_shortcut']['selected_corporates'])) {
+                                $corporate_names = [];
+                                foreach ($_SESSION['book_shortcut']['selected_corporates'] as $selected_corporate) {
+                                    $corporate_id = $selected_corporate['id'];
+                                    $corporate_role = $selected_corporate['role'];
+                                    $stmt = $conn->prepare("SELECT name, type FROM corporates WHERE id = ?");
+                                    $stmt->bind_param("i", $corporate_id);
+                                    $stmt->execute();
+                                    $corporate_result = $stmt->get_result();
+
+                                    if ($corporate_result && $corporate_result->num_rows > 0) {
+                                        $corporate = $corporate_result->fetch_assoc();
+                                        $corporate_names[] = '<span class="badge badge-'.($corporate_role == 'Sponsor' ? 'primary' : 'info') .
+                                            '">' . htmlspecialchars($corporate_role) . '</span> ' .
+                                            htmlspecialchars($corporate['name']) . ' <small>(' . htmlspecialchars($corporate['type']) . ')</small>';
+                                    }
+                                    $stmt->close();
+                                }
+                                echo implode('<br>', $corporate_names);
+                            } else {
+                                echo '<span class="text-muted">None selected (Optional)</span>';
                             }
                             ?>
                         </li>
@@ -342,7 +448,7 @@ function get_pane_class($step_num, $current_step) {
                             ?>
                         </li>
                      </ul>
-                     <?php if ($steps_completed['writer'] && $steps_completed['publisher'] && $steps_completed['title']): ?>
+                     <?php if ($steps_completed['writer'] && $steps_completed['corporate'] && $steps_completed['publisher'] && $steps_completed['title']): ?>
                          <div class="mt-3 text-center">
                              <a href="step-by-step-add-book-form.php" class="btn btn-success">
                                  <i class="fas fa-pencil-alt"></i> Proceed to Fill Full Book Details
@@ -357,9 +463,6 @@ function get_pane_class($step_num, $current_step) {
 </div>
 
 <style>
-/* ... existing styles ... */
-
-/* Style for disabled tabs when success message is shown */
 .nav-tabs .nav-link.disabled {
     color: #b8bdc3;
     background-color: transparent;
@@ -373,12 +476,20 @@ function get_pane_class($step_num, $current_step) {
     border-color: #dee2e6;
 }
 
-/* Ensure disabled links are not clickable */
 .nav-tabs .nav-link.disabled {
     pointer-events: none;
 }
 
-/* ... existing styles ... */
+.nav-tabs .nav-link.skipped {
+    color: #28a745;
+    background-color: rgba(40, 167, 69, 0.1);
+    border-color: rgba(40, 167, 69, 0.2);
+}
+
+.nav-tabs .nav-link.skipped .step-number {
+    background-color: #28a745;
+    color: white;
+}
 </style>
 
 <script>
@@ -387,14 +498,12 @@ function confirmReset() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Handle disabled tabs - prevent clicking
     var disabledTabs = document.querySelectorAll('.nav-tabs .nav-link.disabled');
     disabledTabs.forEach(function(tab) {
         tab.addEventListener('click', function(event) {
             event.preventDefault();
             event.stopPropagation();
         });
-        // Ensure they don't appear active even if they have the class
         tab.classList.remove('active');
         var targetPaneId = tab.getAttribute('href');
         if (targetPaneId) {
@@ -405,7 +514,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Activate the correct tab if not showing success message
     var showSuccess = <?php echo json_encode($show_success_message); ?>;
     if (!showSuccess) {
         var activeTab = document.querySelector('.nav-tabs .nav-link.active:not(.disabled)');
@@ -423,7 +531,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         } else {
-            // If no active tab found (e.g., after reset), default to step 1 if possible
             var step1Tab = document.getElementById('step1-tab');
             if (step1Tab && !step1Tab.classList.contains('disabled')) {
                  if (typeof $ !== 'undefined' && typeof $.fn.tab !== 'undefined') {
@@ -440,7 +547,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     } else {
-         // If success message is shown, ensure no tabs are active visually
          document.querySelectorAll('.nav-tabs .nav-link').forEach(tab => tab.classList.remove('active'));
          document.querySelectorAll('.tab-content .tab-pane').forEach(pane => pane.classList.remove('show', 'active'));
     }

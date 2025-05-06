@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 28, 2025 at 02:06 AM
+-- Generation Time: May 06, 2025 at 04:42 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -211,6 +211,48 @@ INSERT INTO `contributors` (`id`, `book_id`, `writer_id`, `role`) VALUES
 (330, 72, 1, 'Co-Author'),
 (331, 72, 3, 'Co-Author'),
 (332, 72, 4, 'Editor');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `corporates`
+--
+
+CREATE TABLE `corporates` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
+  `type` varchar(100) NOT NULL,
+  `location` varchar(255) DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `corporates`
+--
+
+INSERT INTO `corporates` (`id`, `name`, `type`, `location`, `description`) VALUES
+(1, 'National Library of the Philippines', 'Government Institution', 'Manila, Philippines', 'Official national library of the Philippines'),
+(2, 'University of the Philippines Press', 'University Press', 'Quezon City, Philippines', 'Academic publishing house of the University of the Philippines'),
+(3, 'Philippine Institute of Volcanology and Seismology', 'Research Institute', 'Quezon City, Philippines', 'Government institute focused on volcano and earthquake monitoring');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `corporate_contributors`
+--
+
+CREATE TABLE `corporate_contributors` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `book_id` int(11) NOT NULL,
+  `corporate_id` int(11) NOT NULL,
+  `role` varchar(50) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `book_id` (`book_id`),
+  KEY `corporate_id` (`corporate_id`),
+  CONSTRAINT `corporate_contributors_ibfk_1` FOREIGN KEY (`book_id`) REFERENCES `books` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `corporate_contributors_ibfk_2` FOREIGN KEY (`corporate_id`) REFERENCES `corporates` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -463,7 +505,8 @@ INSERT INTO `updates` (`id`, `user_id`, `role`, `title`, `message`, `update`) VA
 (90, 1, 'Admin', 'Admin Added New Book', 'Admin Kenneth Laurence Bonaagua added \"asd\" with 10 copies', '2025-04-27 17:56:21'),
 (91, 210078, 'Admin', 'Admin Logged In', 'Admin Kenneth Laurence Bonaagua Logged In as Active', '2025-04-28 00:01:19'),
 (92, 210078, 'Student', 'User Logged In', 'Student KENNETH LAURENCE BONAAGUA Logged In as Inactive', '2025-04-28 00:01:32'),
-(93, 1, 'Admin', 'Admin Added New Book', 'Admin Kenneth Laurence Bonaagua added \"asd\" with 10 copies', '2025-04-27 18:04:24');
+(93, 1, 'Admin', 'Admin Added New Book', 'Admin Kenneth Laurence Bonaagua added \"asd\" with 10 copies', '2025-04-27 18:04:24'),
+(94, 210078, 'Admin', 'Admin Logged In', 'Admin Kenneth Laurence Bonaagua Logged In as Active', '2025-05-06 02:23:06');
 
 -- --------------------------------------------------------
 
@@ -563,6 +606,18 @@ ALTER TABLE `contributors`
   ADD PRIMARY KEY (`id`);
 
 --
+-- Indexes for table `corporates`
+--
+ALTER TABLE `corporates`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `corporate_contributors`
+--
+ALTER TABLE `corporate_contributors`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indexes for table `fines`
 --
 ALTER TABLE `fines`
@@ -652,6 +707,18 @@ ALTER TABLE `contributors`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2889;
 
 --
+-- AUTO_INCREMENT for table `corporates`
+--
+ALTER TABLE `corporates`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `corporate_contributors`
+--
+ALTER TABLE `corporate_contributors`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `fines`
 --
 ALTER TABLE `fines`
@@ -691,7 +758,7 @@ ALTER TABLE `reservations`
 -- AUTO_INCREMENT for table `updates`
 --
 ALTER TABLE `updates`
-  MODIFY `id` int(225) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=94;
+  MODIFY `id` int(225) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=95;
 
 --
 -- AUTO_INCREMENT for table `users`

@@ -122,6 +122,47 @@ if ($bookId > 0) {
         $contributors[] = $row;
     }
 
+    // Fetch individual contributors (excluding corporate prefixed roles)
+    $contributors_query = "SELECT c.role, w.id AS writer_id, w.firstname, w.middle_init, w.lastname
+                          FROM contributors c
+                          JOIN writers w ON c.writer_id = w.id
+                          WHERE c.book_id = ? AND c.role NOT LIKE 'Corporate_%'
+                          ORDER BY 
+                              CASE 
+                                  WHEN c.role = 'Author' THEN 1
+                                  WHEN c.role = 'Co-Author' THEN 2 
+                                  WHEN c.role = 'Editor' THEN 3
+                                  WHEN c.role = 'Illustrator' THEN 4
+                                  WHEN c.role = 'Translator' THEN 5
+                                  ELSE 6
+                              END";
+    $stmt = $conn->prepare($contributors_query);
+    $stmt->bind_param("i", $bookId);
+    $stmt->execute();
+    $contributorsResult = $stmt->get_result();
+    $contributorsByRole = [];
+    while ($row = $contributorsResult->fetch_assoc()) {
+        $role = $row['role'];
+        if (!isset($contributorsByRole[$role])) {
+            $contributorsByRole[$role] = [];
+        }
+        $contributorsByRole[$role][] = $row;
+    }
+
+    // Fetch corporate contributors
+    $corporateContributorsQuery = "SELECT cc.role, corp.name, corp.type
+                                   FROM corporate_contributors cc
+                                   JOIN corporates corp ON cc.corporate_id = corp.id
+                                   WHERE cc.book_id = ?";
+    $stmt = $conn->prepare($corporateContributorsQuery);
+    $stmt->bind_param("i", $bookId);
+    $stmt->execute();
+    $corporateContributorsResult = $stmt->get_result();
+    $corporateContributors = [];
+    while ($row = $corporateContributorsResult->fetch_assoc()) {
+        $corporateContributors[] = $row;
+    }
+
     // Fetch publications from the database
     $publicationsQuery = "SELECT p.*, pub.publisher, pub.place FROM publications p JOIN publishers pub ON p.publisher_id = pub.id WHERE p.book_id = $bookId";
     $publicationsResult = $conn->query($publicationsQuery);
@@ -192,6 +233,11 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
             if ($contributor['role'] !== 'Author') {
                 $marcFields[] = ['700', '1#', 'a', $contributor['lastname'] . ', ' . $contributor['firstname'] . ' ' . $contributor['middle_init'], 'e', strtolower($contributor['role'])];
             }
+        }
+
+        // Corporate Contributors
+        foreach ($corporateContributors as $corporateContributor) {
+            $marcFields[] = ['710', '2#', 'a', $corporateContributor['name'], 'e', strtolower($corporateContributor['role'])];
         }
 
         // Holdings Information
@@ -488,6 +534,84 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                 white-space: nowrap;
             }
         }
+
+        /* Add these new styles for the enhanced contributors section */
+        .ultra-compact-contributors {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .role-row {
+            display: flex;
+            align-items: center;
+            background: #f8f9fa;
+            border-radius: 4px;
+            overflow: hidden;
+            min-height: 38px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .role-label {
+            display: flex;
+            align-items: center;
+            padding: 6px 10px;
+            color: white;
+            font-size: 0.8rem;
+            font-weight: 500;
+            white-space: nowrap;
+            min-width: 110px;
+        }
+        
+        .role-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.3);
+            border-radius: 50%;
+            height: 18px;
+            width: 18px;
+            font-size: 0.7rem;
+            margin-left: 6px;
+        }
+        
+        .role-members {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            padding: 6px 10px;
+        }
+        
+        .member-chip {
+            font-size: 0.8rem;
+            background: #e9ecef;
+            border-radius: 12px;
+            padding: 2px 8px;
+            white-space: nowrap;
+        }
+        
+        /* Add corporate contributor specific styles */
+        .corporate-chip {
+            background-color: #e2e3e5;
+            border-left: 3px solid #6c757d;
+        }
+        
+        /* Optional: Different styling for different corporate types */
+        .member-chip[title="University"] {
+            border-left-color: #0d6efd;
+        }
+        
+        .member-chip[title="Government"] {
+            border-left-color: #6f42c1;
+        }
+        
+        .member-chip[title="Commercial"] {
+            border-left-color: #fd7e14;
+        }
+        
+        .member-chip[title="Non-profit"] {
+            border-left-color: #20c997;
+        }
     </style>
     <!-- Add Bootstrap CSS and JS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -772,33 +896,138 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                                 <h6 class="m-0 font-weight-bold text-primary">Contributors</h6>
                             </div>
                             <div class="card-body">
-                                <?php if (!empty($contributors)): ?>
-                                    <div class="row">
-                                        <?php
-                                        $contributorsByRole = [];
-                                        foreach ($contributors as $contributor) {
-                                            $role = $contributor['role'];
-                                            if (!isset($contributorsByRole[$role])) {
-                                                $contributorsByRole[$role] = [];
-                                            }
-                                            $contributorsByRole[$role][] = $contributor;
-                                        }
-
-                                        foreach ($contributorsByRole as $role => $people): ?>
-                                            <div class="col-md-4 mb-3">
-                                                <h6 class="text-dark"><?php echo htmlspecialchars($role); ?></h6>
-                                                <ul class="list-group list-group-flush">
-                                                    <?php foreach ($people as $person): ?>
-                                                        <li class="list-group-item bg-light">
-                                                            <?php echo htmlspecialchars($person['firstname'] . ' ' . $person['middle_init'] . ' ' . $person['lastname']); ?>
-                                                        </li>
-                                                    <?php endforeach; ?>
-                                                </ul>
-                                            </div>
-                                        <?php endforeach; ?>
-                                    </div>
+                                <?php
+                                // Determine if we have each type of contributor
+                                $hasIndividualContributors = !empty($contributorsByRole);
+                                $hasCorporateContributors = !empty($corporateContributors);
+                                
+                                // Display info if neither type is present
+                                if (!$hasIndividualContributors && !$hasCorporateContributors):
+                                ?>
+                                    <div class="alert alert-light">No contributors listed for this book.</div>
                                 <?php else: ?>
-                                    <p class="text-muted font-italic">No contributors found.</p>
+                                    <!-- Individual Contributors Section - only show if present -->
+                                    <?php if ($hasIndividualContributors): ?>
+                                        <div class="mb-3">
+                                            <h6 class="font-weight-bold mb-2">Individual Contributors</h6>
+                                            <div class="ultra-compact-contributors">
+                                                <?php foreach ($contributorsByRole as $role => $role_contributors): ?>
+                                                    <?php 
+                                                    $badge_class = 'secondary'; // Default
+                                                    $badge_style = '';
+                                                    $role_icon = 'fa-user';
+                                                    
+                                                    switch($role) {
+                                                        case 'Author':
+                                                            $badge_class = 'primary';
+                                                            $role_icon = 'fa-pen-fancy';
+                                                            break;
+                                                        case 'Co-Author':
+                                                            $badge_class = 'info';
+                                                            $role_icon = 'fa-pen-alt';
+                                                            break;
+                                                        case 'Editor':
+                                                            $badge_class = 'dark';
+                                                            $role_icon = 'fa-pencil-alt';
+                                                            break;
+                                                        case 'Illustrator':
+                                                            $badge_class = 'success';
+                                                            $role_icon = 'fa-paint-brush';
+                                                            break;
+                                                        case 'Translator':
+                                                            $badge_class = 'warning';
+                                                            $role_icon = 'fa-language';
+                                                            $badge_style = 'color: #212529;'; // Darker text for better contrast
+                                                            break;
+                                                    }
+                                                    ?>
+                                                    
+                                                    <div class="role-row">
+                                                        <div class="role-label bg-<?php echo $badge_class; ?>" style="<?php echo $badge_style; ?>">
+                                                            <i class="fas <?php echo $role_icon; ?> me-1"></i>
+                                                            <?php echo htmlspecialchars($role); ?>
+                                                            <span class="role-count"><?php echo count($role_contributors); ?></span>
+                                                        </div>
+                                                        <div class="role-members">
+                                                            <?php foreach ($role_contributors as $contributor): ?>
+                                                                <span class="member-chip">
+                                                                    <?php echo htmlspecialchars(trim($contributor['firstname'] . ' ' . 
+                                                                        $contributor['middle_init'] . ' ' . $contributor['lastname'])); ?>
+                                                                </span>
+                                                            <?php endforeach; ?>
+                                                        </div>
+                                                    </div>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        </div>
+                                    <?php endif; ?>
+
+                                    <!-- Corporate Contributors Section - only show if present -->
+                                    <?php if ($hasCorporateContributors): ?>
+                                        <div class="mt-3 mb-2">
+                                            <h6 class="font-weight-bold mb-2">Corporate Contributors</h6>
+                                            <div class="ultra-compact-contributors">
+                                                <?php 
+                                                $corporateByRole = [];
+                                                foreach ($corporateContributors as $corporate) {
+                                                    if (!isset($corporateByRole[$corporate['role']])) {
+                                                        $corporateByRole[$corporate['role']] = [];
+                                                    }
+                                                    $corporateByRole[$corporate['role']][] = $corporate;
+                                                }
+                                                
+                                                foreach ($corporateByRole as $role => $corporates): 
+                                                    $badge_class = 'secondary';
+                                                    $badge_style = '';
+                                                    $role_icon = 'fa-building';
+                                                    
+                                                    switch(strtolower($role)) {
+                                                        case 'publisher':
+                                                            $badge_class = 'indigo';
+                                                            $badge_style = 'background-color: #6610f2; color: white;';
+                                                            $role_icon = 'fa-book-open';
+                                                            break;
+                                                        case 'distributor':
+                                                            $badge_class = 'purple';
+                                                            $badge_style = 'background-color: #6f42c1; color: white;';
+                                                            $role_icon = 'fa-truck';
+                                                            break;
+                                                        case 'sponsor':
+                                                            $badge_class = 'teal';
+                                                            $badge_style = 'background-color: #20c997; color: white;';
+                                                            $role_icon = 'fa-hand-holding-usd';
+                                                            break;
+                                                        case 'corporate contributor':
+                                                            $badge_class = 'info';
+                                                            $role_icon = 'fa-building';
+                                                            break;
+                                                        case 'corporate author':
+                                                            $badge_class = 'primary';
+                                                            $role_icon = 'fa-university';
+                                                            break;
+                                                        default:
+                                                            $badge_class = 'dark';
+                                                            $role_icon = 'fa-building';
+                                                    }
+                                                ?>
+                                                    <div class="role-row">
+                                                        <div class="role-label bg-<?php echo $badge_class; ?>" style="<?php echo $badge_style; ?>">
+                                                            <i class="fas <?php echo $role_icon; ?> me-1"></i>
+                                                            <?php echo htmlspecialchars($role); ?>
+                                                            <span class="role-count"><?php echo count($corporates); ?></span>
+                                                        </div>
+                                                        <div class="role-members">
+                                                            <?php foreach ($corporates as $corporate): ?>
+                                                                <span class="member-chip corporate-chip" title="<?php echo htmlspecialchars($corporate['type'] ?? ''); ?>">
+                                                                    <?php echo htmlspecialchars($corporate['name']); ?>
+                                                                </span>
+                                                            <?php endforeach; ?>
+                                                        </div>
+                                                    </div>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        </div>
+                                    <?php endif; ?>
                                 <?php endif; ?>
                             </div>
                         </div>
@@ -913,6 +1142,7 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                             '338' => 'Carrier Type',
                             '650' => 'Subject Added Entry - Topical Term',
                             '700' => 'Added Entry - Personal Name',
+                            '710' => 'Added Entry - Corporate Name',
                             '852' => 'Location'
                         ];
 
@@ -1029,6 +1259,14 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                                         'e', strtolower($contributor['role'])
                                     ];
                                 }
+                            }
+
+                            // Added Entries for Corporate Contributors
+                            foreach ($corporateContributors as $corporateContributor) {
+                                $marcFields[] = ['710', '2#',
+                                    'a', $corporateContributor['name'],
+                                    'e', strtolower($corporateContributor['role'])
+                                ];
                             }
 
                             // Holdings Information

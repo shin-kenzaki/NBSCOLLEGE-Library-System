@@ -2,557 +2,402 @@
 session_start();
 include '../db.php';
 
-// Check if user is logged in with correct privileges
+// Check if user is logged in with appropriate admin role
 if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Librarian', 'Assistant', 'Encoder'])) {
     header("Location: index.php");
     exit();
 }
 
-// Store the referrer information - check if we came from the form
-if (!isset($_SESSION['return_to_form'])) {
-    $_SESSION['return_to_form'] = (isset($_SERVER['HTTP_REFERER']) && 
-                                  strpos($_SERVER['HTTP_REFERER'], 'step-by-step-add-book-form.php') !== false);
+// Initialize book_shortcut session if not exists
+if (!isset($_SESSION['book_shortcut'])) {
+    $_SESSION['book_shortcut'] = [
+        'current_step' => 3,
+        'selected_writers' => [],
+        'selected_corporates' => [],
+        'publisher_id' => null,
+        'publish_year' => null,
+        'book_title' => '',
+        'contributor_type' => '',
+        'steps_completed' => [
+            'writer' => false,
+            'corporate' => false,
+            'publisher' => false,
+            'title' => false
+        ]
+    ];
 }
 
+// Process form submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (isset($_POST['publisher_id']) && isset($_POST['publish_year'])) {
+        $publisherId = intval($_POST['publisher_id']);
+        $publishYear = $_POST['publish_year'];
+        
+        // Basic validation
+        $errors = [];
+        
+        if (empty($publisherId)) {
+            $errors[] = "Please select a publisher.";
+        }
+        
+        if (empty($publishYear)) {
+            $errors[] = "Please enter publication year.";
+        } else if (!preg_match('/^\d{4}$/', $publishYear) || $publishYear < 1000 || $publishYear > date('Y') + 1) {
+            $errors[] = "Please enter a valid 4-digit year (not greater than next year).";
+        }
+        
+        if (empty($errors)) {
+            // Update the session with selected publisher
+            $_SESSION['book_shortcut']['publisher_id'] = $publisherId;
+            $_SESSION['book_shortcut']['publish_year'] = $publishYear;
+            
+            // Mark the publisher step as completed
+            $_SESSION['book_shortcut']['steps_completed']['publisher'] = true;
+
+            // Go to next step (title)
+            $_SESSION['book_shortcut']['current_step'] = 4;
+            header("Location: step-by-step-add-book.php");
+            exit();
+        } else {
+            // Store errors in session for display
+            $_SESSION['message'] = implode('<br>', $errors);
+            $_SESSION['message_type'] = "danger";
+        }
+    }
+}
+
+// Get all publishers
+$query = "SELECT id, publisher, place FROM publishers ORDER BY publisher ASC";
+$result = mysqli_query($conn, $query);
+$publishers = [];
+if ($result) {
+    while ($row = mysqli_fetch_assoc($result)) {
+        $publishers[] = $row;
+    }
+}
+
+// Get selected publisher and year from session (if exists)
+$selectedPublisherId = $_SESSION['book_shortcut']['publisher_id'] ?? null;
+$selectedPublishYear = $_SESSION['book_shortcut']['publish_year'] ?? '';
+
+// Only include header after all potential redirects
 include 'inc/header.php';
 
-// Add CSS styles for checkbox and radio cells using PHP
-echo '<style>
-    .checkbox-cell, .radio-cell {
-        cursor: pointer;
-        text-align: center;
-        vertical-align: middle;
-        width: 50px !important; /* Fixed width for uniformity */
-    }
-    .checkbox-cell:hover, .radio-cell:hover {
-        background-color: rgba(0, 123, 255, 0.1);
-    }
-    .checkbox-cell input[type="checkbox"], .radio-cell input[type="radio"] {
-        margin: 0 auto;
-        display: block;
-    }
-</style>';
-
-// Handle form submission for adding new publishers
-if (isset($_POST['save_publishers'])) {
-    $publishers = $_POST['publisher'] ?? [];
-    $places = $_POST['place'] ?? [];
-    
-    $success = true;
-    $valid_entries = 0;
-    $selected_publisher_id = null;
-    
-    for ($i = 0; $i < count($publishers); $i++) {
-        $publisher = trim($conn->real_escape_string($publishers[$i]));
-        $place = trim($conn->real_escape_string($places[$i]));
-        
-        // Skip entries without publisher or place
-        if (empty($publisher) || empty($place)) {
-            continue;
-        }
-        
-        // Check if the publisher already exists
-        $check_sql = "SELECT id FROM publishers WHERE publisher = '$publisher' AND place = '$place'";
-        $check_result = $conn->query($check_sql);
-        
-        if ($check_result->num_rows > 0) {
-            // Publisher already exists, use the first one
-            if (!$selected_publisher_id) {
-                $row = $check_result->fetch_assoc();
-                $selected_publisher_id = $row['id'];
-            }
-            continue;
-        }
-        
-        $sql = "INSERT INTO publishers (publisher, place) VALUES ('$publisher', '$place')";
-        if ($conn->query($sql)) {
-            $valid_entries++;
-            if (!$selected_publisher_id) {
-                $selected_publisher_id = $conn->insert_id;
-            }
-        } else {
-            $success = false;
-            break;
+// Helper function to get publisher place from ID
+function getPublisherPlace($publishers, $publisherId) {
+    foreach ($publishers as $publisher) {
+        if ($publisher['id'] == $publisherId) {
+            return $publisher['place'];
         }
     }
-    
-    if ($success && $valid_entries > 0) {
-        // Use the first added/selected publisher for the book
-        $_SESSION['book_shortcut']['publisher_id'] = $selected_publisher_id;
-        $_SESSION['book_shortcut']['steps_completed']['publisher'] = true;
-        
-        echo "<script>
-            Swal.fire({
-                title: 'Success!',
-                text: '$valid_entries publisher(s) added successfully',
-                icon: 'success',
-                confirmButtonColor: '#3085d6',
-                confirmButtonText: 'OK'
-            });
-        </script>";
-    } elseif ($valid_entries === 0 && $selected_publisher_id) {
-        // Use the existing publisher
-        $_SESSION['book_shortcut']['publisher_id'] = $selected_publisher_id;
-        $_SESSION['book_shortcut']['steps_completed']['publisher'] = true;
-        
-        echo "<script>
-            Swal.fire({
-                title: 'Publisher Already Exists',
-                text: 'This publisher has been selected for your book',
-                icon: 'info',
-                confirmButtonColor: '#3085d6',
-                confirmButtonText: 'OK'
-            });
-        </script>";
-    } elseif ($valid_entries === 0) {
-        echo "<script>
-            Swal.fire({
-                title: 'Warning',
-                text: 'No valid publishers to save. Please provide both publisher name and place.',
-                icon: 'warning',
-                confirmButtonColor: '#3085d6',
-                confirmButtonText: 'OK'
-            });
-        </script>";
-    } else {
-        echo "<script>
-            Swal.fire({
-                title: 'Error!',
-                text: 'Failed to add publishers',
-                icon: 'error',
-                confirmButtonColor: '#3085d6',
-                confirmButtonText: 'OK'
-            });
-        </script>";
-    }
+    return '';
 }
-
-// Handle form submission for selecting existing publisher
-if (isset($_POST['select_publisher'])) {
-    if (!empty($_POST['publisher_id'])) {
-        $publisher_id = (int)$_POST['publisher_id'];
-        $publish_year = isset($_POST['publish_year'][$publisher_id]) ? (int)$_POST['publish_year'][$publisher_id] : date('Y');
-        
-        $_SESSION['book_shortcut']['publisher_id'] = $publisher_id;
-        $_SESSION['book_shortcut']['publish_year'] = $publish_year;
-        $_SESSION['book_shortcut']['steps_completed']['publisher'] = true;
-        
-        echo "<script>
-            Swal.fire({
-                title: 'Success!',
-                text: 'Publisher selected successfully',
-                icon: 'success',
-                confirmButtonColor: '#3085d6',
-                confirmButtonText: 'OK'
-            });
-        </script>";
-    } else {
-        echo "<script>
-            Swal.fire({
-                title: 'Warning',
-                text: 'Please select a publisher.',
-                icon: 'warning',
-                confirmButtonColor: '#3085d6',
-                confirmButtonText: 'OK'
-            });
-        </script>";
-    }
-}
-
-// Add this after the existing form submission handlers:
-if (isset($_POST['save_selection'])) {
-    if (!empty($_POST['publisher_id'])) {
-        $publisher_id = (int)$_POST['publisher_id'];
-        $publish_year = isset($_POST['publish_year'][$publisher_id]) ? (int)$_POST['publish_year'][$publisher_id] : date('Y');
-
-        // Fetch publisher name
-        $publisher_name = 'Unknown Publisher'; // Default value
-        $stmt = $conn->prepare("SELECT publisher FROM publishers WHERE id = ?");
-        $stmt->bind_param("i", $publisher_id);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        if ($row = $result->fetch_assoc()) {
-            $publisher_name = htmlspecialchars($row['publisher']);
-        }
-        $stmt->close();
-
-        $_SESSION['book_shortcut']['publisher_id'] = $publisher_id;
-        $_SESSION['book_shortcut']['publish_year'] = $publish_year;
-        $_SESSION['book_shortcut']['steps_completed']['publisher'] = true;
-
-        // Move to the next step automatically - Keep this logic if needed elsewhere
-        $_SESSION['book_shortcut']['current_step'] = 3;
-
-        // Display success message and navigate on OK click
-        echo "<script>
-            Swal.fire({
-                title: 'Success!',
-                text: 'Publisher \"{$publisher_name}\" (Year: {$publish_year}) saved successfully!', // Updated text
-                icon: 'success',
-                showConfirmButton: true, // Show the OK button
-                confirmButtonColor: '#3085d6',
-                confirmButtonText: 'OK'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Navigate back to the progress form when OK is clicked
-                    window.location.href = 'step-by-step-add-book.php';
-                }
-            });
-        </script>";
-    } else {
-        echo "<script>
-            Swal.fire({
-                title: 'Warning',
-                text: 'Please select a publisher.',
-                icon: 'warning',
-                confirmButtonColor: '#3085d6',
-                confirmButtonText: 'OK'
-            });
-        </script>";
-    }
-}
-
-// Handle publisher deletion
-if (isset($_POST['delete_publishers'])) {
-    $publishers = $_POST['delete_publishers'] ?? [];
-    $deleted = 0;
-    
-    if (!empty($publishers)) {
-        foreach ($publishers as $publisher_id) {
-            $publisher_id = (int)$publisher_id;
-            
-            // Check if the publisher is in use by any books in the publications table
-            $check_sql = "SELECT COUNT(*) as pub_count FROM publications WHERE publisher_id = $publisher_id";
-            $check_result = $conn->query($check_sql);
-            
-            if (!$check_result) {
-                // Query failed, skip this publisher to be safe
-                continue;
-            }
-            
-            $row = $check_result->fetch_assoc();
-            
-            if ($row['pub_count'] > 0) {
-                // Publisher is in use, cannot delete
-                continue;
-            }
-            
-            // Publisher not in use, can delete
-            $delete_sql = "DELETE FROM publishers WHERE id = $publisher_id";
-            if ($conn->query($delete_sql)) {
-                $deleted++;
-            }
-        }
-        
-        if ($deleted > 0) {
-            echo "<script>
-                Swal.fire({
-                    title: 'Success!',
-                    text: '$deleted publisher(s) deleted successfully',
-                    icon: 'success',
-                    confirmButtonColor: '#3085d6',
-                    confirmButtonText: 'OK'
-                });
-            </script>";
-        } else {
-            echo "<script>
-                Swal.fire({
-                    title: 'Warning',
-                    text: 'Could not delete publishers. They may be in use by existing books.',
-                    icon: 'warning',
-                    confirmButtonColor: '#3085d6',
-                    confirmButtonText: 'OK'
-                });
-            </script>";
-        }
-    }
-}
-
-// Get the search query if it exists - keep for URL parameter compatibility
-$searchQuery = isset($_GET['search']) ? $conn->real_escape_string($_GET['search']) : '';
 ?>
 
-<!-- Main Content -->
-<div id="content">
-    <div class="container-fluid">
-        <div class="card shadow mb-4">
-            <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                <h6 class="m-0 font-weight-bold text-primary">Select Publisher for New Book</h6>
-                <button type="button" id="saveSelections" class="btn btn-primary btn-sm">
-                    <i class="fas fa-save"></i> Save Selected Publisher
-                </button>
+<!-- Begin Page Content -->
+<div class="container-fluid">
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Select Publisher</h1>
+    </div>
+
+    <!-- Notification Alert -->
+    <?php if (isset($_SESSION['message'])): ?>
+        <div class="alert alert-<?= $_SESSION['message_type'] ?> alert-dismissible fade show" role="alert">
+            <?= $_SESSION['message'] ?>
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <?php unset($_SESSION['message']); unset($_SESSION['message_type']); ?>
+    <?php endif; ?>
+
+    <!-- Main Content -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+            <h6 class="m-0 font-weight-bold text-primary">Select Publisher for New Book</h6>
+            <div>
+                <a href="#" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#addPublisherModal">
+                    <i class="fas fa-plus"></i> Add New Publisher
+                </a>
             </div>
-            <div class="card-body">
-                <div class="mb-3">
-                    <a href="step-by-step-add-book.php" class="btn btn-secondary btn-sm">
-                        <i class="fas fa-arrow-left"></i> Back to Progress Form
-                    </a>
-                    <button class="btn btn-success btn-sm ml-2" data-toggle="modal" data-target="#addPublisherModal">
-                        <i class="fas fa-plus"></i> Add New Publisher
-                    </button>
-                    <button type="button" id="deleteSelected" class="btn btn-danger btn-sm ml-2">
-                        <i class="fas fa-trash"></i> Delete Selected Publishers
-                    </button>
-                </div>
-
-                <div class="alert alert-info">
-                    <p><strong>Instructions:</strong> Select a publisher and set the publication year. You can either use the selected publisher immediately or save the selection for later.</p>
-                    <hr>
-                    <p><strong>Selection Options:</strong></p>
-                    <ul>
-                        <li><strong>Checkboxes (first column):</strong> Use these to select multiple publishers for deletion.</li>
-                        <li><strong>Radio Buttons (second column):</strong> Use these to select a single publisher for your book.</li>
-                    </ul>
-                    <p>After selecting a publisher with the radio button, click the "Save Selected Publisher" button at the top right.</p>
-                </div>
-
-                <!-- Replace search form with real-time search input -->
-                <div class="form-group">
-                    <div class="input-group mb-3">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text"><i class="fas fa-search"></i></span>
+        </div>
+        <div class="card-body">
+            <form action="step-by-step-publishers.php" method="POST">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="publisher_id">Publisher <span class="text-danger">*</span></label>
+                            <select class="form-control" id="publisher_id" name="publisher_id" required>
+                                <option value="">Select Publisher</option>
+                                <?php foreach ($publishers as $publisher): ?>
+                                    <option value="<?= $publisher['id'] ?>" 
+                                            data-place="<?= htmlspecialchars($publisher['place']) ?>"
+                                            <?= $selectedPublisherId == $publisher['id'] ? 'selected' : '' ?>>
+                                        <?= htmlspecialchars($publisher['publisher']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
-                        <input type="text" id="publisherSearch" class="form-control" placeholder="Search publishers..." value="<?php echo htmlspecialchars($searchQuery); ?>">
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="publish_year">Publication Year <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="publish_year" name="publish_year" 
+                                   placeholder="YYYY" maxlength="4" pattern="[0-9]{4}" required
+                                   value="<?= htmlspecialchars($selectedPublishYear) ?>">
+                            <small class="text-muted">Enter 4-digit year (e.g., 2023)</small>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>Place</label>
+                            <div class="form-control-plaintext" id="publisher_place">
+                                <?= !empty($selectedPublisherId) ? htmlspecialchars(getPublisherPlace($publishers, $selectedPublisherId)) : 'Not selected' ?>
+                            </div>
+                        </div>
                     </div>
                 </div>
-
-                <!-- Publishers Table -->
-                <form method="POST" id="selectPublisherForm">
-                    <div class="table-responsive">
-                        <table class="table table-bordered" id="publishersTable" width="100%" cellspacing="0">
-                            <thead>
+                
+                <!-- Publisher List -->
+                <div class="table-responsive">
+                    <h5 class="mb-3">Available Publishers:</h5>
+                    <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th width="5%">Select</th>
+                                <th width="45%">Publisher Name</th>
+                                <th width="30%">Location</th>
+                                <th width="20%">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (count($publishers) > 0): ?>
+                                <?php foreach ($publishers as $publisher): ?>
+                                    <tr>
+                                        <td class="text-center">
+                                            <div class="custom-control custom-radio">
+                                                <input type="radio" class="custom-control-input publisher-radio" 
+                                                       id="publisher_<?= $publisher['id'] ?>" 
+                                                       name="publisher_selection" 
+                                                       value="<?= $publisher['id'] ?>"
+                                                       data-name="<?= htmlspecialchars($publisher['publisher']) ?>"
+                                                       data-place="<?= htmlspecialchars($publisher['place']) ?>"
+                                                       <?= $selectedPublisherId == $publisher['id'] ? 'checked' : '' ?>>
+                                                <label class="custom-control-label" for="publisher_<?= $publisher['id'] ?>"></label>
+                                            </div>
+                                        </td>
+                                        <td><?= htmlspecialchars($publisher['publisher']) ?></td>
+                                        <td><?= htmlspecialchars($publisher['place']) ?></td>
+                                        <td class="text-center">
+                                            <a href="#" class="btn btn-sm btn-info edit-publisher" 
+                                               data-id="<?= $publisher['id'] ?>"
+                                               data-name="<?= htmlspecialchars($publisher['publisher']) ?>"
+                                               data-place="<?= htmlspecialchars($publisher['place']) ?>">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="#" class="btn btn-sm btn-danger delete-publisher" 
+                                               data-id="<?= $publisher['id'] ?>"
+                                               data-name="<?= htmlspecialchars($publisher['publisher']) ?>">
+                                                <i class="fas fa-trash"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
                                 <tr>
-                                    <th class="text-center checkbox-cell" width="50px">Select</th>
-                                    <th class="text-center radio-cell" width="50px">Select</th>
-                                    <th class="text-center">Publisher</th>
-                                    <th class="text-center">Place</th>
-                                    <th class="text-center">Year of Publication</th>
+                                    <td colspan="4" class="text-center">No publishers found. Please add some using the button above.</td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                <?php
-                                // Fetch ALL publishers from database - client-side search will filter
-                                $query = "SELECT * FROM publishers ORDER BY publisher";
-                                $result = $conn->query($query);
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
 
-                                if ($result->num_rows > 0) {
-                                    while ($row = $result->fetch_assoc()) {
-                                        $selected = (isset($_SESSION['book_shortcut']['publisher_id']) && $_SESSION['book_shortcut']['publisher_id'] == $row['id']) ? 'checked' : '';
-                                        $current_year = date('Y');
-                                        echo "<tr>
-                                            <td class='text-center align-middle checkbox-cell' data-id='{$row['id']}'>
-                                                <input type='checkbox' name='publisher_ids[]' value='{$row['id']}' class='publisher-checkbox'>
-                                            </td>
-                                            <td class='text-center align-middle radio-cell' data-id='{$row['id']}'>
-                                                <input type='radio' name='publisher_id' value='{$row['id']}' {$selected}>
-                                            </td>
-                                            <td>{$row['publisher']}</td>
-                                            <td class='text-center'>{$row['place']}</td>
-                                            <td class='text-center'>
-                                                <input type='number' name='publish_year[{$row['id']}]' 
-                                                    class='form-control mx-auto' min='1900' max='{$current_year}' 
-                                                    value='" . ($selected ? ($_SESSION['book_shortcut']['publish_year'] ?? $current_year) : $current_year) . "'>
-                                            </td>
-                                        </tr>";
-                                    }
-                                }
-                                ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </form>
-            </div>
+                <div class="mt-4 d-flex justify-content-between">
+                    <a href="step-by-step-add-book.php" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Step-by-Step
+                    </a>
+                    <button type="submit" class="btn btn-primary" id="continue-btn">
+                        Continue <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
+<!-- /.container-fluid -->
 
 <!-- Add Publisher Modal -->
 <div class="modal fade" id="addPublisherModal" tabindex="-1" role="dialog" aria-labelledby="addPublisherModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="addPublisherModalLabel">Add Publishers</h5>
+                <h5 class="modal-title" id="addPublisherModalLabel">Add New Publisher</h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <form id="addPublishersForm" method="POST">
+            <form action="process/add_publisher.php" method="POST">
                 <div class="modal-body">
-                    <div id="publishersContainer">
-                        <div class="publisher-entry mb-3">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div class="flex-grow-1">
-                                    <div class="form-group">
-                                        <label>Publisher Name</label>
-                                        <input type="text" class="form-control" name="publisher[]" required>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Place</label>
-                                        <input type="text" class="form-control" name="place[]" required>
-                                    </div>
-                                </div>
-                                <button type="button" class="btn btn-danger ml-2 remove-publisher" style="height: 38px;">×</button>
-                            </div>
-                        </div>
+                    <div class="form-group">
+                        <label for="publisher_name">Publisher Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="publisher_name" name="publisher_name" required>
                     </div>
-                    <button type="button" class="btn btn-secondary" id="addMorePublishers">Add More Publishers</button>
+                    <div class="form-group">
+                        <label for="publisher_place">Place <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="publisher_place_input" name="publisher_place" required>
+                        <small class="text-muted">Example: New York, United States</small>
+                    </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                    <button type="submit" name="save_publishers" class="btn btn-primary">Save Publishers</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Publisher</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
+<!-- Edit Publisher Modal -->
+<div class="modal fade" id="editPublisherModal" tabindex="-1" role="dialog" aria-labelledby="editPublisherModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editPublisherModalLabel">Edit Publisher</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form action="process/edit_publisher.php" method="POST">
+                <input type="hidden" name="publisher_id" id="edit_publisher_id">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="edit_publisher_name">Publisher Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="edit_publisher_name" name="publisher_name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_publisher_place">Place <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="edit_publisher_place" name="publisher_place" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Publisher</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript for Dynamic Behavior -->
 <script>
-$(document).ready(function() {
-    // Initialize DataTable with search enabled
-    var publishersTable = $('#publishersTable').DataTable({
-        "pageLength": 10,
-        "searching": true,  // Enable searching
-        "ordering": true,   // Enable column sorting
-        "info": true,       // Show info (Showing X of Y entries)
-        "paging": true,     // Enable pagination
-        "columnDefs": [
-            { "orderable": false, "targets": [0, 1, 4], "searchable": false } // Disable sorting on checkbox, radio, and year columns
-        ],
-        // Hide the default search box
-        "dom": "<'row'<'col-sm-12'tr>>" +
-               "<'row'<'col-sm-5'i><'col-sm-7'p>>",
-        "order": [[2, 'asc']] // Default sort by publisher name (column 2)
-    });
-    
-    // Link our custom search box to DataTables search
-    $('#publisherSearch').on('keyup', function() {
-        publishersTable.search(this.value).draw();
-    });
-    
-    // Set initial search value if provided
-    if ($('#publisherSearch').val()) {
-        publishersTable.search($('#publisherSearch').val()).draw();
-    }
-
-    // Save selections button handler
-    $('#saveSelections').click(function() {
-        // Validate at least one publisher is selected
-        if (!$('input[name="publisher_id"]:checked').length) {
-            Swal.fire({
-                title: 'Warning',
-                text: 'Please select a publisher.',
-                icon: 'warning',
-                confirmButtonColor: '#3085d6',
-                confirmButtonText: 'OK'
-            });
-            return;
-        }
+    $(document).ready(function() {
+        // Initialize DataTable
+        $('#dataTable').DataTable({
+            "order": [[1, "asc"]], // Sort by publisher name column
+            "pageLength": 10
+        });
         
-        // Submit the form with save_selection
-        $('<input>').attr({
-            type: 'hidden',
-            name: 'save_selection',
-            value: '1'
-        }).appendTo('#selectPublisherForm');
+        // Update publisher selection when radio button is clicked
+        $('.publisher-radio').change(function() {
+            const publisherId = $(this).val();
+            const publisherPlace = $(this).data('place');
+            
+            $('#publisher_id').val(publisherId);
+            $('#publisher_place').text(publisherPlace);
+        });
         
-        $('#selectPublisherForm').submit();
-    });
-
-    // Delete selected publishers button handler
-    $('#deleteSelected').click(function() {
-        var selectedCount = $('.publisher-checkbox:checked').length;
-        
-        if (selectedCount === 0) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Selection Required',
-                text: 'Please select at least one publisher to delete.',
-                confirmButtonColor: '#3085d6'
-            });
-            return;
-        }
-        
-        Swal.fire({
-            title: 'Confirm Deletion',
-            text: 'Are you sure you want to delete ' + selectedCount + ' selected publisher(s)?',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Yes, delete them!'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                // Create a form to submit the selected publishers for deletion
-                var form = $('<form></form>').attr('method', 'post').attr('action', '');
-                
-                // Add each selected publisher ID to the form
-                $('.publisher-checkbox:checked').each(function() {
-                    form.append($('<input>').attr('type', 'hidden').attr('name', 'delete_publishers[]').val($(this).val()));
-                });
-                
-                // Append form to body, submit it, and remove it
-                $('body').append(form);
-                form.submit();
-                form.remove();
+        // Update publisher place display when dropdown changes
+        $('#publisher_id').change(function() {
+            const selectedOption = $(this).find('option:selected');
+            const place = selectedOption.data('place') || 'Not selected';
+            
+            $('#publisher_place').text(place);
+            
+            // Update the corresponding radio button
+            const publisherId = $(this).val();
+            if (publisherId) {
+                $(`#publisher_${publisherId}`).prop('checked', true);
+            } else {
+                $('.publisher-radio').prop('checked', false);
             }
         });
-    });
+        
+        // Handle edit publisher button clicks
+        $('.edit-publisher').click(function(e) {
+            e.preventDefault();
+            const id = $(this).data('id');
+            const name = $(this).data('name');
+            const place = $(this).data('place');
+            
+            // Populate the edit modal
+            $('#edit_publisher_id').val(id);
+            $('#edit_publisher_name').val(name);
+            $('#edit_publisher_place').val(place);
+            
+            // Show the edit modal
+            $('#editPublisherModal').modal('show');
+        });
+        
+        // Handle delete publisher button clicks
+        $('.delete-publisher').click(function(e) {
+            e.preventDefault();
+            const id = $(this).data('id');
+            const name = $(this).data('name');
+            
+            // Confirm deletion
+            if (confirm(`Are you sure you want to delete the publisher "${name}"?`)) {
+                window.location.href = `process/delete_publisher.php?id=${id}`;
+            }
+        });
+        
+        // Form validation for continue button
+        $('#continue-btn').click(function(e) {
+            const publisherId = $('#publisher_id').val();
+            const publishYear = $('#publish_year').val();
+            
+            if (!publisherId) {
+                e.preventDefault();
+                alert('Please select a publisher before continuing.');
+                return false;
+            }
+            
+            if (!publishYear || !publishYear.match(/^\d{4}$/)) {
+                e.preventDefault();
+                alert('Please enter a valid 4-digit publication year.');
+                return false;
+            }
+            
+            const year = parseInt(publishYear);
+            const currentYear = new Date().getFullYear();
+            
+            if (year < 1000 || year > currentYear + 1) {
+                e.preventDefault();
+                alert(`Publication year must be a valid year (not greater than ${currentYear + 1}).`);
+                return false;
+            }
+        });
+        
+        // Auto-focus publish year when publisher is selected
+        $('#publisher_id').change(function() {
+            if ($(this).val()) {
+                $('#publish_year').focus();
+            }
+        });
 
-    // Add more publishers functionality
-    $('#addMorePublishers').click(function() {
-        var publisherEntry = `
-            <div class="publisher-entry mb-3">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div class="flex-grow-1">
-                        <div class="form-group">
-                            <label>Publisher Name</label>
-                            <input type="text" class="form-control" name="publisher[]" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Place</label>
-                            <input type="text" class="form-control" name="place[]" required>
-                        </div>
-                    </div>
-                    <button type="button" class="btn btn-danger ml-2 remove-publisher" style="height: 38px;">×</button>
-                </div>
-            </div>`;
-        $('#publishersContainer').append(publisherEntry);
+        // Fix for modal close buttons
+        // Handle close button clicks for Edit Publisher Modal
+        $('#editPublisherModal .close, #editPublisherModal .btn-secondary').click(function() {
+            $('#editPublisherModal').modal('hide');
+        });
+        
+        // Handle close button clicks for Add Publisher Modal
+        $('#addPublisherModal .close, #addPublisherModal .btn-secondary').click(function() {
+            $('#addPublisherModal').modal('hide');
+        });
     });
-
-    // Remove publisher functionality
-    $(document).on('click', '.remove-publisher', function() {
-        if ($('.publisher-entry').length > 1) {
-            $(this).closest('.publisher-entry').remove();
-        } else {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Cannot Remove',
-                text: 'At least one publisher entry must remain.',
-                confirmButtonColor: '#3085d6'
-            });
-        }
-    });
-    
-    // Add this to your existing JavaScript block
-
-    // Make the entire checkbox cell clickable
-    $(document).on('click', '.checkbox-cell', function(e) {
-        // Prevent triggering if clicking directly on the checkbox
-        if (e.target.type !== 'checkbox') {
-            const checkbox = $(this).find('input[type="checkbox"]');
-            checkbox.prop('checked', !checkbox.prop('checked'));
-            checkbox.trigger('change'); // Trigger change event to update the select all checkbox
-        }
-    });
-
-    // Make the entire radio cell clickable
-    $(document).on('click', '.radio-cell', function(e) {
-        // Prevent triggering if clicking directly on the radio
-        if (e.target.type !== 'radio') {
-            $(this).find('input[type="radio"]').prop('checked', true);
-        }
-    });
-});
 </script>
 
-<?php include 'inc/footer.php'; ?>
+<?php
+include 'inc/footer.php';
+?>

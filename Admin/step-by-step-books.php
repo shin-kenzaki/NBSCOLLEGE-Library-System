@@ -22,7 +22,7 @@ if (!isset($_SESSION['return_to_form'])) {
 }
 
 // Check if previous steps were completed
-if (!$_SESSION['book_shortcut']['steps_completed']['writer'] || !$_SESSION['book_shortcut']['steps_completed']['publisher']) {
+if (!$_SESSION['book_shortcut']['steps_completed']['writer'] || !$_SESSION['book_shortcut']['steps_completed']['corporate'] || !$_SESSION['book_shortcut']['steps_completed']['publisher']) {
     $_SESSION['error'] = "Please complete the previous steps first.";
     header("Location: step-by-step-add-book.php");
     exit();

@@ -56,11 +56,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $summary = mysqli_real_escape_string($conn, $_POST['abstract']);
         $contents = mysqli_real_escape_string($conn, $_POST['notes']);
 
-        // Process author, co-authors, and editors
+        // Process author, co-authors, editors, illustrators, translators, and corporate contributors
         $author_id = mysqli_real_escape_string($conn, $_POST['author']);
         $authors_ids = isset($_POST['authors']) ? $_POST['authors'] : [];
         $co_authors_ids = isset($_POST['co_authors']) ? $_POST['co_authors'] : [];
         $editors_ids = isset($_POST['editors']) ? $_POST['editors'] : [];
+        $illustrators_ids = isset($_POST['illustrators']) ? $_POST['illustrators'] : [];
+        $translators_ids = isset($_POST['translators']) ? $_POST['translators'] : [];
+        $corporate_contributors_ids = isset($_POST['corporate_contributors']) ? $_POST['corporate_contributors'] : [];
+        $corporate_roles = isset($_POST['corporate_roles']) ? $_POST['corporate_roles'] : [];
 
         // Process publisher and publication date
         $publisher_id = $_SESSION['book_shortcut']['publisher_id'];
@@ -251,11 +255,34 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $contributors[] = "('$book_id', '$editor_id', 'Editor')";
                 }
 
+                // Add illustrators
+                foreach ($illustrators_ids as $illustrator_id) {
+                    $contributors[] = "('$book_id', '$illustrator_id', 'Illustrator')";
+                }
+
+                // Add translators
+                foreach ($translators_ids as $translator_id) {
+                    $contributors[] = "('$book_id', '$translator_id', 'Translator')";
+                }
+
                 // Insert all contributors in one query
                 if (!empty($contributors)) {
                     $contributor_query = "INSERT INTO contributors (book_id, writer_id, role) VALUES " . implode(', ', $contributors);
                     if (!mysqli_query($conn, $contributor_query)) {
                         $error_messages[] = "Error adding contributors for book with accession $current_accession: " . mysqli_error($conn);
+                    }
+                }
+
+                // Add corporate contributors - Process corporate contributors
+                if (!empty($corporate_contributors_ids)) {
+                    for ($k = 0; $k < count($corporate_contributors_ids); $k++) {
+                        $corporate_id = mysqli_real_escape_string($conn, $corporate_contributors_ids[$k]);
+                        $role = isset($corporate_roles[$k]) ? mysqli_real_escape_string($conn, $corporate_roles[$k]) : 'Corporate Contributor';
+                        
+                        $corpQuery = "INSERT INTO corporate_contributors (book_id, corporate_id, role) VALUES ('$book_id', '$corporate_id', '$role')";
+                        if (!mysqli_query($conn, $corpQuery)) {
+                            throw new Exception("Error adding corporate contributor: " . mysqli_error($conn));
+                        }
                     }
                 }
 
@@ -375,6 +402,15 @@ while ($row = mysqli_fetch_assoc($publishers_result)) {
 }
 
 $accession_error = '';
+
+// Display the appropriate contributor sections based on contributor type
+$showIndividualContributors = !isset($_SESSION['book_shortcut']['contributor_type']) || 
+                              $_SESSION['book_shortcut']['contributor_type'] === 'individual_only' || 
+                              $_SESSION['book_shortcut']['contributor_type'] === 'both';
+
+$showCorporateContributors = !isset($_SESSION['book_shortcut']['contributor_type']) || 
+                             $_SESSION['book_shortcut']['contributor_type'] === 'corporate_only' || 
+                             $_SESSION['book_shortcut']['contributor_type'] === 'both';
 
 ?>
 
@@ -814,36 +850,49 @@ $accession_error = '';
                                         </small>
                                 </div>
 
-                                <!-- Hidden inputs for writer information -->
-                                <?php
-                                if (!empty($_SESSION['book_shortcut']['selected_writers'])) {
-                                    $mainAuthorFound = false;
-                                    foreach ($_SESSION['book_shortcut']['selected_writers'] as $index => $selected_writer) {
-                                        $writer_id = $selected_writer['id'];
-                                        $writer_role = $selected_writer['role'];
+                                <!-- Hidden inputs for writer information - only include if showing individual contributors -->
+                                <?php if ($showIndividualContributors && !empty($_SESSION['book_shortcut']['selected_writers'])): ?>
+                                    <?php
+                                    if (!empty($_SESSION['book_shortcut']['selected_writers'])) {
+                                        $mainAuthorFound = false;
+                                        $illustrators_ids = array(); // Initialize arrays for illustrators
+                                        $translators_ids = array(); // Initialize arrays for translators
+                                        
+                                        foreach ($_SESSION['book_shortcut']['selected_writers'] as $index => $selected_writer) {
+                                            $writer_id = $selected_writer['id'];
+                                            $writer_role = $selected_writer['role'];
 
-                                        if ($writer_role === 'Author') {
-                                            // For the first author, store as main author AND in the authors array
-                                            if (!$mainAuthorFound) {
-                                                echo '<input type="hidden" name="author" value="' . $writer_id . '">';
-                                                $mainAuthorFound = true;
+                                            if ($writer_role === 'Author') {
+                                                // For the first author, store as main author AND in the authors array
+                                                if (!$mainAuthorFound) {
+                                                    echo '<input type="hidden" name="author" value="' . $writer_id . '">';
+                                                    $mainAuthorFound = true;
+                                                }
+                                                // Always include all authors in the authors array
+                                                echo '<input type="hidden" name="authors[]" value="' . $writer_id . '">';
+                                            } elseif ($writer_role === 'Co-Author') {
+                                                // Add co-authors
+                                                echo '<input type="hidden" name="co_authors[]" value="' . $writer_id . '">';
+                                            } elseif ($writer_role === 'Editor') {
+                                                // Add editors
+                                                echo '<input type="hidden" name="editors[]" value="' . $writer_id . '">';
+                                            } elseif ($writer_role === 'Illustrator') {
+                                                // Add illustrators
+                                                echo '<input type="hidden" name="illustrators[]" value="' . $writer_id . '">';
+                                            } elseif ($writer_role === 'Translator') {
+                                                // Add translators
+                                                echo '<input type="hidden" name="translators[]" value="' . $writer_id . '">';
                                             }
-                                            // Always include all authors in the authors array
-                                            echo '<input type="hidden" name="authors[]" value="' . $writer_id . '">';
-                                        } elseif ($writer_role === 'Co-Author') {
-                                            // Add co-authors
-                                            echo '<input type="hidden" name="co_authors[]" value="' . $writer_id . '">';
-                                        } elseif ($writer_role === 'Editor') {
-                                            // Add editors
-                                            echo '<input type="hidden" name="editors[]" value="' . $writer_id . '">';
                                         }
+                                    } elseif (isset($_SESSION['book_shortcut']['writer_id']) && $_SESSION['book_shortcut']['writer_id']) {
+                                        // Fallback to using just the writer_id from the shortcut as the main author
+                                        echo '<input type="hidden" name="author" value="' . $_SESSION['book_shortcut']['writer_id'] . '">';
                                     }
-                                } elseif (isset($_SESSION['book_shortcut']['writer_id']) && $_SESSION['book_shortcut']['writer_id']) {
-                                    // Fallback to using just the writer_id from the shortcut as the main author
-                                    echo '<input type="hidden" name="author" value="' . $_SESSION['book_shortcut']['writer_id'] . '">';
-                                }
-                                ?>
+                                    ?>
+                                <?php endif; ?>
 
+                                <!-- Display selected contributors based on contributor type -->
+                                <?php if ($showIndividualContributors && !empty($_SESSION['book_shortcut']['selected_writers'])): ?>
                                 <div class="alert alert-info mt-4">
                                     <h5 class="mb-2">Writers from Shortcut</h5>
                                     <p>The following writers will be associated with this book:</p>
@@ -884,6 +933,43 @@ $accession_error = '';
                                     </ul>
                                     <p class="mt-2 mb-0"><small>To change writers, please <a href="step-by-step-writers.php">go back to the writers selection page</a>.</small></p>
                                 </div>
+                                <?php endif; ?>
+
+                                <!-- Add Corporate Contributors section - only show if corporate contributors are enabled -->
+                                <?php if ($showCorporateContributors && !empty($_SESSION['book_shortcut']['selected_corporates'])): ?>
+                                <div class="alert alert-info mt-4">
+                                    <h5 class="mb-2">Corporate Contributors from Shortcut</h5>
+                                    <p>The following corporate contributors will be associated with this book:</p>
+                                    <ul class="list-group">
+                                        <?php
+                                        if (!empty($_SESSION['book_shortcut']['selected_corporates'])) {
+                                            foreach ($_SESSION['book_shortcut']['selected_corporates'] as $selected_corporate) {
+                                                $corporate_id = $selected_corporate['id'];
+                                                $corporate_role = $selected_corporate['role'];
+                                                $stmt = $conn->prepare("SELECT name, type FROM corporates WHERE id = ?");
+                                                $stmt->bind_param("i", $corporate_id);
+                                                $stmt->execute();
+                                                $corporate_result = $stmt->get_result();
+
+                                                if ($corporate_result && $corporate_result->num_rows > 0) {
+                                                    $corporate = $corporate_result->fetch_assoc();
+                                                    echo '<li class="list-group-item d-flex justify-content-between align-items-center">';
+                                                    echo htmlspecialchars($corporate['name']) . ' <small class="text-muted">(' . htmlspecialchars($corporate['type']) . ')</small>';
+                                                    echo '<span class="badge badge-'.($corporate_role == 'Sponsor' ? 'primary' : 'info').'">' . htmlspecialchars($corporate_role) . '</span>';
+                                                    echo '</li>';
+                                                    echo '<input type="hidden" name="corporate_contributors[]" value="' . $corporate_id . '">';
+                                                    echo '<input type="hidden" name="corporate_roles[' . $corporate_id . ']" value="' . htmlspecialchars($corporate_role) . '">';
+                                                }
+                                                $stmt->close();
+                                            }
+                                        } else {
+                                            echo '<li class="list-group-item">No corporate contributors selected</li>';
+                                        }
+                                        ?>
+                                    </ul>
+                                    <p class="mt-2 mb-0"><small>To change corporate contributors, please <a href="step-by-step-corporates.php">go back to the corporate selection page</a>.</small></p>
+                                </div>
+                                <?php endif; ?>
                             </div>
 
                             <!-- Subject Entry Tab -->
