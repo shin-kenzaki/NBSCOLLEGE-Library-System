@@ -211,7 +211,7 @@ class ContributorSelect {
             </div>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-secondary" data-dismiss="modal" id="cancelContributorSelection">Cancel</button>
             <button type="button" class="btn btn-primary" id="confirmContributorSelection">
               Add Selected
             </button>
@@ -222,6 +222,15 @@ class ContributorSelect {
     
     // Show the modal
     $(modalElement).modal('show');
+    
+    // Add explicit event handlers for close buttons
+    modalElement.querySelector('.close').addEventListener('click', () => {
+      $(modalElement).modal('hide');
+    });
+    
+    modalElement.querySelector('#cancelContributorSelection').addEventListener('click', () => {
+      $(modalElement).modal('hide');
+    });
     
     // Setup modal event listeners
     modalElement.querySelector('#modalContributorSearch').addEventListener('input', (e) => {
@@ -282,7 +291,39 @@ class ContributorSelect {
   filterWritersList() {
     const searchTerm = this.searchInput.value.toLowerCase();
     
-    // No implementation needed here since filtering happens in the modal now
+    // Filter the currently selected contributors in the main component
+    const contributorItems = this.itemsContainer.querySelectorAll('.contributor-item');
+    
+    if (contributorItems.length === 0) return; // No items to filter
+    
+    contributorItems.forEach(item => {
+      const contributorName = item.querySelector('.contributor-item-name').textContent.trim().toLowerCase();
+      
+      // Show/hide based on search match
+      if (contributorName.includes(searchTerm)) {
+        item.style.display = '';
+      } else {
+        item.style.display = 'none';
+      }
+    });
+    
+    // If there are no visible items after filtering and there's a search term, show a message
+    const hasVisibleItems = Array.from(contributorItems).some(item => item.style.display !== 'none');
+    const emptyState = this.itemsContainer.querySelector('.contributor-empty-state');
+    
+    if (!hasVisibleItems && searchTerm && !emptyState) {
+      // Create a temporary "no results" message
+      const noResults = document.createElement('div');
+      noResults.className = 'contributor-empty-state no-results';
+      noResults.innerHTML = `
+        <i class="fas fa-search"></i>
+        <p>No contributors match "${searchTerm}"</p>
+      `;
+      this.itemsContainer.appendChild(noResults);
+    } else if ((hasVisibleItems || !searchTerm) && this.itemsContainer.querySelector('.no-results')) {
+      // Remove the "no results" message if items are visible or search is cleared
+      this.itemsContainer.querySelector('.no-results').remove();
+    }
   }
   
   addContributor(contributor) {
