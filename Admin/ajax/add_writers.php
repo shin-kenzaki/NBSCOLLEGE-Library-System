@@ -1,86 +1,79 @@
 <?php
 session_start();
-include '../../db.php';
 
-// Check if the user is logged in and has appropriate permissions
+// Check if the user is logged in with admin permissions
 if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Librarian', 'Assistant', 'Encoder'])) {
+    header('Content-Type: application/json');
     echo json_encode(['success' => false, 'message' => 'Unauthorized access']);
     exit();
 }
 
-// Set content type to JSON
-header('Content-Type: application/json');
+// Include the database connection
+require_once '../../db.php';
 
-// Get JSON data from request
+// Get JSON data from the request
 $json_data = file_get_contents('php://input');
-$authors_data = json_decode($json_data, true);
+$data = json_decode($json_data, true);
 
-if (!$authors_data || !is_array($authors_data)) {
-    echo json_encode(['success' => false, 'message' => 'Invalid data format']);
+if (!is_array($data) || empty($data)) {
+    header('Content-Type: application/json');
+    echo json_encode(['success' => false, 'message' => 'No valid data received']);
     exit();
 }
 
-$added_authors = [];
-$has_errors = false;
-$error_message = '';
+// Prepare response
+$response = [
+    'success' => true,
+    'authors' => []
+];
 
-// Process each author
-foreach ($authors_data as $author) {
-    $firstname = mysqli_real_escape_string($conn, $author['firstname']);
-    $middle_init = mysqli_real_escape_string($conn, $author['middle_init'] ?? '');
-    $lastname = mysqli_real_escape_string($conn, $author['lastname']);
-    
-    // Format the writer's full name - MODIFIED: Use the same format as in the dropdown
-    $full_name = "$lastname, $firstname";
-    if (!empty($middle_init)) {
-        $full_name .= " $middle_init";
-    }
-    
-    // Check if author already exists
-    $check_query = "SELECT id FROM writers WHERE 
-                    firstname = '$firstname' AND 
-                    middle_init = '$middle_init' AND 
-                    lastname = '$lastname'";
-    $result = mysqli_query($conn, $check_query);
-    
-    if (mysqli_num_rows($result) > 0) {
-        // Author already exists
-        $row = mysqli_fetch_assoc($result);
-        $author_id = $row['id'];
-        $added_authors[] = [
-            'id' => $author_id,
-            'name' => $full_name,
-            'status' => 'existing'
-        ];
-    } else {
-        // Add new author
-        $insert_query = "INSERT INTO writers (firstname, middle_init, lastname) 
-                        VALUES ('$firstname', '$middle_init', '$lastname')";
-        if (mysqli_query($conn, $insert_query)) {
-            $author_id = mysqli_insert_id($conn);
-            $added_authors[] = [
-                'id' => $author_id,
-                'name' => $full_name,
-                'status' => 'new'
-            ];
-        } else {
-            $has_errors = true;
-            $error_message .= "Error adding author $firstname $lastname: " . mysqli_error($conn) . "; ";
+// Begin a transaction
+mysqli_begin_transaction($conn);
+
+try {
+    foreach ($data as $author) {
+        // Validate required fields
+        if (empty($author['firstname']) || empty($author['lastname'])) {
+            throw new Exception('First name and last name are required for all authors');
         }
-    }
-}
 
-if ($has_errors) {
+        // Sanitize inputs
+        $firstname = mysqli_real_escape_string($conn, $author['firstname']);
+        $middle_init = mysqli_real_escape_string($conn, $author['middle_init'] ?? '');
+        $lastname = mysqli_real_escape_string($conn, $author['lastname']);
+
+        // Insert the writer
+        $insert_query = "INSERT INTO writers (firstname, middle_init, lastname, date_added) 
+                         VALUES ('$firstname', '$middle_init', '$lastname', NOW())";
+        
+        if (!mysqli_query($conn, $insert_query)) {
+            throw new Exception('Error inserting author: ' . mysqli_error($conn));
+        }
+
+        $author_id = mysqli_insert_id($conn);
+        $full_name = "$lastname, $firstname" . ($middle_init ? " $middle_init" : "");
+
+        // Add to response
+        $response['authors'][] = [
+            'id' => $author_id,
+            'name' => $full_name
+        ];
+    }
+
+    // Commit the transaction
+    mysqli_commit($conn);
+
+    // Return success response
+    header('Content-Type: application/json');
+    echo json_encode($response);
+} catch (Exception $e) {
+    // Rollback the transaction on error
+    mysqli_rollback($conn);
+
+    header('Content-Type: application/json');
     echo json_encode([
         'success' => false,
-        'message' => $error_message,
-        'authors' => $added_authors // Return any authors that were successfully added
-    ]);
-} else {
-    echo json_encode([
-        'success' => true,
-        'message' => 'All authors added successfully',
-        'authors' => $added_authors
+        'message' => $e->getMessage()
     ]);
 }
 ?>

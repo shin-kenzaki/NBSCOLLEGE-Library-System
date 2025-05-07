@@ -26,7 +26,6 @@ if (isset($_POST['submit'])) {
         'title',
         'publisher',
         'publish_date',
-        'author',
         'accession'
     ];
 
@@ -38,20 +37,7 @@ if (isset($_POST['submit'])) {
         }
     }
 
-    // Additional validation for author to ensure it contains at least one valid ID
-    if (isset($_POST['author']) && is_array($_POST['author'])) {
-        $has_valid_author = false;
-        foreach ($_POST['author'] as $author_id) {
-            if (!empty($author_id) && intval($author_id) > 0) {
-                $has_valid_author = true;
-                break;
-            }
-        }
-
-        if (!$has_valid_author) {
-            $errors[] = 'At least one valid author must be selected';
-        }
-    }
+    // Note: Author validation removed - author is no longer required
 
     if (!empty($errors)) {
         $_SESSION['error_message'] = 'Please fix the following errors: ' . implode(', ', $errors);
@@ -241,53 +227,42 @@ if (isset($_POST['submit'])) {
                     // --- Add: Track accession string for image and supplementary content update ---
                     $inserted_accessions[] = $accession_str;
 
-                    // 2. Insert contributors (authors)
-                    if (isset($_POST['author']) && is_array($_POST['author'])) {
+                    // UPDATED: Process contributors using the new format from ContributorSelect
+                    if (isset($_POST['contributor_ids']) && isset($_POST['contributor_roles']) && 
+                        is_array($_POST['contributor_ids']) && is_array($_POST['contributor_roles'])) {
+                        
+                        $contributor_count = count($_POST['contributor_ids']);
                         $author_added = false;
-                        foreach ($_POST['author'] as $author_id) {
-                            $author_id = intval($author_id);
-                            if ($author_id > 0) {
-                                $insert_contributor_query = "INSERT INTO contributors (book_id, writer_id, role)
-                                    VALUES ('$book_id', '$author_id', 'Author')";
-
+                        
+                        for ($j = 0; $j < $contributor_count; $j++) {
+                            $contributor_id = intval($_POST['contributor_ids'][$j]);
+                            $role = mysqli_real_escape_string($conn, $_POST['contributor_roles'][$j]);
+                            
+                            if ($contributor_id > 0) {
+                                // Insert the contributor with the specified role
+                                $insert_contributor_query = "INSERT INTO contributors (book_id, writer_id, role) 
+                                    VALUES ('$book_id', '$contributor_id', '$role')";
+                                
                                 if (!mysqli_query($conn, $insert_contributor_query)) {
-                                    throw new Exception("Error inserting author: " . mysqli_error($conn));
+                                    throw new Exception("Error inserting contributor: " . mysqli_error($conn));
                                 }
-                                $author_added = true;
+                                
+                                // Mark that we've added at least one contributor
+                                if ($role === 'author') {
+                                    $author_added = true;
+                                }
                             }
                         }
-
-                        if (!$author_added) {
-                            throw new Exception("No valid author was added to the book.");
+                        
+                        // Optionally: Check if at least one main author was added
+                        // This check is now optional since authors are no longer required
+                        if (!$author_added && !empty($_POST['contributor_ids'])) {
+                            // Log a warning but don't throw an exception
+                            error_log("Warning: Book ID $book_id was added without a main author");
                         }
                     } else {
-                        throw new Exception("Author information is missing.");
-                    }
-
-                    // 3. Insert co-authors if any
-                    if (isset($_POST['co_authors']) && is_array($_POST['co_authors'])) {
-                        foreach ($_POST['co_authors'] as $co_author) {
-                            $co_author_id = intval($co_author);
-                            $insert_co_author_query = "INSERT INTO contributors (book_id, writer_id, role)
-                                VALUES ('$book_id', '$co_author_id', 'Co-Author')";
-
-                            if (!mysqli_query($conn, $insert_co_author_query)) {
-                                throw new Exception("Error inserting co-author: " . mysqli_error($conn));
-                            }
-                        }
-                    }
-
-                    // 4. Insert editors if any
-                    if (isset($_POST['editors']) && is_array($_POST['editors'])) {
-                        foreach ($_POST['editors'] as $editor) {
-                            $editor_id = intval($editor);
-                            $insert_editor_query = "INSERT INTO contributors (book_id, writer_id, role)
-                                VALUES ('$book_id', '$editor_id', 'Editor')";
-
-                            if (!mysqli_query($conn, $insert_editor_query)) {
-                                throw new Exception("Error inserting editor: " . mysqli_error($conn));
-                            }
-                        }
+                        // No contributors added - log a warning but continue
+                        error_log("No contributors data found for Book ID $book_id");
                     }
 
                     // 5. Insert publication information

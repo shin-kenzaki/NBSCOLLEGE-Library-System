@@ -53,6 +53,15 @@ while ($row = mysqli_fetch_assoc($writers_result)) {
     $writers[] = $row;
 }
 
+// Define contributor roles for the merged dropdown
+$contributor_roles = [
+    'author' => 'Author',
+    'co_author' => 'Co-Author', 
+    'editor' => 'Editor',
+    'illustrator' => 'Illustrator',
+    'translator' => 'Translator'
+];
+
 // Fetch publishers for the dropdown
 $publishers_query = "SELECT id, publisher, place FROM publishers";
 $publishers_result = mysqli_query($conn, $publishers_query);
@@ -64,6 +73,9 @@ while ($row = mysqli_fetch_assoc($publishers_result)) {
 $accession_error = '';
 
 ?>
+
+<!-- Include the new contributor select CSS -->
+<link rel="stylesheet" href="css/contributor-select.css">
 
 <!-- Add these responsive styles before the closing </head> tag -->
 <style>
@@ -1335,95 +1347,11 @@ $accession_error = '';
                                         <h5 class="mb-0">Contributors</h5>
                                     </div>
                                     <div class="card-body">
-                                        <!-- Contributors Row Layout -->
-                                        <div class="row">
-                                            <!-- Authors Section -->
-                                            <div class="col-md-4">
-                                                <div class="form-group">
-                                                    <label for="authorSelect">Author(s)</label>
-                                                    <div class="input-group mb-2">
-                                                        <input type="text" id="authorSearch" class="form-control" placeholder="Search authors...">
-                                                        <div class="input-group-append">
-                                                            <button class="btn btn-outline-secondary" type="button" id="addNewAuthorBtn">
-                                                                <i class="fas fa-plus"></i> New Author
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                    <select id="authorSelect" name="author[]" class="form-control" multiple onchange="updatePreviewRealtime('authorSelect', 'authorPreview')">
-                                                        <?php foreach ($writers as $writer): ?>
-                                                            <option value="<?php echo $writer['id']; ?>"><?php echo $writer['name']; ?></option>
-                                                        <?php endforeach; ?>
-                                                    </select>
-                                                    <!-- Author Preview -->
-                                                    <div class="preview-container">
-                                                        <div id="authorPreview" class="selected-preview mt-2"></div>
-                                                        <div id="authorCount" class="selection-count-badge">0</div>
-                                                    </div>
-                                                    <div class="mt-2">
-                                                        <small class="text-primary d-block mb-1">
-                                                            <i class="fas fa-keyboard mr-1"></i> Hold <kbd>Ctrl</kbd> (Windows) or <kbd>⌘ Cmd</kbd> (Mac) to select multiple items
-                                                        </small>
-                                                        <small class="form-text text-muted">
-                                                            <i class="fas fa-info-circle mr-1"></i> Main author(s) primarily responsible for the intellectual content of the work
-                                                        </small>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <!-- Co-Authors Section -->
-                                            <div class="col-md-4">
-                                                <div class="form-group">
-                                                    <label for="coAuthorsSelect">Co-Author(s)</label>
-                                                    <div class="input-group mb-2">
-                                                        <input type="text" id="coAuthorsSearch" class="form-control" placeholder="Search co-authors...">
-                                                    </div>
-                                                    <select id="coAuthorsSelect" name="co_authors[]" class="form-control" multiple onchange="updatePreviewRealtime('coAuthorsSelect', 'coAuthorsPreview')">
-                                                        <?php foreach ($writers as $writer): ?>
-                                                            <option value="<?php echo $writer['id']; ?>"><?php echo $writer['name']; ?></option>
-                                                        <?php endforeach; ?>
-                                                    </select>
-                                                    <!-- Co-Authors Preview -->
-                                                    <div class="preview-container">
-                                                        <div id="coAuthorsPreview" class="selected-preview mt-2"></div>
-                                                        <div id="coAuthorCount" class="selection-count-badge">0</div>
-                                                    </div>
-                                                    <div class="mt-2">
-                                                        <small class="text-primary d-block mb-1">
-                                                            <i class="fas fa-keyboard mr-1"></i> Hold <kbd>Ctrl</kbd> (Windows) or <kbd>⌘ Cmd</kbd> (Mac) to select multiple items
-                                                        </small>
-                                                        <small class="form-text text-muted">
-                                                            <i class="fas fa-info-circle mr-1"></i> Secondary authors who contributed to the work but are not the main authors
-                                                        </small>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <!-- Editors Section -->
-                                            <div class="col-md-4">
-                                                <div class="form-group">
-                                                    <label for="editorsSelect">Editor(s)</label>
-                                                    <div class="input-group mb-2">
-                                                        <input type="text" id="editorsSearch" class="form-control" placeholder="Search editors...">
-                                                    </div>
-                                                    <select id="editorsSelect" name="editors[]" class="form-control" multiple onchange="updatePreviewRealtime('editorsSelect', 'editorsPreview')">
-                                                        <?php foreach ($writers as $writer): ?>
-                                                            <option value="<?php echo $writer['id']; ?>"><?php echo $writer['name']; ?></option>
-                                                        <?php endforeach; ?>
-                                                    </select>
-                                                    <!-- Editors Preview -->
-                                                    <div class="preview-container">
-                                                        <div id="editorsPreview" class="selected-preview mt-2"></div>
-                                                        <div id="editorCount" class="selection-count-badge">0</div>
-                                                    </div>
-                                                    <div class="mt-2">
-                                                        <small class="text-primary d-block mb-1">
-                                                            <i class="fas fa-keyboard mr-1"></i> Hold <kbd>Ctrl</kbd> (Windows) or <kbd>⌘ Cmd</kbd> (Mac) to select multiple items
-                                                        </small>
-                                                        <small class="form-text text-muted">
-                                                            <i class="fas fa-info-circle mr-1"></i> People who edited, compiled, or curated the work rather than creating it
-                                                        </small>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                        <div class="card-body">
+                                            <div id="contributorSelectContainer"></div>
                                         </div>
+                                        <!-- Contributors Row Layout -->
+                                        
 
                                         <!-- Enhanced preview styles -->
                                         <style>
@@ -1843,6 +1771,54 @@ $accession_error = '';
     </div>
 </div>
 <?php include 'inc/footer.php'; ?>
+
+<!-- Include the contributor select JS file before the closing body tag -->
+<script src="js/contributor-select.js"></script>
+
+<!-- Initialize the contributor select component -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Get writer data from PHP
+    const writersData = <?php echo json_encode($writers); ?>;
+    
+    // Define contributor roles
+    const contributorRoles = <?php echo json_encode($contributor_roles); ?>;
+    
+    // Initialize the contributor select component
+    const contributorSelect = new ContributorSelect({
+        containerId: 'contributorSelectContainer',
+        writersData: writersData,
+        roles: contributorRoles,
+        onSelectionChange: function(contributors) {
+            console.log('Contributors changed:', contributors);
+        },
+        addNewCallback: function() {
+            // Use the existing function to show add author dialog
+            if (typeof showAddAuthorDialog === 'function') {
+                showAddAuthorDialog();
+            }
+        }
+    });
+    
+    // Create a function to update writer data after adding new writers
+    window.updateContributorSelectData = function(newWriters) {
+        if (Array.isArray(newWriters)) {
+            contributorSelect.refreshWritersData(newWriters);
+        }
+    };
+    
+    // Update the form submission to handle the new contributor format without requiring authors
+    const bookForm = document.getElementById('bookForm');
+    if (bookForm) {
+        bookForm.addEventListener('submit', function(e) {
+            // Get all selected contributors
+            const contributors = contributorSelect.getSelectedContributors();
+            
+            // Author is no longer required - removed validation check
+        });
+    }
+});
+</script>
 
 <!-- Instructions Modal (detailed version) -->
 <div class="modal fade" id="instructionsModal" tabindex="-1" role="dialog" aria-labelledby="instructionsModalLabel" aria-hidden="true">
@@ -2422,10 +2398,6 @@ $accession_error = '';
 }
 </style>
 
-<!-- Bootstrap and JS -->
-<script src="inc/js/demo/chart-area-demo.js"></script>
-<script src="inc/js/demo/chart-pie-demo.js"></script>
-<script src="inc/js/demo/chart-bar-demo.js"></script>
 
 <script>
 // Form clear functionality integrated directly
