@@ -49,6 +49,48 @@ if (isset($_POST['submit'])) {
     $total_copies_added = 0;
     $book_titles = [];
 
+    // Debug information for individual contributors
+    $has_individual_contributors = isset($_POST['contributor_ids']) && 
+                                  isset($_POST['contributor_roles']) &&
+                                  is_array($_POST['contributor_ids']) && 
+                                  is_array($_POST['contributor_roles']);
+    
+    $individual_contributor_count = $has_individual_contributors ? count($_POST['contributor_ids']) : 0;
+    
+    // Log the individual contributor info for debugging
+    error_log("Individual contributors found: " . ($has_individual_contributors ? "Yes" : "No") . 
+              ", Count: " . $individual_contributor_count);
+    
+    if ($has_individual_contributors) {
+        // Log each individual contributor for debugging
+        for ($j = 0; $j < $individual_contributor_count; $j++) {
+            $contributor_id = $_POST['contributor_ids'][$j];
+            $role = $_POST['contributor_roles'][$j];
+            error_log("Individual contributor $j: ID=$contributor_id, Role=$role");
+        }
+    }
+
+    // Debug information for corporate contributors
+    $has_corporate_contributors = isset($_POST['corporate_contributor_ids']) && 
+                                 isset($_POST['corporate_contributor_roles']) &&
+                                 is_array($_POST['corporate_contributor_ids']) && 
+                                 is_array($_POST['corporate_contributor_roles']);
+    
+    $corporate_contributor_count = $has_corporate_contributors ? count($_POST['corporate_contributor_ids']) : 0;
+    
+    // Log the corporate contributor info for debugging
+    error_log("Corporate contributors found: " . ($has_corporate_contributors ? "Yes" : "No") . 
+              ", Count: " . $corporate_contributor_count);
+    
+    if ($has_corporate_contributors) {
+        // Log each corporate contributor for debugging
+        for ($j = 0; $j < $corporate_contributor_count; $j++) {
+            $corporate_id = $_POST['corporate_contributor_ids'][$j];
+            $role = $_POST['corporate_contributor_roles'][$j];
+            error_log("Corporate contributor $j: ID=$corporate_id, Role=$role");
+        }
+    }
+
     // Initialize counter for successful insertions and store book title
     $successful_inserts = 0;
     $book_title = mysqli_real_escape_string($conn, $_POST['title']);
@@ -227,16 +269,20 @@ if (isset($_POST['submit'])) {
                     // --- Add: Track accession string for image and supplementary content update ---
                     $inserted_accessions[] = $accession_str;
 
-                    // UPDATED: Process contributors using the new format from ContributorSelect
+                    // UPDATED: Process contributors using the new format from ContributorSelect with better error handling
                     if (isset($_POST['contributor_ids']) && isset($_POST['contributor_roles']) && 
                         is_array($_POST['contributor_ids']) && is_array($_POST['contributor_roles'])) {
                         
                         $contributor_count = count($_POST['contributor_ids']);
                         $author_added = false;
                         
+                        error_log("Processing $contributor_count individual contributors for book ID $book_id");
+                        
                         for ($j = 0; $j < $contributor_count; $j++) {
                             $contributor_id = intval($_POST['contributor_ids'][$j]);
                             $role = mysqli_real_escape_string($conn, $_POST['contributor_roles'][$j]);
+                            
+                            error_log("Adding individual contributor: ID=$contributor_id, Role=$role to book_id=$book_id");
                             
                             if ($contributor_id > 0) {
                                 // Insert the contributor with the specified role
@@ -244,25 +290,61 @@ if (isset($_POST['submit'])) {
                                     VALUES ('$book_id', '$contributor_id', '$role')";
                                 
                                 if (!mysqli_query($conn, $insert_contributor_query)) {
-                                    throw new Exception("Error inserting contributor: " . mysqli_error($conn));
+                                    $error_msg = mysqli_error($conn);
+                                    error_log("Failed to insert individual contributor: $error_msg");
+                                    throw new Exception("Error inserting contributor: $error_msg");
+                                } else {
+                                    error_log("Successfully inserted individual contributor #$j with ID $contributor_id and role '$role'");
                                 }
                                 
                                 // Mark that we've added at least one contributor
                                 if ($role === 'author') {
                                     $author_added = true;
+                                    error_log("Author role detected, marking book as having an author");
                                 }
+                            } else {
+                                error_log("Skipping invalid contributor ID: $contributor_id");
                             }
                         }
+                    } else {
+                        error_log("No individual contributors data available for this book");
+                    }
+
+                    // UPDATED: Process corporate contributors for each book copy with improved error handling
+                    if (isset($_POST['corporate_contributor_ids']) && isset($_POST['corporate_contributor_roles']) && 
+                        is_array($_POST['corporate_contributor_ids']) && is_array($_POST['corporate_contributor_roles'])) {
                         
-                        // Optionally: Check if at least one main author was added
-                        // This check is now optional since authors are no longer required
-                        if (!$author_added && !empty($_POST['contributor_ids'])) {
-                            // Log a warning but don't throw an exception
-                            error_log("Warning: Book ID $book_id was added without a main author");
+                        $corporate_count = count($_POST['corporate_contributor_ids']);
+                        error_log("Processing $corporate_count corporate contributors for book ID $book_id");
+                        
+                        for ($j = 0; $j < $corporate_count; $j++) {
+                            $corporate_id = intval($_POST['corporate_contributor_ids'][$j]);
+                            $role = mysqli_real_escape_string($conn, $_POST['corporate_contributor_roles'][$j]);
+                            
+                            error_log("Adding corporate contributor: ID=$corporate_id, Role=$role to book_id=$book_id");
+                            
+                            if ($corporate_id > 0) {
+                                // Insert the corporate entity with the specified role
+                                $insert_corporate_query = "INSERT INTO corporate_contributors (book_id, corporate_id, role) 
+                                    VALUES ('$book_id', '$corporate_id', '$role')";
+                                
+                                if (!mysqli_query($conn, $insert_corporate_query)) {
+                                    $error_msg = mysqli_error($conn);
+                                    error_log("Failed to insert corporate contributor: $error_msg");
+                                    throw new Exception("Error inserting corporate contributor: $error_msg");
+                                }
+                                
+                                // If role is corporate_author, also mark as having an author
+                                if ($role === 'corporate_author') {
+                                    $author_added = true;
+                                    error_log("Corporate author role detected, marking book as having an author");
+                                }
+                            } else {
+                                error_log("Skipping invalid corporate ID: $corporate_id");
+                            }
                         }
                     } else {
-                        // No contributors added - log a warning but continue
-                        error_log("No contributors data found for Book ID $book_id");
+                        error_log("No corporate contributors data available for this book");
                     }
 
                     // 5. Insert publication information

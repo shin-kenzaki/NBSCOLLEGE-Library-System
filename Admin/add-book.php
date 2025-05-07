@@ -414,9 +414,9 @@ $accession_error = '';
 <div id="content-wrapper" class="d-flex flex-column min-vh-100">
     <div id="content" class="flex-grow-1">
         <div class="container-fluid">
-            <!-- Fix: Remove enctype if not needed -->
+            <!-- UPDATE: Add onsubmit to ensure corporate contributors are included -->
             <form id="bookForm" action="add-book.php" method="POST" enctype="multipart/form-data" class="h-100"
-                  onkeydown="return event.key != 'Enter';">
+                  onsubmit="return prepareFormSubmission()" onkeydown="return event.key != 'Enter';">
                 <div class="container-fluid d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
                     <h1 class="h3 mb-2 text-gray-800">Add Book</h1>
                     <div class="button-group mt-2 mt-md-0">
@@ -1347,44 +1347,50 @@ $accession_error = '';
                                         <h5 class="mb-0">Contributors</h5>
                                     </div>
                                     <div class="card-body">
-                                        <div class="card-body">
-                                            <div id="contributorSelectContainer"></div>
+                                        <!-- Contributors Section -->
+                                        <div class="row">
+                                            <!-- Individual Contributors Card - Left Column -->
+                                            <div class="col-lg-6">
+                                                <div class="card mb-4">
+                                                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                                                        <h6 class="m-0 font-weight-bold text-primary">Individual Contributors</h6>
+                                                        <button type="button" id="addNewAuthorBtn" class="btn btn-sm btn-primary">
+                                                            <i class="fas fa-plus-circle"></i> Add New Author
+                                                        </button>
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <p class="small text-muted mb-3">
+                                                            <i class="fas fa-info-circle mr-1"></i> Select authors, editors, and other individual contributors to this publication
+                                                        </p>
+                                                        <div id="contributorSelectContainer"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Corporate Contributors Card - Right Column -->
+                                            <div class="col-lg-6">
+                                                <div class="card mb-4">
+                                                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                                                        <h6 class="m-0 font-weight-bold text-primary">Corporate Contributors</h6>
+                                                        <button type="button" id="addNewCorporateBtn" class="btn btn-sm btn-primary">
+                                                            <i class="fas fa-plus-circle"></i> Add New Corporate
+                                                        </button>
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <p class="small text-muted mb-3">
+                                                            <i class="fas fa-info-circle mr-1"></i> Select corporate entities (organizations, institutions, etc.) that contributed to this publication
+                                                        </p>
+                                                        
+                                                        <!-- Corporate Contributor Select Component -->
+                                                        <div id="corporateContributorSelectContainer"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <!-- Contributors Row Layout -->
                                         
 
                                         <!-- Enhanced preview styles -->
                                         <style>
-                                        .preview-container {
-                                            position: relative;
-                                            margin-top: 0.5rem;
-                                        }
-                                        
-                                        .selected-preview {
-                                            min-height: 36px;
-                                            max-height: 120px;
-                                            overflow-y: auto;
-                                            padding: 5px;
-                                            border: 1px solid #e3e6f0;
-                                            border-radius: 4px;
-                                            background-color: #f8f9fc;
-                                            display: flex;
-                                            flex-wrap: wrap;
-                                            align-content: flex-start;
-                                        }
-                                        
-                                        .selected-preview:empty {
-                                            display: flex;
-                                            justify-content: center;
-                                            align-items: center;
-                                        }
-                                        
-                                        .selected-preview:empty::after {
-                                            content: "No items selected";
-                                            color: #858796;
-                                            font-style: italic;
-                                            font-size: 0.85rem;
-                                        }
                                         
                                         .selected-preview .preview-badge {
                                             display: inline-flex;
@@ -1442,10 +1448,6 @@ $accession_error = '';
                                             background: rgba(255,255,255,0.3);
                                             transform: scale(1.1);
                                         }
-
-                                        .preview-badge.author-badge { background: linear-gradient(135deg, #FF0000 0%, #B22222 100%); }
-                                        .preview-badge.coauthor-badge { background: linear-gradient(135deg, #4169E1 0%, #0000CD 100%); }
-                                        .preview-badge.editor-badge { background: linear-gradient(135deg, #808080 0%, #696969 100%); color: white; }
                                         
                                         @keyframes fadeIn {
                                             from { opacity: 0; transform: translateY(5px); }
@@ -1785,12 +1787,17 @@ document.addEventListener('DOMContentLoaded', function() {
     const contributorRoles = <?php echo json_encode($contributor_roles); ?>;
     
     // Initialize the contributor select component
-    const contributorSelect = new ContributorSelect({
+    window.contributorSelect = new ContributorSelect({
         containerId: 'contributorSelectContainer',
         writersData: writersData,
         roles: contributorRoles,
         onSelectionChange: function(contributors) {
             console.log('Contributors changed:', contributors);
+            // Debug output of current contributors
+            if (contributors && contributors.length > 0) {
+                console.log(`Current contributors (${contributors.length}):`, 
+                    contributors.map(c => `ID=${c.id}, Role=${c.role}`).join(', '));
+            }
         },
         addNewCallback: function() {
             // Use the existing function to show add author dialog
@@ -1806,17 +1813,6 @@ document.addEventListener('DOMContentLoaded', function() {
             contributorSelect.refreshWritersData(newWriters);
         }
     };
-    
-    // Update the form submission to handle the new contributor format without requiring authors
-    const bookForm = document.getElementById('bookForm');
-    if (bookForm) {
-        bookForm.addEventListener('submit', function(e) {
-            // Get all selected contributors
-            const contributors = contributorSelect.getSelectedContributors();
-            
-            // Author is no longer required - removed validation check
-        });
-    }
 });
 </script>
 
@@ -2398,6 +2394,283 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 </style>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Update the corporate contributor initialization to store the instance globally
+    fetch('ajax/get_corporates.php')
+        .then(response => response.json())
+        .then(data => {
+            // Initialize the corporate contributor select component and store globally
+            window.corporateContributorSelect = new ContributorSelect({
+                containerId: 'corporateContributorSelectContainer',
+                writersData: data.map(corporate => ({
+                    id: corporate.id,
+                    name: `${corporate.name} (${corporate.type})`
+                })),
+                roles: {
+                    'corporate_author': 'Corporate Author',
+                    'corporate_contributor': 'Corporate Contributor',
+                    'publisher': 'Publisher',
+                    'distributor': 'Distributor',
+                    'sponsor': 'Sponsor',
+                    'funding_body': 'Funding Body',
+                    'research_institution': 'Research Institution'
+                },
+                onSelectionChange: function(corporates) {
+                    console.log('Corporate Contributors changed:', corporates);
+                },
+                addNewCallback: function() {
+                    showAddCorporateDialog();
+                }
+            });
+            
+            // Complete the implementation of the updateCorporateContributorSelectData function
+            window.updateCorporateContributorSelectData = function(newCorporates) {
+                if (Array.isArray(newCorporates)) {
+                    // First fetch the current list of corporates
+                    fetch('ajax/get_corporates.php')
+                        .then(response => response.json())
+                        .then(data => {
+                            // Get reference to the corporateContributorSelect instance
+                            if (window.corporateContributorSelect) {
+                                // Format the data appropriately
+                                const formattedData = data.map(corporate => ({
+                                    id: corporate.id,
+                                    name: `${corporate.name} (${corporate.type})`
+                                }));
+                                
+                                // Update the select component with all corporates
+                                window.corporateContributorSelect.refreshWritersData(formattedData);
+                                console.log('Corporate contributors list updated with all entries:', formattedData.length);
+                            } else {
+                                console.error('Corporate contributor select component not initialized');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error refreshing corporate entities list:', error);
+                        });
+                }
+            };
+        })
+
+        .catch(error => {
+            console.error('Error fetching corporate entities:', error);
+            document.getElementById('corporateContributorSelectContainer').innerHTML = 
+                '<div class="alert alert-danger">Error loading corporate entities. Please refresh the page.</div>';
+        });
+
+        // Create a function to show the add corporate entity dialog using SweetAlert
+        window.showAddCorporateDialog = function() {
+            Swal.fire({
+                title: '<i class="fas fa-building"></i> Add New Corporate Entity',
+                html: `
+                    <div id="sweetAlertCorporateContainer">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="corporate_name">Name</label>
+                                    <input type="text" class="form-control" id="corporate_name" placeholder="Enter corporate name" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="corporate_type">Type</label>
+                                    <select class="form-control" id="corporate_type" required>
+                                        <option value="">Select Type</option>
+                                        <option value="Government">Government</option>
+                                        <option value="Educational">Educational</option>
+                                        <option value="Non-profit">Non-profit</option>
+                                        <option value="Research">Research</option>
+                                        <option value="Corporate">Corporate</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="corporate_location">Location</label>
+                                    <input type="text" class="form-control" id="corporate_location" placeholder="Enter location">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="corporate_description">Description</label>
+                                    <textarea class="form-control" id="corporate_description" rows="2"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: '<i class="fas fa-save"></i> Save Corporate Entity',
+                confirmButtonColor: '#3085d6',
+                cancelButtonText: '<i class="fas fa-times"></i> Cancel',
+                cancelButtonColor: '#d33',
+                width: '800px',
+                customClass: {
+                    cancelButton: 'btn btn-danger'
+                },
+                preConfirm: () => {
+                    // Validate required fields
+                    const name = document.getElementById('corporate_name').value.trim();
+                    const type = document.getElementById('corporate_type').value;
+                    
+                    if (!name || !type) {
+                        Swal.showValidationMessage('Name and Type are required');
+                        return false;
+                    }
+                    
+                    return {
+                        name: name,
+                        type: type,
+                        location: document.getElementById('corporate_location').value.trim(),
+                        description: document.getElementById('corporate_description').value.trim()
+                    };
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Save the new corporate entity via AJAX
+                    fetch('ajax/add_corporate.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(result.value)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success',
+                                text: data.message,
+                                timer: 1500
+                            });
+                            
+                            // Update the corporate contributor select component
+                            if (typeof updateCorporateContributorSelectData === 'function') {
+                                updateCorporateContributorSelectData([data.corporate]);
+                            }
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: data.message
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error adding corporate entity:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Failed to add corporate entity. Please try again.'
+                        });
+                    });
+                }
+            });
+        };
+
+    // Connect the Add New Corporate Entity button
+    const addNewCorporateBtn = document.getElementById('addNewCorporateBtn');
+    if (addNewCorporateBtn) {
+        addNewCorporateBtn.addEventListener('click', showAddCorporateDialog);
+    }
+});
+/**
+ * Prepare form for submission by adding all contributor data as hidden fields
+ * This ensures contributors are always included regardless of submission method
+ */
+function prepareFormSubmission() {
+    try {
+        // First, remove any existing hidden contributor fields to avoid duplicates
+        document.querySelectorAll('input[name="corporate_contributor_ids[]"], input[name="corporate_contributor_roles[]"]').forEach(el => el.remove());
+        document.querySelectorAll('input[name="contributor_ids[]"], input[name="contributor_roles[]"]').forEach(el => el.remove());
+        
+        // Get the form element
+        const form = document.getElementById('bookForm');
+        
+        // Get individual contributors if component exists
+        if (window.contributorSelect && typeof window.contributorSelect.getSelectedContributors === 'function') {
+            const individualContributors = window.contributorSelect.getSelectedContributors();
+            console.log(`Adding ${individualContributors.length} individual contributors to form`);
+            
+            // Add hidden inputs for individual contributors
+            individualContributors.forEach((contributor) => {
+                const idInput = document.createElement('input');
+                idInput.type = 'hidden';
+                idInput.name = 'contributor_ids[]';
+                idInput.value = contributor.id;
+                
+                const roleInput = document.createElement('input');
+                roleInput.type = 'hidden';
+                roleInput.name = 'contributor_roles[]';
+                roleInput.value = contributor.role;
+                
+                form.appendChild(idInput);
+                form.appendChild(roleInput);
+            });
+        }
+        
+        // Get corporate contributors if component exists
+        if (window.corporateContributorSelect && typeof window.corporateContributorSelect.getSelectedContributors === 'function') {
+            const corporateContributors = window.corporateContributorSelect.getSelectedContributors();
+            console.log(`Adding ${corporateContributors.length} corporate contributors to form`);
+            
+            // Add hidden inputs for corporate contributors
+            corporateContributors.forEach((corporate) => {
+                const idInput = document.createElement('input');
+                idInput.type = 'hidden';
+                idInput.name = 'corporate_contributor_ids[]';
+                idInput.value = corporate.id;
+                
+                const roleInput = document.createElement('input');
+                roleInput.type = 'hidden';
+                roleInput.name = 'corporate_contributor_roles[]';
+                roleInput.value = corporate.role;
+                
+                form.appendChild(idInput);
+                form.appendChild(roleInput);
+            });
+        }
+        
+        // Also add formatted call numbers as hidden fields if they exist
+        document.querySelectorAll('.call-number-input').forEach((input, index) => {
+            if (input.dataset.formattedCallNumber) {
+                const formattedInput = document.createElement('input');
+                formattedInput.type = 'hidden';
+                formattedInput.name = 'formatted_call_numbers[]';
+                formattedInput.value = input.dataset.formattedCallNumber;
+                form.appendChild(formattedInput);
+            }
+        });
+        
+        console.log('Form preparation complete, ready for submission');
+        return true; // Allow form submission to continue
+    } catch (error) {
+        console.error('Error preparing form for submission:', error);
+        return false; // Prevent form submission if there was an error
+    }
+}
+
+// Remove the old event listener approach that might not catch all submission methods
+document.addEventListener('DOMContentLoaded', function() {
+    // Still keep a backup method for the submit button clicks
+    document.getElementById('bookForm').addEventListener('submit', function(e) {
+        // The onsubmit attribute will handle this, but as a backup:
+        if (!this.querySelector('input[name="corporate_contributor_ids[]"]') && 
+            window.corporateContributorSelect && 
+            typeof window.corporateContributorSelect.getSelectedContributors === 'function') {
+            
+            e.preventDefault(); // Stop the submission temporarily
+            prepareFormSubmission(); // Prepare the form
+            this.submit(); // Continue with submission
+        }
+    });
+});
+</script>
 
 <script>
 // Form clear functionality integrated directly
@@ -5580,6 +5853,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 });
 </script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     // Update file input labels when a file is selected
