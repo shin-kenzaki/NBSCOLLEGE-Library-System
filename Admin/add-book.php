@@ -1092,11 +1092,11 @@ $accession_error = '';
                                             <i class="fas fa-exclamation-triangle mr-1"></i>
                                             <strong>Call Number Format Guidelines:</strong>
                                             <ul class="mb-0 small pl-4 mt-2">
-                                                <li>Enter only the main classification and author cutter (e.g., "HD69.B7 W56")</li>
-                                                <li>Use a single space between classification and author cutter</li>
-                                                <li>Don't include the shelf location, year, volume, part or copy number - these are added automatically</li>
+                                                <li>Enter the classification, author cutter, and publication year (e.g., "L34.45 M45 2001")</li>
+                                                <li>Use proper spacing between elements (classification, cutter, year)</li>
+                                                <li>Don't include the shelf location, volume, part or copy number - these are added automatically</li>
                                                 <li>Preview shows the complete formatted call number that will be saved</li>
-                                                <li><strong>Example:</strong> You enter "HD69.B7 W56" → System saves as "REF HD69.B7 W56 c2023 v.2 pt.3 c1"</li>
+                                                <li><strong>Example:</strong> You enter "L34.45 M45 2001" → System saves as "REF L34.45 M45 2001 v.2 pt.3 c.1"</li>
                                             </ul>
                                         </div>
                                     </div>
@@ -1342,376 +1342,366 @@ $accession_error = '';
                                 <div id="isbnContainer">
                                     <!-- ISBN/Series/Volume/Edition fields will be generated here by JavaScript -->
                                 </div>
-                                <div class="card mb-4">
-                                    <div class="card-header">
-                                        <h5 class="mb-0">Contributors</h5>
-                                    </div>
-                                    <div class="card-body">
-                                        <!-- Contributors Section -->
-                                        <div class="row">
-                                            <!-- Individual Contributors Card - Left Column -->
-                                            <div class="col-lg-6">
-                                                <div class="card mb-4">
-                                                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                                                        <h6 class="m-0 font-weight-bold text-primary">Individual Contributors</h6>
-                                                        <button type="button" id="addNewAuthorBtn" class="btn btn-sm btn-primary">
-                                                            <i class="fas fa-plus-circle"></i> Add New Author
-                                                        </button>
-                                                    </div>
-                                                    <div class="card-body">
-                                                        <p class="small text-muted mb-3">
-                                                            <i class="fas fa-info-circle mr-1"></i> Select authors, editors, and other individual contributors to this publication
-                                                        </p>
-                                                        <div id="contributorSelectContainer"></div>
-                                                    </div>
-                                                </div>
+                                <!-- Individual Contributors Card -->
+                                <div class="row">
+                                    <div class="col-lg-6">
+                                        <div class="card mb-4">
+                                            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                                                <h5 class="m-0 font-weight-bold text-primary">Individual Contributors</h5>
+                                                <button type="button" id="addNewAuthorBtn" class="btn btn-sm btn-primary">
+                                                    <i class="fas fa-plus-circle"></i> Add New Author
+                                                </button>
                                             </div>
-                                            
-                                            <!-- Corporate Contributors Card - Right Column -->
-                                            <div class="col-lg-6">
-                                                <div class="card mb-4">
-                                                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                                                        <h6 class="m-0 font-weight-bold text-primary">Corporate Contributors</h6>
-                                                        <button type="button" id="addNewCorporateBtn" class="btn btn-sm btn-primary">
-                                                            <i class="fas fa-plus-circle"></i> Add New Corporate
-                                                        </button>
-                                                    </div>
-                                                    <div class="card-body">
-                                                        <p class="small text-muted mb-3">
-                                                            <i class="fas fa-info-circle mr-1"></i> Select corporate entities (organizations, institutions, etc.) that contributed to this publication
-                                                        </p>
-                                                        
-                                                        <!-- Corporate Contributor Select Component -->
-                                                        <div id="corporateContributorSelectContainer"></div>
-                                                    </div>
-                                                </div>
+                                            <div class="card-body">
+                                                <p class="small text-muted mb-3">
+                                                    <i class="fas fa-info-circle mr-1"></i> Select authors, editors, and other individual contributors to this publication
+                                                </p>
+                                                <div id="contributorSelectContainer"></div>
                                             </div>
                                         </div>
-                                        
-
-                                        <!-- Enhanced preview styles -->
-                                        <style>
-                                        
-                                        .selected-preview .preview-badge {
-                                            display: inline-flex;
-                                            align-items: center;
-                                            margin: 3px;
-                                            padding: 4px 8px;
-                                            background: linear-gradient(135deg, #4e73df 0%, #2e59d9 100%);
-                                            color: white;
-                                            border-radius: 30px;
-                                            font-size: 0.85rem;
-                                            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                                            transition: all 0.2s ease-in-out;
-                                            position: relative;
-                                            overflow: hidden;
-                                        }
-                                        
-                                        .selected-preview .preview-badge::before {
-                                            content: '';
-                                            position: absolute;
-                                            top: 0;
-                                            left: 0;
-                                            width: 100%;
-                                            height: 100%;
-                                            background: rgba(255,255,255,0.1);
-                                            transform: translateX(-100%);
-                                            transition: transform 0.3s ease-out;
-                                        }
-                                        
-                                        .selected-preview .preview-badge:hover {
-                                            transform: translateY(-2px);
-                                            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-                                        }
-                                        
-                                        .selected-preview .preview-badge:hover::before {
-                                            transform: translateX(0);
-                                        }
-                                        
-                                        .selected-preview .remove-icon {
-                                            margin-left: 6px;
-                                            cursor: pointer;
-                                            opacity: 0.7;
-                                            transition: all 0.2s ease;
-                                            background: rgba(255,255,255,0.2);
-                                            border-radius: 50%;
-                                            width: 18px;
-                                            height: 18px;
-                                            display: inline-flex;
-                                            align-items: center;
-                                            justify-content: center;
-                                            font-size: 10px;
-                                        }
-                                        
-                                        .selected-preview .remove-icon:hover {
-                                            opacity: 1;
-                                            background: rgba(255,255,255,0.3);
-                                            transform: scale(1.1);
-                                        }
-                                        
-                                        @keyframes fadeIn {
-                                            from { opacity: 0; transform: translateY(5px); }
-                                            to { opacity: 1; transform: translateY(0); }
-                                        }
-                                        
-                                        .preview-badge {
-                                            animation: fadeIn 0.3s ease forwards;
-                                        }
-                                        
-                                        /* Enhanced Number badge styling - positioned at corner of preview */
-                                        .selection-count-badge {
-                                            position: absolute;
-                                            top: -8px;
-                                            right: -8px;
-                                            display: flex;
-                                            align-items: center;
-                                            justify-content: center;
-                                            min-width: 24px;
-                                            height: 24px;
-                                            border-radius: 50%;
-                                            color: white;
-                                            font-size: 0.75rem;
-                                            font-weight: bold;
-                                            padding: 0 4px;
-                                            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-                                            z-index: 5;
-                                            transition: all 0.3s ease;
-                                            border: 2px solid #fff;
-                                        }
-                                        
-                                        /* Different colors for different sections */
-                                        #authorCount {
-                                            background-color: #FF0000;
-                                        }
-                                        
-                                        #coAuthorCount {
-                                            background-color: #4169E1;
-                                        }
-                                        
-                                        #editorCount {
-                                            background-color: #808080;
-                                            color: white;
-                                        }
-                                        
-                                        /* Make badge pulse when count changes */
-                                        @keyframes pulse {
-                                            0% { transform: scale(1); }
-                                            50% { transform: scale(1.3); }
-                                            100% { transform: scale(1); }
-                                        }
-                                        
-                                        .pulse {
-                                            animation: pulse 0.4s ease-in-out;
-                                        }
-                                        </style>
-
-                                        <!-- Add real-time preview script -->
-                                        <script>
-                                        // Function to update preview in real-time
-                                        function updatePreviewRealtime(selectId, previewId) {
-                                            const select = document.getElementById(selectId);
-                                            const preview = document.getElementById(previewId);
-                                            
-                                            // Clear current preview
-                                            preview.innerHTML = '';
-                                            
-                                            // Determine badge type and count badge ID based on selectId
-                                            let badgeClass = 'author-badge';
-                                            let countBadgeId = 'authorCount';
-                                            
-                                            if (selectId === 'coAuthorsSelect') {
-                                                badgeClass = 'coauthor-badge';
-                                                countBadgeId = 'coAuthorCount';
-                                            }
-                                            
-                                            if (selectId === 'editorsSelect') {
-                                                badgeClass = 'editor-badge';
-                                                countBadgeId = 'editorCount';
-                                            }
-                                            
-                                            // Get the count badge element
-                                            const countBadge = document.getElementById(countBadgeId);
-                                            const selectedCount = select.selectedOptions.length;
-                                            
-                                            // Update the count
-                                            const oldCount = parseInt(countBadge.textContent);
-                                            countBadge.textContent = selectedCount;
-                                            
-                                            // Add pulse animation if count changed
-                                            if (oldCount !== selectedCount) {
-                                                countBadge.classList.remove('pulse');
-                                                setTimeout(() => {
-                                                    countBadge.classList.add('pulse');
-                                                }, 10);
-                                            }
-                                            
-                                            // Show/hide badge based on count
-                                            if (selectedCount > 0) {
-                                                countBadge.style.display = 'flex';
-                                            } else {
-                                                countBadge.style.display = 'none';
-                                            }
-                                            
-                                            // Generate badges for each selected option with staggered animation
-                                            Array.from(select.selectedOptions).forEach((option, index) => {
-                                                const badge = document.createElement('span');
-                                                badge.className = `preview-badge ${badgeClass}`;
-                                                badge.style.animationDelay = `${index * 0.05}s`;
+                                    </div>
+                                    
+                                    <!-- Corporate Contributors Card -->
+                                    <div class="col-lg-6">
+                                        <div class="card mb-4">
+                                            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                                                <h5 class="m-0 font-weight-bold text-primary">Corporate Contributors</h5>
+                                                <button type="button" id="addNewCorporateBtn" class="btn btn-sm btn-primary">
+                                                    <i class="fas fa-plus-circle"></i> Add New Corporate
+                                                </button>
+                                            </div>
+                                            <div class="card-body">
+                                                <p class="small text-muted mb-3">
+                                                    <i class="fas fa-info-circle mr-1"></i> Select corporate entities (organizations, institutions, etc.) that contributed to this publication
+                                                </p>
                                                 
-                                                // Truncate very long names
-                                                let displayName = option.text;
-                                                if (displayName.length > 30) {
-                                                    displayName = displayName.substring(0, 27) + '...';
-                                                    badge.title = option.text; // Show full name on hover
-                                                }
-                                                
-                                                badge.innerHTML = `${displayName} <i class="fas fa-times remove-icon" data-select="${selectId}" data-value="${option.value}"></i>`;
-                                                preview.appendChild(badge);
-                                            });
-                                            
-                                            // Add click handlers to remove icons
-                                            preview.querySelectorAll('.remove-icon').forEach(icon => {
-                                                icon.addEventListener('click', function(e) {
-                                                    e.stopPropagation(); // Prevent event bubbling
-                                                    
-                                                    const selectElement = document.getElementById(this.dataset.select);
-                                                    const value = this.dataset.value;
-                                                    const badge = this.closest('.preview-badge');
-                                                    
-                                                    // Animation for removal
-                                                    badge.style.transition = 'all 0.2s ease-out';
-                                                    badge.style.transform = 'scale(0.8)';
-                                                    badge.style.opacity = '0';
-                                                    
-                                                    setTimeout(() => {
-                                                        // Find and unselect the option
-                                                        for(let i = 0; i < selectElement.options.length; i++) {
-                                                            if(selectElement.options[i].value === value) {
-                                                                selectElement.options[i].selected = false;
-                                                                break;
-                                                            }
-                                                        }
-                                                        
-                                                        // Update the preview
-                                                        updatePreviewRealtime(this.dataset.select, previewId);
-                                                    }, 200);
-                                                });
-                                            });
-                                            
-                                            // Make the badges clickable to show the full name if truncated
-                                            preview.querySelectorAll('.preview-badge').forEach(badge => {
-                                                if (badge.title) {
-                                                    badge.style.cursor = 'help';
-                                                }
-                                            });
-                                        }
-                                        
-                                        // Function to clear all author previews
-                                        function clearAuthorPreviews() {
-                                            // Clear all selections
-                                            ['authorSelect', 'coAuthorsSelect', 'editorsSelect'].forEach(selectId => {
-                                                const select = document.getElementById(selectId);
-                                                if (select) {
-                                                    // Deselect all options
-                                                    for(let i = 0; i < select.options.length; i++) {
-                                                        select.options[i].selected = false;
-                                                    }
-                                                }
-                                            });
-                                            
-                                            // Update all previews
-                                            updatePreviewRealtime('authorSelect', 'authorPreview');
-                                            updatePreviewRealtime('coAuthorsSelect', 'coAuthorsPreview');
-                                            updatePreviewRealtime('editorsSelect', 'editorsPreview');
-                                            
-                                            // Hide count badges
-                                            document.getElementById('authorCount').style.display = 'none';
-                                            document.getElementById('authorCount').textContent = '0';
-                                            document.getElementById('coAuthorCount').style.display = 'none';
-                                            document.getElementById('coAuthorCount').textContent = '0';
-                                            document.getElementById('editorCount').style.display = 'none';
-                                            document.getElementById('editorCount').textContent = '0';
-                                        }
-                                        
-                                        // Initialize previews on page load
-                                        document.addEventListener('DOMContentLoaded', function() {
-                                            // Initialize count badges to be hidden if empty
-                                            document.querySelectorAll('.selection-count-badge').forEach(badge => {
-                                                if (badge.textContent === '0') {
-                                                    badge.style.display = 'none';
-                                                }
-                                            });
-                                            
-                                            updatePreviewRealtime('authorSelect', 'authorPreview');
-                                            updatePreviewRealtime('coAuthorsSelect', 'coAuthorsPreview');
-                                            updatePreviewRealtime('editorsSelect', 'editorsPreview');
-                                            
-                                            // Make search fields also update the preview in real-time
-                                            document.getElementById('authorSearch').addEventListener('input', function() {
-                                                setTimeout(() => updatePreviewRealtime('authorSelect', 'authorPreview'), 100);
-                                            });
-                                            
-                                            document.getElementById('coAuthorsSearch').addEventListener('input', function() {
-                                                setTimeout(() => updatePreviewRealtime('coAuthorsSelect', 'coAuthorsPreview'), 100);
-                                            });
-                                            
-                                            document.getElementById('editorsSearch').addEventListener('input', function() {
-                                                setTimeout(() => updatePreviewRealtime('editorsSelect', 'editorsPreview'), 100);
-                                            });
-                                            
-                                            // Add filtering functionality for search boxes
-                                            setupFilterDropdown('authorSearch', 'authorSelect');
-                                            setupFilterDropdown('coAuthorsSearch', 'coAuthorsSelect');
-                                            setupFilterDropdown('editorsSearch', 'editorsSelect');
-                                            
-                                            // Hook into the "Clear Form" and "Clear Tab" functionality
-                                            const clearFormBtn = document.querySelector('[data-clear-form]');
-                                            const clearTabBtns = document.querySelectorAll('.clear-tab-btn');
-                                            
-                                            if (clearFormBtn) {
-                                                const originalClickHandler = clearFormBtn.onclick;
-                                                clearFormBtn.onclick = function(e) {
-                                                    if (originalClickHandler) originalClickHandler.call(this, e);
-                                                    // Clear author previews
-                                                    clearAuthorPreviews();
-                                                };
-                                            }
-                                            
-                                            // Add clear functionality for publication tab specifically
-                                            clearTabBtns.forEach(btn => {
-                                                if (btn.getAttribute('data-tab-id') === 'publication') {
-                                                    const originalClickHandler = btn.onclick;
-                                                    btn.onclick = function(e) {
-                                                        if (originalClickHandler) originalClickHandler.call(this, e);
-                                                        // Clear author previews
-                                                        clearAuthorPreviews();
-                                                    };
-                                                }
-                                            });
-                                        });
-                                        
-                                        // Setup dropdown filtering function
-                                        function setupFilterDropdown(inputId, selectId) {
-                                            const input = document.getElementById(inputId);
-                                            const select = document.getElementById(selectId);
-                                            
-                                            if (input && select) {
-                                                input.addEventListener('input', function() {
-                                                    const filterText = this.value.toLowerCase();
-                                                    
-                                                    Array.from(select.options).forEach(option => {
-                                                        const optionText = option.text.toLowerCase();
-                                                        const match = optionText.includes(filterText);
-                                                        
-                                                        // Use modern approach for hiding options
-                                                        option.style.display = match ? '' : 'none';
-                                                    });
-                                                });
-                                            }
-                                        }
-                                        </script>
+                                                <!-- Corporate Contributor Select Component -->
+                                                <div id="corporateContributorSelectContainer"></div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
+
+                                <!-- Enhanced preview styles -->
+                                <style>
+                                .selected-preview .preview-badge {
+                                    display: inline-flex;
+                                    align-items: center;
+                                    margin: 3px;
+                                    padding: 4px 8px;
+                                    background: linear-gradient(135deg, #4e73df 0%, #2e59d9 100%);
+                                    color: white;
+                                    border-radius: 30px;
+                                    font-size: 0.85rem;
+                                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                                    transition: all 0.2s ease-in-out;
+                                    position: relative;
+                                    overflow: hidden;
+                                }
+
+                                .selected-preview .preview-badge::before {
+                                    content: '';
+                                    position: absolute;
+                                    top: 0;
+                                    left: 0;
+                                    width: 100%;
+                                    height: 100%;
+                                    background: rgba(255,255,255,0.1);
+                                    transform: translateX(-100%);
+                                    transition: transform 0.3s ease-out;
+                                }
+
+                                .selected-preview .preview-badge:hover {
+                                    transform: translateY(-2px);
+                                    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+                                }
+
+                                .selected-preview .preview-badge:hover::before {
+                                    transform: translateX(0);
+                                }
+
+                                .selected-preview .remove-icon {
+                                    margin-left: 6px;
+                                    cursor: pointer;
+                                    opacity: 0.7;
+                                    transition: all 0.2s ease;
+                                    background: rgba(255,255,255,0.2);
+                                    border-radius: 50%;
+                                    width: 18px;
+                                    height: 18px;
+                                    display: inline-flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                    font-size: 10px;
+                                }
+
+                                .selected-preview .remove-icon:hover {
+                                    opacity: 1;
+                                    background: rgba(255,255,255,0.3);
+                                    transform: scale(1.1);
+                                }
+
+                                @keyframes fadeIn {
+                                    from { opacity: 0; transform: translateY(5px); }
+                                    to { opacity: 1; transform: translateY(0); }
+                                }
+
+                                .preview-badge {
+                                    animation: fadeIn 0.3s ease forwards;
+                                }
+
+                                /* Enhanced Number badge styling - positioned at corner of preview */
+                                .selection-count-badge {
+                                    position: absolute;
+                                    top: -8px;
+                                    right: -8px;
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                    min-width: 24px;
+                                    height: 24px;
+                                    border-radius: 50%;
+                                    color: white;
+                                    font-size: 0.75rem;
+                                    font-weight: bold;
+                                    padding: 0 4px;
+                                    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+                                    z-index: 5;
+                                    transition: all 0.3s ease;
+                                    border: 2px solid #fff;
+                                }
+
+                                /* Different colors for different sections */
+                                #authorCount {
+                                    background-color: #FF0000;
+                                }
+
+                                #coAuthorCount {
+                                    background-color: #4169E1;
+                                }
+
+                                #editorCount {
+                                    background-color: #808080;
+                                    color: white;
+                                }
+
+                                /* Make badge pulse when count changes */
+                                @keyframes pulse {
+                                    0% { transform: scale(1); }
+                                    50% { transform: scale(1.3); }
+                                    100% { transform: scale(1); }
+                                }
+
+                                .pulse {
+                                    animation: pulse 0.4s ease-in-out;
+                                }
+                                </style>
+
+                                <!-- Add real-time preview script -->
+                                <script>
+                                // Function to update preview in real-time
+                                function updatePreviewRealtime(selectId, previewId) {
+                                    const select = document.getElementById(selectId);
+                                    const preview = document.getElementById(previewId);
+                                    
+                                    // Clear current preview
+                                    preview.innerHTML = '';
+                                    
+                                    // Determine badge type and count badge ID based on selectId
+                                    let badgeClass = 'author-badge';
+                                    let countBadgeId = 'authorCount';
+                                    
+                                    if (selectId === 'coAuthorsSelect') {
+                                        badgeClass = 'coauthor-badge';
+                                        countBadgeId = 'coAuthorCount';
+                                    }
+                                    
+                                    if (selectId === 'editorsSelect') {
+                                        badgeClass = 'editor-badge';
+                                        countBadgeId = 'editorCount';
+                                    }
+                                    
+                                    // Get the count badge element
+                                    const countBadge = document.getElementById(countBadgeId);
+                                    const selectedCount = select.selectedOptions.length;
+                                    
+                                    // Update the count
+                                    const oldCount = parseInt(countBadge.textContent);
+                                    countBadge.textContent = selectedCount;
+                                    
+                                    // Add pulse animation if count changed
+                                    if (oldCount !== selectedCount) {
+                                        countBadge.classList.remove('pulse');
+                                        setTimeout(() => {
+                                            countBadge.classList.add('pulse');
+                                        }, 10);
+                                    }
+                                    
+                                    // Show/hide badge based on count
+                                    if (selectedCount > 0) {
+                                        countBadge.style.display = 'flex';
+                                    } else {
+                                        countBadge.style.display = 'none';
+                                    }
+                                    
+                                    // Generate badges for each selected option with staggered animation
+                                    Array.from(select.selectedOptions).forEach((option, index) => {
+                                        const badge = document.createElement('span');
+                                        badge.className = `preview-badge ${badgeClass}`;
+                                        badge.style.animationDelay = `${index * 0.05}s`;
+                                        
+                                        // Truncate very long names
+                                        let displayName = option.text;
+                                        if (displayName.length > 30) {
+                                            displayName = displayName.substring(0, 27) + '...';
+                                            badge.title = option.text; // Show full name on hover
+                                        }
+                                        
+                                        badge.innerHTML = `${displayName} <i class="fas fa-times remove-icon" data-select="${selectId}" data-value="${option.value}"></i>`;
+                                        preview.appendChild(badge);
+                                    });
+                                    
+                                    // Add click handlers to remove icons
+                                    preview.querySelectorAll('.remove-icon').forEach(icon => {
+                                        icon.addEventListener('click', function(e) {
+                                            e.stopPropagation(); // Prevent event bubbling
+                                            
+                                            const selectElement = document.getElementById(this.dataset.select);
+                                            const value = this.dataset.value;
+                                            const badge = this.closest('.preview-badge');
+                                            
+                                            // Animation for removal
+                                            badge.style.transition = 'all 0.2s ease-out';
+                                            badge.style.transform = 'scale(0.8)';
+                                            badge.style.opacity = '0';
+                                            
+                                            setTimeout(() => {
+                                                // Find and unselect the option
+                                                for(let i = 0; i < selectElement.options.length; i++) {
+                                                    if(selectElement.options[i].value === value) {
+                                                        selectElement.options[i].selected = false;
+                                                        break;
+                                                    }
+                                                }
+                                                
+                                                // Update the preview
+                                                updatePreviewRealtime(this.dataset.select, previewId);
+                                            }, 200);
+                                        });
+                                    });
+                                    
+                                    // Make the badges clickable to show the full name if truncated
+                                    preview.querySelectorAll('.preview-badge').forEach(badge => {
+                                        if (badge.title) {
+                                            badge.style.cursor = 'help';
+                                        }
+                                    });
+                                }
+
+                                // Function to clear all author previews
+                                function clearAuthorPreviews() {
+                                    // Clear all selections
+                                    ['authorSelect', 'coAuthorsSelect', 'editorsSelect'].forEach(selectId => {
+                                        const select = document.getElementById(selectId);
+                                        if (select) {
+                                            // Deselect all options
+                                            for(let i = 0; i < select.options.length; i++) {
+                                                select.options[i].selected = false;
+                                            }
+                                        }
+                                    });
+                                    
+                                    // Update all previews
+                                    updatePreviewRealtime('authorSelect', 'authorPreview');
+                                    updatePreviewRealtime('coAuthorsSelect', 'coAuthorsPreview');
+                                    updatePreviewRealtime('editorsSelect', 'editorsPreview');
+                                    
+                                    // Hide count badges
+                                    document.getElementById('authorCount').style.display = 'none';
+                                    document.getElementById('authorCount').textContent = '0';
+                                    document.getElementById('coAuthorCount').style.display = 'none';
+                                    document.getElementById('coAuthorCount').textContent = '0';
+                                    document.getElementById('editorCount').style.display = 'none';
+                                    document.getElementById('editorCount').textContent = '0';
+                                }
+
+                                // Initialize previews on page load
+                                document.addEventListener('DOMContentLoaded', function() {
+                                    // Initialize count badges to be hidden if empty
+                                    document.querySelectorAll('.selection-count-badge').forEach(badge => {
+                                        if (badge.textContent === '0') {
+                                            badge.style.display = 'none';
+                                        }
+                                    });
+                                    
+                                    updatePreviewRealtime('authorSelect', 'authorPreview');
+                                    updatePreviewRealtime('coAuthorsSelect', 'coAuthorsPreview');
+                                    updatePreviewRealtime('editorsSelect', 'editorsPreview');
+                                    
+                                    // Make search fields also update the preview in real-time
+                                    document.getElementById('authorSearch').addEventListener('input', function() {
+                                        setTimeout(() => updatePreviewRealtime('authorSelect', 'authorPreview'), 100);
+                                    });
+                                    
+                                    document.getElementById('coAuthorsSearch').addEventListener('input', function() {
+                                        setTimeout(() => updatePreviewRealtime('coAuthorsSelect', 'coAuthorsPreview'), 100);
+                                    });
+                                    
+                                    document.getElementById('editorsSearch').addEventListener('input', function() {
+                                        setTimeout(() => updatePreviewRealtime('editorsSelect', 'editorsPreview'), 100);
+                                    });
+                                    
+                                    // Add filtering functionality for search boxes
+                                    setupFilterDropdown('authorSearch', 'authorSelect');
+                                    setupFilterDropdown('coAuthorsSearch', 'coAuthorsSelect');
+                                    setupFilterDropdown('editorsSearch', 'editorsSelect');
+                                    
+                                    // Hook into the "Clear Form" and "Clear Tab" functionality
+                                    const clearFormBtn = document.querySelector('[data-clear-form]');
+                                    const clearTabBtns = document.querySelectorAll('.clear-tab-btn');
+                                    
+                                    if (clearFormBtn) {
+                                        const originalClickHandler = clearFormBtn.onclick;
+                                        clearFormBtn.onclick = function(e) {
+                                            if (originalClickHandler) originalClickHandler.call(this, e);
+                                            // Clear author previews
+                                            clearAuthorPreviews();
+                                        };
+                                    }
+                                    
+                                    // Add clear functionality for publication tab specifically
+                                    clearTabBtns.forEach(btn => {
+                                        if (btn.getAttribute('data-tab-id') === 'publication') {
+                                            const originalClickHandler = btn.onclick;
+                                            btn.onclick = function(e) {
+                                                if (originalClickHandler) originalClickHandler.call(this, e);
+                                                // Clear author previews
+                                                clearAuthorPreviews();
+                                            };
+                                        }
+                                    });
+                                });
+
+                                // Setup dropdown filtering function
+                                function setupFilterDropdown(inputId, selectId) {
+                                    const input = document.getElementById(inputId);
+                                    const select = document.getElementById(selectId);
+                                    
+                                    if (input && select) {
+                                        input.addEventListener('input', function() {
+                                            const filterText = this.value.toLowerCase();
+                                            
+                                            Array.from(select.options).forEach(option => {
+                                                const optionText = option.text.toLowerCase();
+                                                const match = optionText.includes(filterText);
+                                                
+                                                // Use modern approach for hiding options
+                                                option.style.display = match ? '' : 'none';
+                                            });
+                                        });
+                                    }
+                                }
+                                </script>
                                 <!-- System Info -->
                                 <div class="card">
                                     <div class="card-header">
@@ -2108,8 +2098,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                 
                                 <h6><strong>Call Number Format:</strong></h6>
                                 <p>The system will automatically format your call number following this pattern:</p>
-                                <code>LOCATION CALLNUMBER cYEAR VOLUME PART c#</code>
-                                
+                                <code>LOCATION CALLNUMBER VOLUME PART c#</code>
+
                                 <div class="table-responsive mt-3">
                                     <table class="table table-bordered table-sm">
                                         <thead class="thead-light">
@@ -2127,13 +2117,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                             </tr>
                                             <tr>
                                                 <td>CALLNUMBER</td>
-                                                <td>Classification and author cutter</td>
-                                                <td>HD69.B7 W56</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cYEAR</td>
-                                                <td>Publication year with 'c' prefix</td>
-                                                <td>c2023</td>
+                                                <td>Classification, author cutter, and publication year</td>
+                                                <td>L34.45 M45 2001</td>
                                             </tr>
                                             <tr>
                                                 <td>VOLUME</td>
@@ -2148,17 +2133,17 @@ document.addEventListener('DOMContentLoaded', function() {
                                             <tr>
                                                 <td>c#</td>
                                                 <td>Copy number with 'c' prefix</td>
-                                                <td>c3</td>
+                                                <td>c.3</td>
                                             </tr>
                                         </tbody>
                                     </table>
                                 </div>
-                                
+
                                 <h6 class="mt-3"><strong>Example:</strong></h6>
-                                <p><code>REF HD69.B7 W56 c2023 v.2 pt.3 c1</code></p>
-                                
+                                <p><code>REF L34.45 M45 2001 v.2 pt.3 c.1</code></p>
+
                                 <div class="alert alert-warning mt-3">
-                                    <i class="fas fa-exclamation-triangle"></i> <strong>Important:</strong> Enter only the classification and author cutter in the call number field. The system will automatically add the location, year, volume, part, and copy number.
+                                    <i class="fas fa-exclamation-triangle"></i> <strong>Important:</strong> Enter the classification, author cutter, and publication year in the call number field. The system will automatically add the location, volume, part, and copy number.
                                 </div>
                             </div>
                         </div>
@@ -4014,7 +3999,7 @@ function updateISBNFields() {
             callNumberInput.type = 'text';
             callNumberInput.className = 'form-control call-number-input';
             callNumberInput.name = 'call_number[]';
-            callNumberInput.placeholder = 'Enter call number';
+            callNumberInput.placeholder = 'Enter call number (ex: L34.45 M45 2001)';
 
             const shelfLocationSelect = document.createElement('select');
             shelfLocationSelect.className = 'form-control shelf-location-select';
@@ -4331,7 +4316,7 @@ function updateCallNumbers() {
             callNumberInput.type = 'text';
             callNumberInput.className = 'form-control call-number-input';
             callNumberInput.name = 'call_number[]';
-            callNumberInput.placeholder = 'Enter call number';
+            callNumberInput.placeholder = 'Enter call number (ex: L34.45 M45 2001)';
 
             const shelfLocationSelect = document.createElement('select');
             shelfLocationSelect.className = 'form-control shelf-location-select';
@@ -4446,7 +4431,7 @@ function createCallNumberRow(container, baseAccession, increment, groupIndex) {
     callNumberInput.type = 'text';
     callNumberInput.className = 'form-control call-number-input';
     callNumberInput.name = 'call_number[]';
-    callNumberInput.placeholder = 'Enter call number';
+    callNumberInput.placeholder = 'Enter call number (ex: L34.45 M45 2001)';
 
     const copyNumberLabel = document.createElement('span');
     copyNumberLabel.className = 'input-group-text';
@@ -4544,7 +4529,7 @@ function formatCallNumberDisplay(callNumberInput) {
     let formattedCallNumber = [];
     formattedCallNumber.push(shelfLocation);
 
-    // Add base call number as-is without splitting/trimming to preserve spaces
+    // Add base call number as-is without splitting/trimming to preserve spaces and publication year
     formattedCallNumber.push(baseCallNumber);
 
     // REMOVED: Copyright year is no longer included in call number format
