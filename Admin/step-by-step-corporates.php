@@ -196,10 +196,6 @@ include 'inc/header.php';
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
-                            <?php else: ?>
-                                <tr>
-                                    <td colspan="5" class="text-center">No corporate entities found. Please add some using the button above.</td>
-                                </tr>
                             <?php endif; ?>
                         </tbody>
                     </table>

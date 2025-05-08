@@ -194,10 +194,6 @@ include 'inc/header.php';
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
-                            <?php else: ?>
-                                <tr>
-                                    <td colspan="4" class="text-center">No writers found. Please add some using the button above.</td>
-                                </tr>
                             <?php endif; ?>
                         </tbody>
                     </table>

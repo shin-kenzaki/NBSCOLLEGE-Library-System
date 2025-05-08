@@ -204,10 +204,6 @@ function getPublisherPlace($publishers, $publisherId) {
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
-                            <?php else: ?>
-                                <tr>
-                                    <td colspan="4" class="text-center">No publishers found. Please add some using the button above.</td>
-                                </tr>
                             <?php endif; ?>
                         </tbody>
                     </table>
