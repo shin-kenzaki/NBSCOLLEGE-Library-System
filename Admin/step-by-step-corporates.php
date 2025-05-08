@@ -33,9 +33,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $selectedCorporates = [];
         $corporateRoles = $_POST['corporate_roles'] ?? [];
 
-        foreach ($_POST['corporate_ids'] as $key => $corporateId) {
+        foreach ($_POST['corporate_ids'] as $corporateId) {
             if (!empty($corporateId)) {
-                $role = isset($corporateRoles[$key]) ? $corporateRoles[$key] : 'Corporate Contributor';
+                $role = isset($corporateRoles[$corporateId]) ? $corporateRoles[$corporateId] : 'Corporate Contributor';
                 $selectedCorporates[] = [
                     'id' => $corporateId,
                     'role' => $role
@@ -63,11 +63,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header("Location: step-by-step-add-book.php");
         exit();
     }
-}
-
-// Clear corporate contributors if we're returning to this step
-if (isset($_SESSION['return_to_form']) && $_SESSION['return_to_form']) {
-    $_SESSION['book_shortcut']['selected_corporates'] = [];
 }
 
 // Get all corporate entries
@@ -175,7 +170,7 @@ include 'inc/header.php';
                                         <td><?= htmlspecialchars($corporate['type']) ?></td>
                                         <td>
                                             <select class="form-control form-control-sm" 
-                                                    name="corporate_roles[]" 
+                                                    name="corporate_roles[<?= $corporate['id'] ?>]" 
                                                     <?= !$isSelected ? 'disabled' : '' ?>>
                                                 <?php foreach ($corporateRoles as $role): ?>
                                                     <option value="<?= $role ?>" <?= $selectedRole === $role ? 'selected' : '' ?>>

@@ -22,15 +22,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $publisher_name = mysqli_real_escape_string($conn, $_POST['publisher_name']);
     $publisher_place = mysqli_real_escape_string($conn, $_POST['publisher_place']);
     
-    // Check if publisher with same name already exists (excluding the current publisher)
-    $check_query = "SELECT id FROM publishers WHERE publisher = ? AND id != ?";
+    // Check if publisher with same name AND place already exists (excluding the current publisher)
+    $check_query = "SELECT id FROM publishers WHERE publisher = ? AND place = ? AND id != ?";
     $stmt = $conn->prepare($check_query);
-    $stmt->bind_param("si", $publisher_name, $publisherId);
+    $stmt->bind_param("ssi", $publisher_name, $publisher_place, $publisherId);
     $stmt->execute();
     $result = $stmt->get_result();
     
     if ($result->num_rows > 0) {
-        $_SESSION['message'] = "Another publisher with this name already exists.";
+        $_SESSION['message'] = "Another publisher with this name and location already exists.";
         $_SESSION['message_type'] = "warning";
         header("Location: ../step-by-step-publishers.php");
         exit();

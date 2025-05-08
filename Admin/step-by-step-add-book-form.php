@@ -273,11 +273,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     }
                 }
 
-                // Add corporate contributors - Process corporate contributors
+                // Add corporate contributors - Fix how corporate contributors are processed
                 if (!empty($corporate_contributors_ids)) {
                     for ($k = 0; $k < count($corporate_contributors_ids); $k++) {
                         $corporate_id = mysqli_real_escape_string($conn, $corporate_contributors_ids[$k]);
-                        $role = isset($corporate_roles[$k]) ? mysqli_real_escape_string($conn, $corporate_roles[$k]) : 'Corporate Contributor';
+                        
+                        // Get the role directly from the session data using corporate id as a key
+                        $role = 'Corporate Contributor'; // Default role
+                        
+                        // Find the role in session data
+                        if (isset($_SESSION['book_shortcut']['selected_corporates'])) {
+                            foreach ($_SESSION['book_shortcut']['selected_corporates'] as $selected_corporate) {
+                                if ($selected_corporate['id'] == $corporate_id) {
+                                    $role = $selected_corporate['role'];
+                                    break;
+                                }
+                            }
+                        }
                         
                         $corpQuery = "INSERT INTO corporate_contributors (book_id, corporate_id, role) VALUES ('$book_id', '$corporate_id', '$role')";
                         if (!mysqli_query($conn, $corpQuery)) {
