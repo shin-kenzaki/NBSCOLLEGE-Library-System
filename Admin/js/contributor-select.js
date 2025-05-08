@@ -161,32 +161,8 @@ class ContributorSelect {
       
       document.body.appendChild(modalElement);
     }
-    
-    // Collect IDs of already selected contributors
-    const selectedIds = this.options.selectedContributors.map(c => c.id);
-    
-    // Generate list of available contributors
-    const writersList = this.options.writersData
-      .map(writer => {
-        const isSelected = selectedIds.includes(writer.id);
-        const selectedClass = isSelected ? 'selected' : '';
-        const disabledAttr = isSelected ? 'disabled' : '';
-        
-        return `
-          <div class="contributor-select-item ${selectedClass}" 
-               data-id="${writer.id}" 
-               data-name="${writer.name}" 
-               ${disabledAttr}>
-            <div class="d-flex justify-content-between">
-              <span>${writer.name}</span>
-              ${isSelected ? '<i class="fas fa-check text-success"></i>' : ''}
-            </div>
-          </div>
-        `;
-      })
-      .join('');
-    
-    // Generate modal HTML
+
+    // Show loading state in modal
     modalElement.innerHTML = `
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -196,92 +172,177 @@ class ContributorSelect {
               <span aria-hidden="true">&times;</span>
             </button>
           </div>
-          <div class="modal-body">
-            <div class="form-group">
-              <input type="text" class="form-control mb-3" id="modalContributorSearch" 
-                     placeholder="Search contributors...">
+          <div class="modal-body text-center">
+            <div class="spinner-border text-primary" role="status">
+              <span class="sr-only">Loading...</span>
             </div>
-            <div class="contributor-select-list">
-              ${writersList}
-            </div>
-            <div class="text-center mt-3">
-              <button type="button" class="btn btn-secondary btn-sm" id="createNewContributorBtn">
-                <i class="fas fa-plus"></i> Create New Contributor
-              </button>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-dismiss="modal" id="cancelContributorSelection">Cancel</button>
-            <button type="button" class="btn btn-primary" id="confirmContributorSelection">
-              Add Selected
-            </button>
+            <p class="mt-2">Loading contributors...</p>
           </div>
         </div>
       </div>
     `;
     
-    // Show the modal
+    // Show the modal with loading state
     $(modalElement).modal('show');
+
+    // Determine which API endpoint to use based on whether this is an individual or corporate contributor selector
+    let apiEndpoint = 'ajax/get_writers.php'; // Default for individual contributors
     
-    // Add explicit event handlers for close buttons
-    modalElement.querySelector('.close').addEventListener('click', () => {
-      $(modalElement).modal('hide');
-    });
+    // Check if this is a corporate contributor component by checking the roles
+    const hasCorporateRoles = Object.keys(this.options.roles).some(role => 
+      ['corporate_author', 'corporate_contributor', 'publisher', 'distributor', 
+       'sponsor', 'funding_body', 'research_institution'].includes(role)
+    );
     
-    modalElement.querySelector('#cancelContributorSelection').addEventListener('click', () => {
-      $(modalElement).modal('hide');
-    });
-    
-    // Setup modal event listeners
-    modalElement.querySelector('#modalContributorSearch').addEventListener('input', (e) => {
-      const searchTerm = e.target.value.toLowerCase();
-      modalElement.querySelectorAll('.contributor-select-item').forEach(item => {
-        const name = item.dataset.name.toLowerCase();
-        if (name.includes(searchTerm)) {
-          item.style.display = '';
-        } else {
-          item.style.display = 'none';
+    if (hasCorporateRoles) {
+      apiEndpoint = 'ajax/get_corporates.php';
+    }
+
+    // Fetch fresh data from the server
+    fetch(apiEndpoint)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error ${response.status}`);
         }
-      });
-    });
-    
-    // Handle contributor selection
-    modalElement.querySelectorAll('.contributor-select-item:not([disabled])').forEach(item => {
-      item.addEventListener('click', () => {
-        item.classList.toggle('selected');
-      });
-    });
-    
-    // Handle create new contributor button
-    modalElement.querySelector('#createNewContributorBtn').addEventListener('click', () => {
-      if (this.options.addNewCallback && typeof this.options.addNewCallback === 'function') {
-        // Close the current modal
-        $(modalElement).modal('hide');
+        return response.json();
+      })
+      .then(data => {
+        // Update the component's data with fresh data from the server
+        this.refreshWritersData(
+          apiEndpoint === 'ajax/get_corporates.php' 
+            ? data.map(corporate => ({
+                id: corporate.id,
+                name: `${corporate.name} (${corporate.type})`
+              }))
+            : data.writers || data
+        );
         
-        // Call the add new contributor function
-        this.options.addNewCallback();
-      }
-    });
-    
-    // Handle confirm button
-    modalElement.querySelector('#confirmContributorSelection').addEventListener('click', () => {
-      const selectedItems = modalElement.querySelectorAll('.contributor-select-item.selected:not([disabled])');
-      
-      selectedItems.forEach(item => {
-        const id = parseInt(item.dataset.id, 10);
-        const name = item.dataset.name;
+        // Collect IDs of already selected contributors
+        const selectedIds = this.options.selectedContributors.map(c => c.id);
         
-        // Add as a new contributor with default role
-        this.addContributor({
-          id: id,
-          name: name,
-          role: 'author' // Default role
+        // Generate list of available contributors with the fresh data
+        const writersList = this.options.writersData
+          .map(writer => {
+            const isSelected = selectedIds.includes(writer.id);
+            const selectedClass = isSelected ? 'selected' : '';
+            const disabledAttr = isSelected ? 'disabled' : '';
+            
+            return `
+              <div class="contributor-select-item ${selectedClass}" 
+                   data-id="${writer.id}" 
+                   data-name="${writer.name}" 
+                   ${disabledAttr}>
+                <div class="d-flex justify-content-between">
+                  <span>${writer.name}</span>
+                  ${isSelected ? '<i class="fas fa-check text-success"></i>' : ''}
+                </div>
+              </div>
+            `;
+          })
+          .join('');
+        
+        // Generate modal HTML with the fresh data
+        modalElement.innerHTML = `
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="${modalId}Label">Select Contributors</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+              <div class="modal-body">
+                <div class="form-group">
+                  <input type="text" class="form-control mb-3" id="modalContributorSearch" 
+                         placeholder="Search contributors...">
+                </div>
+                <div class="contributor-select-list">
+                  ${writersList}
+                </div>
+                <div class="text-center mt-3">
+                  <button type="button" class="btn btn-secondary btn-sm" id="createNewContributorBtn">
+                    <i class="fas fa-plus"></i> Create New Contributor
+                  </button>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" id="cancelContributorSelection">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmContributorSelection">
+                  Add Selected
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        // Setup modal event listeners
+        modalElement.querySelector('.close').addEventListener('click', () => {
+          $(modalElement).modal('hide');
         });
+        
+        modalElement.querySelector('#cancelContributorSelection').addEventListener('click', () => {
+          $(modalElement).modal('hide');
+        });
+        
+        modalElement.querySelector('#modalContributorSearch').addEventListener('input', (e) => {
+          const searchTerm = e.target.value.toLowerCase();
+          modalElement.querySelectorAll('.contributor-select-item').forEach(item => {
+            const name = item.dataset.name.toLowerCase();
+            if (name.includes(searchTerm)) {
+              item.style.display = '';
+            } else {
+              item.style.display = 'none';
+            }
+          });
+        });
+        
+        // Handle contributor selection
+        modalElement.querySelectorAll('.contributor-select-item:not([disabled])').forEach(item => {
+          item.addEventListener('click', () => {
+            item.classList.toggle('selected');
+          });
+        });
+        
+        // Handle create new contributor button
+        modalElement.querySelector('#createNewContributorBtn').addEventListener('click', () => {
+          if (this.options.addNewCallback && typeof this.options.addNewCallback === 'function') {
+            // Close the current modal
+            $(modalElement).modal('hide');
+            
+            // Call the add new contributor function
+            this.options.addNewCallback();
+          }
+        });
+        
+        // Handle confirm button
+        modalElement.querySelector('#confirmContributorSelection').addEventListener('click', () => {
+          const selectedItems = modalElement.querySelectorAll('.contributor-select-item.selected:not([disabled])');
+          
+          selectedItems.forEach(item => {
+            const id = parseInt(item.dataset.id, 10);
+            const name = item.dataset.name;
+            
+            // Add as a new contributor with default role
+            this.addContributor({
+              id: id,
+              name: name,
+              role: Object.keys(this.options.roles)[0] || 'author' // Use first available role as default
+            });
+          });
+          
+          $(modalElement).modal('hide');
+        });
+      })
+      .catch(error => {
+        console.error('Error fetching contributors data:', error);
+        modalElement.querySelector('.modal-body').innerHTML = `
+          <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle"></i> 
+            Error loading contributors. Please try again.
+          </div>
+        `;
       });
-      
-      $(modalElement).modal('hide');
-    });
-    
+
     // Cleanup when modal is hidden
     $(modalElement).on('hidden.bs.modal', function () {
       $(this).remove();

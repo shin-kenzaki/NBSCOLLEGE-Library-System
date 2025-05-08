@@ -28,6 +28,9 @@ if (isset($_POST['submit'])) {
         'publish_date',
         'accession'
     ];
+    
+    // Note: Both individual and corporate contributors are OPTIONAL fields
+    // If provided, they will be processed, but they are not required
 
     $errors = [];
 
@@ -38,6 +41,7 @@ if (isset($_POST['submit'])) {
     }
 
     // Note: Author validation removed - author is no longer required
+    // Note: Contributors (individual and corporate) are optional
 
     if (!empty($errors)) {
         $_SESSION['error_message'] = 'Please fix the following errors: ' . implode(', ', $errors);
@@ -53,7 +57,8 @@ if (isset($_POST['submit'])) {
     $has_individual_contributors = isset($_POST['contributor_ids']) && 
                                   isset($_POST['contributor_roles']) &&
                                   is_array($_POST['contributor_ids']) && 
-                                  is_array($_POST['contributor_roles']);
+                                  is_array($_POST['contributor_roles']) &&
+                                  !empty($_POST['contributor_ids']);
     
     $individual_contributor_count = $has_individual_contributors ? count($_POST['contributor_ids']) : 0;
     
@@ -68,13 +73,16 @@ if (isset($_POST['submit'])) {
             $role = $_POST['contributor_roles'][$j];
             error_log("Individual contributor $j: ID=$contributor_id, Role=$role");
         }
+    } else {
+        error_log("No individual contributors provided - this is allowed as contributors are optional");
     }
 
     // Debug information for corporate contributors
     $has_corporate_contributors = isset($_POST['corporate_contributor_ids']) && 
                                  isset($_POST['corporate_contributor_roles']) &&
                                  is_array($_POST['corporate_contributor_ids']) && 
-                                 is_array($_POST['corporate_contributor_roles']);
+                                 is_array($_POST['corporate_contributor_roles']) &&
+                                 !empty($_POST['corporate_contributor_ids']);
     
     $corporate_contributor_count = $has_corporate_contributors ? count($_POST['corporate_contributor_ids']) : 0;
     
@@ -89,6 +97,8 @@ if (isset($_POST['submit'])) {
             $role = $_POST['corporate_contributor_roles'][$j];
             error_log("Corporate contributor $j: ID=$corporate_id, Role=$role");
         }
+    } else {
+        error_log("No corporate contributors provided - this is allowed as contributors are optional");
     }
 
     // Initialize counter for successful insertions and store book title
@@ -270,9 +280,7 @@ if (isset($_POST['submit'])) {
                     $inserted_accessions[] = $accession_str;
 
                     // UPDATED: Process contributors using the new format from ContributorSelect with better error handling
-                    if (isset($_POST['contributor_ids']) && isset($_POST['contributor_roles']) && 
-                        is_array($_POST['contributor_ids']) && is_array($_POST['contributor_roles'])) {
-                        
+                    if ($has_individual_contributors) {
                         $contributor_count = count($_POST['contributor_ids']);
                         $author_added = false;
                         
@@ -311,9 +319,7 @@ if (isset($_POST['submit'])) {
                     }
 
                     // UPDATED: Process corporate contributors for each book copy with improved error handling
-                    if (isset($_POST['corporate_contributor_ids']) && isset($_POST['corporate_contributor_roles']) && 
-                        is_array($_POST['corporate_contributor_ids']) && is_array($_POST['corporate_contributor_roles'])) {
-                        
+                    if ($has_corporate_contributors) {
                         $corporate_count = count($_POST['corporate_contributor_ids']);
                         error_log("Processing $corporate_count corporate contributors for book ID $book_id");
                         

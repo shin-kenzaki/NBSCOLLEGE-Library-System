@@ -2567,6 +2567,7 @@ document.addEventListener('DOMContentLoaded', function() {
 /**
  * Prepare form for submission by adding all contributor data as hidden fields
  * This ensures contributors are always included regardless of submission method
+ * Note: Contributors are OPTIONAL, not required fields
  */
 function prepareFormSubmission() {
     try {
@@ -2582,21 +2583,23 @@ function prepareFormSubmission() {
             const individualContributors = window.contributorSelect.getSelectedContributors();
             console.log(`Adding ${individualContributors.length} individual contributors to form`);
             
-            // Add hidden inputs for individual contributors
-            individualContributors.forEach((contributor) => {
-                const idInput = document.createElement('input');
-                idInput.type = 'hidden';
-                idInput.name = 'contributor_ids[]';
-                idInput.value = contributor.id;
-                
-                const roleInput = document.createElement('input');
-                roleInput.type = 'hidden';
-                roleInput.name = 'contributor_roles[]';
-                roleInput.value = contributor.role;
-                
-                form.appendChild(idInput);
-                form.appendChild(roleInput);
-            });
+            // Add hidden inputs for individual contributors if any exist
+            if (individualContributors && individualContributors.length > 0) {
+                individualContributors.forEach((contributor) => {
+                    const idInput = document.createElement('input');
+                    idInput.type = 'hidden';
+                    idInput.name = 'contributor_ids[]';
+                    idInput.value = contributor.id;
+                    
+                    const roleInput = document.createElement('input');
+                    roleInput.type = 'hidden';
+                    roleInput.name = 'contributor_roles[]';
+                    roleInput.value = contributor.role;
+                    
+                    form.appendChild(idInput);
+                    form.appendChild(roleInput);
+                });
+            }
         }
         
         // Get corporate contributors if component exists
@@ -2604,21 +2607,23 @@ function prepareFormSubmission() {
             const corporateContributors = window.corporateContributorSelect.getSelectedContributors();
             console.log(`Adding ${corporateContributors.length} corporate contributors to form`);
             
-            // Add hidden inputs for corporate contributors
-            corporateContributors.forEach((corporate) => {
-                const idInput = document.createElement('input');
-                idInput.type = 'hidden';
-                idInput.name = 'corporate_contributor_ids[]';
-                idInput.value = corporate.id;
-                
-                const roleInput = document.createElement('input');
-                roleInput.type = 'hidden';
-                roleInput.name = 'corporate_contributor_roles[]';
-                roleInput.value = corporate.role;
-                
-                form.appendChild(idInput);
-                form.appendChild(roleInput);
-            });
+            // Add hidden inputs for corporate contributors if any exist
+            if (corporateContributors && corporateContributors.length > 0) {
+                corporateContributors.forEach((corporate) => {
+                    const idInput = document.createElement('input');
+                    idInput.type = 'hidden';
+                    idInput.name = 'corporate_contributor_ids[]';
+                    idInput.value = corporate.id;
+                    
+                    const roleInput = document.createElement('input');
+                    roleInput.type = 'hidden';
+                    roleInput.name = 'corporate_contributor_roles[]';
+                    roleInput.value = corporate.role;
+                    
+                    form.appendChild(idInput);
+                    form.appendChild(roleInput);
+                });
+            }
         }
         
         // Also add formatted call numbers as hidden fields if they exist
@@ -2645,13 +2650,24 @@ document.addEventListener('DOMContentLoaded', function() {
     // Still keep a backup method for the submit button clicks
     document.getElementById('bookForm').addEventListener('submit', function(e) {
         // The onsubmit attribute will handle this, but as a backup:
-        if (!this.querySelector('input[name="corporate_contributor_ids[]"]') && 
-            window.corporateContributorSelect && 
-            typeof window.corporateContributorSelect.getSelectedContributors === 'function') {
-            
-            e.preventDefault(); // Stop the submission temporarily
-            prepareFormSubmission(); // Prepare the form
-            this.submit(); // Continue with submission
+        if (!prepareFormSubmission()) {
+            e.preventDefault(); // Stop the submission if preparation fails
+            alert('Error preparing form data. Please try again.');
+        }
+    });
+    
+    // Update labels to indicate contributors are optional
+    const contributorLabels = document.querySelectorAll('label[for^="contributor"], .contributor-heading');
+    contributorLabels.forEach(label => {
+        if (!label.innerHTML.includes('(optional)')) {
+            label.innerHTML += ' <span class="text-muted">(optional)</span>';
+        }
+    });
+    
+    const corporateLabels = document.querySelectorAll('label[for^="corporate"], .corporate-heading');
+    corporateLabels.forEach(label => {
+        if (!label.innerHTML.includes('(optional)')) {
+            label.innerHTML += ' <span class="text-muted">(optional)</span>';
         }
     });
 });

@@ -43,8 +43,8 @@ try {
         $lastname = mysqli_real_escape_string($conn, $author['lastname']);
 
         // Insert the writer
-        $insert_query = "INSERT INTO writers (firstname, middle_init, lastname, date_added) 
-                         VALUES ('$firstname', '$middle_init', '$lastname', NOW())";
+        $insert_query = "INSERT INTO writers (firstname, middle_init, lastname) 
+                         VALUES ('$firstname', '$middle_init', '$lastname')";
         
         if (!mysqli_query($conn, $insert_query)) {
             throw new Exception('Error inserting author: ' . mysqli_error($conn));
