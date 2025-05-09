@@ -1,33 +1,35 @@
 <?php
-ob_start(); // Start output buffering
+ob_start();
 session_start();
 
-// Check login and handle bulk delete first
+// Check if the user is logged in
 if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Librarian', 'Assistant', 'Encoder'])) {
     header("Location: index.php");
     exit();
 }
 
+// Include the database connection and header
+include '../db.php';
+include '../admin/inc/header.php';
+
 // Handle bulk delete action
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete') {
     if (isset($_POST['ids']) && !empty($_POST['ids'])) {
-        require_once '../db.php';
-        
         $safeIds = array_map('intval', $_POST['ids']);
         $idsString = implode(',', $safeIds);
         $deleted_details = [];
 
         // Fetch details before deleting
         if (!empty($idsString)) {
-            $fetchDetailsSql = "SELECT c.id, b.title as book_title, CONCAT(w.firstname, ' ', w.middle_init, ' ', w.lastname) as writer_name, c.role 
-                                FROM contributors c
-                                JOIN books b ON c.book_id = b.id
-                                JOIN writers w ON c.writer_id = w.id
-                                WHERE c.id IN ($idsString)";
+            $fetchDetailsSql = "SELECT cc.id, b.title as book_title, c.name as corporate_name, cc.role 
+                                FROM corporate_contributors cc
+                                JOIN books b ON cc.book_id = b.id
+                                JOIN corporates c ON cc.corporate_id = c.id
+                                WHERE cc.id IN ($idsString)";
             $detailsResult = $conn->query($fetchDetailsSql);
             if ($detailsResult && $detailsResult->num_rows > 0) {
                 while ($row = $detailsResult->fetch_assoc()) {
-                    $deleted_details[$row['id']] = htmlspecialchars($row['writer_name'] . ' (' . $row['role'] . ') for "' . $row['book_title'] . '"');
+                    $deleted_details[$row['id']] = htmlspecialchars($row['corporate_name'] . ' (' . $row['role'] . ') for "' . $row['book_title'] . '"');
                 }
             }
         }
@@ -36,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         try {
             $deleteCount = 0;
             $successfully_deleted_list = [];
-            $stmt = $conn->prepare("DELETE FROM contributors WHERE id = ?");
+            $stmt = $conn->prepare("DELETE FROM corporate_contributors WHERE id = ?");
             
             foreach ($safeIds as $id) {
                 $stmt->bind_param("i", $id);
@@ -50,72 +52,82 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $stmt->close();
             $conn->commit();
             
-            $_SESSION['success_message'] = "$deleteCount contributor record(s) deleted successfully.";
-            $_SESSION['deleted_contributors_details'] = $successfully_deleted_list;
+            $_SESSION['success_message'] = "$deleteCount corporate contributor record(s) deleted successfully.";
+            $_SESSION['deleted_corporate_contributors_details'] = $successfully_deleted_list;
         } catch (Exception $e) {
             $conn->rollback();
-            $_SESSION['error_message'] = "Error deleting contributors: " . $e->getMessage();
+            $_SESSION['error_message'] = "Error deleting corporate contributors: " . $e->getMessage();
         }
     } else {
-        $_SESSION['error_message'] = "No contributor IDs provided for deletion.";
+        $_SESSION['error_message'] = "No corporate contributor IDs provided for deletion.";
     }
 
     // Redirect to refresh the page
-    header("Location: contributors_list.php");
+    header("Location: corporate_contributors.php");
     exit();
 }
 
-// Include other files after header operations
-include '../admin/inc/header.php';
-include '../db.php';
-
-// Initialize selected contributors array in session if not exists
-if (!isset($_SESSION['selectedContributorIds'])) {
-    $_SESSION['selectedContributorIds'] = [];
-}
-
-// Query to fetch individual contributors data
+// Query to fetch corporate contributors data
 $query = "SELECT 
-            GROUP_CONCAT(c.id ORDER BY c.id) as id_ranges,
+            GROUP_CONCAT(cc.id ORDER BY cc.id) as id_ranges,
             b.title as book_title,
-            CONCAT(w.firstname, ' ', w.middle_init, ' ', w.lastname) as writer_name,
-            c.role,
-            COUNT(c.id) as total_entries
-          FROM contributors c
-          JOIN books b ON c.book_id = b.id
-          JOIN writers w ON c.writer_id = w.id
-          GROUP BY b.title, w.id, c.role
+            c.name as corporate_name,
+            cc.role,
+            COUNT(cc.id) as total_entries
+          FROM corporate_contributors cc
+          JOIN books b ON cc.book_id = b.id
+          JOIN corporates c ON cc.corporate_id = c.id
+          GROUP BY b.title, c.id, cc.role
           ORDER BY b.title";
 
 $result = $conn->query($query);
-$contributors_data = array();
+$corporate_contributors_data = array();
 
-while ($row = $result->fetch_assoc()) {
-    // Format ID ranges
-    $ids = explode(',', $row['id_ranges']);
-    $ranges = [];
-    $start = $ids[0];
-    $prev = $ids[0];
-    
-    for ($i = 1; $i < count($ids); $i++) {
-        if ($ids[$i] - $prev > 1) {
-            $ranges[] = $start == $prev ? $start : "$start-$prev";
-            $start = $ids[$i];
+if ($result && $result->num_rows > 0) {
+    while ($row = $result->fetch_assoc()) {
+        // Format ID ranges
+        $ids = explode(',', $row['id_ranges']);
+        $ranges = [];
+        $start = $ids[0];
+        $prev = $ids[0];
+        
+        for ($i = 1; $i < count($ids); $i++) {
+            if ($ids[$i] - $prev > 1) {
+                $ranges[] = $start == $prev ? $start : "$start-$prev";
+                $start = $ids[$i];
+            }
+            $prev = $ids[$i];
         }
-        $prev = $ids[$i];
+        $ranges[] = $start == $prev ? $start : "$start-$prev";
+        
+        $row['id_ranges'] = implode(', ', $ranges);
+        $corporate_contributors_data[] = $row;
     }
-    $ranges[] = $start == $prev ? $start : "$start-$prev";
-    
-    $row['id_ranges'] = implode(', ', $ranges);
-    $contributors_data[] = $row;
+}
+
+// Get books for add modal
+$booksQuery = "SELECT id, title FROM books ORDER BY title";
+$booksResult = $conn->query($booksQuery);
+$books = [];
+while ($book = $booksResult->fetch_assoc()) {
+    $books[] = $book;
+}
+
+// Get corporates for add modal
+$corporatesQuery = "SELECT id, name FROM corporates ORDER BY name";
+$corporatesResult = $conn->query($corporatesQuery);
+$corporates = [];
+while ($corporate = $corporatesResult->fetch_assoc()) {
+    $corporates[] = $corporate;
 }
 ?>
 
+<!-- Main Content -->
 <div id="content" class="d-flex flex-column min-vh-100">
     <div class="container-fluid">
         <div class="card shadow mb-4">
             <div class="card-header py-3 d-flex flex-wrap align-items-center justify-content-between">
-                <h6 class="m-0 font-weight-bold text-primary">Individual Contributors List</h6>
+                <h6 class="m-0 font-weight-bold text-primary">Corporate Contributors List</h6>
                 <div class="d-flex align-items-center">
                     <button id="deleteSelectedBtn" class="btn btn-danger btn-sm mr-2 bulk-delete-btn" disabled>
                         <i class="fas fa-trash"></i>
@@ -134,18 +146,18 @@ while ($row = $result->fetch_assoc()) {
                                 </th>
                                 <th style="text-align: center;">ID</th>
                                 <th style="text-align: center;">Book Title</th>
-                                <th style="text-align: center;">Writer Name</th>
+                                <th style="text-align: center;">Corporate Name</th>
                                 <th style="text-align: center;">Role</th>
                                 <th style="text-align: center;">Total Entries</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($contributors_data as $row): ?>
+                            <?php foreach ($corporate_contributors_data as $row): ?>
                             <tr>
                                 <td style='text-align: center;'><input type="checkbox" class="row-checkbox" value="<?php echo htmlspecialchars($row['id_ranges']); ?>"></td>
                                 <td style='text-align: center;'><?php echo htmlspecialchars($row['id_ranges']); ?></td>
                                 <td><?php echo htmlspecialchars($row['book_title']); ?></td>
-                                <td><?php echo htmlspecialchars($row['writer_name']); ?></td>
+                                <td><?php echo htmlspecialchars($row['corporate_name']); ?></td>
                                 <td style='text-align: center;'><?php echo htmlspecialchars($row['role']); ?></td>
                                 <td style='text-align: center;'><?php echo htmlspecialchars($row['total_entries']); ?></td>
                             </tr>
@@ -153,6 +165,58 @@ while ($row = $result->fetch_assoc()) {
                         </tbody>
                     </table>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- End of Main Content -->
+
+<!-- Add Corporate Contributor Modal -->
+<div class="modal fade" id="addCorporateContributorModal" tabindex="-1" role="dialog" aria-labelledby="addCorporateContributorModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="addCorporateContributorModalLabel">Add Corporate Contributor</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="addCorporateContributorForm" method="POST" action="add_corporate_contributor.php">
+                    <div class="form-group">
+                        <label for="book_id">Book</label>
+                        <select class="form-control" name="book_id" id="book_id" required>
+                            <option value="">Select Book</option>
+                            <?php foreach ($books as $book): ?>
+                            <option value="<?php echo $book['id']; ?>"><?php echo htmlspecialchars($book['title']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="corporate_id">Corporate</label>
+                        <select class="form-control" name="corporate_id" id="corporate_id" required>
+                            <option value="">Select Corporate</option>
+                            <?php foreach ($corporates as $corporate): ?>
+                            <option value="<?php echo $corporate['id']; ?>"><?php echo htmlspecialchars($corporate['name']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="role">Role</label>
+                        <select class="form-control" name="role" id="role" required>
+                            <option value="">Select Role</option>
+                            <option value="Publisher">Publisher</option>
+                            <option value="Sponsoring Institution">Sponsoring Institution</option>
+                            <option value="Distributor">Distributor</option>
+                            <option value="Collaborator">Collaborator</option>
+                            <option value="Research Institution">Research Institution</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="saveCorporateContributor">Save</button>
             </div>
         </div>
     </div>
@@ -218,7 +282,7 @@ $(document).ready(function () {
 
         Swal.fire({
             title: 'Confirm Bulk Deletion',
-            html: `Are you sure you want to delete <strong>${selectedIds.length}</strong> selected contributor(s)?<br><br>
+            html: `Are you sure you want to delete <strong>${selectedIds.length}</strong> selected corporate contributor(s)?<br><br>
                    <span class="text-danger">This action cannot be undone!</span>`,
             icon: 'warning',
             showCancelButton: true,
@@ -231,7 +295,7 @@ $(document).ready(function () {
             if (result.isConfirmed) {
                 Swal.fire({
                     title: 'Deleting...',
-                    html: 'Please wait while the selected contributors are being deleted.',
+                    html: 'Please wait while the selected corporate contributors are being deleted.',
                     allowOutsideClick: false,
                     allowEscapeKey: false,
                     didOpen: () => {
@@ -244,7 +308,7 @@ $(document).ready(function () {
 
                 // Submit the form with parsed IDs
                 $.ajax({
-                    url: 'contributors_list.php',
+                    url: 'corporate_contributors.php',
                     method: 'POST',
                     data: {
                         action: 'delete',
@@ -256,7 +320,7 @@ $(document).ready(function () {
                     error: function() {
                         Swal.fire({
                             title: 'Error!',
-                            text: 'An error occurred while deleting the contributors. Please try again.',
+                            text: 'An error occurred while deleting the corporate contributors. Please try again.',
                             icon: 'error',
                             confirmButtonColor: '#d33'
                         });
@@ -266,18 +330,22 @@ $(document).ready(function () {
         });
     });
 
+    $('#saveCorporateContributor').click(function() {
+        $('#addCorporateContributorForm').submit();
+    });
+
     // Display session messages using SweetAlert2
     <?php if (isset($_SESSION['success_message'])): ?>
         <?php
         $message = addslashes($_SESSION['success_message']);
         $detailsList = '';
-        // Check for deleted contributor details
-        if (isset($_SESSION['deleted_contributors_details']) && !empty($_SESSION['deleted_contributors_details'])) {
+        // Check for deleted corporate contributor details
+        if (isset($_SESSION['deleted_corporate_contributors_details']) && !empty($_SESSION['deleted_corporate_contributors_details'])) {
             $details = array_map(function($detail) {
                 return htmlspecialchars($detail, ENT_QUOTES);
-            }, $_SESSION['deleted_contributors_details']); // Sanitize details
-            $detailsList = '<br><br><strong>Deleted Contributors:</strong><br>' . implode('<br>', $details);
-            unset($_SESSION['deleted_contributors_details']); // Unset the deleted details list
+            }, $_SESSION['deleted_corporate_contributors_details']); // Sanitize details
+            $detailsList = '<br><br><strong>Deleted Corporate Contributors:</strong><br>' . implode('<br>', $details);
+            unset($_SESSION['deleted_corporate_contributors_details']); // Unset the deleted details list
         }
         ?>
         Swal.fire({

@@ -74,11 +74,13 @@
             case 'reports.php': return 'Library Reports';
             case 'admins_list.php': return 'Admin Accounts';
             case 'users_list.php': return 'Library Users';
-            case 'book_list.php': return 'Books Catalog';
-            case 'writers_list.php': return 'Authors & Writers';
+            case 'book_list.php': return 'Books';
+            case 'writers_list.php': return 'Writers';
             case 'publisher_list.php': return 'Publishers';
-            case 'publications_list.php': return 'Book Publications';
-            case 'contributors_list.php': return 'Book Contributors';
+            case 'publications_list.php': return 'Publications';
+            case 'contributors_list.php': return 'Individual Contributors';
+            case 'corporates_list.php': return 'Corporate Entities';
+            case 'corporate_contributors.php': return 'Corporate Contributors';
             case 'book_borrowing.php': return 'Walk-in Book Borrowing';
             case 'book_reservations.php': return 'Online Book Reservations';
             case 'borrowed_books.php': return 'Issued Books';
@@ -97,7 +99,7 @@
     function checkPageAccess($page, $role) {
         // Pages accessible to encoders (book management only)
         $encoder_pages = ['dashboard.php', 'book_list.php', 'writers_list.php', 
-                         'publisher_list.php', 'publications_list.php', 'contributors_list.php'];
+                         'publisher_list.php', 'publications_list.php', 'contributors_list.php', 'corporates_list.php'];
         
         // Pages accessible to librarians and assistants (everything except admin users)
         $librarian_pages = array_merge($encoder_pages, [
@@ -205,13 +207,13 @@
             <li class="nav-item <?php echo $currentPage == 'book_list.php' ? 'active-page' : ''; ?>">
                 <a class="nav-link" href="book_list.php">
                     <i class="fas fa-book icon-book"></i>
-                    <span>Books Catalog</span>
+                    <span>Books</span>
                 </a>
             </li>
             <li class="nav-item <?php echo $currentPage == 'writers_list.php' ? 'active-page' : ''; ?>">
                 <a class="nav-link" href="writers_list.php">
                     <i class="fas fa-pen-nib icon-book"></i>
-                    <span>Authors & Writers</span>
+                    <span>Writers</span>
                 </a>
             </li>
             <li class="nav-item <?php echo $currentPage == 'publisher_list.php' ? 'active-page' : ''; ?>">
@@ -220,16 +222,28 @@
                     <span>Publishers</span>
                 </a>
             </li>
-            <li class="nav-item <?php echo $currentPage == 'publications_list.php' ? 'active-page' : ''; ?>">
-                <a class="nav-link" href="publications_list.php">
-                    <i class="fas fa-newspaper icon-book"></i>
-                    <span>Book Publications</span>
+            <li class="nav-item <?php echo $currentPage == 'corporates_list.php' ? 'active-page' : ''; ?>">
+                <a class="nav-link" href="corporates_list.php">
+                    <i class="fas fa-university icon-book"></i>
+                    <span>Corporate Entities</span>
                 </a>
             </li>
             <li class="nav-item <?php echo $currentPage == 'contributors_list.php' ? 'active-page' : ''; ?>">
                 <a class="nav-link" href="contributors_list.php">
                     <i class="fas fa-users icon-book"></i>
-                    <span>Book Contributors</span>
+                    <span>Individual Contributors</span>
+                </a>
+            </li>
+            <li class="nav-item <?php echo $currentPage == 'publications_list.php' ? 'active-page' : ''; ?>">
+                <a class="nav-link" href="publications_list.php">
+                    <i class="fas fa-newspaper icon-book"></i>
+                    <span>Publications</span>
+                </a>
+            </li>
+            <li class="nav-item <?php echo $currentPage == 'corporate_contributors.php' ? 'active-page' : ''; ?>">
+                <a class="nav-link" href="corporate_contributors.php">
+                    <i class="fas fa-handshake icon-book"></i>
+                    <span>Corporate Contributors</span>
                 </a>
             </li>
 
@@ -290,7 +304,6 @@
 
             <!-- Divider -->
             <hr class="sidebar-divider">
-
         </ul>
         <!-- End of Sidebar -->
 
@@ -485,13 +498,14 @@
 
         // Prevent dropdown menu from closing when clicking on items in the Book Management section
         $('#collapseTwo .collapse-item').on('click', function(e) {
+            e.stopPropagation();
         });
         
         // Highlight current page in sidebar
         setActivePage();
         
         // Show page indicator
-        showPageIndicator();
+        showPageIndicator(); 
     });
     
     // Function to highlight active page in sidebar
@@ -509,7 +523,7 @@
         document.title = pageTitle + " | NBS College Library";
         
         // Update page indicator
-        $('#pageIndicator').text('You are in: ' + pageTitle);
+        $('#pageIndicator').text('You are in: ' + pageTitle);   
     }
     
     // Function to update message count
@@ -541,7 +555,6 @@
                         </div>`;
                     return;
                 }
-
                 messagesList.innerHTML = '';
                 data.messages.forEach(msg => {
                     messagesList.innerHTML += `
@@ -581,7 +594,6 @@
                 if (data.reservations && data.reservations.length > 0) {
                     reservationCount.textContent = data.reservations.length;
                     reservationCount.style.display = 'inline';
-
                     alertsList.innerHTML = '';
                     data.reservations.forEach(reservation => {
                         alertsList.innerHTML += `
@@ -611,7 +623,7 @@
                     </div>`;
             });
     }
-
+    
     // Initialize all update functions
     updateMessageCount();
     updateMessages();
