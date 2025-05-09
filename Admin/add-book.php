@@ -426,9 +426,6 @@ $accession_error = '';
                         <button type="button" class="btn btn-secondary mr-2 mb-2 mb-md-0" onclick="window.history.back();">
                             <i class="fas fa-arrow-left"></i> Cancel
                         </button>
-                        <button type="button" class="btn btn-warning mr-2 mb-2 mb-md-0" data-clear-form>
-                            <i class="fas fa-trash"></i> Clear Form
-                        </button>
                     </div>
                 </div>
 
@@ -2462,11 +2459,12 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <label for="corporate_type">Type</label>
                                     <select class="form-control" id="corporate_type" required>
                                         <option value="">Select Type</option>
-                                        <option value="Government">Government</option>
-                                        <option value="Educational">Educational</option>
-                                        <option value="Non-profit">Non-profit</option>
-                                        <option value="Research">Research</option>
-                                        <option value="Corporate">Corporate</option>
+                                        <option value="Government Institution">Government Institution</option>
+                                        <option value="University">University</option>
+                                        <option value="Commercial Organization">Commercial Organization</option>
+                                        <option value="Non-profit Organization">Non-profit Organization</option>
+                                        <option value="Research Institute">Research Institute</option>
+                                        <option value="Publisher">Publisher</option>
                                         <option value="Other">Other</option>
                                     </select>
                                 </div>
@@ -2676,121 +2674,120 @@ document.addEventListener('DOMContentLoaded', function() {
 <script>
 // Form clear functionality integrated directly
 document.addEventListener('DOMContentLoaded', function() {
-    // Clear individual tab sections
-    document.querySelectorAll('.clear-tab-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const tabId = this.getAttribute('data-tab-id');
-            if (confirm('Are you sure you want to clear all fields in this tab?')) {
-                clearTab(tabId);
-            }
-        });
-    });
+    // Helper function to recalculate progress
+    function updateFormProgress() {
+        const totalTabs = document.querySelectorAll('#formTabs .nav-link').length;
+        const completedTabs = document.querySelectorAll('#formTabs .nav-link.completed').length;
+    }
 
-    // Clear entire form
-    document.querySelector('[data-clear-form]').addEventListener('click', function() {
-        if (confirm('Are you sure you want to clear the entire form?')) {
-            clearAllTabs();
-        }
-    });
+    // Function to validate current tab
+    function validateCurrentTab() {
+        const currentTab = tabs[currentTabIndex];
+        const currentTabId = currentTab.getAttribute('href').substring(1);
+        const currentTabPane = document.getElementById(currentTabId);
 
-    function clearTab(tabId) {
-        const tab = document.getElementById(tabId);
-        if (!tab) return;
+        let isValid = true;
 
-        // Clear all inputs within the tab
-        tab.querySelectorAll('input:not([readonly]), textarea').forEach(input => {
-            input.value = '';
-        });
-
-        // Reset dropdowns with special handling
-        const specialDropdowns = ['content_type', 'media_type', 'carrier_type', 'language', 'status'];
-        tab.querySelectorAll('select').forEach(select => {
-            if (specialDropdowns.includes(select.id)) {
-                // Reset to first option for special dropdowns
-                select.selectedIndex = 0;
+        // Check required fields in the current tab
+        const requiredFields = currentTabPane.querySelectorAll('input[required], select[required], textarea[required]');
+        requiredFields.forEach(field => {
+            if (!field.value.trim()) {
+                isValid = false;
+                field.classList.add('is-invalid');
             } else {
-                // Clear other dropdowns
-                select.value = '';
+                field.classList.remove('is-invalid');
             }
         });
 
-        // Clear checkboxes
-        tab.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-            checkbox.checked = false;
-        });
+        return isValid;
+    }
 
-        // Reset file inputs
-        tab.querySelectorAll('input[type="file"]').forEach(fileInput => {
-            fileInput.value = '';
-            // Reset the file input label
-            const label = fileInput.nextElementSibling;
-            if (label && label.classList.contains('custom-file-label')) {
-                label.textContent = label.getAttribute('data-default-text') || 'Choose file';
+    // Function to navigate to the next tab
+    function goToNextTab() {
+        if (validateCurrentTab()) {
+            if (currentTabIndex < totalTabs - 1) {
+                // Go to next tab
+                currentTabIndex++;
+                $(tabs[currentTabIndex]).tab('show');
+                updateProgressBar();
+            } else {
+                // We're on the last tab, submit the form
+                if (confirm('Submit the book information?')) {
+                    document.getElementById('bookForm').submit();
+                }
             }
-        });
-
-        // Preserve system information fields
-        const preserveFields = ['entered_by', 'date_added', 'last_update'];
-        preserveFields.forEach(fieldId => {
-            const field = document.getElementById(fieldId);
-            if (field) {
-                field.value = field.getAttribute('value');
-            }
-        });
-
-        // Remove 'completed' marker from this tab if exists
-        const tabLink = document.querySelector(`a[href="#${tabId}"]`);
-        if (tabLink) {
-            tabLink.classList.remove('completed');
+        } else {
+            alert('Please fill in all required fields before proceeding.');
         }
     }
 
-    function clearAllTabs() {
-        const tabs = ['title-proper', 'subject-entry', 'abstracts', 'description', 'local-info', 'publication'];
-        tabs.forEach(tabId => clearTab(tabId));
-
-
-        // Reset to first tab
-        const firstTab = document.querySelector('#formTabs .nav-link');
-        if (firstTab && typeof $(firstTab).tab === 'function') {
-            $(firstTab).tab('show');
-        }
-
-        // Reset current tab index if it's being tracked
-        if (typeof window.currentTabIndex !== 'undefined') {
-            window.currentTabIndex = 0;
-        }
-
-        const accessionContainer = document.getElementById('accessionContainer');
-        if (accessionContainer) {
-            const firstGroup = accessionContainer.querySelector('.accession-group');
-            if (firstGroup) {
-                // Clear inputs
-                const accessionInput = firstGroup.querySelector('.accession-input');
-                const copiesInput = firstGroup.querySelector('.copies-input');
-                if (accessionInput) accessionInput.value = '';
-                if (copiesInput) copiesInput.value = '1';
-
-                // Keep only the first group
-                accessionContainer.innerHTML = '';
-                accessionContainer.appendChild(firstGroup);
-            }
-        }
-
-        // Clear call number container
-        const callNumberContainer = document.getElementById('callNumberContainer');
-        if (callNumberContainer) {
-            callNumberContainer.innerHTML = '';
-        }
-
-        // Reset the form element
-        document.getElementById('bookForm').reset();
-
-        // Refresh the form state in localStorage if autosave is enabled
-        if (typeof saveFormData === 'function') {
-            saveFormData();
+    // Function to navigate to the previous tab
+    function goToPrevTab() {
+        if (currentTabIndex > 0) {
+            currentTabIndex--;
+            $(tabs[currentTabIndex]).tab('show');
+            updateProgressBar();
         }
     }
+
+    // Next button click handler
+    document.querySelectorAll('.next-tab').forEach(button => {
+        button.addEventListener('click', function() {
+            if (validateCurrentTab()) {
+                const nextTabId = this.getAttribute('data-next');
+                const nextTab = document.getElementById(nextTabId);
+
+                // Find the index of the next tab
+                tabs.forEach((tab, index) => {
+                    if (tab.id === nextTabId) {
+                        currentTabIndex = index;
+                    }
+                });
+
+                // Activate the tab with Bootstrap
+                $(nextTab).tab('show');
+            } else {
+                // Move cursor to the first invalid field
+                const currentTab = tabs[currentTabIndex];
+                const currentTabId = currentTab.getAttribute('href').substring(1);
+                const currentTabPane = document.getElementById(currentTabId);
+                const firstInvalidField = currentTabPane.querySelector('.is-invalid');
+                if (firstInvalidField) {
+                    firstInvalidField.focus();
+                }
+            }
+        });
+    });
+
+    // Previous button click handler
+    document.querySelectorAll('.prev-tab').forEach(button => {
+        button.addEventListener('click', function() {
+            const prevTabId = this.getAttribute('data-prev');
+            const prevTab = document.getElementById(prevTabId);
+
+            // Find the index of the previous tab
+            tabs.forEach((tab, index) => {
+                if (tab.id === prevTabId) {
+                    currentTabIndex = index;
+                }
+            });
+
+            // Trigger click on the previous tab
+            $(prevTab).tab('show');
+        });
+    });
+
+    // Modified: Allow direct tab clicking without restriction
+    tabs.forEach((tab) => {
+        tab.addEventListener('click', function(e) {
+            const clickedTabIndex = Array.from(tabs).indexOf(this);
+            currentTabIndex = clickedTabIndex;
+            updateProgressBar();
+
+            // Use Bootstrap's tab method to show the tab
+            $(this).tab('show');
+        });
+    });
 
     // Helper function to recalculate progress
     function updateFormProgress() {
@@ -3139,6 +3136,23 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         });
 
+        // NEW: Clear contributor selections when clearing the publication tab
+        if (tabId === 'publication') {
+            console.log('Clearing publication tab - resetting contributor selections');
+            
+            // Clear individual contributors if component exists
+            if (window.contributorSelect && typeof window.contributorSelect.setSelectedContributors === 'function') {
+                window.contributorSelect.setSelectedContributors([]);
+                console.log('Individual contributors cleared');
+            }
+            
+            // Clear corporate contributors if component exists
+            if (window.corporateContributorSelect && typeof window.corporateContributorSelect.setSelectedContributors === 'function') {
+                window.corporateContributorSelect.setSelectedContributors([]);
+                console.log('Corporate contributors cleared');
+            }
+        }
+
         // Remove completed status from tab
         const tabButton = document.querySelector(`[href="#${tabId}"]`);
         if (tabButton) tabButton.classList.remove('completed');
@@ -3184,8 +3198,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
             // Optionally, re-run the function that generates the initial fields if needed
             if (typeof updateISBNFields === 'function') {
-                 // Delay slightly to ensure DOM is updated before regenerating
-                 setTimeout(updateISBNFields, 50);
+                // Delay slightly to ensure DOM is updated before regenerating
+                setTimeout(updateISBNFields, 50);
             }
         }
 
@@ -3216,6 +3230,15 @@ document.addEventListener("DOMContentLoaded", function() {
             const callNumberContainer = document.getElementById('callNumberContainer');
             if (callNumberContainer) {
                 callNumberContainer.innerHTML = '';
+            }
+            
+            // NEW: Also clear all contributor selections when clearing all tabs
+            if (window.contributorSelect && typeof window.contributorSelect.setSelectedContributors === 'function') {
+                window.contributorSelect.setSelectedContributors([]);
+            }
+            
+            if (window.corporateContributorSelect && typeof window.corporateContributorSelect.setSelectedContributors === 'function') {
+                window.corporateContributorSelect.setSelectedContributors([]);
             }
         }
 
@@ -3487,19 +3510,9 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    // Save form data periodically
-    const autoSaveInterval = setInterval(saveFormData, 1000);
 
-    // Save on input changes
-    form.addEventListener('input', saveFormData);
 
-    // Save on tab changes
-    document.querySelectorAll('#formTabs .nav-link').forEach(tab => {
-        tab.addEventListener('shown.bs.tab', saveFormData);
-    });
 
-    // Restore form data on page load
-    restoreFormData();
 
     // Validate tabs after a short delay to ensure all fields are properly loaded
     setTimeout(validateAllTabs, 500);
@@ -3698,10 +3711,6 @@ document.addEventListener("DOMContentLoaded", function() {
     // Add event listener for copy number input changes
     document.addEventListener('input', function(e) {
         if (e.target && e.target.classList.contains('copy-number-input')) {
-            // Save the updated copy number to ensure it persists
-            if (typeof saveFormData === 'function') {
-                setTimeout(saveFormData, 100);
-            }
         }
 
         // Existing event listeners for accession changes
@@ -4072,10 +4081,6 @@ function updateISBNFields() {
     // After all processing, restore saved values
     restoreDetailValues(valuesMap);
 
-    // Trigger form autosave to persist the generated call numbers
-    if (typeof saveFormData === 'function') {
-        setTimeout(saveFormData, 100);
-    }
 
     // After creating all call number fields, ensure visibility:
     if (callNumberContainer.children.length === 0) {
@@ -4380,10 +4385,6 @@ function updateCallNumbers() {
         }
     });
 
-    // Trigger form autosave to persist the updated call numbers
-    if (typeof saveFormData === 'function') {
-        setTimeout(saveFormData, 100);
-    }
 }
 
 // Create a direct function to generate call numbers immediately

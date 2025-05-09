@@ -25,16 +25,16 @@ try {
     $location = isset($data['location']) ? mysqli_real_escape_string($conn, $data['location']) : '';
     $description = isset($data['description']) ? mysqli_real_escape_string($conn, $data['description']) : '';
     
-    // Check if corporate entity already exists
-    $check_query = "SELECT id FROM corporates WHERE name = ?";
+    // Check if corporate entity already exists with the same name and type
+    $check_query = "SELECT id FROM corporates WHERE name = ? AND type = ?";
     $stmt = $conn->prepare($check_query);
-    $stmt->bind_param("s", $name);
+    $stmt->bind_param("ss", $name, $type);
     $stmt->execute();
     $result = $stmt->get_result();
     
     if ($result->num_rows > 0) {
         http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'A corporate entity with this name already exists']);
+        echo json_encode(['success' => false, 'message' => 'A corporate entity with the same name and type already exists']);
         exit();
     }
     
