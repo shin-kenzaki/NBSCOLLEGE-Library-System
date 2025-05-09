@@ -191,50 +191,49 @@ $result = $conn->query($sql);
 
 <div id="content" class="d-flex flex-column min-vh-100">
     <div class="container-fluid">
-        <div class="card shadow mb-4">
-            <div class="card-header py-3 d-flex flex-wrap align-items-center justify-content-between">
-                <h6 class="m-0 font-weight-bold text-primary">Publishers List</h6>
-                <div class="d-flex align-items-center">
-                    <button id="deleteSelectedBtn" class="btn btn-danger btn-sm mr-2 bulk-delete-btn" disabled>
-                        <i class="fas fa-trash"></i>
-                        <span>Delete Selected</span>
-                        <span class="badge badge-light ml-1">0</span>
-                    </button>
-                    <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#addPublisherModal">Add Publisher</button>
-                </div>
+        <h1 class="h3 mb-2 text-gray-800">Publishers Management</h1>
+        <p class="mb-4">Manage all publishers in the system.</p>
+
+        <!-- Action Buttons -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <button id="deleteSelectedBtn" class="btn btn-outline-danger btn-sm" disabled>
+                    Delete Selected (<span id="selectedDeleteCount">0</span>)
+                </button>
             </div>
-            <div class="card-body px-0">
-                <div class="table-responsive px-3">
-                    <table class="table table-bordered table-striped" id="dataTable" width="100%" cellspacing="0">
-                        <thead>
-                            <tr>
-                                <th style="text-align: center;" id="checkboxHeader">
-                                    <input type="checkbox" id="selectAll">
-                                </th>
-                                <th style="text-align: center;">ID</th>
-                                <th style="text-align: center;">Publisher</th>
-                                <th style="text-align: center;">Place</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php
-                            // Check if the query returned any rows
-                            if ($result->num_rows > 0) {
-                                // Loop through the rows and display them in the table
-                                while ($row = $result->fetch_assoc()) {
-                                    echo "<tr>
-                                            <td style='text-align: center;'><input type='checkbox' class='row-checkbox' value='" . $row['id'] . "'></td>
-                                            <td style='text-align: center;'>" . $row['id'] . "</td>
-                                            <td style='text-align: center;'>" . $row['publisher'] . "</td>
-                                            <td style='text-align: center;'>" . $row['place'] . "</td>
-                                            </tr>";
-                                }
-                            }
-                            ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+            <button class="btn btn-success btn-sm" data-toggle="modal" data-target="#addPublisherModal">
+                <i class="fas fa-plus"></i> Add Publisher
+            </button>
+        </div>
+
+        <!-- Publishers Table -->
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped" id="dataTable" width="100%" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th style="text-align: center;" id="checkboxHeader">
+                            <input type="checkbox" id="selectAll">
+                        </th>
+                        <th style="text-align: center;">ID</th>
+                        <th style="text-align: center;">Publisher</th>
+                        <th style="text-align: center;">Place</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php
+                    if ($result->num_rows > 0) {
+                        while ($row = $result->fetch_assoc()) {
+                            echo "<tr>
+                                    <td style='text-align: center;'><input type='checkbox' class='row-checkbox' value='" . $row['id'] . "'></td>
+                                    <td style='text-align: center;'>" . $row['id'] . "</td>
+                                    <td style='text-align: center;'>" . $row['publisher'] . "</td>
+                                    <td style='text-align: center;'>" . $row['place'] . "</td>
+                                  </tr>";
+                        }
+                    }
+                    ?>
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
@@ -298,59 +297,93 @@ $(document).ready(function () {
         updateDeleteButton();
     });
 
-    // Update delete button state
+    // Update delete button state and count
     function updateDeleteButton() {
         const count = selectedIds.length;
-        $('#deleteSelectedBtn .badge').text(count);
+        $('#deleteSelectedBtn span').text(count);
         $('#deleteSelectedBtn').prop('disabled', count === 0);
     }
 
-    // Handle bulk delete button click
+    // Handle delete selected button click
     $('#deleteSelectedBtn').on('click', function () {
         if (selectedIds.length === 0) return;
 
         Swal.fire({
-            title: 'Confirm Bulk Deletion',
-            html: `Are you sure you want to delete <strong>${selectedIds.length}</strong> selected publisher(s)?`,
+            title: 'Confirm Deletion',
+            html: `Are you sure you want to delete <strong>${selectedIds.length}</strong> selected publisher(s)?<br><br>
+                   <span class="text-danger">This action cannot be undone!</span>`,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#d33',
             cancelButtonColor: '#3085d6',
             confirmButtonText: 'Yes, delete them!',
-            cancelButtonText: 'Cancel'
+            cancelButtonText: 'Cancel',
+            reverseButtons: true
         }).then((result) => {
             if (result.isConfirmed) {
-                // Submit the form with selected IDs
-                const form = $('<form>', {
+                $.ajax({
+                    url: 'publisher_list.php',
                     method: 'POST',
-                    action: 'publisher_list.php'
+                    data: {
+                        bulk_action: 'delete',
+                        selected_ids: selectedIds
+                    },
+                    success: function (response) {
+                        Swal.fire({
+                            title: 'Deleted!',
+                            text: 'Selected publishers have been deleted successfully.',
+                            icon: 'success',
+                            confirmButtonColor: '#3085d6'
+                        }).then(() => {
+                            location.reload(); // Reload the page to reflect changes
+                        });
+                    },
+                    error: function () {
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'An error occurred while deleting the publishers. Please try again.',
+                            icon: 'error',
+                            confirmButtonColor: '#d33'
+                        });
+                    }
                 });
-                form.append($('<input>', {
-                    type: 'hidden',
-                    name: 'bulk_action',
-                    value: 'delete'
-                }));
-                selectedIds.forEach(id => {
-                    form.append($('<input>', {
-                        type: 'hidden',
-                        name: 'selected_ids[]',
-                        value: id
-                    }));
-                });
-                $('body').append(form);
-                form.submit();
             }
         });
     });
 
-    // Display session messages using SweetAlert2
+    // Initialize DataTable
+    $('#dataTable').DataTable({
+        "dom": "<'row mb-3'<'col-sm-6'l><'col-sm-6 d-flex justify-content-end'f>>" +
+               "<'row'<'col-sm-12'tr>>" +
+               "<'row mt-3'<'col-sm-5'i><'col-sm-7 d-flex justify-content-end'p>>",
+        "pageLength": 10,
+        "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+        "responsive": true,
+        "scrollX": true,
+        "order": [[1, "asc"]],
+        "columnDefs": [
+            { "orderable": false, "targets": 0 } // Disable sorting for the checkbox column
+        ],
+        "language": {
+            "search": "_INPUT_",
+            "searchPlaceholder": "Search..."
+        }
+    });
+
+    $('#savePublisher').click(function () {
+        $('#addPublisherForm').submit();
+    });
+
+    // Display success message using SweetAlert2
     <?php if (isset($_SESSION['success_message'])): ?>
         <?php
         $message = addslashes($_SESSION['success_message']);
         $detailsList = '';
-        // Check for added publishers
+        // Check for added publisher details
         if (isset($_SESSION['added_publishers_details']) && !empty($_SESSION['added_publishers_details'])) {
-            $details = array_map('htmlspecialchars', $_SESSION['added_publishers_details']); // Sanitize details
+            $details = array_map(function($detail) {
+                return htmlspecialchars($detail, ENT_QUOTES);
+            }, $_SESSION['added_publishers_details']); // Sanitize details
             $detailsList = '<br><br><strong>Added Publishers:</strong><br>' . implode('<br>', $details);
             unset($_SESSION['added_publishers_details']); // Unset the added details list
         }
@@ -373,34 +406,5 @@ $(document).ready(function () {
         });
         <?php unset($_SESSION['error_message']); ?>
     <?php endif; ?>
-
-    <?php if (isset($_SESSION['warning_message'])): ?>
-        Swal.fire({
-            title: 'Warning!',
-            text: '<?php echo addslashes($_SESSION['warning_message']); ?>',
-            icon: 'warning',
-            confirmButtonColor: '#ffc107'
-        });
-        <?php unset($_SESSION['warning_message']); ?>
-    <?php endif; ?>
-
-    $('#dataTable').DataTable({
-        "dom": "<'row mb-3'<'col-sm-6'l><'col-sm-6 d-flex justify-content-end'f>>" +
-               "<'row'<'col-sm-12'tr>>" +
-               "<'row mt-3'<'col-sm-5'i><'col-sm-7 d-flex justify-content-end'p>>",
-        "pageLength": 10,
-        "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
-        "responsive": true,
-        "scrollX": true,
-        "order": [[1, "asc"]],
-        "language": {
-            "search": "_INPUT_",
-            "searchPlaceholder": "Search..."
-        }
-    });
-
-    $('#savePublisher').click(function () {
-        $('#addPublisherForm').submit();
-    });
 });
 </script>

@@ -190,96 +190,92 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <!-- Begin Page Content -->
 <div id="content" class="d-flex flex-column min-vh-100">
     <div class="container-fluid">
-        <div class="card shadow mb-4">
-            <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                <h6 class="m-0 font-weight-bold text-primary">Users List</h6>
-                <div>
-                    <button id="bulkActivateBtn" class="btn btn-outline-success btn-sm mr-2" disabled>
-                        Activate Selected (<span id="selectedActivateCount">0</span>)
-                    </button>
-                    <button id="bulkBanBtn" class="btn btn-warning btn-sm mr-2" disabled>
-                        Ban Selected (<span id="selectedBanCount">0</span>)
-                    </button>
-                    <button id="bulkDisableBtn" class="btn btn-secondary btn-sm mr-2" disabled>
-                        Disable Selected (<span id="selectedDisableCount">0</span>)
-                    </button>
-                    <button id="bulkDeleteBtn" class="btn btn-danger btn-sm mr-2" disabled>
-                        Delete Selected (<span id="selectedCount">0</span>)
-                    </button>
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-primary btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            <i class="fas fa-download"></i> Export
-                        </button>
-                        <div class="dropdown-menu">
-                            <a class="dropdown-item" href="#" id="exportExcel">Excel (.xlsx)</a>
-                            <a class="dropdown-item" href="#" id="exportCSV">CSV (.csv)</a>
-                            <a class="dropdown-item" href="#" id="exportPDF">PDF (.pdf)</a>
-                        </div>
-                    </div>
-                    <a href="import_users.php" class="btn btn-info btn-sm mr-2">
-                        <i class="fas fa-file-import"></i> Import Users
-                    </a>
-                    <a href="#" class="btn btn-success btn-sm add-user-btn" data-toggle="modal" data-target="#addUserModal">
-                        <i class="fas fa-plus"></i> Add New User
-                    </a>
-                </div>
-            </div>
-            <div class="card-body px-0">
-                <div class="table-responsive px-3">
-                    <table class="table table-bordered table-striped" id="usersTable" width="100%" cellspacing="0">
-                        <thead>
-                            <tr>
-                                <th class="text-center" style="width: 30px;" id="selectAllHeader">Select</th>
-                                <th class="text-center">ID</th>
-                                <th class="text-center">Physical ID Number</th>
-                                <th class="text-center">Name</th>
-                                <th class="text-center">Email</th>
-                                <th class="text-center">Borrowing</th>
-                                <th class="text-center">Returned</th>
-                                <th class="text-center">Damaged</th>
-                                <th class="text-center">Lost</th>
-                                <th class="text-center">Status</th>
-                                <th class="text-center">Date Added</th>
-                                <th class="text-center">Last Update</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php
-                            // Modified query to get user data and calculate borrowing stats from the borrowings table
-                            $query = "SELECT u.*, 
-                                (SELECT COUNT(*) FROM borrowings WHERE user_id = u.id AND status IN ('Borrowed', 'Overdue')) AS borrowed_books,
-                                (SELECT COUNT(*) FROM borrowings WHERE user_id = u.id AND status = 'Returned') AS returned_books,
-                                (SELECT COUNT(*) FROM borrowings WHERE user_id = u.id AND status = 'Damaged') AS damaged_books,
-                                (SELECT COUNT(*) FROM borrowings WHERE user_id = u.id AND status = 'Lost') AS lost_books
-                                FROM users u
-                                ORDER BY u.date_added DESC";
-                            $result = $conn->query($query);
 
-                            while ($row = $result->fetch_assoc()) {
-                                $fullname = $row['firstname'] . ' ' . ($row['middle_init'] ? $row['middle_init'] . ' ' : '') . $row['lastname'];
-                                list($status_class, $status_text) = getStatusDisplay($row['status']);
-                                
-                                echo "<tr>";
-                                echo "<td><input type='checkbox' class='user-checkbox' data-user-id='{$row['id']}'></td>";
-                                echo "<td class='text-center'>{$row['id']}</td>";
-                                echo "<td class='text-center'>{$row['school_id']}</td>";
-                                echo "<td>" . htmlspecialchars($fullname) . "</td>";
-                                echo "<td>" . htmlspecialchars($row['email']) . "</td>";
-                                echo "<td class='text-center'><span class='badge badge-info'>{$row['borrowed_books']}</span></td>";
-                                echo "<td class='text-center'><span class='badge badge-success'>{$row['returned_books']}</span></td>";
-                                echo "<td class='text-center'><span class='badge badge-warning'>{$row['damaged_books']}</span></td>";
-                                echo "<td class='text-center'><span class='badge badge-danger'>{$row['lost_books']}</span></td>";
-                                echo "<td class='text-center'><span class='badge {$status_class}'>{$status_text}</span></td>";
-                                echo "<td class='text-center'>" . date('M d, Y', strtotime($row['date_added'])) . "</td>";
-                                echo "<td class='text-center'>" . ($row['last_update'] ? date('M d, Y', strtotime($row['last_update'])) : 'Never') . "</td>";
-                                echo "</tr>";
-                            }
-                            ?>
-                        </tbody>
-                    </table>
-                </div>
+        <!-- Page Heading -->
+        <h1 class="h3 mb-2 text-gray-800">Users List</h1>
+        <p class="mb-4">Manage all user accounts in the system.</p>
+
+        <!-- Action Buttons -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <button id="bulkActivateBtn" class="btn btn-outline-success btn-sm mr-2" disabled>
+                    Activate Selected (<span id="selectedActivateCount">0</span>)
+                </button>
+                <button id="bulkBanBtn" class="btn btn-warning btn-sm mr-2" disabled>
+                    Ban Selected (<span id="selectedBanCount">0</span>)
+                </button>
+                <button id="bulkDisableBtn" class="btn btn-secondary btn-sm mr-2" disabled>
+                    Disable Selected (<span id="selectedDisableCount">0</span>)
+                </button>
+                <button id="bulkDeleteBtn" class="btn btn-danger btn-sm mr-2" disabled>
+                    Delete Selected (<span id="selectedCount">0</span>)
+                </button>
+            </div>
+            <div>
+                <a href="import_users.php" class="btn btn-info btn-sm mr-2">
+                    <i class="fas fa-file-import"></i> Import Users
+                </a>
+                <a href="#" class="btn btn-success btn-sm add-user-btn" data-toggle="modal" data-target="#addUserModal">
+                    <i class="fas fa-plus"></i> Add New User
+                </a>
             </div>
         </div>
+
+        <!-- Users Table -->
+        <div class="table-responsive px-3">
+            <table class="table table-bordered table-striped" id="usersTable" width="100%" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th class="text-center" style="width: 30px;" id="selectAllHeader">Select</th>
+                        <th class="text-center">ID</th>
+                        <th class="text-center">Physical ID Number</th>
+                        <th class="text-center">Name</th>
+                        <th class="text-center">Email</th>
+                        <th class="text-center">Borrowing</th>
+                        <th class="text-center">Returned</th>
+                        <th class="text-center">Damaged</th>
+                        <th class="text-center">Lost</th>
+                        <th class="text-center">Status</th>
+                        <th class="text-center">Date Added</th>
+                        <th class="text-center">Last Update</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php
+                    // Modified query to get user data and calculate borrowing stats from the borrowings table
+                    $query = "SELECT u.*, 
+                        (SELECT COUNT(*) FROM borrowings WHERE user_id = u.id AND status IN ('Borrowed', 'Overdue')) AS borrowed_books,
+                        (SELECT COUNT(*) FROM borrowings WHERE user_id = u.id AND status = 'Returned') AS returned_books,
+                        (SELECT COUNT(*) FROM borrowings WHERE user_id = u.id AND status = 'Damaged') AS damaged_books,
+                        (SELECT COUNT(*) FROM borrowings WHERE user_id = u.id AND status = 'Lost') AS lost_books
+                        FROM users u
+                        ORDER BY u.date_added DESC";
+                    $result = $conn->query($query);
+
+                    while ($row = $result->fetch_assoc()) {
+                        $fullname = $row['firstname'] . ' ' . ($row['middle_init'] ? $row['middle_init'] . ' ' : '') . $row['lastname'];
+                        list($status_class, $status_text) = getStatusDisplay($row['status']);
+                        
+                        echo "<tr>";
+                        echo "<td><input type='checkbox' class='user-checkbox' data-user-id='{$row['id']}'></td>";
+                        echo "<td class='text-center'>{$row['id']}</td>";
+                        echo "<td class='text-center'>{$row['school_id']}</td>";
+                        echo "<td>" . htmlspecialchars($fullname) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['email']) . "</td>";
+                        echo "<td class='text-center'><span class='badge badge-info'>{$row['borrowed_books']}</span></td>";
+                        echo "<td class='text-center'><span class='badge badge-success'>{$row['returned_books']}</span></td>";
+                        echo "<td class='text-center'><span class='badge badge-warning'>{$row['damaged_books']}</span></td>";
+                        echo "<td class='text-center'><span class='badge badge-danger'>{$row['lost_books']}</span></td>";
+                        echo "<td class='text-center'><span class='badge {$status_class}'>{$status_text}</span></td>";
+                        echo "<td class='text-center'>" . date('M d, Y', strtotime($row['date_added'])) . "</td>";
+                        echo "<td class='text-center'>" . ($row['last_update'] ? date('M d, Y', strtotime($row['last_update'])) : 'Never') . "</td>";
+                        echo "</tr>";
+                    }
+                    ?>
+                </tbody>
+            </table>
+        </div>
+
     </div>
 </div>
 <!-- End of container-fluid -->

@@ -47,52 +47,53 @@ if (isset($_POST['action']) && $_POST['action'] === 'bulkDelete') {
 <!-- Main Content -->
 <div id="content" class="d-flex flex-column min-vh-100">
     <div class="container-fluid">
-        <div class="card shadow mb-4">
-            <div class="card-header py-3 d-flex flex-wrap align-items-center justify-content-between">
-                <h6 class="m-0 font-weight-bold text-primary">Corporates List</h6>
-                <div class="d-flex align-items-center">
-                    <button id="deleteSelectedBtn" class="btn btn-danger btn-sm mr-2 bulk-delete-btn" disabled>
-                        <i class="fas fa-trash"></i>
-                        <span>Delete Selected</span>
-                        <span class="badge badge-light ml-1">0</span>
-                    </button>
-                    <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#addCorporateModal">Add Corporate</button>
-                </div>
+        <h1 class="h3 mb-2 text-gray-800">Corporates Management</h1>
+        <p class="mb-4">Manage all corporates in the system.</p>
+
+        <!-- Action Buttons -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <button id="deleteSelectedBtn" class="btn btn-outline-danger btn-sm" disabled>
+                    Delete Selected (<span id="selectedDeleteCount">0</span>)
+                </button>
             </div>
-            <div class="card-body px-0">
-                <div class="table-responsive px-3">
-                    <table class="table table-bordered table-striped" id="dataTable" width="100%" cellspacing="0">
-                        <thead>
-                            <tr>
-                                <th style="text-align: center;" id="checkboxHeader">
-                                    <input type="checkbox" id="selectAll">
-                                </th>
-                                <th style="text-align: center;">ID</th>
-                                <th style="text-align: center;">Name</th>
-                                <th style="text-align: center;">Type</th>
-                                <th style="text-align: center;">Location</th>
-                                <th style="text-align: center;">Description</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php
-                            if ($result->num_rows > 0) {
-                                while ($row = $result->fetch_assoc()) {
-                                    echo "<tr>
-                                            <td style='text-align: center;'><input type='checkbox' class='row-checkbox' value='{$row['id']}'></td>
-                                            <td style='text-align: center;'>{$row['id']}</td>
-                                            <td style='text-align: center;'>{$row['name']}</td>
-                                            <td style='text-align: center;'>{$row['type']}</td>
-                                            <td style='text-align: center;'>{$row['location']}</td>
-                                            <td style='text-align: center;'>{$row['description']}</td>
-                                          </tr>";
-                                }
-                            }
-                            ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+            <button class="btn btn-success btn-sm" data-toggle="modal" data-target="#addCorporateModal">
+                <i class="fas fa-plus"></i> Add Corporate
+            </button>
+        </div>
+
+        <!-- Corporates Table -->
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped" id="dataTable" width="100%" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th style="text-align: center;" id="checkboxHeader">
+                            <input type="checkbox" id="selectAll">
+                        </th>
+                        <th style="text-align: center;">ID</th>
+                        <th style="text-align: center;">Name</th>
+                        <th style="text-align: center;">Type</th>
+                        <th style="text-align: center;">Location</th>
+                        <th style="text-align: center;">Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php
+                    if ($result->num_rows > 0) {
+                        while ($row = $result->fetch_assoc()) {
+                            echo "<tr>
+                                    <td style='text-align: center;'><input type='checkbox' class='row-checkbox' value='{$row['id']}'></td>
+                                    <td style='text-align: center;'>{$row['id']}</td>
+                                    <td style='text-align: center;'>{$row['name']}</td>
+                                    <td style='text-align: center;'>{$row['type']}</td>
+                                    <td style='text-align: center;'>{$row['location']}</td>
+                                    <td style='text-align: center;'>{$row['description']}</td>
+                                  </tr>";
+                        }
+                    }
+                    ?>
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
@@ -173,10 +174,10 @@ $(document).ready(function () {
         updateDeleteButton();
     });
 
-    // Update delete button state
+    // Update delete button state and count
     function updateDeleteButton() {
         const count = selectedIds.length;
-        $('#deleteSelectedBtn .badge').text(count);
+        $('#deleteSelectedBtn span').text(count);
         $('#deleteSelectedBtn').prop('disabled', count === 0);
     }
 
@@ -248,6 +249,9 @@ $(document).ready(function () {
         "responsive": true,
         "scrollX": true,
         "order": [[1, "asc"]],
+        "columnDefs": [
+            { "orderable": false, "targets": 0 } // Disable sorting for the checkbox column
+        ],
         "language": {
             "search": "_INPUT_",
             "searchPlaceholder": "Search..."

@@ -125,47 +125,46 @@ while ($corporate = $corporatesResult->fetch_assoc()) {
 <!-- Main Content -->
 <div id="content" class="d-flex flex-column min-vh-100">
     <div class="container-fluid">
-        <div class="card shadow mb-4">
-            <div class="card-header py-3 d-flex flex-wrap align-items-center justify-content-between">
-                <h6 class="m-0 font-weight-bold text-primary">Corporate Contributors List</h6>
-                <div class="d-flex align-items-center">
-                    <button id="deleteSelectedBtn" class="btn btn-danger btn-sm mr-2 bulk-delete-btn" disabled>
-                        <i class="fas fa-trash"></i>
-                        <span>Delete Selected</span>
-                        <span class="badge badge-light ml-1">0</span>
-                    </button>
-                </div>
+        <h1 class="h3 mb-2 text-gray-800">Corporate Contributors Management</h1>
+        <p class="mb-4">Manage all corporate contributors in the system.</p>
+
+        <!-- Action Buttons -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <button id="deleteSelectedBtn" class="btn btn-outline-danger btn-sm" disabled>
+                    Delete Selected (<span id="selectedDeleteCount">0</span>)
+                </button>
             </div>
-            <div class="card-body px-0">
-                <div class="table-responsive px-3">
-                    <table class="table table-bordered table-striped" id="dataTable" width="100%" cellspacing="0">
-                        <thead>
-                            <tr>
-                                <th style="text-align: center;" id="checkboxHeader">
-                                    <input type="checkbox" id="selectAll">
-                                </th>
-                                <th style="text-align: center;">ID</th>
-                                <th style="text-align: center;">Book Title</th>
-                                <th style="text-align: center;">Corporate Name</th>
-                                <th style="text-align: center;">Role</th>
-                                <th style="text-align: center;">Total Entries</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($corporate_contributors_data as $row): ?>
-                            <tr>
-                                <td style='text-align: center;'><input type="checkbox" class="row-checkbox" value="<?php echo htmlspecialchars($row['id_ranges']); ?>"></td>
-                                <td style='text-align: center;'><?php echo htmlspecialchars($row['id_ranges']); ?></td>
-                                <td><?php echo htmlspecialchars($row['book_title']); ?></td>
-                                <td><?php echo htmlspecialchars($row['corporate_name']); ?></td>
-                                <td style='text-align: center;'><?php echo htmlspecialchars($row['role']); ?></td>
-                                <td style='text-align: center;'><?php echo htmlspecialchars($row['total_entries']); ?></td>
-                            </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+        </div>
+
+        <!-- Corporate Contributors Table -->
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped" id="dataTable" width="100%" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th style="text-align: center;" id="checkboxHeader">
+                            <input type="checkbox" id="selectAll">
+                        </th>
+                        <th style="text-align: center;">ID</th>
+                        <th style="text-align: center;">Book Title</th>
+                        <th style="text-align: center;">Corporate Name</th>
+                        <th style="text-align: center;">Role</th>
+                        <th style="text-align: center;">Total Entries</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($corporate_contributors_data as $row): ?>
+                    <tr>
+                        <td style='text-align: center;'><input type="checkbox" class="row-checkbox" value="<?php echo htmlspecialchars($row['id_ranges']); ?>"></td>
+                        <td style='text-align: center;'><?php echo htmlspecialchars($row['id_ranges']); ?></td>
+                        <td><?php echo htmlspecialchars($row['book_title']); ?></td>
+                        <td><?php echo htmlspecialchars($row['corporate_name']); ?></td>
+                        <td style='text-align: center;'><?php echo htmlspecialchars($row['role']); ?></td>
+                        <td style='text-align: center;'><?php echo htmlspecialchars($row['total_entries']); ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
@@ -250,10 +249,10 @@ $(document).ready(function () {
         updateDeleteButton();
     });
 
-    // Update delete button state
+    // Update delete button state and count
     function updateDeleteButton() {
         const count = selectedIds.length;
-        $('#deleteSelectedBtn .badge').text(count);
+        $('#deleteSelectedBtn span').text(count);
         $('#deleteSelectedBtn').prop('disabled', count === 0);
     }
 
@@ -376,6 +375,9 @@ $(document).ready(function () {
         "responsive": true,
         "scrollX": true,
         "order": [[1, "asc"]],
+        "columnDefs": [
+            { "orderable": false, "targets": 0 } // Disable sorting for the checkbox column
+        ],
         "language": {
             "search": "_INPUT_",
             "searchPlaceholder": "Search..."

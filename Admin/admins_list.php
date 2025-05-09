@@ -340,85 +340,78 @@ $result = mysqli_query($conn, $query);
 <!-- Main Content -->
 <div class="container-fluid">
 
-<!-- Page Heading -->
+    <!-- Page Heading -->
     <h1 class="h3 mb-2 text-gray-800">Admin Management</h1>
     <p class="mb-4">Manage all admin accounts in the system.</p>
-            
-    <div class="card shadow mb-4">
-        <div class="card-header py-3">
-            <div class="title-section">
-                <h6 class="m-0 font-weight-bold text-primary">List of Admins</h6>
-            </div>
-            <div class="btn-group">
-                <button id="activateSelected" class="btn btn-outline-success btn-sm" disabled>
-                    Activate (<span id="selectedActivateCount">0</span>)
-                </button>
-                <button id="deactivateSelected" class="btn btn-outline-secondary btn-sm" disabled>
-                    Deactivate (<span id="selectedDeactivateCount">0</span>)
-                </button>
-                <button class="btn btn-success btn-sm" data-toggle="modal" data-target="#addUserModal">
-                    <i class="fas fa-plus"></i> Add Admin
-                </button>
-            </div>
-        </div>
-        <div class="card-body px-0">
-            <div class="table-responsive px-3">
-                <!-- Remove the custom search form -->
-                <table class="table table-bordered table-striped" id="adminsTable" width="100%" cellspacing="0">
-                    <thead>
-                        <tr>
-                            <th class="text-center" id="selectAllHeader" style="width: 40px;">Select</th>
-                            <th class="text-center">ID</th>
-                            <th class="text-center">Employee ID</th>
-                            <th class="text-center">Name</th>
-                            <th class="text-center">Email</th>
-                            <th class="text-center">Role</th>
-                            <th class="text-center">Status</th>
-                            <th class="text-center">Date Added</th>
-                            <th class="text-center">Last Update</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php
-                        // Direct admin retrieval
-                        $query = "SELECT * FROM admins ORDER BY date_added DESC";
-                        $result = $conn->query($query);
 
-                        while ($row = $result->fetch_assoc()) {
-                            $fullname = $row['firstname'] . ' ' . ($row['middle_init'] ? $row['middle_init'] . ' ' : '') . $row['lastname'];
-                            list($status_class, $status_text) = getStatusDisplay($row['status']);
-                            
-                            echo "<tr>";
-                            echo "<td style='text-align: center;'><input type='checkbox' class='selectRow'></td>";
-                            echo "<td style='text-align: center;'>{$row['id']}</td>";
-                            echo "<td style='text-align: center;'>{$row['employee_id']}</td>";
-                            echo "<td>" . htmlspecialchars($fullname) . "</td>";
-                            echo "<td>" . htmlspecialchars($row['email']) . "</td>";
-                            echo "<td style='text-align: center;'>{$row['role']}</td>";
-                            echo "<td style='text-align: center;'><span class='badge {$status_class}'>{$status_text}</span></td>";
-                            echo "<td style='text-align: center;'>" . date('M d, Y', strtotime($row['date_added'])) . "</td>";
-                            echo "<td style='text-align: center;'>" . ($row['last_update'] ? date('M d, Y', strtotime($row['last_update'])) : 'Never') . "</td>";
-                            echo "</tr>";
-                        }
-                        ?>
-                    </tbody>
-                </table>
-            </div>
+    <!-- Action Buttons -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <button id="activateSelected" class="btn btn-outline-success btn-sm" disabled>
+                Activate (<span id="selectedActivateCount">0</span>)
+            </button>
+            <button id="deactivateSelected" class="btn btn-outline-secondary btn-sm" disabled>
+                Deactivate (<span id="selectedDeactivateCount">0</span>)
+            </button>
         </div>
+        <button class="btn btn-success btn-sm" data-toggle="modal" data-target="#addUserModal">
+            <i class="fas fa-plus"></i> Add Admin
+        </button>
     </div>
 
-    <!-- Context Menu -->
-    <div id="contextMenu" class="dropdown-menu" style="display:none; position:absolute;">
-        <a class="dropdown-item" id="viewAdmin">View Details</a>
-        <a class="dropdown-item" id="updateAdmin">Update</a>
-        <a class="dropdown-item" id="generatePassword">Generate New Password</a>
-        <a class="dropdown-item" id="deleteAdmin">Delete</a>
+    <!-- Admins Table -->
+    <div class="table-responsive px-3">
+        <table class="table table-bordered table-striped" id="adminsTable" width="100%" cellspacing="0">
+            <thead>
+                <tr>
+                    <th class="text-center" id="selectAllHeader" style="width: 40px;">Select</th>
+                    <th class="text-center">ID</th>
+                    <th class="text-center">Employee ID</th>
+                    <th class="text-center">Name</th>
+                    <th class="text-center">Email</th>
+                    <th class="text-center">Role</th>
+                    <th class="text-center">Status</th>
+                    <th class="text-center">Date Added</th>
+                    <th class="text-center">Last Update</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php
+                // Direct admin retrieval
+                $query = "SELECT * FROM admins ORDER BY date_added DESC";
+                $result = $conn->query($query);
+
+                while ($row = $result->fetch_assoc()) {
+                    $fullname = $row['firstname'] . ' ' . ($row['middle_init'] ? $row['middle_init'] . ' ' : '') . $row['lastname'];
+                    list($status_class, $status_text) = getStatusDisplay($row['status']);
+                    
+                    echo "<tr>";
+                    echo "<td style='text-align: center;'><input type='checkbox' class='selectRow'></td>";
+                    echo "<td style='text-align: center;'>{$row['id']}</td>";
+                    echo "<td style='text-align: center;'>{$row['employee_id']}</td>";
+                    echo "<td>" . htmlspecialchars($fullname) . "</td>";
+                    echo "<td>" . htmlspecialchars($row['email']) . "</td>";
+                    echo "<td style='text-align: center;'>{$row['role']}</td>";
+                    echo "<td style='text-align: center;'><span class='badge {$status_class}'>{$status_text}</span></td>";
+                    echo "<td style='text-align: center;'>" . date('M d, Y', strtotime($row['date_added'])) . "</td>";
+                    echo "<td style='text-align: center;'>" . ($row['last_update'] ? date('M d, Y', strtotime($row['last_update'])) : 'Never') . "</td>";
+                    echo "</tr>";
+                }
+                ?>
+            </tbody>
+        </table>
     </div>
+
 </div>
 <!-- End of container-fluid -->
 
+<!-- Context Menu -->
+<div id="contextMenu" class="dropdown-menu" style="display:none; position:absolute;">
+    <a class="dropdown-item" id="viewAdmin">View Details</a>
+    <a class="dropdown-item" id="updateAdmin">Update</a>
+    <a class="dropdown-item" id="generatePassword">Generate New Password</a>
+    <a class="dropdown-item" id="deleteAdmin">Delete</a>
 </div>
-<!-- End of Main Content -->
 
 <!-- Footer -->
 <?php include '../Admin/inc/footer.php'?>

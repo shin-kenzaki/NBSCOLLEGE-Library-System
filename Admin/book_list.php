@@ -260,13 +260,6 @@ $result = $stmt->get_result();
         align-items: center;
     }
     
-    .total-books-display {
-        font-size: 0.9rem;
-        color: #4e73df;
-        font-weight: 600;
-        margin-right: 10px;
-    }
-    
     @media (max-width: 575.98px) {
         .card-header {
             flex-direction: column;
@@ -288,220 +281,215 @@ $result = $stmt->get_result();
     <?php include '../admin/inc/header.php'; ?>
 
     <!-- Main Content -->
-    <div class="container-fluid">
-        <div class="card shadow mb-4">
-            <div class="card-header py-3">
-    <h6 class="m-0 font-weight-bold text-primary">Book List</h6>
-    <div class="d-flex align-items-center">
-        <span class="mr-2 total-books-display">
-            Total Books: <?php echo number_format($totalBooks); ?>
-        </span>
-        <div class="btn-group me-2">
-            <a href="add-book.php" class="btn btn-secondary btn-sm">
-                <i class="fas fa-plus-circle"></i> Quick Add
-            </a>
-            <a href="step-by-step-add-book.php" class="btn btn-primary btn-sm">
-                <i class="fas fa-list-ol"></i> Step-by-Step
-            </a>
-        </div>
-        <button type="button" class="btn btn-danger btn-sm ms-2" data-bs-toggle="modal" data-bs-target="#instructionsModal">
-            <i class="fas fa-question-circle"></i> Instructions
-        </button>
-    </div>
-</div>
-                <div class="card-body px-0"> <!-- Remove padding for full-width scroll -->
-                    <div class="table-responsive px-3"> <!-- Add padding inside scroll container -->
-                        <table class="table table-bordered table-striped" id="dataTable" width="100%" cellspacing="0">
-                            <thead>
-                                <tr>
-                                    <th style="text-align: center">ID Range</th>
-                                    <th style="text-align: center">Accession Range</th>
-                                    <th style="text-align: center">Title</th>
-                                    <th style="text-align: center">Call Number Range</th>
-                                    <th style="text-align: center">Copy Number Range</th>
-                                    <th style="text-align: center">Shelf Locations</th>
-                                    <th style="text-align: center">Program</th>
-                                    <th style="text-align: center">ISBN</th>
-                                    <th style="text-align: center">Series</th>
-                                    <th style="text-align: center">Volume</th>
-                                    <th style="text-align: center">Edition</th>
-                                    <th style="text-align: center">Part</th>
-                                    <th style="text-align: center">Total Copies</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-        <?php
-        $query = "SELECT 
-            title,
-            GROUP_CONCAT(DISTINCT id ORDER BY id) as id_range,
-            GROUP_CONCAT(DISTINCT accession ORDER BY accession) as accession_range,
-            GROUP_CONCAT(CONCAT(call_number, '|', copy_number) ORDER BY copy_number) as call_number_data,
-            GROUP_CONCAT(DISTINCT copy_number ORDER BY copy_number) as copy_number_range,
-            GROUP_CONCAT(DISTINCT shelf_location ORDER BY shelf_location) as shelf_locations,
-            GROUP_CONCAT(DISTINCT program ORDER BY program) as programs,
-            ISBN,
-            series,
-            volume,
-            edition,
-            part,
-            COUNT(*) as total_copies
-            FROM books ";
-        
-        if (!empty($searchQuery)) {
-            $query .= " WHERE title LIKE '%$searchQuery%' ";
-        }
-        
-        $query .= " GROUP BY title, ISBN, series, volume, edition, part ORDER BY title";
-        
-        $result = $conn->query($query);
+    <div id="content" class="d-flex flex-column min-vh-100">
+        <div class="container-fluid">
+            <h1 class="h3 mb-2 text-gray-800">Books Management</h1>
+            <p class="mb-4">Manage all books in the system.</p>
 
-        while ($row = $result->fetch_assoc()) {
-            // Process IDs
-            $ids = explode(',', $row['id_range']);
-            $id_range = formatRange($ids);
-
-            // Process accessions
-            $accessions = explode(',', $row['accession_range']);
-            $accession_range = formatRange($accessions);
-
-            // Process call numbers
-            $call_number_data = explode(',', $row['call_number_data']);
-            $call_numbers = [];
-            $current_base = '';
-            $current_sequence = [];
-
-            foreach ($call_number_data as $data) {
-                // Fix: Safely handle data without a pipe character
-                $parts = explode('|', $data);
-                
-                // Make sure we have both parts (call number and copy number)
-                if (count($parts) >= 2) {
-                    $call_num = $parts[0];
-                    $copy_num = $parts[1];
-                } else {
-                    // If we don't have both parts, just use the data as the call number
-                    $call_num = $data;
-                    $copy_num = "1"; // Default copy number
-                }
-                
-                $base_call = preg_replace('/\s*c\d+$/', '', $call_num);
-
-                if ($base_call !== $current_base) {
-                    if (!empty($current_sequence)) {
-                        $call_numbers[] = implode('<br>', $current_sequence);
-                    }
-                    $current_base = $base_call;
-                    $current_sequence = [];
-                }
-                $current_sequence[] = $call_num;
-            }
-            
-            if (!empty($current_sequence)) {
-                $call_numbers[] = implode('<br>', $current_sequence);
-            }
-
-            // Process copy numbers
-            $copy_numbers = explode(',', $row['copy_number_range']);
-            $copy_range = formatRange($copy_numbers);
-
-            // Process shelf locations
-            $shelf_locations = array_unique(explode(',', $row['shelf_locations']));
-            $formatted_shelf_locations = implode(', ', $shelf_locations);
-
-            // Process program data
-            $programs = !empty($row['programs']) ? array_unique(explode(',', $row['programs'])) : ['N/A'];
-            $formatted_programs = implode(', ', $programs);
-
-            // Format all data for display - reordered columns to put accession first, and add program
-            echo "<tr data-book-id='" . $ids[0] . "'>
-                <td style='text-align: center'>{$id_range}</td>
-                <td style='text-align: center'>{$accession_range}</td>
-                <td>{$row['title']}</td>
-                <td style='text-align: center'>" . implode('<br>', $call_numbers) . "</td>
-                <td style='text-align: center'>{$copy_range}</td>
-                <td style='text-align: center'>{$formatted_shelf_locations}</td>
-                <td style='text-align: center'>{$formatted_programs}</td>
-                <td style='text-align: center'>" . ($row['ISBN'] ?: 'N/A') . "</td>
-                <td style='text-align: center'>" . ($row['series'] ?: 'N/A') . "</td>
-                <td style='text-align: center'>" . ($row['volume'] ?: 'N/A') . "</td>
-                <td style='text-align: center'>" . ($row['edition'] ?: 'N/A') . "</td>
-                <td style='text-align: center'>" . ($row['part'] ?: 'N/A') . "</td>
-                <td style='text-align: center'>{$row['total_copies']}</td>
-            </tr>";
-        }
-
-        // Helper function to format ranges smartly
-        function formatRange($numbers) {
-            if (empty($numbers)) return 'N/A';
-            
-            $numbers = array_map('intval', $numbers);
-            sort($numbers);
-            
-            $ranges = [];
-            $start = $numbers[0];
-            $prev = $start;
-            
-            for ($i = 1; $i <= count($numbers); $i++) {
-                if ($i == count($numbers) || $numbers[$i] - $prev > 1) {
-                    if ($start == $prev) {
-                        $ranges[] = $start;
-                    } else {
-                        $ranges[] = "$start-$prev";
-                    }
-                    if ($i < count($numbers)) {
-                        $start = $numbers[$i];
-                        $prev = $start;
-                    }
-                } else {
-                    $prev = $numbers[$i];
-                }
-            }
-            
-            return implode(', ', $ranges);
-        }
-
-        // Keep the existing formatCallNumberSequence function
-        function formatCallNumberSequence($base_call, $copies) {
-            sort($copies, SORT_NUMERIC);
-            $ranges = [];
-            $start = $copies[0];
-            $prev = $start;
-            
-            for ($i = 1; $i <= count($copies); $i++) {
-                if ($i == count($copies) || $copies[$i] - $prev > 1) {
-                    if ($start == $prev) {
-                        $ranges[] = $base_call . " c" . $start;
-                    } else {
-                        $ranges[] = $base_call . " c" . $start . " - " . $base_call . " c" . $prev;
-                    }
-                    if ($i < count($copies)) {
-                        $start = $copies[$i];
-                        $prev = $start;
-                    }
-                } else {
-                    $prev = $copies[$i];
-                }
-            }
-            return implode('<br>', $ranges); 
-        }
-        ?>
-    </tbody>
-</table>
-                    </div>
+            <!-- Action Buttons -->
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+                <div class="btn-group">
+                    <a href="add-book.php" class="btn btn-secondary btn-sm">
+                        <i class="fas fa-plus-circle"></i> Quick Add
+                    </a>
+                    <a href="step-by-step-add-book.php" class="btn btn-primary btn-sm">
+                        <i class="fas fa-list-ol"></i> Step-by-Step
+                    </a>
                 </div>
+                <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#instructionsModal">
+                    <i class="fas fa-question-circle"></i> Instructions
+                </button>
+            </div>
+
+            <!-- Books Table -->
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th style="text-align: center">ID Range</th>
+                            <th style="text-align: center">Accession Range</th>
+                            <th style="text-align: center">Title</th>
+                            <th style="text-align: center">Call Number Range</th>
+                            <th style="text-align: center">Copy Number Range</th>
+                            <th style="text-align: center">Shelf Locations</th>
+                            <th style="text-align: center">Program</th>
+                            <th style="text-align: center">ISBN</th>
+                            <th style="text-align: center">Series</th>
+                            <th style="text-align: center">Volume</th>
+                            <th style="text-align: center">Edition</th>
+                            <th style="text-align: center">Part</th>
+                            <th style="text-align: center">Total Copies</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php
+                        $query = "SELECT 
+                            title,
+                            GROUP_CONCAT(DISTINCT id ORDER BY id) as id_range,
+                            GROUP_CONCAT(DISTINCT accession ORDER BY accession) as accession_range,
+                            GROUP_CONCAT(CONCAT(call_number, '|', copy_number) ORDER BY copy_number) as call_number_data,
+                            GROUP_CONCAT(DISTINCT copy_number ORDER BY copy_number) as copy_number_range,
+                            GROUP_CONCAT(DISTINCT shelf_location ORDER BY shelf_location) as shelf_locations,
+                            GROUP_CONCAT(DISTINCT program ORDER BY program) as programs,
+                            ISBN,
+                            series,
+                            volume,
+                            edition,
+                            part,
+                            COUNT(*) as total_copies
+                            FROM books ";
+                        
+                        if (!empty($searchQuery)) {
+                            $query .= " WHERE title LIKE '%$searchQuery%' ";
+                        }
+                        
+                        $query .= " GROUP BY title, ISBN, series, volume, edition, part ORDER BY title";
+                        
+                        $result = $conn->query($query);
+
+                        while ($row = $result->fetch_assoc()) {
+                            // Process IDs
+                            $ids = explode(',', $row['id_range']);
+                            $id_range = formatRange($ids);
+
+                            // Process accessions
+                            $accessions = explode(',', $row['accession_range']);
+                            $accession_range = formatRange($accessions);
+
+                            // Process call numbers
+                            $call_number_data = explode(',', $row['call_number_data']);
+                            $call_numbers = [];
+                            $current_base = '';
+                            $current_sequence = [];
+
+                            foreach ($call_number_data as $data) {
+                                // Fix: Safely handle data without a pipe character
+                                $parts = explode('|', $data);
+                                
+                                // Make sure we have both parts (call number and copy number)
+                                if (count($parts) >= 2) {
+                                    $call_num = $parts[0];
+                                    $copy_num = $parts[1];
+                                } else {
+                                    // If we don't have both parts, just use the data as the call number
+                                    $call_num = $data;
+                                    $copy_num = "1"; // Default copy number
+                                }
+                                
+                                $base_call = preg_replace('/\s*c\d+$/', '', $call_num);
+
+                                if ($base_call !== $current_base) {
+                                    if (!empty($current_sequence)) {
+                                        $call_numbers[] = implode('<br>', $current_sequence);
+                                    }
+                                    $current_base = $base_call;
+                                    $current_sequence = [];
+                                }
+                                $current_sequence[] = $call_num;
+                            }
+                            
+                            if (!empty($current_sequence)) {
+                                $call_numbers[] = implode('<br>', $current_sequence);
+                            }
+
+                            // Process copy numbers
+                            $copy_numbers = explode(',', $row['copy_number_range']);
+                            $copy_range = formatRange($copy_numbers);
+
+                            // Process shelf locations
+                            $shelf_locations = array_unique(explode(',', $row['shelf_locations']));
+                            $formatted_shelf_locations = implode(', ', $shelf_locations);
+
+                            // Process program data
+                            $programs = !empty($row['programs']) ? array_unique(explode(',', $row['programs'])) : ['N/A'];
+                            $formatted_programs = implode(', ', $programs);
+
+                            // Format all data for display - reordered columns to put accession first, and add program
+                            echo "<tr data-book-id='" . $ids[0] . "'>
+                                <td style='text-align: center'>{$id_range}</td>
+                                <td style='text-align: center'>{$accession_range}</td>
+                                <td>{$row['title']}</td>
+                                <td style='text-align: center'>" . implode('<br>', $call_numbers) . "</td>
+                                <td style='text-align: center'>{$copy_range}</td>
+                                <td style='text-align: center'>{$formatted_shelf_locations}</td>
+                                <td style='text-align: center'>{$formatted_programs}</td>
+                                <td style='text-align: center'>" . ($row['ISBN'] ?: 'N/A') . "</td>
+                                <td style='text-align: center'>" . ($row['series'] ?: 'N/A') . "</td>
+                                <td style='text-align: center'>" . ($row['volume'] ?: 'N/A') . "</td>
+                                <td style='text-align: center'>" . ($row['edition'] ?: 'N/A') . "</td>
+                                <td style='text-align: center'>" . ($row['part'] ?: 'N/A') . "</td>
+                                <td style='text-align: center'>{$row['total_copies']}</td>
+                            </tr>";
+                        }
+
+                        // Helper function to format ranges smartly
+                        function formatRange($numbers) {
+                            if (empty($numbers)) return 'N/A';
+                            
+                            $numbers = array_map('intval', $numbers);
+                            sort($numbers);
+                            
+                            $ranges = [];
+                            $start = $numbers[0];
+                            $prev = $start;
+                            
+                            for ($i = 1; $i <= count($numbers); $i++) {
+                                if ($i == count($numbers) || $numbers[$i] - $prev > 1) {
+                                    if ($start == $prev) {
+                                        $ranges[] = $start;
+                                    } else {
+                                        $ranges[] = "$start-$prev";
+                                    }
+                                    if ($i < count($numbers)) {
+                                        $start = $numbers[$i];
+                                        $prev = $start;
+                                    }
+                                } else {
+                                    $prev = $numbers[$i];
+                                }
+                            }
+                            
+                            return implode(', ', $ranges);
+                        }
+
+                        // Keep the existing formatCallNumberSequence function
+                        function formatCallNumberSequence($base_call, $copies) {
+                            sort($copies, SORT_NUMERIC);
+                            $ranges = [];
+                            $start = $copies[0];
+                            $prev = $start;
+                            
+                            for ($i = 1; $i <= count($copies); $i++) {
+                                if ($i == count($copies) || $copies[$i] - $prev > 1) {
+                                    if ($start == $prev) {
+                                        $ranges[] = $base_call . " c" . $start;
+                                    } else {
+                                        $ranges[] = $base_call . " c" . $start . " - " . $base_call . " c" . $prev;
+                                    }
+                                    if ($i < count($copies)) {
+                                        $start = $copies[$i];
+                                        $prev = $start;
+                                    }
+                                } else {
+                                    $prev = $copies[$i];
+                                }
+                            }
+                            return implode('<br>', $ranges); 
+                        }
+                        ?>
+                    </tbody>
+                </table>
             </div>
         </div>
-        <!-- /.container-fluid -->
-
-        <!-- Custom Context Menu -->
-        <div id="contextMenu" class="dropdown-menu shadow-sm custom-context-menu" style="display:none; position:absolute; z-index:1000;">
-            <a class="dropdown-item context-update" href="#"><i class="fas fa-edit fa-sm fa-fw mr-2 text-gray-400"></i> Update Books</a>
-            <div class="dropdown-divider"></div>
-            <a class="dropdown-item context-add-copies" href="#"><i class="fas fa-plus fa-sm fa-fw mr-2 text-gray-400"></i> Add Copies</a>
-        </div>
-
     </div>
     <!-- End of Main Content -->
+
+    <!-- Custom Context Menu -->
+    <div id="contextMenu" class="dropdown-menu shadow-sm custom-context-menu" style="display:none; position:absolute; z-index:1000;">
+        <a class="dropdown-item context-update" href="#"><i class="fas fa-edit fa-sm fa-fw mr-2 text-gray-400"></i> Update Books</a>
+        <div class="dropdown-divider"></div>
+        <a class="dropdown-item context-add-copies" href="#"><i class="fas fa-plus fa-sm fa-fw mr-2 text-gray-400"></i> Add Copies</a>
+    </div>
 
     <!-- Footer -->
     <?php include '../Admin/inc/footer.php' ?>
