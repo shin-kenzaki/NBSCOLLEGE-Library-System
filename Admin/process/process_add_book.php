@@ -325,7 +325,7 @@ if (isset($_POST['submit'])) {
                         
                         for ($j = 0; $j < $corporate_count; $j++) {
                             $corporate_id = intval($_POST['corporate_contributor_ids'][$j]);
-                            $role = mysqli_real_escape_string($conn, $_POST['corporate_contributor_roles'][$j]);
+                            $role = mysqli_real_escape_string($conn, str_replace('_', ' ', $_POST['corporate_contributor_roles'][$j])); // Replace underscores with spaces
                             
                             error_log("Adding corporate contributor: ID=$corporate_id, Role=$role to book_id=$book_id");
                             
@@ -340,8 +340,8 @@ if (isset($_POST['submit'])) {
                                     throw new Exception("Error inserting corporate contributor: $error_msg");
                                 }
                                 
-                                // If role is corporate_author, also mark as having an author
-                                if ($role === 'corporate_author') {
+                                // If role is corporate author, also mark as having an author
+                                if ($role === 'corporate author') {
                                     $author_added = true;
                                     error_log("Corporate author role detected, marking book as having an author");
                                 }

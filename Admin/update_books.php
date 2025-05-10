@@ -21,6 +21,14 @@ while ($row = mysqli_fetch_assoc($admins_result)) {
     $admins[] = $row;
 }
 
+// Fetch corporate contributors for the dropdown
+$corporates_query = "SELECT id, name, type FROM corporates";
+$corporates_result = mysqli_query($conn, $corporates_query);
+$corporates = [];
+while ($row = mysqli_fetch_assoc($corporates_result)) {
+    $corporates[] = $row;
+}
+
 // Process form submission
 if (isset($_POST['submit'])) {
     try {
@@ -53,8 +61,6 @@ if (isset($_POST['submit'])) {
         if ($hasError) {
             throw new Exception($errorMessage);
         }
-
-
 
         // Get arrays of book data
         $shelf_locations = $_POST['shelf_location'] ?? array();
@@ -376,58 +382,50 @@ if (isset($_POST['submit'])) {
         }
 
         // Update contributors - MODIFIED SECTION
-        if (!empty($_POST['author']) || !empty($_POST['author'][0])) {
-            foreach ($bookIds as $bookId) {
-                // Remove existing contributors
-                $delete_query = "DELETE FROM contributors WHERE book_id = ?";
-                $stmt = $conn->prepare($delete_query);
-                $stmt->bind_param("i", $bookId);
-                $stmt->execute();
+        foreach ($bookIds as $bookId) {
+            // Always remove existing contributors first
+            $delete_query = "DELETE FROM contributors WHERE book_id = ?";
+            $stmt = $conn->prepare($delete_query);
+            $stmt->bind_param("i", $bookId);
+            $stmt->execute();
+            $stmt->close();
 
-                // Add authors
-                $insert_author = "INSERT INTO contributors (book_id, writer_id, role) VALUES (?, ?, 'Author')";
-                $stmt = $conn->prepare($insert_author);
+            // Only add new contributors if there are any
+            if (!empty($_POST['contributor_ids']) && !empty($_POST['contributor_roles'])) {
+                $insert_contributor = "INSERT INTO contributors (book_id, writer_id, role) VALUES (?, ?, ?)";
+                $stmt = $conn->prepare($insert_contributor);
 
-                if (is_array($_POST['author'])) {
-                    foreach ($_POST['author'] as $authorId) {
-                        if (!empty($authorId)) {
-                            $stmt->bind_param("ii", $bookId, $authorId);
-                            $stmt->execute();
-                        }
-                    }
-                } else {
-                    $stmt->bind_param("ii", $bookId, $_POST['author']);
+                foreach ($_POST['contributor_ids'] as $index => $writerId) {
+                    $role = $_POST['contributor_roles'][$index];
+                    $stmt->bind_param("iis", $bookId, $writerId, $role);
                     $stmt->execute();
                 }
-
-                // Add co-authors if any
-                if (!empty($_POST['co_authors']) && is_array($_POST['co_authors'])) {
-                    $insert_coauthor = "INSERT INTO contributors (book_id, writer_id, role) VALUES (?, ?, 'Co-Author')";
-                    $stmt = $conn->prepare($insert_coauthor);
-
-                    foreach ($_POST['co_authors'] as $coAuthorId) {
-                        if (!empty($coAuthorId)) {
-                            $stmt->bind_param("ii", $bookId, $coAuthorId);
-                            $stmt->execute();
-                        }
-                    }
-                }
-
-                // Add editors if any
-                if (!empty($_POST['editors']) && is_array($_POST['editors'])) {
-                    $insert_editor = "INSERT INTO contributors (book_id, writer_id, role) VALUES (?, ?, 'Editor')";
-                    $stmt = $conn->prepare($insert_editor);
-
-                    foreach ($_POST['editors'] as $editorId) {
-                        if (!empty($editorId) && (!isset($_POST['co_authors']) || !in_array($editorId, $_POST['co_authors']))) {
-                            $stmt->bind_param("ii", $bookId, $editorId);
-                            $stmt->execute();
-                        }
-                    }
-                }
+                $stmt->close();
             }
         }
 
+        // Update corporate contributors
+        foreach ($bookIds as $bookId) {
+            // Always remove existing corporate contributors first
+            $delete_query = "DELETE FROM corporate_contributors WHERE book_id = ?";
+            $stmt = $conn->prepare($delete_query);
+            $stmt->bind_param("i", $bookId);
+            $stmt->execute();
+            $stmt->close();
+
+            // Only add new corporate contributors if there are any
+            if (!empty($_POST['corporate_contributor_ids']) && !empty($_POST['corporate_contributor_roles'])) {
+                $insert_corporate_contributor = "INSERT INTO corporate_contributors (book_id, corporate_id, role) VALUES (?, ?, ?)";
+                $stmt = $conn->prepare($insert_corporate_contributor);
+
+                foreach ($_POST['corporate_contributor_ids'] as $index => $corporateId) {
+                    $role = $_POST['corporate_contributor_roles'][$index];
+                    $stmt->bind_param("iis", $bookId, $corporateId, $role);
+                    $stmt->execute();
+                }
+                $stmt->close();
+            }
+        }
 
         // Define the folder for storing images
         $imageFolder = '../Images/book-image/';
@@ -680,6 +678,21 @@ if (!empty($accession_range)) {
         // Fetch the first book for shared data
         if (!empty($books)) {
             $first_book = $books[0];
+            
+            // Fetch publication info for the first book
+            $publication = [];
+            $pub_query = "SELECT p.*, pub.publisher 
+                         FROM publications p 
+                         JOIN publishers pub ON p.publisher_id = pub.id 
+                         WHERE p.book_id = ?";
+            $stmt = $conn->prepare($pub_query);
+            $stmt->bind_param("i", $first_book['id']);
+            $stmt->execute();
+            $pub_result = $stmt->get_result();
+            
+            if ($pub_result && $pub_result->num_rows > 0) {
+                $publication = $pub_result->fetch_assoc();
+            }
         } else {
             // Handle case where no books match the accession range
             echo "<script>
@@ -737,20 +750,74 @@ if (!empty($bookIds)) {
     }
 }
 
-// Fetch publication details for the first book
-$publication = [];
-if ($first_book) {
-    $publication_query = "SELECT p.publish_date, pub.publisher
-                          FROM publications p
-                          LEFT JOIN publishers pub ON p.publisher_id = pub.id
-                          WHERE p.book_id = ?";
-    $stmt = $conn->prepare($publication_query);
-    $stmt->bind_param("i", $first_book['id']);
+// Fetch corporate contributors for the selected books
+$corporateContributors = [];
+if (!empty($bookIds)) {
+    $placeholders = implode(',', array_fill(0, count($bookIds), '?'));
+    $corporate_contributors_query = "SELECT book_id, corporate_id, role FROM corporate_contributors WHERE book_id IN ($placeholders)";
+    $stmt = $conn->prepare($corporate_contributors_query);
+    $stmt->bind_param(str_repeat('i', count($bookIds)), ...$bookIds);
     $stmt->execute();
-    $publication_result = $stmt->get_result();
-    $publication = $publication_result->fetch_assoc();
+    $corporate_contributors_result = $stmt->get_result();
+    while ($row = $corporate_contributors_result->fetch_assoc()) {
+        $corporateContributors[$row['book_id']][] = $row;
+    }
 }
+
+// Prepare selected contributors for JS initialization
+$selectedContributors = [];
+if (!empty($contributors) && $first_book) {
+    foreach ($contributors[$first_book['id']] ?? [] as $contrib) {
+        // Find writer name
+        foreach ($writers as $writer) {
+            if ($writer['id'] == $contrib['writer_id']) {
+                $selectedContributors[] = [
+                    'id' => (int)$writer['id'],
+                    'name' => $writer['name'],
+                    'role' => strtolower($contrib['role'])
+                ];
+                break;
+            }
+        }
+    }
+}
+
+// Prepare selected corporate contributors for JS initialization
+$selectedCorporateContributors = [];
+if (!empty($corporateContributors) && $first_book) {
+    foreach ($corporateContributors[$first_book['id']] ?? [] as $contrib) {
+        foreach ($corporates as $corporate) {
+            if ($corporate['id'] == $contrib['corporate_id']) {
+                $selectedCorporateContributors[] = [
+                    'id' => (int)$corporate['id'],
+                    'name' => $corporate['name'] . ' (' . $corporate['type'] . ')',
+                    'role' => strtolower($contrib['role'])
+                ];
+                break;
+            }
+        }
+    }
+}
+
+$contributor_roles = [
+    'author' => 'Author',
+    'co_author' => 'Co-Author',
+    'editor' => 'Editor',
+    'illustrator' => 'Illustrator',
+    'translator' => 'Translator'
+];
+
+$corporate_roles = [
+    'publisher' => 'Publisher',
+    'distributor' => 'Distributor',
+    'sponsor' => 'Sponsor',
+    'funding_body' => 'Funding Body',
+    'research_institution' => 'Research Institution'
+];
 ?>
+
+<!-- Add Contributor Select CSS -->
+<link rel="stylesheet" href="css/contributor-select.css">
 
 <!-- Main Content -->
 <div id="content-wrapper" class="d-flex flex-column min-vh-100">
@@ -824,112 +891,26 @@ if ($first_book) {
                                 <i class="fas fa-info-circle mr-1"></i> Title in another language.
                             </small>
                         </div>
-
                         <!-- Contributors section - Updated layout -->
-                        <div class="form-group mt-4">
-                            <label class="mb-2">Contributors</label>
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <label>Author</label>
-                                    <div class="input-group mb-2">
-                                        <span class="input-group-text"><i class="fa fa-search"></i></span>
-                                        <input type="text" class="form-control contributor-search"
-                                               placeholder="Search authors..." data-target="authorSelect">
-                                    </div>
-                                    <select class="form-control" name="author[]" id="authorSelect" multiple>
-                                        <option value="">Select Author</option>
-                                        <?php foreach ($writers as $writer):
-                                            $isAuthor = false;
-                                            foreach ($contributors as $bookContributors) {
-                                                foreach ($bookContributors as $contributor) {
-                                                    if ($contributor['writer_id'] == $writer['id'] && $contributor['role'] == 'Author') {
-                                                        $isAuthor = true;
-                                                        break;
-                                                    }
-                                                }
-                                            }
-                                        ?>
-                                            <option value="<?php echo $writer['id']; ?>" <?php echo $isAuthor ? 'selected' : ''; ?>>
-                                                <?php echo htmlspecialchars($writer['name']); ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                    <small class="text-primary d-block mb-1">
-                                        <i class="fas fa-keyboard mr-1"></i> Hold <kbd>Ctrl</kbd> (Windows) or <kbd>⌘ Cmd</kbd> (Mac) to select multiple items
-                                    </small>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mt-4">
+                                    <label class="mb-2">Individual Contributors <span class="text-muted">(optional)</span></label>
+                                    <div id="contributorSelectContainer"></div>
                                     <small class="form-text text-muted">
-                                        <i class="fas fa-info-circle mr-1"></i> Main author(s) primarily responsible for the intellectual content of the work
+                                        <i class="fas fa-info-circle mr-1"></i>
+                                        Add authors, co-authors, editors, illustrators, or translators for this book. You may add multiple contributors and assign their roles.
                                     </small>
-                                    <small class="text-muted">Hold Ctrl/Cmd to select multiple items</small>
-                                    <div class="mt-2 border rounded bg-light" id="authorPreview"></div>
                                 </div>
-
-                                <div class="col-md-4">
-                                    <label>Co-Authors</label>
-                                    <div class="input-group mb-2">
-                                        <span class="input-group-text"><i class="fa fa-search"></i></span>
-                                        <input type="text" class="form-control contributor-search"
-                                               placeholder="Search co-authors..." data-target="coAuthorSelect">
-                                    </div>
-                                    <select class="form-control" name="co_authors[]" id="coAuthorSelect" multiple>
-                                        <?php foreach ($writers as $writer):
-                                            $isCoAuthor = false;
-                                            foreach ($contributors as $bookContributors) {
-                                                foreach ($bookContributors as $contributor) {
-                                                    if ($contributor['writer_id'] == $writer['id'] && $contributor['role'] == 'Co-Author') {
-                                                        $isCoAuthor = true;
-                                                        break;
-                                                    }
-                                                }
-                                            }
-                                        ?>
-                                            <option value="<?php echo htmlspecialchars($writer['id']); ?>" <?php echo $isCoAuthor ? 'selected' : ''; ?>>
-                                                <?php echo htmlspecialchars($writer['name']); ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                    <small class="text-primary d-block mb-1">
-                                        <i class="fas fa-keyboard mr-1"></i> Hold <kbd>Ctrl</kbd> (Windows) or <kbd>⌘ Cmd</kbd> (Mac) to select multiple items
-                                    </small>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mt-4">
+                                    <label class="mb-2">Corporate Contributors <span class="text-muted">(optional)</span></label>
+                                    <div id="corporateContributorSelectContainer"></div>
                                     <small class="form-text text-muted">
-                                        <i class="fas fa-info-circle mr-1"></i> Secondary authors who contributed to the work but are not the main authors
+                                        <i class="fas fa-info-circle mr-1"></i>
+                                        Add corporate contributors such as publishers, distributors, sponsors, or funding bodies. You may add multiple contributors and assign their roles.
                                     </small>
-                                    <small class="text-muted">Hold Ctrl/Cmd to select multiple items</small>
-                                    <div id="coAuthorPreview" class="mt-2 p-2 border rounded bg-light"></div>
-                                </div>
-
-                                <div class="col-md-4">
-                                    <label>Editors</label>
-                                    <div class="input-group mb-2">
-                                        <span class="input-group-text"><i class="fa fa-search"></i></span>
-                                        <input type="text" class="form-control contributor-search"
-                                               placeholder="Search editors..." data-target="editorSelect">
-                                    </div>
-                                    <select class="form-control" name="editors[]" id="editorSelect" multiple>
-                                        <?php foreach ($writers as $writer):
-                                            $isEditor = false;
-                                            foreach ($contributors as $bookContributors) {
-                                                foreach ($bookContributors as $contributor) {
-                                                    if ($contributor['writer_id'] == $writer['id'] && $contributor['role'] == 'Editor') {
-                                                        $isEditor = true;
-                                                        break;
-                                                    }
-                                                }
-                                            }
-                                        ?>
-                                            <option value="<?php echo htmlspecialchars($writer['id']); ?>" <?php echo $isEditor ? 'selected' : ''; ?>>
-                                                <?php echo htmlspecialchars($writer['name']); ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                    <small class="text-primary d-block mb-1">
-                                        <i class="fas fa-keyboard mr-1"></i> Hold <kbd>Ctrl</kbd> (Windows) or <kbd>⌘ Cmd</kbd> (Mac) to select multiple items
-                                    </small>
-                                    <small class="form-text text-muted">
-                                        <i class="fas fa-info-circle mr-1"></i> People who edited, compiled, or curated the work rather than creating it
-                                    </small>
-                                    <small class="text-muted">Hold Ctrl/Cmd to select multiple items</small>
-                                    <div id="editorPreview" class="mt-2 p-2 border rounded bg-light"></div>
                                 </div>
                             </div>
                         </div>
@@ -959,9 +940,11 @@ if ($first_book) {
                                     <label>Program</label>
                                     <select class="form-control" name="program">
                                         <option value="">Select Program</option>
+                                        <option value="Computer Science" <?php echo ($first_book['program'] == 'General Education') ? 'selected' : ''; ?>>General Education</option>
                                         <option value="Accountancy" <?php echo ($first_book['program'] == 'Accountancy') ? 'selected' : ''; ?>>Accountancy</option>
                                         <option value="Computer Science" <?php echo ($first_book['program'] == 'Computer Science') ? 'selected' : ''; ?>>Computer Science</option>
                                         <option value="Entrepreneurship" <?php echo ($first_book['program'] == 'Entrepreneurship') ? 'selected' : ''; ?>>Entrepreneurship</option>
+                                        <option value="Entrepreneurship" <?php echo ($first_book['program'] == 'Accountancy Information System') ? 'selected' : ''; ?>>Accountancy Information System</option>
                                         <option value="Tourism Management" <?php echo ($first_book['program'] == 'Tourism Management') ? 'selected' : ''; ?>>Tourism Management</option>
                                     </select>
                                     <small class="form-text text-muted">
@@ -1877,5 +1860,92 @@ document.addEventListener('DOMContentLoaded', function() {
     displayImageDimensions('backImagePreview', 'backImageDimensions');
     updateAspectPreviews('frontImagePreview', 'frontAspectPreviews');
     updateAspectPreviews('backImagePreview', 'backAspectPreviews');
+});
+</script>
+
+<!-- Add Contributor Select JS -->
+<script src="js/contributor-select.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Writers data from PHP
+    const writersData = <?php echo json_encode($writers); ?>;
+    const contributorRoles = <?php echo json_encode($contributor_roles); ?>;
+    const selectedContributors = <?php echo json_encode($selectedContributors); ?>;
+
+    // Corporate contributors data from PHP
+    const corporatesData = <?php echo json_encode($corporates); ?>;
+    const corporateRoles = <?php echo json_encode($corporate_roles); ?>;
+    const selectedCorporateContributors = <?php echo json_encode($selectedCorporateContributors); ?>;
+
+    // Initialize the Individual ContributorSelect component
+    window.contributorSelect = new ContributorSelect({
+        containerId: 'contributorSelectContainer',
+        writersData: writersData,
+        roles: contributorRoles,
+        selectedContributors: selectedContributors,
+        onSelectionChange: function(contributors) {
+            // No-op, hidden fields are handled by the component
+        },
+        addNewCallback: function() {
+            alert('Add new individual contributor functionality not implemented in this view.');
+        }
+    });
+
+    // Initialize the Corporate ContributorSelect component
+    window.corporateContributorSelect = new ContributorSelect({
+        containerId: 'corporateContributorSelectContainer',
+        writersData: corporatesData,
+        roles: corporateRoles,
+        selectedContributors: selectedCorporateContributors,
+        onSelectionChange: function(contributors) {
+            // No-op, hidden fields are handled by the component
+        },
+        addNewCallback: function() {
+            alert('Add new corporate contributor functionality not implemented in this view.');
+        }
+    });
+
+    // On form submit, ensure hidden fields are present
+    document.getElementById('bookForm').addEventListener('submit', function(e) {
+        // Remove any existing hidden contributor fields to avoid duplicates
+        document.querySelectorAll('input[name="contributor_ids[]"], input[name="contributor_roles[]"]').forEach(el => el.remove());
+        document.querySelectorAll('input[name="corporate_contributor_ids[]"], input[name="corporate_contributor_roles[]"]').forEach(el => el.remove());
+
+        // Add hidden fields for individual contributors
+        if (window.contributorSelect && typeof window.contributorSelect.getSelectedContributors === 'function') {
+            const contributors = window.contributorSelect.getSelectedContributors();
+            contributors.forEach(function(contrib) {
+                const idInput = document.createElement('input');
+                idInput.type = 'hidden';
+                idInput.name = 'contributor_ids[]';
+                idInput.value = contrib.id;
+                document.getElementById('bookForm').appendChild(idInput);
+
+                const roleInput = document.createElement('input');
+                roleInput.type = 'hidden';
+                roleInput.name = 'contributor_roles[]';
+                roleInput.value = contrib.role;
+                document.getElementById('bookForm').appendChild(roleInput);
+            });
+        }
+
+        // Add hidden fields for corporate contributors
+        if (window.corporateContributorSelect && typeof window.corporateContributorSelect.getSelectedContributors === 'function') {
+            const contributors = window.corporateContributorSelect.getSelectedContributors();
+            contributors.forEach(function(contrib) {
+                const idInput = document.createElement('input');
+                idInput.type = 'hidden';
+                idInput.name = 'corporate_contributor_ids[]';
+                idInput.value = contrib.id;
+                document.getElementById('bookForm').appendChild(idInput);
+
+                const roleInput = document.createElement('input');
+                roleInput.type = 'hidden';
+                roleInput.name = 'corporate_contributor_roles[]';
+                roleInput.value = contrib.role;
+                document.getElementById('bookForm').appendChild(roleInput);
+            });
+        }
+    });
 });
 </script>

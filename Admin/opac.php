@@ -95,7 +95,7 @@ if ($bookId > 0) {
     $contributorsQuery = "SELECT c.*, w.firstname, w.middle_init, w.lastname, c.role
                          FROM contributors c
                          JOIN writers w ON c.writer_id = w.id
-                         WHERE c.book_id = ? AND c.role = 'Author'
+                         WHERE c.book_id = ? AND LOWER(c.role) = 'author'
                          LIMIT 1";
     $stmt = $conn->prepare($contributorsQuery);
     $stmt->bind_param("i", $bookId);
@@ -129,11 +129,11 @@ if ($bookId > 0) {
                           WHERE c.book_id = ? AND c.role NOT LIKE 'Corporate_%'
                           ORDER BY 
                               CASE 
-                                  WHEN c.role = 'Author' THEN 1
-                                  WHEN c.role = 'Co-Author' THEN 2 
-                                  WHEN c.role = 'Editor' THEN 3
-                                  WHEN c.role = 'Illustrator' THEN 4
-                                  WHEN c.role = 'Translator' THEN 5
+                                  WHEN LOWER(c.role) = 'author' THEN 1
+                                  WHEN LOWER(c.role) = 'co-author' THEN 2 
+                                  WHEN LOWER(c.role) = 'editor' THEN 3
+                                  WHEN LOWER(c.role) = 'illustrator' THEN 4
+                                  WHEN LOWER(c.role) = 'translator' THEN 5
                                   ELSE 6
                               END";
     $stmt = $conn->prepare($contributors_query);
@@ -142,7 +142,7 @@ if ($bookId > 0) {
     $contributorsResult = $stmt->get_result();
     $contributorsByRole = [];
     while ($row = $contributorsResult->fetch_assoc()) {
-        $role = $row['role'];
+        $role = strtolower($row['role']);
         if (!isset($contributorsByRole[$role])) {
             $contributorsByRole[$role] = [];
         }
@@ -230,7 +230,7 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
 
         // Contributors
         foreach ($contributors as $contributor) {
-            if ($contributor['role'] !== 'Author') {
+            if (strtolower($contributor['role']) !== 'author') {
                 $marcFields[] = ['700', '1#', 'a', $contributor['lastname'] . ', ' . $contributor['firstname'] . ' ' . $contributor['middle_init'], 'e', strtolower($contributor['role'])];
             }
         }
@@ -716,7 +716,7 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                                         $authorDisplayed = false;
                                         if (!empty($contributors)) {
                                             foreach ($contributors as $contributor) {
-                                                if ($contributor['role'] === 'Author') {
+                                                if (strtolower($contributor['role']) === 'author') {
                                                     echo '<h6 class="text-muted mb-4">By: ' . htmlspecialchars($contributor['lastname'] . ', ' . $contributor['firstname'] . ' ' . $contributor['middle_init']) . '</h6>';
                                                     $authorDisplayed = true;
                                                     break;
@@ -918,23 +918,23 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                                                     $role_icon = 'fa-user';
                                                     
                                                     switch($role) {
-                                                        case 'Author':
+                                                        case 'author':
                                                             $badge_class = 'primary';
                                                             $role_icon = 'fa-pen-fancy';
                                                             break;
-                                                        case 'Co-Author':
+                                                        case 'co-author':
                                                             $badge_class = 'info';
                                                             $role_icon = 'fa-pen-alt';
                                                             break;
-                                                        case 'Editor':
+                                                        case 'editor':
                                                             $badge_class = 'dark';
                                                             $role_icon = 'fa-pencil-alt';
                                                             break;
-                                                        case 'Illustrator':
+                                                        case 'illustrator':
                                                             $badge_class = 'success';
                                                             $role_icon = 'fa-paint-brush';
                                                             break;
-                                                        case 'Translator':
+                                                        case 'translator':
                                                             $badge_class = 'warning';
                                                             $role_icon = 'fa-language';
                                                             $badge_style = 'color: #212529;'; // Darker text for better contrast
@@ -1253,7 +1253,7 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
 
                             // Added Entries for Contributors
                             foreach ($contributors as $contributor) {
-                                if ($contributor['role'] !== 'Author') { // Skip primary author already in 100 field
+                                if (strtolower($contributor['role']) !== 'author') { // Skip primary author already in 100 field
                                     $marcFields[] = ['700', '1#',
                                         'a', $contributor['lastname'] . ', ' . $contributor['firstname'] . ' ' . $contributor['middle_init'],
                                         'e', strtolower($contributor['role'])
