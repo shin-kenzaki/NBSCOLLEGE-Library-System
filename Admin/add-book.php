@@ -874,7 +874,7 @@ $accession_error = '';
                                     </div>
                                     <div class="col-md-6">
                                         <div class="form-group">
-                                            <label>Supplementary Content</label>
+                                            <label>Supplementary Contents</label>
                                             <select class="form-control" name="supplementary_content[]" multiple id="supplementarySelect" onchange="updateSupplementaryPreview()">
                                                 <option value="Appendix">Appendix</option>
                                                 <option value="Bibliography">Bibliography</option>
