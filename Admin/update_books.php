@@ -679,7 +679,7 @@ if (!empty($bookIds)) {
                                                             $roleBadgeClass = 'bg-primary';
                                                             switch($contributor['role']) {
                                                                 case 'Author': $roleBadgeClass = 'bg-primary'; break;
-                                                                case 'Co-Author': $roleBadgeClass = 'bg-success'; break;
+                                                                case 'Co Author': $roleBadgeClass = 'bg-success'; break;
                                                                 case 'Editor': $roleBadgeClass = 'bg-info'; break;
                                                                 case 'Translator': $roleBadgeClass = 'bg-warning'; break;
                                                                 case 'Illustrator': $roleBadgeClass = 'bg-secondary'; break;
@@ -694,7 +694,7 @@ if (!empty($bookIds)) {
                                                     <select class="form-control mx-2 role-select" name="contributor_roles[]" style="width: auto;"
                                                             onchange="updateRoleBadge(this)">
                                                         <option value="Author" <?php echo ($contributor['role'] == 'Author') ? 'selected' : ''; ?>>Author</option>
-                                                        <option value="Co-Author" <?php echo ($contributor['role'] == 'Co-Author') ? 'selected' : ''; ?>>Co-Author</option>
+                                                        <option value="Co Author" <?php echo ($contributor['role'] == 'Co Author') ? 'selected' : ''; ?>>Co Author</option>
                                                         <option value="Editor" <?php echo ($contributor['role'] == 'Editor') ? 'selected' : ''; ?>>Editor</option>
                                                         <option value="Translator" <?php echo ($contributor['role'] == 'Translator') ? 'selected' : ''; ?>>Translator</option>
                                                         <option value="Illustrator" <?php echo ($contributor['role'] == 'Illustrator') ? 'selected' : ''; ?>>Illustrator</option>
@@ -1435,34 +1435,58 @@ if (!empty($bookIds)) {
 document.addEventListener("DOMContentLoaded", function() {
     // Define writer data array for search
     const writers = [
-        <?php foreach ($writers as $writer): ?>
-        {
-            id: <?php echo $writer['id']; ?>,
-            name: "<?php echo htmlspecialchars(addslashes($writer['name'])); ?>"
-        },
-        <?php endforeach; ?>
+        <?php 
+        $writerCount = count($writers);
+        if ($writerCount > 0) {
+            foreach ($writers as $i => $writer) {
+                echo "{
+                    id: {$writer['id']},
+                    name: \"" . htmlspecialchars(addslashes($writer['name'])) . "\"
+                }";
+                if ($i < $writerCount - 1) {
+                    echo ",";
+                }
+            }
+        }
+        ?>
     ];
 
     // Define corporate data array for search
     const corporates = [
-        <?php foreach ($corporates as $corporate): ?>
-        {
-            id: <?php echo $corporate['id']; ?>,
-            name: "<?php echo htmlspecialchars(addslashes($corporate['name'])); ?>",
-            type: "<?php echo htmlspecialchars(addslashes($corporate['type'])); ?>"
-        },
-        <?php endforeach; ?>
+        <?php 
+        $corporateCount = count($corporates);
+        if ($corporateCount > 0) {
+            foreach ($corporates as $i => $corporate) {
+                echo "{
+                    id: {$corporate['id']},
+                    name: \"" . htmlspecialchars(addslashes($corporate['name'])) . "\",
+                    type: \"" . htmlspecialchars(addslashes($corporate['type'])) . "\"
+                }";
+                if ($i < $corporateCount - 1) {
+                    echo ",";
+                }
+            }
+        }
+        ?>
     ];
 
     // Define publishers data array for search
     const publishers = [
-        <?php foreach ($publishers as $publisher): ?>
-        {
-            id: <?php echo $publisher['id']; ?>,
-            name: "<?php echo htmlspecialchars(addslashes($publisher['publisher'])); ?>",
-            place: "<?php echo htmlspecialchars(addslashes($publisher['place'])); ?>"
-        },
-        <?php endforeach; ?>
+        <?php 
+        $publisherCount = count($publishers);
+        if ($publisherCount > 0) {
+            foreach ($publishers as $i => $publisher) {
+                echo "{
+                    id: {$publisher['id']},
+                    name: \"" . htmlspecialchars(addslashes($publisher['publisher'])) . "\",
+                    place: \"" . htmlspecialchars(addslashes($publisher['place'])) . "\"
+                }";
+                if ($i < $publisherCount - 1) {
+                    echo ",";
+                }
+            }
+        }
+        ?>
     ];
 
     // Publisher search functionality
@@ -1707,7 +1731,7 @@ document.addEventListener("DOMContentLoaded", function() {
         roleSelect.style.width = 'auto';
         roleSelect.setAttribute('onchange', 'updateRoleBadge(this)');
         
-        const roles = ["Author", "Co-Author", "Editor", "Translator", "Illustrator"];
+        const roles = ["Author", "Co Author", "Editor", "Translator", "Illustrator"];
         roles.forEach(role => {
             const roleOption = document.createElement('option');
             roleOption.value = role;
@@ -2198,7 +2222,7 @@ function updateRoleBadge(selectElement) {
     // Set appropriate color based on role
     if (role === 'Author' || role === 'Corporate Author') {
         badge.classList.add('bg-primary', 'text-white');
-    } else if (role === 'Co-Author' || role === 'Corporate Contributor') {
+    } else if (role === 'Co Author' || role === 'Corporate Contributor') {
         badge.classList.add('bg-success', 'text-white');
     } else if (role === 'Editor' || role === 'Publisher') {
         badge.classList.add('bg-info', 'text-white');
