@@ -679,7 +679,8 @@ if (!empty($bookIds)) {
                                                             $roleBadgeClass = 'bg-primary';
                                                             switch($contributor['role']) {
                                                                 case 'Author': $roleBadgeClass = 'bg-primary'; break;
-                                                                case 'Co Author': $roleBadgeClass = 'bg-success'; break;
+                                                                case 'Co Author': 
+                                                                case 'Co-Author': $roleBadgeClass = 'bg-success'; break;
                                                                 case 'Editor': $roleBadgeClass = 'bg-info'; break;
                                                                 case 'Translator': $roleBadgeClass = 'bg-warning'; break;
                                                                 case 'Illustrator': $roleBadgeClass = 'bg-secondary'; break;
@@ -687,14 +688,23 @@ if (!empty($bookIds)) {
                                                 ?>
                                                 <div class="contributor-row d-flex align-items-center mb-2 border rounded p-2">
                                                     <div class="flex-grow-1">
-                                                        <span class="badge <?php echo $roleBadgeClass; ?> text-white me-2"><?php echo htmlspecialchars($contributor['role']); ?></span>
+                                                        <span class="badge <?php echo $roleBadgeClass; ?> text-white me-2">
+                                                            <?php 
+                                                            // Display "Co Author" badge text even if the database has "Co-Author"
+                                                            if ($contributor['role'] == 'Co-Author') {
+                                                                echo 'Co Author';
+                                                            } else {
+                                                                echo htmlspecialchars($contributor['role']);
+                                                            }
+                                                            ?>
+                                                        </span>
                                                         <?php echo htmlspecialchars($writerInfo['name']); ?>
                                                         <input type="hidden" name="contributor_ids[]" value="<?php echo $contributor['writer_id']; ?>">
                                                     </div>
                                                     <select class="form-control mx-2 role-select" name="contributor_roles[]" style="width: auto;"
                                                             onchange="updateRoleBadge(this)">
                                                         <option value="Author" <?php echo ($contributor['role'] == 'Author') ? 'selected' : ''; ?>>Author</option>
-                                                        <option value="Co Author" <?php echo ($contributor['role'] == 'Co Author') ? 'selected' : ''; ?>>Co Author</option>
+                                                        <option value="Co Author" <?php echo ($contributor['role'] == 'Co Author' || $contributor['role'] == 'Co-Author') ? 'selected' : ''; ?>>Co Author</option>
                                                         <option value="Editor" <?php echo ($contributor['role'] == 'Editor') ? 'selected' : ''; ?>>Editor</option>
                                                         <option value="Translator" <?php echo ($contributor['role'] == 'Translator') ? 'selected' : ''; ?>>Translator</option>
                                                         <option value="Illustrator" <?php echo ($contributor['role'] == 'Illustrator') ? 'selected' : ''; ?>>Illustrator</option>
@@ -2222,7 +2232,7 @@ function updateRoleBadge(selectElement) {
     // Set appropriate color based on role
     if (role === 'Author' || role === 'Corporate Author') {
         badge.classList.add('bg-primary', 'text-white');
-    } else if (role === 'Co Author' || role === 'Corporate Contributor') {
+    } else if (role === 'Co Author' || role === 'Co-Author' || role === 'Corporate Contributor') {
         badge.classList.add('bg-success', 'text-white');
     } else if (role === 'Editor' || role === 'Publisher') {
         badge.classList.add('bg-info', 'text-white');
