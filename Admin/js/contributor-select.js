@@ -467,7 +467,19 @@ class ContributorSelect {
       const roleInput = document.createElement('input');
       roleInput.type = 'hidden';
       roleInput.name = 'contributor_roles[]';
-      roleInput.value = contributor.role;
+      
+      // Format the role: capitalize first letter and replace underscores with spaces
+      let formattedRole = contributor.role;
+      if (formattedRole) {
+        // Replace underscores with spaces
+        formattedRole = formattedRole.replace(/_/g, ' ');
+        // Capitalize first letter of each word
+        formattedRole = formattedRole.split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+      }
+      
+      roleInput.value = formattedRole;
       
       this.hiddenInputs.appendChild(idInput);
       this.hiddenInputs.appendChild(roleInput);

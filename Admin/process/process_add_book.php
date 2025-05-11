@@ -19,6 +19,14 @@ try {
     $transactionSupported = false;
 }
 
+// Function to format contributor role: capitalize first letter and replace underscores with spaces
+function formatContributorRole($role) {
+    // Replace underscores with spaces
+    $role = str_replace('_', ' ', $role);
+    // Capitalize first letter of each word
+    return ucwords($role);
+}
+
 // Check if the form was submitted
 if (isset($_POST['submit'])) {
     // Validate required fields
@@ -290,23 +298,26 @@ if (isset($_POST['submit'])) {
                             $contributor_id = intval($_POST['contributor_ids'][$j]);
                             $role = mysqli_real_escape_string($conn, $_POST['contributor_roles'][$j]);
                             
-                            error_log("Adding individual contributor: ID=$contributor_id, Role=$role to book_id=$book_id");
+                            // Format the role properly
+                            $formatted_role = formatContributorRole($role);
+                            
+                            error_log("Adding individual contributor: ID=$contributor_id, Role=$formatted_role to book_id=$book_id");
                             
                             if ($contributor_id > 0) {
                                 // Insert the contributor with the specified role
                                 $insert_contributor_query = "INSERT INTO contributors (book_id, writer_id, role) 
-                                    VALUES ('$book_id', '$contributor_id', '$role')";
+                                    VALUES ('$book_id', '$contributor_id', '$formatted_role')";
                                 
                                 if (!mysqli_query($conn, $insert_contributor_query)) {
                                     $error_msg = mysqli_error($conn);
                                     error_log("Failed to insert individual contributor: $error_msg");
                                     throw new Exception("Error inserting contributor: $error_msg");
                                 } else {
-                                    error_log("Successfully inserted individual contributor #$j with ID $contributor_id and role '$role'");
+                                    error_log("Successfully inserted individual contributor #$j with ID $contributor_id and role '$formatted_role'");
                                 }
                                 
                                 // Mark that we've added at least one contributor
-                                if ($role === 'author') {
+                                if ($formatted_role === 'Author') {
                                     $author_added = true;
                                     error_log("Author role detected, marking book as having an author");
                                 }
@@ -327,12 +338,15 @@ if (isset($_POST['submit'])) {
                             $corporate_id = intval($_POST['corporate_contributor_ids'][$j]);
                             $role = mysqli_real_escape_string($conn, $_POST['corporate_contributor_roles'][$j]);
                             
-                            error_log("Adding corporate contributor: ID=$corporate_id, Role=$role to book_id=$book_id");
+                            // Format the role properly
+                            $formatted_role = formatContributorRole($role);
+                            
+                            error_log("Adding corporate contributor: ID=$corporate_id, Role=$formatted_role to book_id=$book_id");
                             
                             if ($corporate_id > 0) {
                                 // Insert the corporate entity with the specified role
                                 $insert_corporate_query = "INSERT INTO corporate_contributors (book_id, corporate_id, role) 
-                                    VALUES ('$book_id', '$corporate_id', '$role')";
+                                    VALUES ('$book_id', '$corporate_id', '$formatted_role')";
                                 
                                 if (!mysqli_query($conn, $insert_corporate_query)) {
                                     $error_msg = mysqli_error($conn);
@@ -341,7 +355,7 @@ if (isset($_POST['submit'])) {
                                 }
                                 
                                 // If role is corporate_author, also mark as having an author
-                                if ($role === 'corporate_author') {
+                                if ($formatted_role === 'Corporate Author') {
                                     $author_added = true;
                                     error_log("Corporate author role detected, marking book as having an author");
                                 }
