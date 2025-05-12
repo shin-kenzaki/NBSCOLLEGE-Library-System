@@ -21,25 +21,24 @@ try {
 }
 
 // Handle form submission for adding copies
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['num_copies']) && isset($_POST['book_id'])) {
-    
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['copies']) && isset($_POST['book_id'])) {
+
     if ($transactionSupported) {
         $conn->begin_transaction();
     }
-    
+
     try {
-        $numCopiesToAdd = intval($_POST['num_copies']);
         $firstBookId = intval($_POST['book_id']);
         $firstAccession = isset($_POST['accession']) ? intval($_POST['accession']) : 0;
-        
+
         // Debug info
-        error_log("Adding $numCopiesToAdd copies for book ID: $firstBookId, first accession: $firstAccession");
-        
+        error_log("Processing copies for book ID: $firstBookId, first accession: $firstAccession");
+
         // Validate input
-        if ($numCopiesToAdd <= 0) {
-            throw new Exception("Number of copies must be greater than zero");
+        if (empty($_POST['copies'])) {
+            throw new Exception("No copies provided");
         }
-        
+
         // Determine which query to use based on available data
         if ($firstAccession > 0) {
             // If we have the first accession, use it directly for more reliable lookup
@@ -54,82 +53,78 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['num_copies']) && isset
         } else {
             throw new Exception("Invalid book identification - need either ID or accession number");
         }
-        
+
         $stmt->execute();
         $result = $stmt->get_result();
-        
+
         if ($result->num_rows === 0) {
             throw new Exception("Book not found");
         }
-        
+
         $firstBook = $result->fetch_assoc();
         error_log("Book found: " . $firstBook['title'] . " (ID: " . $firstBook['id'] . ", Accession: " . $firstBook['accession'] . ")");
 
-        // Get the current max copy number and accession for this specific book (matching title, ISBN, edition, volume, series)
-        $stmt = $conn->prepare("SELECT MAX(copy_number) as max_copy, MAX(accession) as max_accession 
-                                FROM books 
-                                WHERE title = ? 
-                                AND ISBN = ? 
-                                AND (edition = ? OR (edition IS NULL AND ? IS NULL))
-                                AND (volume = ? OR (volume IS NULL AND ? IS NULL))
-                                AND (series = ? OR (series IS NULL AND ? IS NULL))");
-        $stmt->bind_param("ssssssss", 
-                         $firstBook['title'], 
-                         $firstBook['ISBN'], 
-                         $firstBook['edition'], $firstBook['edition'],
-                         $firstBook['volume'], $firstBook['volume'],
-                         $firstBook['series'], $firstBook['series']);
-        $stmt->execute();
-        $maxInfo = $stmt->get_result()->fetch_assoc();
-        $currentCopy = $maxInfo['max_copy'] ?: 0;
-        $currentAccession = $maxInfo['max_accession'] ?: 0;
-        
-        error_log("Current max copy: $currentCopy, Current max accession: $currentAccession");
+        // Determine accession leading zeroes length from the first book's accession
+        $accessionLength = 0;
+        if (!empty($firstBook['accession']) && preg_match('/^\d+$/', $firstBook['accession'])) {
+            $accessionLength = strlen($firstBook['accession']);
+        }
 
         $successCount = 0;
         $errorMessages = [];
-        
-        for ($i = 1; $i <= $numCopiesToAdd; $i++) {
-            $newCopyNumber = $currentCopy + $i;
-            $newAccession = $currentAccession + $i;
-            
-            error_log("Processing new copy #$i: Accession=$newAccession, Copy=$newCopyNumber");
-            
+
+        foreach ($_POST['copies'] as $copy) {
+            $newAccession = isset($copy['accession']) ? $copy['accession'] : '';
+            // If accession is numeric and accessionLength > 0, pad with leading zeroes
+            if ($accessionLength > 0 && preg_match('/^\d+$/', $newAccession)) {
+                $newAccession = str_pad($newAccession, $accessionLength, '0', STR_PAD_LEFT);
+            }
+            $newSeries = isset($copy['series']) ? $copy['series'] : null;
+            $newVolume = isset($copy['volume']) ? $copy['volume'] : null;
+            $newPart = isset($copy['part']) ? $copy['part'] : null;
+            $newEdition = isset($copy['edition']) ? $copy['edition'] : null;
+            $newShelfLocation = isset($copy['shelf_location']) ? $copy['shelf_location'] : null;
+            $newCallNumber = isset($copy['call_number']) ? $copy['call_number'] : null;
+            $newCopyNumber = isset($copy['copy_number']) ? intval($copy['copy_number']) : null;
+
+            $newProgram = $firstBook['program'];
+
+            error_log("Processing new copy: Accession=$newAccession, Copy=$newCopyNumber, Program=$newProgram, Series=$newSeries, Volume=$newVolume, Part=$newPart, Edition=$newEdition, Shelf Location=$newShelfLocation, Call Number=$newCallNumber");
+
             // Check if accession number already exists
             $checkStmt = $conn->prepare("SELECT id FROM books WHERE accession = ?");
-            $checkStmt->bind_param("i", $newAccession);
+            $checkStmt->bind_param("s", $newAccession);
             $checkStmt->execute();
-            
+
             if ($checkStmt->get_result()->num_rows > 0) {
                 $errorMessages[] = "Accession number $newAccession already exists - skipping";
                 error_log("Accession number $newAccession already exists - skipping");
                 continue;
             }
-            
-            // Format the call number with new copy number
-            $baseCallNumber = preg_replace('/\s*c\d+$/', '', $firstBook['call_number']);
-            $newCallNumber = $baseCallNumber . " c" . $newCopyNumber;
-            error_log("New call number: $newCallNumber");
 
             $query = "INSERT INTO books (
                 accession, title, preferred_title, parallel_title, subject_category,
-                subject_detail, summary, contents, front_image, back_image,
-                dimension, series, volume, edition, copy_number, total_pages,
+                program, subject_detail, summary, contents, front_image, back_image,
+                dimension, series, volume, edition, part, copy_number, total_pages,
                 supplementary_contents, ISBN, content_type, media_type, carrier_type,
                 call_number, URL, language, shelf_location, entered_by, date_added,
                 status, last_update
             ) SELECT 
                 ?, title, preferred_title, parallel_title, subject_category,
-                subject_detail, summary, contents, front_image, back_image,
-                dimension, series, volume, edition, ?,
+                ?, subject_detail, summary, contents, front_image, back_image,
+                dimension, ?, ?, ?, ?, ?,
                 total_pages, supplementary_contents, ISBN, content_type, media_type, carrier_type,
-                ?, URL, language, shelf_location, entered_by, ?, 'Available', ?
+                ?, URL, language, ?, entered_by, ?, 'Available', ?
             FROM books WHERE id = ?";
-            
+
             $currentDate = date('Y-m-d');
             $stmt = $conn->prepare($query);
-            $stmt->bind_param("iisssi", $newAccession, $newCopyNumber, $newCallNumber, $currentDate, $currentDate, $firstBook['id']);
-            
+            $stmt->bind_param(
+                "sssssssssssi",
+                $newAccession, $newProgram, $newSeries, $newVolume, $newEdition, $newPart, $newCopyNumber,
+                $newCallNumber, $newShelfLocation, $currentDate, $currentDate, $firstBook['id']
+            );
+
             if ($stmt->execute()) {
                 $newBookId = $conn->insert_id;
                 $successCount++;
@@ -150,6 +145,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['num_copies']) && isset
                 $contribStmt->bind_param("ii", $newBookId, $firstBook['id']);
                 $contribStmt->execute();
                 error_log("Added contributor data for book ID: $newBookId");
+
+                // Duplicate corporate contributors
+                $corpContribQuery = "INSERT INTO corporate_contributors (book_id, corporate_id, role)
+                                     SELECT ?, corporate_id, role FROM corporate_contributors WHERE book_id = ?";
+                $corpContribStmt = $conn->prepare($corpContribQuery);
+                $corpContribStmt->bind_param("ii", $newBookId, $firstBook['id']);
+                $corpContribStmt->execute();
+                error_log("Added corporate contributor data for book ID: $newBookId");
             } else {
                 $errorMessage = "Error adding copy with accession $newAccession: " . $stmt->error;
                 $errorMessages[] = $errorMessage;
@@ -173,11 +176,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['num_copies']) && isset
             $_SESSION['error_message'] = "Failed to add any copies. " . implode("<br>", $errorMessages);
             error_log("Error message set: Failed to add any copies");
         }
-        
+
         // Redirect back to book list
         header("Location: book_list.php");
         exit();
-        
+
     } catch (Exception $e) {
         if ($transactionSupported) {
             $conn->rollback();

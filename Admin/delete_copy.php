@@ -29,7 +29,7 @@ $conn->begin_transaction();
 
 try {
     // Check if the book exists
-    $check_book = "SELECT * FROM books WHERE id = ?";
+    $check_book = "SELECT title FROM books WHERE id = ?";
     $stmt = $conn->prepare($check_book);
     $stmt->bind_param("i", $bookId);
     $stmt->execute();
@@ -40,6 +40,7 @@ try {
     }
     
     $book = $book_result->fetch_assoc();
+    $title = $book['title'];
     
     // Check if the book is being borrowed
     $check_borrowed = "SELECT id FROM borrowings WHERE book_id = ? AND return_date IS NULL";
@@ -82,37 +83,28 @@ try {
     $stmt->execute();
 
     // Check if there are remaining copies of the book
-    $remaining_copies_query = "SELECT id FROM books WHERE title = ? AND status = 'Available' LIMIT 1";
-    $stmt = $conn->prepare($remaining_copies_query);
-    $stmt->bind_param("s", $book['title']);
+    $check_remaining = "SELECT id, accession FROM books WHERE title = ? AND id != ? LIMIT 1";
+    $stmt = $conn->prepare($check_remaining);
+    $stmt->bind_param("si", $title, $bookId);
     $stmt->execute();
-    $remaining_copies_result = $stmt->get_result();
+    $remaining_result = $stmt->get_result();
 
-    if ($remaining_copies_result->num_rows > 0) {
-        $remaining_copy = $remaining_copies_result->fetch_assoc();
-        $selectedBookId = $remaining_copy['id'];
-    } else {
-        // No copies remain, navigate to book list
-        $conn->commit();
-        header('Content-Type: application/json');
-        echo json_encode([
-            'success' => true,
-            'message' => 'Book copy deleted successfully. Redirecting to book list.',
-            'redirect' => 'book_list.php'
-        ]);
-        exit;
-    }
-
-    // Commit the transaction
     $conn->commit();
 
-    // Return success response with the selected book ID
-    header('Content-Type: application/json');
-    echo json_encode([
-        'success' => true,
-        'message' => 'Book copy deleted successfully',
-        'selectedBookId' => $selectedBookId
-    ]);
+    if ($remaining_result->num_rows > 0) {
+        $remaining = $remaining_result->fetch_assoc();
+        echo json_encode([
+            'success' => true,
+            'message' => 'Book copy deleted successfully',
+            'remainingBookId' => $remaining['id']
+        ]);
+    } else {
+        echo json_encode([
+            'success' => true,
+            'message' => 'Last copy deleted successfully',
+            'redirect' => 'book_list.php'
+        ]);
+    }
     
 } catch (Exception $e) {
     // Rollback the transaction

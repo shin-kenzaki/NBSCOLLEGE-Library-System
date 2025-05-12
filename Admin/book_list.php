@@ -92,14 +92,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['num_copies']) && isse
             subject_detail, summary, contents, front_image, back_image,
             dimension, series, volume, edition, copy_number, total_pages,
             supplementary_contents, ISBN, content_type, media_type, carrier_type,
-            call_number, URL, language, shelf_location, entered_by, date_added,
+            URL, language, shelf_location, entered_by, date_added,
             status, last_update
         ) SELECT 
             ?, title, preferred_title, parallel_title, subject_category,
             subject_detail, summary, contents, front_image, back_image,
             dimension, series, volume, edition, ?,
             total_pages, supplementary_contents, ISBN, content_type, media_type, carrier_type,
-            call_number, URL, language, shelf_location, entered_by, ?, 'Available', ?
+            URL, language, shelf_location, entered_by, ?, 'Available', ?
         FROM books WHERE id = ?";
 
         $currentDate = date('Y-m-d');
@@ -285,6 +285,10 @@ $result = $stmt->get_result();
         <div class="container-fluid">
             <h1 class="h3 mb-2 text-gray-800">Books Management</h1>
             <p class="mb-4">Manage all books in the system.</p>
+            <!-- New: Display total books count -->
+            <div class="alert alert-info" role="alert">
+                <i class="fas fa-book"></i> Total Books: <?php echo $totalBooks; ?>
+            </div>
 
             <!-- Action Buttons -->
             <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
@@ -295,6 +299,10 @@ $result = $stmt->get_result();
                     <a href="step-by-step-add-book.php" class="btn btn-primary btn-sm">
                         <i class="fas fa-list-ol"></i> Step-by-Step
                     </a>
+                    <!-- New: Refresh Button -->
+                    <button type="button" class="btn btn-info btn-sm" onclick="location.reload();" title="Refresh page">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
                 </div>
                 <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#instructionsModal">
                     <i class="fas fa-question-circle"></i> Instructions
@@ -502,27 +510,68 @@ $result = $stmt->get_result();
 
     <!-- Add Copies Modal -->
     <div class="modal fade" id="addCopiesModal" tabindex="-1" aria-labelledby="addCopiesModalLabel" aria-hidden="true">
-        <form action="process-add-copies.php" method="POST">
+        <div class="modal-dialog">
             <div class="modal-content">
-                <div class="modal-header">
+                <div class="modal-header bg-primary text-white">
                     <h5 class="modal-title" id="addCopiesModalLabel">Add More Copies</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p>Add additional copies of <strong id="copyBookTitle"></strong></p>
-                    <div class="form-group">
-                        <label for="num_copies">Number of copies to add:</label>
-                        <input type="number" class="form-control" id="num_copies" name="num_copies" min="1" value="1" required>
+                    <div class="book-info mb-3">
+                        <h6 class="fw-bold">Book Information:</h6>
+                        <p class="mb-1"><strong>Title:</strong> <span id="copyBookTitle"></span></p>
+                        <p class="mb-1"><strong>Current Copies:</strong> <span id="copyCurrentCount"></span></p>
+                        <p class="mb-1"><strong>Accession Range:</strong> <span id="copyAccessionRange"></span></p>
+                        <p class="mb-1"><strong>Call Number Pattern:</strong> <span id="copyCallNumberPattern"></span></p>
                     </div>
-                    <input type="hidden" name="book_id" id="copyBookId" value="">
-                    <input type="hidden" name="accession" id="copyBookAccession" value="">
+
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> New copies will maintain the same book details with unique accession numbers and copy numbers.
+                    </div>
+
+                    <form id="addCopiesForm" action="process-add-copies.php" method="POST">
+                        <div class="form-group mb-3">
+                            <label for="num_copies" class="form-label">Number of copies to add:</label>
+                            <input type="number" class="form-control" id="num_copies" name="num_copies" min="1" value="1" required>
+                            <div class="form-text">How many additional copies would you like to create?</div>
+                        </div>
+
+                        <!-- Dynamic table for per-copy details -->
+                        <div class="table-responsive mb-3" id="copiesDetailsTableWrapper" style="display:none;">
+                            <table class="table table-bordered table-sm" id="copiesDetailsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Copy #</th>
+                                        <th>Accession</th>
+                                        <th>Series</th>
+                                        <th>Volume</th>
+                                        <th>Part</th>
+                                        <th>Edition</th>
+                                        <th>Shelf Location</th>
+                                        <th>Call Number</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Rows will be generated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <!-- End dynamic table -->
+
+                        <input type="hidden" name="book_id" id="copyBookId" value="">
+                        <input type="hidden" name="max_copy" id="copyMaxCopy" value="">
+                        <input type="hidden" name="max_accession" id="copyMaxAccession" value="">
+                        <input type="hidden" name="call_number_base" id="copyCallNumberBase" value="">
+                        <input type="hidden" name="total_copies" id="totalCopies" value="">
+                    </form>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Add Copies</button>
+                    <button type="button" class="btn btn-info" id="previewButton">Preview</button>
+                    <button type="submit" form="addCopiesForm" class="btn btn-primary">Add Copies</button>
                 </div>
             </div>
-        </form>
+        </div>
     </div>
 
     <!-- Instructions Modal -->
@@ -839,18 +888,191 @@ $result = $stmt->get_result();
                 let firstId = $('#contextMenu').data('first-id');
                 let firstAccession = $('#contextMenu').data('first-accession');
                 let title = $('#contextMenu').data('title');
+                let accessionRange = $('#contextMenu').data('accession-range');
+                let copyRange = $('#contextMenu').data('copy-range');
+                let callNumberData = $('#contextMenu').data('call-number-data');
+                let totalCopies = $('#contextMenu').data('total-copies');
                 
                 if (!firstId || !firstAccession) {
                     console.error('Missing book ID or accession for adding copies');
                     return;
                 }
                 
+                // Extract the max accession and copy number from the ranges
+                let accessionParts = accessionRange.split(',');
+                let lastAccessionRange = accessionParts[accessionParts.length - 1];
+                let maxAccession = lastAccessionRange.includes('-') 
+                    ? lastAccessionRange.split('-')[1].trim() 
+                    : lastAccessionRange.trim();
+                
+                let copyParts = copyRange.split(',');
+                let lastCopyRange = copyParts[copyParts.length - 1];
+                let maxCopy = lastCopyRange.includes('-') 
+                    ? lastCopyRange.split('-')[1].trim() 
+                    : lastCopyRange.trim();
+                
+                // Get call number pattern
+                let callNumberBase = '';
+                if (callNumberData) {
+                    let callNumbers = callNumberData.split('<br>');
+                    let lastCallNumber = callNumbers[callNumbers.length - 1];
+                    // Extract base call number without copy number
+                    callNumberBase = lastCallNumber.replace(/\s+c\.\d+$/, '');
+                }
+
+                // Reset form and hide preview
+                $('#addCopiesForm')[0].reset();
+                $('#previewSection').addClass('d-none');
+                $('#previewTableBody').empty();
+                
+                // Fill in the modal with book details
+                $('#copyBookTitle').text(title);
+                $('#copyCurrentCount').text(totalCopies);
+                $('#copyAccessionRange').text(accessionRange);
+                $('#copyCallNumberPattern').text(callNumberBase + " c.[copy number]");
+                
+                // Set the form hidden values
+                $('#copyBookId').val(firstId);
+                $('#copyMaxCopy').val(maxCopy);
+                $('#copyMaxAccession').val(maxAccession);
+                $('#copyCallNumberBase').val(callNumberBase);
+                $('#totalCopies').val(totalCopies);
+                
                 // Open modal dialog for adding copies
                 $('#addCopiesModal').modal('show');
-                $('#copyBookTitle').text(title);
-                $('#copyBookId').val(firstId);
-                $('#copyBookAccession').val(firstAccession);
+
+                // Generate table for the default value
+                const numCopies = parseInt($('#num_copies').val()) || 1;
+                const shelfLocation = ""; // Optionally, fetch from selected row
+                generateCopiesDetailsTable(numCopies, maxCopy, maxAccession, callNumberBase, shelfLocation);
             });
+
+            function generateCopiesDetailsTable(numCopies, maxCopy, maxAccession, callNumberBase, shelfLocation) {
+                let tbody = '';
+                numCopies = parseInt(numCopies) || 0;
+                maxCopy = parseInt(maxCopy) || 0;
+                maxAccession = parseInt(maxAccession) || 0;
+                // Shelf location options
+                const shelfOptions = [
+                    ['TR', 'Teachers Reference'],
+                    ['FIL', 'Filipiniana'],
+                    ['CIR', 'Circulation'],
+                    ['REF', 'Reference'],
+                    ['SC', 'Special Collection'],
+                    ['BIO', 'Biography'],
+                    ['RES', 'Reserve'],
+                    ['FIC', 'Fiction']
+                ];
+                for (let i = 1; i <= numCopies; i++) {
+                    let copyNum = maxCopy + i;
+                    let accession = maxAccession + i;
+                    let callNumber = callNumberBase ? (callNumberBase + " c." + copyNum) : "";
+                    // Build shelf location select
+                    let shelfSelect = `<select class="form-select form-select-sm" name="copies[${i}][shelf_location]" required>`;
+                    shelfSelect += `<option value="">Select...</option>`;
+                    for (const [val, label] of shelfOptions) {
+                        shelfSelect += `<option value="${val}"${shelfLocation === val ? ' selected' : ''}>${label}</option>`;
+                    }
+                    shelfSelect += `</select>`;
+                    tbody += `
+                        <tr>
+                            <td>
+                                <input type="number" class="form-control form-control-sm" name="copies[${i}][copy_number]" value="${copyNum}" required>
+                            </td>
+                            <td><input type="text" class="form-control form-control-sm" name="copies[${i}][accession]" value="${accession}" required></td>
+                            <td><input type="text" class="form-control form-control-sm" name="copies[${i}][series]"></td>
+                            <td><input type="text" class="form-control form-control-sm" name="copies[${i}][volume]"></td>
+                            <td><input type="text" class="form-control form-control-sm" name="copies[${i}][part]"></td>
+                            <td><input type="text" class="form-control form-control-sm" name="copies[${i}][edition]"></td>
+                            <td>${shelfSelect}</td>
+                            <td><input type="text" class="form-control form-control-sm" name="copies[${i}][call_number]" value="${callNumber}"></td>
+                        </tr>
+                    `;
+                }
+                $('#copiesDetailsTable tbody').html(tbody);
+                $('#copiesDetailsTableWrapper').show();
+            }
+
+            // Show/hide and generate table when num_copies changes
+            $('#num_copies').on('input', function() {
+                const numCopies = parseInt($(this).val()) || 0;
+                const maxCopy = $('#copyMaxCopy').val();
+                const maxAccession = $('#copyMaxAccession').val();
+                const callNumberBase = $('#copyCallNumberBase').val();
+                const shelfLocation = ""; // Optionally, you can fetch default shelf location from somewhere
+                if (numCopies > 0) {
+                    generateCopiesDetailsTable(numCopies, maxCopy, maxAccession, callNumberBase, shelfLocation);
+                } else {
+                    $('#copiesDetailsTableWrapper').hide();
+                }
+                $('#previewSection').addClass('d-none');
+            });
+
+            // Add validation for number of copies
+            $('#num_copies').on('input', function() {
+                const value = parseInt($(this).val()) || 0;
+                if (value <= 0) {
+                    $(this).addClass('is-invalid');
+                } else {
+                    $(this).removeClass('is-invalid');
+                }
+                
+                // Hide preview when number changes
+                $('#previewSection').addClass('d-none');
+            });
+            
+            // When right-clicking on a row, capture all needed data for the context menu
+            $('#dataTable tbody').on('contextmenu', 'tr', function(e) {
+                e.preventDefault();
+                
+                // Clear previous data to avoid stale values
+                $('#contextMenu').removeData();
+                
+                // Get the row data
+                let row = $(this);
+                let idRangeCell = row.find('td:eq(0)');
+                let accessionRangeCell = row.find('td:eq(1)');
+                let titleCell = row.find('td:eq(2)');
+                let callNumberCell = row.find('td:eq(3)');
+                let copyRangeCell = row.find('td:eq(4)');
+                let totalCopiesCell = row.find('td:eq(12)');
+                
+                // Extract the data
+                let idRange = idRangeCell.text().trim();
+                let accessionRange = accessionRangeCell.text().trim();
+                let title = titleCell.text().trim();
+                let callNumberData = callNumberCell.html().trim();
+                let copyRange = copyRangeCell.text().trim();
+                let totalCopies = totalCopiesCell.text().trim();
+                
+                // Get the first ID and first accession from the ranges
+                let firstId = idRange.split('-')[0].split(',')[0].trim();
+                let firstAccession = accessionRange.split('-')[0].split(',')[0].trim();
+                
+                // Store data in the context menu
+                $('#contextMenu').data('accession-range', accessionRange);
+                $('#contextMenu').data('first-id', firstId);
+                $('#contextMenu').data('first-accession', firstAccession);
+                $('#contextMenu').data('title', title);
+                $('#contextMenu').data('call-number-data', callNumberData);
+                $('#contextMenu').data('copy-range', copyRange);
+                $('#contextMenu').data('total-copies', totalCopies);
+                
+                // Position and show the menu
+                $('#contextMenu').css({
+                    top: e.pageY + 'px',
+                    left: e.pageX + 'px'
+                }).show();
+                
+                // Add a click event to the document to hide the menu when clicking elsewhere
+                $(document).one('click', function() {
+                    $('#contextMenu').hide();
+                });
+                
+                return false;
+            });
+            
+            // ...existing code...
         });
     </script>
     
@@ -957,6 +1179,42 @@ $result = $stmt->get_result();
 
         #dataTable.table-striped tbody tr:hover {
             background-color: rgba(0, 123, 255, 0.05);
+        }
+        
+        /* Add styles for the enhanced add copies modal */
+        #addCopiesModal .book-info {
+            background-color: #f8f9fc;
+            padding: 1rem;
+            border-radius: 0.35rem;
+            border-left: 4px solid #4e73df;
+        }
+        
+        #addCopiesModal .preview-section {
+            background-color: #f2f7ff;
+            padding: 1rem;
+            border-radius: 0.35rem;
+            margin-top: 1rem;
+        }
+        
+        #addCopiesModal .form-text {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+        
+        /* Table styles for the preview */
+        #previewTableBody td {
+            font-size: 0.85rem;
+            padding: 0.5rem;
+        }
+        
+        /* Custom is-invalid style */
+        .is-invalid {
+            border-color: #e74a3b !important;
+            padding-right: calc(1.5em + 0.75rem) !important;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%23e74a3b' viewBox='0 0 12 12'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23e74a3b' stroke='none'/%3e%3c/svg%3e") !important;
+            background-repeat: no-repeat !important;
+            background-position: right calc(0.375em + 0.1875rem) center !important;
+            background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem) !important;
         }
     </style>
 </body>

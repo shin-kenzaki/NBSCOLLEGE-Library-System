@@ -178,8 +178,22 @@ if ($bookId > 0) {
     $stmt->execute();
     $allCopiesResult = $stmt->get_result();
     $allCopies = [];
-    while ($row = $allCopiesResult->fetch_assoc()) {
-        $allCopies[] = $row;
+    // Determine accession leading zeroes length from the first copy
+    $accessionLength = 0;
+    if ($allCopiesResult->num_rows > 0) {
+        $firstCopyRow = $allCopiesResult->fetch_assoc();
+        if (!empty($firstCopyRow['accession']) && preg_match('/^\d+$/', $firstCopyRow['accession'])) {
+            $accessionLength = strlen($firstCopyRow['accession']);
+        }
+        // Reset pointer and fetch all rows
+        $allCopiesResult->data_seek(0);
+        while ($row = $allCopiesResult->fetch_assoc()) {
+            // Pad accession with leading zeroes if needed
+            if ($accessionLength > 0 && preg_match('/^\d+$/', $row['accession'])) {
+                $row['accession'] = str_pad($row['accession'], $accessionLength, '0', STR_PAD_LEFT);
+            }
+            $allCopies[] = $row;
+        }
     }
 } else {
     $error = "Invalid book ID.";
@@ -731,7 +745,13 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                                         <!-- Book Details in Columns -->
                                         <div class="row mb-3">
                                             <div class="col-md-6">
-                                                <div class="mb-2"><strong>Accession:</strong> <?php echo htmlspecialchars($book['accession']); ?></div>
+                                                <div class="mb-2"><strong>Accession:</strong> <?php
+                                                    $displayAccession = $book['accession'];
+                                                    if ($accessionLength > 0 && preg_match('/^\d+$/', $book['accession'])) {
+                                                        $displayAccession = str_pad($book['accession'], $accessionLength, '0', STR_PAD_LEFT);
+                                                    }
+                                                    echo htmlspecialchars($displayAccession);
+                                                ?></div>
                                                 <div class="mb-2"><strong>Call Number:</strong> <?php echo htmlspecialchars($book['call_number']); ?></div>
                                                 <div class="mb-2"><strong>Copy Number:</strong> <?php echo htmlspecialchars($book['copy_number']); ?></div>
                                                 <div class="mb-2"><strong>ISBN:</strong> <?php echo !empty($book['ISBN']) ? htmlspecialchars($book['ISBN']) : 'N/A'; ?></div>
@@ -1047,11 +1067,6 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                                            target="_blank">
                                             <i class="fas fa-download"></i> Export Barcodes
                                         </a>
-                                        <?php if (in_array($_SESSION['role'], ['Admin', 'Librarian'])): ?>
-                                        <button class="btn btn-sm btn-danger" onclick="confirmDeleteAllCopies('<?php echo htmlspecialchars($book['title']); ?>')">
-                                            <i class="fas fa-trash"></i> Delete All Copies
-                                        </button>
-                                        <?php endif; ?>
                                     </div>
                                 </div>
                             </div>
@@ -1064,18 +1079,20 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                                         <table class="table table-bordered table-striped table-holdings" width="100%" cellspacing="0">
                                             <thead class="bg-primary text-white">
                                                 <tr>
-                                                    <th style="min-width: 100px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Accession</th>
-                                                    <th style="min-width: 120px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Call Number</th>
-                                                    <th style="min-width: 60px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Copy</th>
-                                                    <th style="min-width: 90px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Status</th>
-                                                    <th style="min-width: 120px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Location</th>
-                                                    <th style="min-width: 100px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Last Update</th>
-                                                    <th style="min-width: 100px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Series</th>
-                                                    <th style="min-width: 80px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Volume</th>
-                                                    <th style="min-width: 80px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Part</th>
-                                                    <th style="min-width: 80px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Edition</th>
-                                                    <th style="min-width: 120px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">ISBN</th>
-                                                    <th style="min-width: 80px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Actions</th>
+                                                    <th style="min-width: 50px; text-align: center;">
+                                                        <input type="checkbox" id="select-all" onclick="toggleSelectAll(this)">
+                                                    </th>
+                                                    <th style="min-width: 100px; text-align: center;">Accession</th>
+                                                    <th style="min-width: 120px; text-align: center;">Call Number</th>
+                                                    <th style="min-width: 60px; text-align: center;">Copy</th>
+                                                    <th style="min-width: 90px; text-align: center;">Status</th>
+                                                    <th style="min-width: 120px; text-align: center;">Location</th>
+                                                    <th style="min-width: 100px; text-align: center;">Last Update</th>
+                                                    <th style="min-width: 100px; text-align: center;">Series</th>
+                                                    <th style="min-width: 80px; text-align: center;">Volume</th>
+                                                    <th style="min-width: 80px; text-align: center;">Part</th>
+                                                    <th style="min-width: 80px; text-align: center;">Edition</th>
+                                                    <th style="min-width: 120px; text-align: center;">ISBN</th>
                                                 </tr>
                                             </thead>
                                             <tbody class="table-group-divider">
@@ -1083,30 +1100,33 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                                                     <tr data-book-id="<?php echo htmlspecialchars($copy['id']); ?>" 
                                                         class="copy-row <?php echo ($copy['id'] == $bookId) ? 'table-primary' : ($index % 2 == 0 ? 'table-light' : 'table-white'); ?>"
                                                         style="transition: all 0.2s ease;">
-                                                        <td style="text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?php echo htmlspecialchars($copy['accession']); ?></td>
-                                                        <td style="text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?php echo htmlspecialchars($copy['call_number']); ?></td>
-                                                        <td style="text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?php echo htmlspecialchars($copy['copy_number']); ?></td>
-                                                        <td style="text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                                        <td style="text-align: center;">
+                                                            <input type="checkbox" class="select-copy" value="<?php echo htmlspecialchars($copy['id']); ?>">
+                                                        </td>
+                                                        <td style="text-align: center;"><?php echo htmlspecialchars($copy['accession']); ?></td>
+                                                        <td style="text-align: center;"><?php echo htmlspecialchars($copy['call_number']); ?></td>
+                                                        <td style="text-align: center;"><?php echo htmlspecialchars($copy['copy_number']); ?></td>
+                                                        <td style="text-align: center;">
                                                             <span class="badge bg-<?php echo ($copy['status'] == 'Available') ? 'success' : 'warning'; ?> text-white fw-bold">
                                                                 <?php echo htmlspecialchars($copy['status']); ?>
                                                             </span>
                                                         </td>
-                                                        <td style="text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?php echo htmlspecialchars($copy['shelf_location']); ?></td>
-                                                        <td style="text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?php echo htmlspecialchars(date('Y-m-d', strtotime($copy['last_update']))); ?></td>
-                                                        <td style="text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?php echo !empty($copy['series']) ? htmlspecialchars($copy['series']) : '-'; ?></td>
-                                                        <td style="text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?php echo !empty($copy['volume']) ? htmlspecialchars($copy['volume']) : '-'; ?></td>
-                                                        <td style="text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?php echo !empty($copy['part']) ? htmlspecialchars($copy['part']) : '-'; ?></td>
-                                                        <td style="text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?php echo !empty($copy['edition']) ? htmlspecialchars($copy['edition']) : '-'; ?></td>
-                                                        <td style="text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?php echo !empty($copy['ISBN']) ? htmlspecialchars($copy['ISBN']) : '-'; ?></td>
-                                                        <td style="text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                                            <button type="button" class="btn btn-danger btn-sm" onclick="confirmDeleteCopy(<?php echo htmlspecialchars($copy['id']); ?>, '<?php echo htmlspecialchars($copy['accession']); ?>')">
-                                                                <i class="fas fa-trash"></i>
-                                                            </button>
-                                                        </td>
+                                                        <td style="text-align: center;"><?php echo htmlspecialchars($copy['shelf_location']); ?></td>
+                                                        <td style="text-align: center;"><?php echo htmlspecialchars(date('Y-m-d', strtotime($copy['last_update']))); ?></td>
+                                                        <td style="text-align: center;"><?php echo !empty($copy['series']) ? htmlspecialchars($copy['series']) : '-'; ?></td>
+                                                        <td style="text-align: center;"><?php echo !empty($copy['volume']) ? htmlspecialchars($copy['volume']) : '-'; ?></td>
+                                                        <td style="text-align: center;"><?php echo !empty($copy['part']) ? htmlspecialchars($copy['part']) : '-'; ?></td>
+                                                        <td style="text-align: center;"><?php echo !empty($copy['edition']) ? htmlspecialchars($copy['edition']) : '-'; ?></td>
+                                                        <td style="text-align: center;"><?php echo !empty($copy['ISBN']) ? htmlspecialchars($copy['ISBN']) : '-'; ?></td>
                                                     </tr>
                                                 <?php endforeach; ?>
                                             </tbody>
                                         </table>
+                                    </div>
+                                    <div class="d-flex justify-content-end mt-3">
+                                        <button class="btn btn-danger" onclick="confirmDeleteSelected()">
+                                            <i class="fas fa-trash"></i> Delete Selected
+                                        </button>
                                     </div>
                                 <?php else: ?>
                                     <div class="alert alert-info">No copies found.</div>
@@ -1542,16 +1562,22 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                 });
             });
         });
+
+        // Add this function for select all functionality
+        function toggleSelectAll(source) {
+            const checkboxes = document.querySelectorAll('.select-copy');
+            checkboxes.forEach(cb => {
+                cb.checked = source.checked;
+            });
+        }
     </script>
 
     <script>
 function confirmDeleteCopy(bookId, accession) {
     Swal.fire({
         title: 'Delete Book Copy?',
-        html: `
-            Are you sure you want to delete the copy with accession #<strong>${accession}</strong>?<br><br>
-            <span class="text-danger">This action cannot be undone!</span>
-        `,
+        html: `Are you sure you want to delete the copy with accession #<strong>${accession}</strong>?<br><br>
+               <span class="text-danger">This action cannot be undone!</span>`,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#d33',
@@ -1559,192 +1585,198 @@ function confirmDeleteCopy(bookId, accession) {
         confirmButtonText: 'Yes, delete it!',
         cancelButtonText: 'Cancel',
         reverseButtons: true
-    }).then(async (result) => {
+    }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire({
-                title: 'Deleting...',
-                html: 'Please wait while the copy is being deleted.',
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
-            });
-
-            try {
-                const response = await fetch('delete_copy.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ bookId: bookId })
-                });
-
-                const data = await response.json();
-
+            fetch('delete_copy.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ bookId: bookId })
+            })
+            .then(response => response.json())
+            .then(data => {
                 if (data.success) {
-                    if (data.redirect) {
-                        Swal.fire({
-                            title: 'Success!',
-                            text: data.message,
-                            icon: 'success'
-                        }).then(() => {
-                            window.location.href = data.redirect;
-                        });
-                    } else if (data.selectedBookId) {
-                        Swal.fire({
-                            title: 'Success!',
-                            text: data.message,
-                            icon: 'success'
-                        }).then(() => {
-                            window.location.href = `opac.php?book_id=${data.selectedBookId}`;
-                        });
-                    }
-                } else {
                     Swal.fire({
-                        title: 'Error!',
-                        text: data.error || 'An unexpected error occurred.',
-                        icon: 'error'
+                        title: 'Success',
+                        text: data.message,
+                        icon: 'success'
+                    }).then(() => {
+                        // Redirect to remainingBookId or book_list.php
+                        if (data.redirect) {
+                            window.location.href = data.redirect;
+                        } else if (data.remainingBookId) {
+                            window.location.href = `opac.php?book_id=${data.remainingBookId}`;
+                        } else {
+                            window.location.href = 'book_list.php';
+                        }
                     });
+                } else {
+                    Swal.fire('Error', data.error || 'An error occurred', 'error');
                 }
-            } catch (error) {
-                Swal.fire({
-                    title: 'Error!',
-                    text: 'An unexpected error occurred while deleting the copy.',
-                    icon: 'error'
-                });
-            }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire('Error', 'An unexpected error occurred', 'error');
+            });
         }
     });
 }
 
-// Add new function to handle deleting all copies
-function confirmDeleteAllCopies(title) {
-    // Get all book IDs from the table
-    const copyRows = document.querySelectorAll('.copy-row');
-    const bookIds = Array.from(copyRows).map(row => parseInt(row.getAttribute('data-book-id')));
+// Update the confirmDeleteSelected function similarly
+function confirmDeleteSelected() {
+    const selectedIds = Array.from(document.querySelectorAll('.select-copy:checked')).map(cb => cb.value);
+    const selectedRows = Array.from(document.querySelectorAll('.select-copy:checked')).map(cb => cb.closest('tr'));
+    const selectedAccessions = selectedRows.map(row => row.querySelector('td:nth-child(2)').textContent.trim());
 
-    if (bookIds.length === 0) {
+    if (selectedIds.length === 0) {
         Swal.fire({
-            title: 'No copies found',
-            text: 'There are no copies available to delete.',
+            title: 'No Copies Selected',
+            text: 'Please select at least one copy to delete.',
             icon: 'info'
         });
         return;
     }
 
     Swal.fire({
-        title: 'Delete All Copies?',
+        title: 'Delete Selected Copies?',
         html: `
-            Are you sure you want to delete all ${bookIds.length} copies of <strong>"${title}"</strong>?<br><br>
-            <span class="text-danger">This action cannot be undone!</span>
+            <div class="text-start">
+                <p>Are you sure you want to delete the following ${selectedIds.length} copies?</p>
+                <div style="max-height: 200px; overflow-y: auto; margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+                    ${selectedAccessions.map(acc => `<div>Accession #${acc}</div>`).join('')}
+                </div>
+                <p class="text-danger fw-bold">This action cannot be undone!</p>
+            </div>
         `,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#d33',
         cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Yes, delete all!',
+        confirmButtonText: 'Yes, delete them!',
         cancelButtonText: 'Cancel',
-        reverseButtons: true
-    }).then((result) => {
+        reverseButtons: true,
+        width: '600px'
+    }).then(async (result) => {
         if (result.isConfirmed) {
-            // Start the deletion process
-            deleteAllCopies(bookIds, title);
-        }
-    });
-}
-
-async function deleteAllCopies(bookIds, title) {
-    // Create progress modal
-    Swal.fire({
-        title: 'Deleting Copies',
-        html: `
-            <div class="text-start mb-3">
-                Deleting all copies of "${title}".<br>
-                Progress: <span id="delete-progress">0</span>/${bookIds.length}
-            </div>
-            <div class="progress">
-                <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-danger"
-                     role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
-            </div>
-            <div id="deletion-status" class="mt-3"></div>
-        `,
-        allowOutsideClick: false,
-        allowEscapeKey: false,
-        showConfirmButton: false
-    });
-
-    // Track success and failure counts
-    let successCount = 0;
-    let failureCount = 0;
-    let failureMessages = [];
-
-    // Process each book ID sequentially
-    for (let i = 0; i < bookIds.length; i++) {
-        const bookId = bookIds[i];
-
-        try {
-            const response = await fetch('delete_copy.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ bookId: bookId })
+            Swal.fire({
+                title: 'Deleting Copies',
+                html: `
+                    <div class="text-start mb-3">
+                        <div class="mb-2">Progress: <span id="delete-progress">0</span>/${selectedIds.length}</div>
+                        <div class="progress mb-3">
+                            <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-danger"
+                                role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                            </div>
+                        </div>
+                        <div id="current-operation" class="small text-muted"></div>
+                        <div id="deletion-status" class="mt-3" style="max-height: 150px; overflow-y: auto;"></div>
+                    </div>
+                `,
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false
             });
 
-            const data = await response.json();
+            let successCount = 0;
+            let failureCount = 0;
+            let failureMessages = [];
+            let lastRedirect = null;
+            let lastRemainingBookId = null;
 
-            // Update progress
-            document.getElementById('delete-progress').textContent = i + 1;
-            document.getElementById('progress-bar').style.width = `${((i + 1) / bookIds.length) * 100}%`;
+            for (let i = 0; i < selectedIds.length; i++) {
+                const bookId = selectedIds[i];
+                const accession = selectedAccessions[i];
 
-            if (data.success) {
-                successCount++;
-                document.getElementById('deletion-status').innerHTML += `
-                    <div class="alert alert-success py-1 mb-1">Book ID ${bookId}: Deleted successfully</div>
-                `;
-            } else {
-                failureCount++;
-                document.getElementById('deletion-status').innerHTML += `
-                    <div class="alert alert-danger py-1 mb-1">Book ID ${bookId}: ${data.error}</div>
-                `;
-                failureMessages.push(`Book ID ${bookId}: ${data.error}`);
+                try {
+                    document.getElementById('current-operation').textContent = 
+                        `Processing: Accession #${accession}`;
+
+                    const response = await fetch('delete_copy.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ bookId: bookId })
+                    });
+
+                    const data = await response.json();
+
+                    document.getElementById('delete-progress').textContent = i + 1;
+                    document.getElementById('progress-bar').style.width = 
+                        `${((i + 1) / selectedIds.length) * 100}%`;
+
+                    if (data.success) {
+                        successCount++;
+                        document.getElementById('deletion-status').insertAdjacentHTML('beforeend', `
+                            <div class="alert alert-success py-1 mb-1">
+                                Accession #${accession}: Deleted successfully
+                            </div>
+                        `);
+                        selectedRows[i].style.transition = 'opacity 0.5s';
+                        selectedRows[i].style.opacity = '0.5';
+                        // Track the last redirect/remainingBookId for navigation after all deletions
+                        if (data.redirect) lastRedirect = data.redirect;
+                        if (data.remainingBookId) lastRemainingBookId = data.remainingBookId;
+                    } else {
+                        failureCount++;
+                        document.getElementById('deletion-status').insertAdjacentHTML('beforeend', `
+                            <div class="alert alert-danger py-1 mb-1">
+                                Accession #${accession}: ${data.error}
+                            </div>
+                        `);
+                        failureMessages.push(`Accession #${accession}: ${data.error}`);
+                    }
+                } catch (error) {
+                    failureCount++;
+                    document.getElementById('deletion-status').insertAdjacentHTML('beforeend', `
+                        <div class="alert alert-danger py-1 mb-1">
+                            Accession #${accession}: Unexpected error
+                        </div>
+                    `);
+                    failureMessages.push(`Accession #${accession}: Unexpected error`);
+                }
             }
-        } catch (error) {
-            failureCount++;
-            document.getElementById('deletion-status').innerHTML += `
-                <div class="alert alert-danger py-1 mb-1">Book ID ${bookId}: Unexpected error</div>
-            `;
-            failureMessages.push(`Book ID ${bookId}: Unexpected error`);
-        }
-    }
 
-    // Show final results
-    let resultIcon, resultTitle, resultHtml;
+            let resultIcon, resultTitle, resultHtml;
 
-    if (failureCount === 0) {
-        resultIcon = 'success';
-        resultTitle = 'All Copies Deleted';
-        resultHtml = `Successfully deleted all ${successCount} copies of "${title}".`;
-    } else if (successCount === 0) {
-        resultIcon = 'error';
-        resultTitle = 'Failed to Delete Copies';
-        resultHtml = `Failed to delete any copies of "${title}".<br><br>`;
-        resultHtml += failureMessages.join('<br>');
-    } else {
-        resultIcon = 'warning';
-        resultTitle = 'Partial Deletion';
-        resultHtml = `Deleted ${successCount} copies, but failed to delete ${failureCount} copies of "${title}".<br><br>`;
-        resultHtml += failureMessages.join('<br>');
-    }
+            if (failureCount === 0) {
+                resultIcon = 'success';
+                resultTitle = 'All Copies Deleted';
+                resultHtml = `Successfully deleted all ${successCount} copies.`;
+            } else if (successCount === 0) {
+                resultIcon = 'error';
+                resultTitle = 'Failed to Delete Copies';
+                resultHtml = `Failed to delete any copies.<br><br>Errors:<br>${failureMessages.join('<br>')}`;
+            } else {
+                resultIcon = 'warning';
+                resultTitle = 'Partial Deletion';
+                resultHtml = `
+                    <div class="text-start">
+                        <p>Successfully deleted: ${successCount} copies</p>
+                        <p>Failed to delete: ${failureCount} copies</p>
+                        <div class="mt-3">
+                            <strong>Errors:</strong><br>
+                            ${failureMessages.join('<br>')}
+                        </div>
+                    </div>
+                `;
+            }
 
-    Swal.fire({
-        title: resultTitle,
-        html: resultHtml,
-        icon: resultIcon,
-        confirmButtonText: 'OK'
-    }).then(() => {
-        if (successCount > 0) {
-            // Redirect to book list if at least one copy was deleted
-            window.location.href = 'book_list.php';
+            await Swal.fire({
+                title: resultTitle,
+                html: resultHtml,
+                icon: resultIcon,
+                confirmButtonText: 'OK',
+                width: '600px'
+            });
+
+            // Redirect to remaining copy or book_list.php if all deleted
+            if (successCount > 0) {
+                if (lastRedirect) {
+                    window.location.href = lastRedirect;
+                } else if (lastRemainingBookId) {
+                    window.location.href = `opac.php?book_id=${lastRemainingBookId}`;
+                } else {
+                    window.location.href = 'book_list.php';
+                }
+            }
         }
     });
 }
@@ -1756,10 +1788,18 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add click event listeners to all copy rows
     const copyRows = document.querySelectorAll('.copy-row');
     copyRows.forEach(row => {
-        row.addEventListener('click', function() {
+        row.addEventListener('click', function(event) {
+            // Ignore clicks on checkboxes
+            if (event.target.tagName === 'INPUT' && event.target.type === 'checkbox') {
+                return;
+            }
+
             const bookId = this.getAttribute('data-book-id');
             if (bookId) {
-                loadBookDetails(bookId);
+                // Store current checkbox selections
+                const selectedCheckboxes = Array.from(document.querySelectorAll('.select-copy:checked')).map(cb => cb.value);
+                
+                loadBookDetails(bookId, selectedCheckboxes);
             }
         });
     });
@@ -1778,7 +1818,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.head.appendChild(style);
 
     // Function to load book details via AJAX
-    function loadBookDetails(bookId) {
+    function loadBookDetails(bookId, selectedIds = []) {
         // Update URL without refreshing the page
         const url = new URL(window.location.href);
         url.searchParams.set('book_id', bookId);
@@ -1797,9 +1837,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 'X-Requested-With': 'XMLHttpRequest'
             }
         })
-        .then(response => response.text())
         .then(html => {
-            // Create a temporary div to hold the response
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = html;
 
@@ -1807,34 +1845,43 @@ document.addEventListener('DOMContentLoaded', function() {
             const activeTab = document.querySelector('#bookDetailsTabs .nav-link.active');
             const activeTabId = activeTab ? activeTab.id : 'details-tab';
 
-            // STANDARD VIEW TAB UPDATES - Only update card contents
+            // STANDARD VIEW TAB UPDATES
             if (tempDiv.querySelector('#details')) {
                 // Find all cards in the details tab
                 const detailsCards = tempDiv.querySelectorAll('#details .card');
-
+                
                 // Update each card individually
                 detailsCards.forEach(newCard => {
                     const cardHeading = newCard.querySelector('.card-header h5, .card-header h6');
                     if (cardHeading) {
                         const cardTitle = cardHeading.textContent.trim();
-                        // Find matching card in current page
                         const currentCards = document.querySelectorAll('#details .card');
 
                         currentCards.forEach(currentCard => {
                             const currentHeading = currentCard.querySelector('.card-header h5, .card-header h6');
                             if (currentHeading && currentHeading.textContent.trim() === cardTitle) {
-                                // Update only the card body content
                                 const newCardBody = newCard.querySelector('.card-body');
                                 const currentCardBody = currentCard.querySelector('.card-body');
                                 if (newCardBody && currentCardBody) {
+                                    // Store current checkbox states
+                                    const currentSelections = Array.from(currentCardBody.querySelectorAll('.select-copy:checked')).map(cb => cb.value);
+                                    
+                                    // Update content
                                     currentCardBody.innerHTML = newCardBody.innerHTML;
+                                    
+                                    // Restore checkbox states
+                                    const allCheckboxes = currentCardBody.querySelectorAll('.select-copy');
+                                    allCheckboxes.forEach(checkbox => {
+                                        if (selectedIds.includes(checkbox.value)) {
+                                            checkbox.checked = true;
+                                        }
+                                    });
                                 }
                             }
                         });
                     }
                 });
             }
-
             // MARC VIEW TAB UPDATES
             if (tempDiv.querySelector('#marc')) {
                 const newMarcContent = tempDiv.querySelector('#marc .marc-record-container');
@@ -1881,10 +1928,18 @@ document.addEventListener('DOMContentLoaded', function() {
     function rebindEventListeners() {
         // Rebind click events to copy rows
         document.querySelectorAll('.copy-row').forEach(row => {
-            row.addEventListener('click', function() {
+            row.addEventListener('click', function(event) {
+                // Ignore clicks on checkboxes
+                if (event.target.tagName === 'INPUT' && event.target.type === 'checkbox') {
+                    return;
+                }
+
                 const bookId = this.getAttribute('data-book-id');
                 if (bookId) {
-                    loadBookDetails(bookId);
+                    // Store current checkbox selections
+                    const selectedCheckboxes = Array.from(document.querySelectorAll('.select-copy:checked')).map(cb => cb.value);
+                    
+                    loadBookDetails(bookId, selectedCheckboxes);
                 }
             });
         });
