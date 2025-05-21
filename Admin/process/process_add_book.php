@@ -172,26 +172,8 @@ if (isset($_POST['submit'])) {
                     $summary = mysqli_real_escape_string($conn, $_POST['abstract'] ?? '');
                     $contents = mysqli_real_escape_string($conn, $_POST['notes'] ?? '');
                     
-                    // Process dimension field - add cm² if it's a single number, otherwise add (cm)
+                    // Process dimension field - no automatic formatting
                     $dimension = mysqli_real_escape_string($conn, $_POST['dimension'] ?? '');
-                    if (!empty($dimension)) {
-                        $dimension = trim($dimension);
-                        // Check if dimension contains only numbers (single dimension)
-                        if (is_numeric($dimension)) {
-                            $dimension .= ' cm²';
-                        } 
-                        // Check if dimension contains multiple parts (has x, *, or spaces)
-                        else if (strpos($dimension, 'x') !== false || strpos($dimension, '*') !== false || strpos($dimension, ' ') !== false) {
-                            // Only add (cm) if not already present
-                            if (!preg_match('/\(cm\)$|\s+cm$|\s+cm²$/', $dimension)) {
-                                $dimension .= ' (cm)';
-                            }
-                        }
-                        // For any other format that's not already properly suffixed
-                        else if (!preg_match('/\(cm\)$|\s+cm$|\s+cm²$/', $dimension)) {
-                            $dimension .= ' (cm)';
-                        }
-                    }
 
                     // --- CHANGED: Use the exact copy number from the Copy Number fields ---
                     // Get copy number from input field if it exists and is valid, else use default
@@ -202,32 +184,16 @@ if (isset($_POST['submit'])) {
                     // Ensure copy number is at least 1
                     $copy_number = max(1, $copy_number);
 
-                    // Format total_pages by combining prefix pages and main pages
-                    $prefix_pages = isset($_POST['prefix_pages']) ? trim($_POST['prefix_pages']) : '';
-                    $main_pages = isset($_POST['main_pages']) ? trim($_POST['main_pages']) : '';
-                    $total_pages = trim($prefix_pages . " " . $main_pages); // Combine and trim spaces
+                    // Format total_pages by using the new combined pages field
+                    $total_pages = '';
+                    if (isset($_POST['pages'])) {
+                        $total_pages = mysqli_real_escape_string($conn, trim($_POST['pages']));
+                    }
 
-                    // Remove " pages" or "pages" from the end if present
-                    $total_pages = preg_replace('/ ?pages$/i', '', $total_pages);
-
-                    // Format supplementary_contents based on selected items
+                    // Format supplementary_contents as a single text field
                     $supplementary_contents = '';
-                    if (isset($_POST['supplementary_content']) && is_array($_POST['supplementary_content']) && count($_POST['supplementary_content']) > 0) {
-                        $items = array_map(function($item) use ($conn) {
-                            return mysqli_real_escape_string($conn, $item);
-                        }, $_POST['supplementary_content']);
-
-                        $count = count($items);
-                        if ($count === 1) {
-                            $supplementary_contents = "includes " . $items[0];
-                        } elseif ($count === 2) {
-                            $supplementary_contents = "includes " . $items[0] . " and " . $items[1];
-                        } else {
-                            $last_item = array_pop($items);
-                            $supplementary_contents = "includes " . implode(', ', $items) . ", and " . $last_item;
-                        }
-                    } else {
-                        $supplementary_contents = '';
+                    if (isset($_POST['supplementary_content'])) {
+                        $supplementary_contents = mysqli_real_escape_string($conn, trim($_POST['supplementary_content']));
                     }
                     // Save for later update
                     $supplementary_contents_for_update = $supplementary_contents;
@@ -259,21 +225,20 @@ if (isset($_POST['submit'])) {
                     // CORRECTED: Use admin_employee_id instead of employee_id
                     $entered_by = intval($_SESSION['admin_employee_id']);
                     $date_added = date('Y-m-d H:i:s'); 
-                    $last_update = date('Y-m-d H:i:s'); 
 
-                    // Insert into books table
+                    // Modified: Insert into books table - removed last_update field
                     $insert_book_query = "INSERT INTO books (
                         accession, title, preferred_title, parallel_title,
                         summary, contents, dimension, series, volume, part, edition, copy_number,
                         total_pages, supplementary_contents, ISBN, content_type, media_type,
                         carrier_type, call_number, URL, language, shelf_location,
-                        entered_by, date_added, status, last_update, subject_category, subject_detail
+                        entered_by, date_added, status, subject_category, subject_detail
                     ) VALUES (
                         '$accession', '$title', '$preferred_title', '$parallel_title',
                         '$summary', '$contents', '$dimension', '$series', '$volume', '$part', '$edition', '$copy_number',
                         '$total_pages', '$supplementary_contents', '$isbn', '$content_type', '$media_type',
                         '$carrier_type', '$call_number', '$url', '$language', '$shelf_location',
-                        '$entered_by', '$date_added', '$status', '$last_update', '$subject_category', '$subject_detail'
+                        '$entered_by', '$date_added', '$status', '$subject_category', '$subject_detail'
                     )";
 
                     if (!mysqli_query($conn, $insert_book_query)) {
@@ -482,6 +447,7 @@ if (isset($_POST['submit'])) {
                                 $program = mysqli_real_escape_string($conn, $_POST['program'][$i] ?? '');
                                 $detail = mysqli_real_escape_string($conn, $_POST['subject_paragraphs'][$i] ?? '');
 
+                                // Modified: Update subject query without updated_by and last_update
                                 $update_subject_query = "UPDATE books SET
                                     subject_category = CASE
                                         WHEN subject_category IS NULL OR subject_category = ''
@@ -497,9 +463,7 @@ if (isset($_POST['submit'])) {
                                         WHEN subject_detail IS NULL OR subject_detail = ''
                                         THEN '$detail'
                                         ELSE CONCAT(subject_detail, ': ', '$detail')
-                                    END,
-                                    updated_by = '$entered_by',
-                                    last_update = NOW()
+                                    END
                                     WHERE id = '$book_id'";
 
                                 if (!mysqli_query($conn, $update_subject_query)) {
@@ -538,14 +502,10 @@ if (isset($_POST['submit'])) {
                     $front_image_name = $first_book_id . "_front." . pathinfo($_FILES['front_image']['name'], PATHINFO_EXTENSION);
                     $target_file = $target_dir . $front_image_name;
                     if (move_uploaded_file($_FILES['front_image']['tmp_name'], $target_file)) {
-                        $front_image_path = "Images/book-image/" . $front_image_name;
-                        // Update all inserted accessions with the same front image
-                        // CHANGED: Also update the updated_by field using employee_id
-                        $employee_id = intval($_SESSION['admin_employee_id']);
+                        $front_image_path = "../Images/book-image/" . $front_image_name;
+                        // Modified: Update only front_image field without updated_by and last_update
                         $update_front_image = "UPDATE books SET 
-                            front_image = '$front_image_path', 
-                            updated_by = '$employee_id',
-                            last_update = NOW() 
+                            front_image = '$front_image_path'
                             WHERE accession IN ($accession_in)";
                         mysqli_query($conn, $update_front_image);
                     }
@@ -569,14 +529,10 @@ if (isset($_POST['submit'])) {
                     $back_image_name = $first_book_id . "_back." . pathinfo($_FILES['back_image']['name'], PATHINFO_EXTENSION);
                     $target_file = $target_dir . $back_image_name;
                     if (move_uploaded_file($_FILES['back_image']['tmp_name'], $target_file)) {
-                        $back_image_path = "Images/book-image/" . $back_image_name;
-                        // Update all inserted accessions with the same back image
-                        // CHANGED: Also update the updated_by field using employee_id
-                        $employee_id = intval($_SESSION['admin_employee_id']);
+                        $back_image_path = "../Images/book-image/" . $back_image_name;
+                        // Modified: Update only back_image field without updated_by and last_update
                         $update_back_image = "UPDATE books SET 
-                            back_image = '$back_image_path',
-                            updated_by = '$employee_id',
-                            last_update = NOW()
+                            back_image = '$back_image_path'
                             WHERE accession IN ($accession_in)";
                         mysqli_query($conn, $update_back_image);
                     }
@@ -585,12 +541,9 @@ if (isset($_POST['submit'])) {
 
             // Update supplementary_contents for all inserted accessions
             if (!empty($supplementary_contents_for_update)) {
-                // CHANGED: Also update the updated_by field using employee_id
-                $employee_id = intval($_SESSION['admin_employee_id']);
+                // Modified: Update only supplementary_contents field without updated_by and last_update
                 $update_supp = "UPDATE books SET 
-                    supplementary_contents = '$supplementary_contents_for_update',
-                    updated_by = '$employee_id',
-                    last_update = NOW()
+                    supplementary_contents = '$supplementary_contents_for_update'
                     WHERE accession IN ($accession_in)";
                 mysqli_query($conn, $update_supp);
             }
@@ -665,7 +618,7 @@ if (isset($_POST['submit'])) {
         }
 
         $_SESSION['error_message'] = "Error: " . $e->getMessage();
-            }
+    }
 }
 
 // Helper function to calculate accession number with increment

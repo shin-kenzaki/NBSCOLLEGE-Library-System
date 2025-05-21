@@ -779,10 +779,6 @@ function generateStrongPassword($length = 12) {
 
         <?php if (!$status): ?>
             <div class="text-center mt-4">
-                <a href="library_entrance.php" class="back-link">
-                    <i class="fas fa-arrow-left me-1"></i>Display Library Entrance
-                </a>
-                &nbsp;|&nbsp;
                 <a href="users_list.php" class="back-link">
                     <i class="fas fa-users me-1"></i>Back to Users List
                 </a>

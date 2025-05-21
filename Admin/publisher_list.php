@@ -24,6 +24,42 @@ if (isset($_POST['action']) && $_POST['action'] == 'updateSelectedPublishers') {
     exit;
 }
 
+// Handle publisher update
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_publisher'])) {
+    $id = intval($_POST['publisher_id']);
+    $publisher = trim($conn->real_escape_string($_POST['update_publisher']));
+    $place = trim($conn->real_escape_string($_POST['update_place']));
+    
+    $success = false;
+    $message = '';
+    
+    // Validate inputs
+    if (empty($publisher) || empty($place)) {
+        $_SESSION['error_message'] = "Publisher name and place are required.";
+    } else {
+        // Check for duplicate entries (excluding the current record)
+        $checkSql = "SELECT * FROM publishers WHERE publisher = '$publisher' AND place = '$place' AND id != $id";
+        $checkResult = $conn->query($checkSql);
+        
+        if ($checkResult->num_rows > 0) {
+            $_SESSION['error_message'] = "Another publisher with the same name and place already exists.";
+        } else {
+            // Update the publisher
+            $updateSql = "UPDATE publishers SET publisher = '$publisher', place = '$place' WHERE id = $id";
+            if ($conn->query($updateSql)) {
+                $_SESSION['success_message'] = "Publisher updated successfully.";
+                $_SESSION['updated_publisher_details'] = "$publisher ($place)";
+            } else {
+                $_SESSION['error_message'] = "Failed to update publisher: " . $conn->error;
+            }
+        }
+    }
+    
+    // Redirect to refresh the page
+    header("Location: publisher_list.php");
+    exit;
+}
+
 // Handle bulk action requests
 if (isset($_POST['bulk_action']) && isset($_POST['selected_ids'])) {
     $selectedIds = $_POST['selected_ids'];
@@ -223,7 +259,7 @@ $result = $conn->query($sql);
                     <?php
                     if ($result->num_rows > 0) {
                         while ($row = $result->fetch_assoc()) {
-                            echo "<tr>
+                            echo "<tr data-id='" . $row['id'] . "' data-publisher='" . htmlspecialchars($row['publisher'], ENT_QUOTES) . "' data-place='" . htmlspecialchars($row['place'], ENT_QUOTES) . "'>
                                     <td style='text-align: center;'><input type='checkbox' class='row-checkbox' value='" . $row['id'] . "'></td>
                                     <td style='text-align: center;'>" . $row['id'] . "</td>
                                     <td style='text-align: center;'>" . $row['publisher'] . "</td>
@@ -273,9 +309,53 @@ $result = $conn->query($sql);
     </div>
 </div>
 
+<!-- Update Publisher Modal -->
+<div class="modal fade" id="updatePublisherModal" tabindex="-1" role="dialog" aria-labelledby="updatePublisherModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title" id="updatePublisherModalLabel">Update Publisher</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="updatePublisherForm" method="POST" action="publisher_list.php">
+                    <input type="hidden" name="publisher_id" id="updatePublisherId">
+                    <div class="form-group">
+                        <label for="updatePublisherName">Publisher</label>
+                        <input type="text" class="form-control" name="update_publisher" id="updatePublisherName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="updatePublisherPlace">Place</label>
+                        <input type="text" class="form-control" name="update_place" id="updatePublisherPlace" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-warning" id="updatePublisher">Update Publisher</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Context Menu -->
+<div id="contextMenu" class="dropdown-menu context-menu" style="display: none; position: absolute;">
+    <a class="dropdown-item" href="#" id="contextMenuUpdate">
+        <i class="fas fa-edit text-warning"></i> Edit Publisher
+    </a>
+    <a class="dropdown-item" href="#" id="contextMenuDelete">
+        <i class="fas fa-trash text-danger"></i> Delete Publisher
+    </a>
+</div>
+
 <script>
 $(document).ready(function () {
     var selectedIds = [];
+    var contextMenuTargetId = null;
+    var contextMenuTargetPublisher = null;
+    var contextMenuTargetPlace = null;
 
     // Handle select all checkbox
     $('#selectAll').on('change', function () {
@@ -300,11 +380,97 @@ $(document).ready(function () {
     // Update delete button state and count
     function updateDeleteButton() {
         const count = selectedIds.length;
-        $('#deleteSelectedBtn span').text(count);
+        $('#selectedDeleteCount').text(count);
         $('#deleteSelectedBtn').prop('disabled', count === 0);
     }
 
-    // Handle delete selected button click
+    // Context menu setup
+    $('#dataTable tbody').on('contextmenu', 'tr', function (e) {
+        e.preventDefault();
+        
+        contextMenuTargetId = $(this).data('id');
+        contextMenuTargetPublisher = $(this).data('publisher');
+        contextMenuTargetPlace = $(this).data('place');
+        
+        // Position the context menu at the cursor position
+        $('#contextMenu').css({
+            top: e.pageY + 'px',
+            left: e.pageX + 'px'
+        }).show();
+        
+        // Highlight the selected row
+        $('#dataTable tbody tr').removeClass('table-active');
+        $(this).addClass('table-active');
+    });
+
+    // Hide context menu when clicking elsewhere
+    $(document).on('click', function () {
+        $('#contextMenu').hide();
+        $('#dataTable tbody tr').removeClass('table-active');
+    });
+
+    // Handle context menu actions
+    $('#contextMenuUpdate').on('click', function (e) {
+        e.preventDefault();
+        
+        // Populate update modal with selected publisher data
+        $('#updatePublisherId').val(contextMenuTargetId);
+        $('#updatePublisherName').val(contextMenuTargetPublisher);
+        $('#updatePublisherPlace').val(contextMenuTargetPlace);
+        
+        // Show the modal
+        $('#updatePublisherModal').modal('show');
+    });
+
+    $('#contextMenuDelete').on('click', function (e) {
+        e.preventDefault();
+        
+        // Set up confirmation dialog for deletion
+        Swal.fire({
+            title: 'Confirm Deletion',
+            html: `Are you sure you want to delete publisher <strong>${contextMenuTargetPublisher}</strong>?<br><br>
+                   <span class="text-danger">This action cannot be undone!</span>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!',
+            cancelButtonText: 'Cancel',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // If confirmed, perform deletion
+                $.ajax({
+                    url: 'publisher_list.php',
+                    method: 'POST',
+                    data: {
+                        bulk_action: 'delete',
+                        selected_ids: [contextMenuTargetId]
+                    },
+                    success: function () {
+                        Swal.fire({
+                            title: 'Deleted!',
+                            text: 'Publisher has been deleted successfully.',
+                            icon: 'success',
+                            confirmButtonColor: '#3085d6'
+                        }).then(() => {
+                            location.reload();
+                        });
+                    },
+                    error: function () {
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'An error occurred while deleting the publisher.',
+                            icon: 'error',
+                            confirmButtonColor: '#d33'
+                        });
+                    }
+                });
+            }
+        });
+    });
+
+    // Handle bulk delete button click
     $('#deleteSelectedBtn').on('click', function () {
         if (selectedIds.length === 0) return;
 
@@ -351,6 +517,15 @@ $(document).ready(function () {
         });
     });
 
+    // Handle form submissions
+    $('#savePublisher').click(function () {
+        $('#addPublisherForm').submit();
+    });
+
+    $('#updatePublisher').click(function () {
+        $('#updatePublisherForm').submit();
+    });
+
     // Initialize DataTable
     $('#dataTable').DataTable({
         "dom": "<'row mb-3'<'col-sm-6'l><'col-sm-6 d-flex justify-content-end'f>>" +
@@ -370,27 +545,40 @@ $(document).ready(function () {
         }
     });
 
-    $('#savePublisher').click(function () {
-        $('#addPublisherForm').submit();
-    });
-
-    // Display success message using SweetAlert2
+    // Display success/error messages using SweetAlert2
     <?php if (isset($_SESSION['success_message'])): ?>
         <?php
         $message = addslashes($_SESSION['success_message']);
         $detailsList = '';
+        
         // Check for added publisher details
         if (isset($_SESSION['added_publishers_details']) && !empty($_SESSION['added_publishers_details'])) {
             $details = array_map(function($detail) {
                 return htmlspecialchars($detail, ENT_QUOTES);
-            }, $_SESSION['added_publishers_details']); // Sanitize details
+            }, $_SESSION['added_publishers_details']);
             $detailsList = '<br><br><strong>Added Publishers:</strong><br>' . implode('<br>', $details);
-            unset($_SESSION['added_publishers_details']); // Unset the added details list
+            unset($_SESSION['added_publishers_details']);
+        }
+        
+        // Check for updated publisher details
+        if (isset($_SESSION['updated_publisher_details'])) {
+            $detail = htmlspecialchars($_SESSION['updated_publisher_details'], ENT_QUOTES);
+            $detailsList = '<br><br><strong>Updated Publisher:</strong><br>' . $detail;
+            unset($_SESSION['updated_publisher_details']);
+        }
+        
+        // Check for deleted publisher details
+        if (isset($_SESSION['deleted_publishers_details']) && !empty($_SESSION['deleted_publishers_details'])) {
+            $details = array_map(function($detail) {
+                return htmlspecialchars($detail, ENT_QUOTES);
+            }, $_SESSION['deleted_publishers_details']);
+            $detailsList = '<br><br><strong>Deleted Publishers:</strong><br>' . implode('<br>', $details);
+            unset($_SESSION['deleted_publishers_details']);
         }
         ?>
         Swal.fire({
             title: 'Success!',
-            html: '<?php echo $message . $detailsList; ?>', // Use html property for formatted content
+            html: '<?php echo $message . $detailsList; ?>',
             icon: 'success',
             confirmButtonColor: '#3085d6'
         });
@@ -406,5 +594,36 @@ $(document).ready(function () {
         });
         <?php unset($_SESSION['error_message']); ?>
     <?php endif; ?>
+
+    // Add CSS for the context menu and table row highlighting
+    $('<style>')
+        .prop('type', 'text/css')
+        .html(`
+            .context-menu {
+                z-index: 1000;
+                min-width: 200px;
+                box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+            }
+            .table-active {
+                background-color: rgba(0, 123, 255, 0.1) !important;
+            }
+            .dropdown-item:hover {
+                background-color: rgba(0, 123, 255, 0.1);
+            }
+        `)
+        .appendTo('head');
+
+    // Double-click row to open update modal
+    $('#dataTable tbody').on('dblclick', 'tr', function () {
+        var id = $(this).data('id');
+        var publisher = $(this).data('publisher');
+        var place = $(this).data('place');
+        
+        $('#updatePublisherId').val(id);
+        $('#updatePublisherName').val(publisher);
+        $('#updatePublisherPlace').val(place);
+        
+        $('#updatePublisherModal').modal('show');
+    });
 });
 </script>

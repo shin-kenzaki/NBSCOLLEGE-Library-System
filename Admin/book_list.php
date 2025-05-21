@@ -10,7 +10,7 @@ if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Lib
 include '../db.php'; // Database connection
 
 // Count total books in database
-$totalBooksQuery = "SELECT COUNT(*) as total FROM books";
+$totalBooksQuery = "SELECT COUNT(*) as total FROM books WHERE title IS NOT NULL AND title != ''";
 $totalBooksResult = $conn->query($totalBooksQuery);
 $totalBooks = $totalBooksResult->fetch_assoc()['total'];
 
@@ -136,7 +136,7 @@ if (isset($_SESSION['success_message'])) {
 // Initialize search query
 $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
 
-// Modified query to group books by title with better grouping
+// Modified query to group books by title with better grouping, excluding empty titles
 $query = "SELECT 
     title,
     GROUP_CONCAT(DISTINCT id ORDER BY id) as id_range,
@@ -151,10 +151,11 @@ $query = "SELECT
     edition,
     part,
     COUNT(*) as total_copies
-    FROM books ";
+    FROM books 
+    WHERE title IS NOT NULL AND title != '' ";
 
 if (!empty($searchQuery)) {
-    $query .= " WHERE title LIKE ? ";
+    $query .= " AND title LIKE ? ";
     $stmt = $conn->prepare($query);
     $searchParam = "%$searchQuery%";
     $stmt->bind_param("s", $searchParam);
@@ -299,6 +300,9 @@ $result = $stmt->get_result();
                     <a href="step-by-step-add-book.php" class="btn btn-primary btn-sm">
                         <i class="fas fa-list-ol"></i> Step-by-Step
                     </a>
+                    <a href="import_books.php" class="btn btn-success btn-sm">
+                        <i class="fas fa-file-import"></i> Import CSV
+                    </a>
                     <!-- New: Refresh Button -->
                     <button type="button" class="btn btn-info btn-sm" onclick="location.reload();" title="Refresh page">
                         <i class="fas fa-sync-alt"></i> Refresh
@@ -345,10 +349,11 @@ $result = $stmt->get_result();
                             edition,
                             part,
                             COUNT(*) as total_copies
-                            FROM books ";
+                            FROM books 
+                            WHERE title IS NOT NULL AND title != '' ";
                         
                         if (!empty($searchQuery)) {
-                            $query .= " WHERE title LIKE '%$searchQuery%' ";
+                            $query .= " AND title LIKE '%$searchQuery%' ";
                         }
                         
                         $query .= " GROUP BY title, ISBN, series, volume, edition, part ORDER BY title";

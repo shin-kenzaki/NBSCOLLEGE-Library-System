@@ -74,30 +74,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             throw new Exception("Publisher ID is not set. Please select a publisher.");
         }
 
-        // Process dimension field - add cm² if it's only a number, otherwise add (cm)
+        // Simply escape the dimension field without auto-formatting
         $dimension = mysqli_real_escape_string($conn, $_POST['dimension'] ?? '');
-        if (!empty($dimension)) {
-            $dimension = trim($dimension);
-            // Check if it's just a number (single part)
-            if (is_numeric($dimension)) {
-                $dimension .= ' cm²';
-            } 
-            // Check if it has multiple parts (contains x, * or spaces)
-            else if (strpos($dimension, 'x') !== false || strpos($dimension, '*') !== false || strpos($dimension, ' ') !== false) {
-                // Add (cm) if not already present with a unit
-                if (!preg_match('/\(cm\)$|\s+cm$|\s+cm²$/', $dimension)) {
-                    $dimension .= ' (cm)';
-                }
-            } 
-            // For other formats without units, add (cm)
-            else if (!preg_match('/\(cm\)$|\s+cm$|\s+cm²$/', $dimension)) {
-                $dimension .= ' (cm)';
-            }
-        }
 
-        // Add missing variable declarations
-        $total_pages = mysqli_real_escape_string($conn, trim(($_POST['prefix_pages'] ?? '') . ' ' . ($_POST['main_pages'] ?? '')));
-        $supplementary_contents = mysqli_real_escape_string($conn, isset($_POST['supplementary_content']) ? implode(', ', $_POST['supplementary_content']) : '');
+        // Add missing variable declarations - replace the existing combined field with a direct reference
+        $total_pages = mysqli_real_escape_string($conn, $_POST['total_pages'] ?? '');
+        // Update supplementary_contents to handle a single string rather than an array
+        $supplementary_contents = mysqli_real_escape_string($conn, $_POST['supplementary_content'] ?? '');
         $content_type = mysqli_real_escape_string($conn, $_POST['content_type'] ?? 'Text');
         $media_type = mysqli_real_escape_string($conn, $_POST['media_type'] ?? 'Print');
         $carrier_type = mysqli_real_escape_string($conn, $_POST['carrier_type'] ?? 'Book');
@@ -311,7 +294,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $frontImagePath = $imageFolder . $frontImageName;
 
                 if (move_uploaded_file($_FILES['front_image']['tmp_name'], $frontImagePath)) {
-                    $front_image = 'Images/book-image/' . $frontImageName;
+                    $front_image = '../Images/book-image/' . $frontImageName;
                     
                     // Update all books with the same front image path
                     $update_front_image = "UPDATE books SET front_image = '$front_image' WHERE id IN (" . implode(',', $all_book_ids) . ")";
@@ -330,7 +313,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $backImagePath = $imageFolder . $backImageName;
 
                 if (move_uploaded_file($_FILES['back_image']['tmp_name'], $backImagePath)) {
-                    $back_image = 'Images/book-image/' . $backImageName;
+                    $back_image = '../Images/book-image/' . $backImageName;
                     
                     // Update all books with the same back image path
                     $update_back_image = "UPDATE books SET back_image = '$back_image' WHERE id IN (" . implode(',', $all_book_ids) . ")";
@@ -992,33 +975,19 @@ $showCorporateContributors = !isset($_SESSION['book_shortcut']['contributor_type
                                         <div class="col-md-12">
                                             <div class="form-group">
                                                 <label>Subject Category</label>
-                                                <select class="form-control subject-category" name="subject_categories[]">
-                                                    <option value="">Select Subject Category</option>
-                                                    <?php foreach ($subject_options as $subject): ?>
-                                                        <option value="<?php echo htmlspecialchars($subject); ?>">
-                                                            <?php echo htmlspecialchars($subject); ?>
-                                                        </option>
-                                                    <?php endforeach; ?>
-                                                </select>
+                                                <input type="text" class="form-control subject-category" name="subject_categories[]">
                                                 <small class="form-text text-muted">
-                                                    <i class="fas fa-info-circle mr-1"></i> Select the primary subject classification for this book.
+                                                    <i class="fas fa-info-circle mr-1"></i> Example options: Topical, Personal, Corporate, Geographical
                                                 </small>
                                             </div>
                                         </div>
                                         <div class="col-md-12">
                                             <div class="form-group">
                                                 <label>Program</label>
-                                                <select class="form-control" name="program[]">
-                                                    <option value="">Select Program</option>
-                                                    <option value="General Education">General Education</option>
-                                                    <option value="Computer Science">Computer Science</option>
-                                                    <option value="Accountancy">Accountancy</option>
-                                                    <option value="Entrepreneurship">Entrepreneurship</option>
-                                                    <option value="Accountancy Information System">Accountancy Information System</option>
-                                                    <option value="Tourism Management">Tourism Management</option>
-                                                </select>
+                                                <input type="text" class="form-control" name="program[]">
                                                 <small class="form-text text-muted">
-                                                    <i class="fas fa-info-circle mr-1"></i> Choose the academic program this book is most relevant to.
+                                                    <i class="fas fa-info-circle mr-1"></i> 
+                                                    Example options: General Education, Computer Science, Accountancy, Entrepreneurship, Accountancy Information System, Tourism Management
                                                 </small>
                                             </div>
                                         </div>
@@ -1026,7 +995,7 @@ $showCorporateContributors = !isset($_SESSION['book_shortcut']['contributor_type
                                             <div class="form-group">
                                                 <label>Details</label>
                                                 <textarea class="form-control" name="subject_paragraphs[]"
-                                                    rows="3" placeholder="Enter additional details about this subject"></textarea>
+                                                    rows="3"></textarea>
                                                 <small class="form-text text-muted">
                                                     <i class="fas fa-info-circle mr-1"></i> Provide specific subject terms, keywords, or descriptions that help identify the content.
                                                 </small>
@@ -1114,54 +1083,33 @@ $showCorporateContributors = !isset($_SESSION['book_shortcut']['contributor_type
                                 <div class="form-group">
                                     <div class="row">
                                         <div class="col-md-6">
-                                            <label>Dimension (cm²)</label>
-                                            <input type="text" class="form-control" name="dimension" placeholder="e.g. 23 x 24 or 23 cm²">
+                                            <label>Dimension</label>
+                                            <input type="text" class="form-control" name="dimension">
                                             <div class="mt-2">
                                                 <small class="form-text text-muted">
-                                                    <i class="fas fa-info-circle mr-1"></i> Format examples: 23 x 24, 23 * 24, or just 24 (cm² will be added automatically for single numbers)
+                                                    <i class="fas fa-info-circle mr-1"></i> Physical dimensions of the resource (include unit: cm, mm, inches)
                                                 </small>
                                             </div>
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="small">Prefix (Roman)</label>
-                                            <input type="text" class="form-control" name="prefix_pages" placeholder="e.g. xii">
+                                            <label>Total Pages</label>
+                                            <input type="text" class="form-control" name="total_pages">
                                             <div class="mt-2">
                                                 <small class="form-text text-muted">
-                                                    <i class="fas fa-info-circle mr-1"></i> Enter the number of prefatory pages in Roman numerals.
+                                                    <i class="fas fa-info-circle mr-1"></i> Include prefix pages and main pages (e.g., "xiii 256p." or "xii, 345p.")
                                                 </small>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="form-group">
-                                    <label>Pages</label>
+                                    <label>Supplementary Contents</label>
                                     <div class="row">
-                                        <div class="col-md-6">
-                                            <label class="small">Main Pages</label>
-                                            <input type="text" class="form-control" name="main_pages" placeholder="e.g. 350a">
+                                        <div class="col-md-12">
+                                            <input type="text" class="form-control" name="supplementary_content">
                                             <div class="mt-2">
                                                 <small class="form-text text-muted">
-                                                    <i class="fas fa-info-circle mr-1"></i> Provide the total number of main pages in the book. (Format examples: 345p)
-                                                </small>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="small">Supplementary Contents</label>
-                                            <select class="form-control" name="supplementary_content[]" multiple>
-                                                <option value="Appendix">Appendix</option>
-                                                <option value="Bibliography">Bibliography</option>
-                                                <option value="Glossary">Glossary</option>
-                                                <option value="Index">Index</option>
-                                                <option value="Illustrations">Illustrations</option>
-                                                <option value="Maps">Maps</option>
-                                                <option value="Tables">Tables</option>
-                                            </select>
-                                            <div class="mt-2">
-                                                <small class="text-primary d-block mb-1">
-                                                    <i class="fas fa-keyboard mr-1"></i> Hold <kbd>Ctrl</kbd> (Windows) or <kbd>⌘ Cmd</kbd> (Mac) to select multiple items
-                                                </small>
-                                                <small class="form-text text-muted">
-                                                    <i class="fas fa-info-circle mr-1"></i> Select any additional content included in the book.
+                                                    <i class="fas fa-info-circle mr-1"></i> Appendix (app.), Bibliography (bibl.), Glossary (gloss.), Index (ind.), Illustrations (ill.), Maps, Tables (tbl.)
                                                 </small>
                                             </div>
                                         </div>
@@ -1222,66 +1170,6 @@ $showCorporateContributors = !isset($_SESSION['book_shortcut']['contributor_type
                                     </div>
                                 </div>
 
-                                <!--  -->
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Entered By</label>
-                                            <?php
-                                            // Get admin details from session
-                                            $admin_firstname = $_SESSION['admin_firstname'] ?? '';
-                                            $admin_lastname = $_SESSION['admin_lastname'] ?? '';
-                                            $admin_employee_id = $_SESSION['admin_employee_id'] ?? '';
-                                            $admin_role = $_SESSION['role'] ?? '';
-                                            
-                                            // Format as "firstname lastname (employee id - role)"
-                                            $admin_display = htmlspecialchars(
-                                                "$admin_firstname $admin_lastname ($admin_employee_id - $admin_role)"
-                                            );
-                                            ?>
-                                            <input type="text" class="form-control"
-                                                   value="<?php echo $admin_display; ?>"
-                                                   readonly>
-                                            <input type="hidden" name="entered_by" value="<?php echo $_SESSION['admin_employee_id']; ?>">
-                                            <small class="form-text text-muted">
-                                                <i class="fas fa-user mr-1"></i> Staff member who created this record
-                                            </small>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Date Added</label>
-                                            <input type="text" class="form-control" name="date_added" value="<?php echo date('Y-m-d H:i:s'); ?>" readonly>
-                                            <small class="form-text text-muted">
-                                                <i class="fas fa-calendar mr-1"></i> Timestamp when the book was added to the system
-                                            </small>
-                                        </div>
-                                    </div>
-                                </div>
-                                <!--  -->
-
-                                <!--  -->
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Status</label>
-                                            <input type="text" class="form-control" name="status" value="Available" readonly>
-                                            <small class="form-text text-muted">
-                                                <i class="fas fa-info-circle mr-1"></i> Current availability status of the book
-                                            </small>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Last Update</label>
-                                            <input type="text" class="form-control" name="last_update" value="<?php echo date('Y-m-d H:i:s'); ?>" readonly>
-                                            <small class="form-text text-muted">
-                                                <i class="fas fa-clock mr-1"></i> Timestamp of the most recent modification
-                                            </small>
-                                        </div>
-                                    </div>
-                                </div>
-                                <!--  -->
                             </div>
                             <!-- end local information -->
 
@@ -1367,7 +1255,7 @@ $showCorporateContributors = !isset($_SESSION['book_shortcut']['contributor_type
                                     <div class="col-md-12">
                                         <div class="form-group">
                                             <label for="url">URL (if applicable)</label>
-                                            <input type="url" class="form-control" id="url" name="url" placeholder="https://example.com">
+                                            <input type="text" class="form-control" id="url" name="url" placeholder="https://example.com">
                                             <small class="form-text text-muted">
                                                 <i class="fas fa-info-circle mr-1"></i> Optional URL for digital resources
                                             </small>
@@ -2290,348 +2178,26 @@ document.addEventListener('DOMContentLoaded', function() {
   // Set up observer for dynamically added elements
   const accessionContainer = document.getElementById('accessionContainer');
   if (accessionContainer) {
-    // ...existing code...
-  }
-  
-  // Add validation to the main title field
-  const titleInput = document.getElementById('title');
-  if (titleInput) {
-    // Special styling for the title field
-    const titleForm = titleInput.closest('.form-group');
-    if (titleForm) {
-      titleForm.style.position = 'relative';
-    }
-    
-    function validateTitleField() {
-      const isValid = titleInput.value.trim() !== '';
-      if (isValid) {
-        titleInput.classList.remove('is-invalid');
-        titleInput.classList.add('is-valid');
-      } else {
-        titleInput.classList.remove('is-valid');
-        titleInput.classList.add('is-invalid');
-      }
-      
-      // Find or create indicators
-      let parentElement = titleInput.closest('.form-group');
-      let indicator = parentElement.querySelector('.validation-indicator');
-      let check = parentElement.querySelector('.validation-check');
-      
-      if (!indicator) {
-        indicator = document.createElement('i');
-        indicator.className = 'fas fa-exclamation-circle validation-indicator';
-        parentElement.appendChild(indicator);
-      }
-      
-      if (!check) {
-        check = document.createElement('i');
-        check.className = 'fas fa-check-circle validation-check';
-        parentElement.appendChild(check);
-      }
-      
-      // Show/hide indicators
-      if (isValid) {
-        indicator.classList.remove('show');
-        check.classList.add('show');
-      } else {
-        indicator.classList.add('show');
-        check.classList.remove('show');
-      }
-    }
-    
-    // Initial validation
-    validateTitleField();
-    
-    // Set up listeners
-    titleInput.addEventListener('input', validateTitleField);
-    titleInput.addEventListener('blur', validateTitleField);
-  }
-  
-  // Add validation to the publisher field
-  const publisherField = document.getElementById('publisher');
-  if (publisherField) {
-    // Special styling for the publisher field
-    const publisherForm = publisherField.closest('.form-group');
-    if (publisherForm) {
-      publisherForm.style.position = 'relative';
-    }
-    
-    function validatePublisherField() {
-      const isValid = publisherField.value.trim() !== '';
-      if (isValid) {
-        publisherField.classList.remove('is-invalid');
-        publisherField.classList.add('is-valid');
-      } else {
-        publisherField.classList.remove('is-valid');
-        publisherField.classList.add('is-invalid');
-      }
-      
-      // Find or create indicators
-      let parentElement = publisherField.closest('.form-group');
-      let indicator = parentElement.querySelector('.validation-indicator');
-      let check = parentElement.querySelector('.validation-check');
-      
-      if (!indicator) {
-        indicator = document.createElement('i');
-        indicator.className = 'fas fa-exclamation-circle validation-indicator';
-        parentElement.appendChild(indicator);
-      }
-      
-      if (!check) {
-        check = document.createElement('i');
-        check.className = 'fas fa-check-circle validation-check';
-        parentElement.appendChild(check);
-      }
-      
-      // Show/hide indicators
-      if (isValid) {
-        indicator.classList.remove('show');
-        check.classList.add('show');
-      } else {
-        indicator.classList.add('show');
-        check.classList.remove('show');
-      }
-    }
-    
-    // Initial validation
-    validatePublisherField();
-    
-    // Set up listeners
-    publisherField.addEventListener('input', validatePublisherField);
-    publisherField.addEventListener('blur', validatePublisherField);
-    publisherField.addEventListener('change', validatePublisherField);
-  }
-  
-  // Add validation to the publication year field
-  const publishYearField = document.getElementById('publish_year');
-  if (publishYearField) {
-    // Special styling for the publication year field
-    const publishYearForm = publishYearField.closest('.form-group');
-    if (publishYearForm) {
-      publishYearForm.style.position = 'relative';
-    }
-    
-    function validatePublishYearField() {
-      const isValid = publishYearField.value.trim() !== '';
-      const yearValue = parseInt(publishYearField.value);
-      const currentYear = new Date().getFullYear();
-      const isValidYear = isValid && !isNaN(yearValue) && yearValue > 0 && yearValue <= currentYear + 1;
-      
-      if (isValidYear) {
-        publishYearField.classList.remove('is-invalid');
-        publishYearField.classList.add('is-valid');
-      } else {
-        publishYearField.classList.remove('is-valid');
-        publishYearField.classList.add('is-invalid');
-      }
-      
-      // Find or create indicators
-      let parentElement = publishYearField.closest('.form-group');
-      let indicator = parentElement.querySelector('.validation-indicator');
-      let check = parentElement.querySelector('.validation-check');
-      
-      if (!indicator) {
-        indicator = document.createElement('i');
-        indicator.className = 'fas fa-exclamation-circle validation-indicator';
-        parentElement.appendChild(indicator);
-      }
-      
-      if (!check) {
-        check = document.createElement('i');
-        check.className = 'fas fa-check-circle validation-check';
-        parentElement.appendChild(check);
-      }
-      
-      // Show/hide indicators
-      if (isValidYear) {
-        indicator.classList.remove('show');
-        check.classList.add('show');
-      } else {
-        indicator.classList.add('show');
-        check.classList.remove('show');
-      }
-      
-      // Update validation message
-      const validationMessage = parentElement.querySelector('.validation-message');
-      if (validationMessage) {
-        if (!isValid) {
-          validationMessage.textContent = 'Publication year is required';
-        } else if (!isValidYear) {
-          validationMessage.textContent = 'Please enter a valid year (not in the future)';
-        }
-      }
-    }
-    
-    // Initial validation
-    validatePublishYearField();
-    
-    // Set up listeners
-    publishYearField.addEventListener('input', validatePublishYearField);
-    publishYearField.addEventListener('blur', validatePublishYearField);
-    publishYearField.addEventListener('change', validatePublishYearField);
-  }
-});
-
-// ...existing code...
-
-// Add validation check to the form submission
-document.getElementById('bookForm').addEventListener('submit', function(e) {
-  // Check the key fields for validation
-  const keyFields = ['title', 'publisher', 'publish_year'];
-  let hasErrors = false;
-  
-  keyFields.forEach(fieldId => {
-    const field = document.getElementById(fieldId);
-    if (field) {
-      if (!field.value.trim()) {
-        field.classList.add('is-invalid');
-        
-        // Show the validation indicator
-        const parentElement = field.closest('.form-group');
-        if (parentElement) {
-          const indicator = parentElement.querySelector('.validation-indicator');
-          if (indicator) {
-            indicator.classList.add('show');
-          }
-        }
-        
-        hasErrors = true;
-      }
-    }
-  });
-  
-  // Also check accession inputs
-  document.querySelectorAll('.accession-input').forEach(input => {
-    if (!input.value.trim()) {
-      input.classList.add('is-invalid');
-      hasErrors = true;
-      
-      // Show the validation indicator
-      const parentGroup = input.closest('.accession-group');
-      if (parentGroup) {
-        const indicator = parentGroup.querySelector('.validation-indicator');
-        if (indicator) {
-          indicator.classList.add('show');
-        }
-      }
-    }
-  });
-  
-  if (hasErrors) {
-    e.preventDefault();
-    alert('Please fill in all required fields (Title, Publisher, Publication Year, and Accession) before submitting.');
-    return false;
-  }
-  
-  return true;
-});
-
-/**
- * Tab required field indicator logic
- */
-function updateTabRequiredIndicators() {
-    // Map tab id to required field selectors in that tab
-    const tabRequiredFields = {
-        'title-tab': [
-            'input[name="title"]'
-        ],
-        'subject-tab': [
-            // No required fields for Access Point tab
-        ],
-        'abstracts-tab': [
-            // No required fields by default
-        ],
-        'description-tab': [
-            // No required fields by default
-        ],
-        'local-info-tab': [
-            '.accession-input',
-            '.copies-input'
-        ],
-        'publication-tab': [
-            // No required fields by default
-        ]
-    };
-
-    Object.entries(tabRequiredFields).forEach(([tabId, selectors]) => {
-        const tabLink = document.getElementById(tabId);
-        if (!tabLink) return;
-        const indicator = tabLink.querySelector('.tab-required-indicator');
-        if (!indicator) return;
-
-        let totalRequiredFields = 0;
-        let validFields = 0;
-        let hasAnyField = false;
-
-        if (selectors.length === 0) {
-            indicator.className = 'tab-required-indicator hidden';
-            return;
-        }
-
-        selectors.forEach(sel => {
-            const fields = document.querySelectorAll(sel);
-            if (fields.length > 0) {
-                hasAnyField = true;
+    const observer = new MutationObserver((mutationsList) => {
+      for(const mutation of mutationsList) {
+        if (mutation.type === 'childList') {
+          mutation.addedNodes.forEach(node => {
+            if (node.nodeType === 1 && (node.querySelector('.accession-input, .copies-input') || node.matches('.accession-input, .copies-input'))) {
+              updateTabRequiredIndicators();
+              return;
             }
-            fields.forEach(field => {
-                totalRequiredFields++;
-                if (field.value && field.value.trim() !== "" && !field.classList.contains('is-invalid')) {
-                    validFields++;
-                }
-            });
-        });
-
-        indicator.classList.remove('hidden', 'error', 'warning');
-
-        if (!hasAnyField || totalRequiredFields === 0) {
-            indicator.classList.add('hidden');
-        } else if (validFields === totalRequiredFields) {
-            indicator.classList.add('hidden');
-        } else if (validFields > 0) {
-            indicator.classList.add('warning');
-        } else {
-            indicator.classList.add('error');
-        }
-    });
-}
-
-// Update indicators on input/change and on tab switch
-document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(updateTabRequiredIndicators, 100);
-
-    const bookForm = document.getElementById('bookForm');
-    if (bookForm) {
-        bookForm.addEventListener('input', updateTabRequiredIndicators);
-        bookForm.addEventListener('change', updateTabRequiredIndicators);
-        bookForm.addEventListener('validation-updated', updateTabRequiredIndicators);
-    }
-
-    document.querySelectorAll('.nav-link[data-toggle="tab"]').forEach(tab => {
-        tab.addEventListener('shown.bs.tab', updateTabRequiredIndicators);
-    });
-
-    const accessionContainer = document.getElementById('accessionContainer');
-    if (accessionContainer) {
-        const observer = new MutationObserver((mutationsList) => {
-            for(const mutation of mutationsList) {
-                if (mutation.type === 'childList') {
-                    mutation.addedNodes.forEach(node => {
-                        if (node.nodeType === 1 && (node.querySelector('.accession-input, .copies-input') || node.matches('.accession-input, .copies-input'))) {
-                            updateTabRequiredIndicators();
-                            return;
-                        }
-                    });
-                    mutation.removedNodes.forEach(node => {
-                         if (node.nodeType === 1 && (node.querySelector('.accession-input, .copies-input') || node.matches('.accession-input, .copies-input'))) {
-                            updateTabRequiredIndicators();
-                            return;
-                        }
-                    });
-                }
+          });
+          mutation.removedNodes.forEach(node => {
+               if (node.nodeType === 1 && (node.querySelector('.accession-input, .copies-input') || node.matches('.accession-input, .copies-input'))) {
+              updateTabRequiredIndicators();
+              return;
             }
-        });
-        observer.observe(accessionContainer, { childList: true, subtree: true });
-    }
+          });
+        }
+      }
+    });
+    observer.observe(accessionContainer, { childList: true, subtree: true });
+  }
 
      setTimeout(updateTabRequiredIndicators, 200);
 });

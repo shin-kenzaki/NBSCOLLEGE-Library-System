@@ -37,13 +37,6 @@ try {
     $transactionSupported = false;
 }
 
-// Only keep the main subject options array
-$subject_options = array(
-    "Topical",
-    "Personal",
-    "Corporate",
-    "Geographical"
-);
 
 // Fetch writers for the dropdown
 $writers_query = "SELECT id, CONCAT(lastname, ', ', firstname, ' ', middle_init) AS name FROM writers";
@@ -658,35 +651,22 @@ $accession_error = '';
                                 </div>
                                 <div class="form-group">
                                     <label>Subject Category</label>
-                                    <select class="form-control" name="subject_categories[]">
-                                        <option value="">Select Subject Category</option>
-                                        <?php foreach ($subject_options as $option): ?>
-                                            <option value="<?php echo $option; ?>"><?php echo $option; ?></option>
-                                        <?php endforeach; ?>
-                                    </select>
+                                    <input type="text" class="form-control" name="subject_categories[]">
                                     <small class="form-text text-muted">
-                                        <i class="fas fa-info-circle mr-1"></i> Select the primary subject classification for this book.
+                                        <i class="fas fa-info-circle mr-1"></i> Example options: Topical, Personal, Corporate, Geographical
                                     </small>
                                 </div>
                                 <div class="form-group">
                                     <label>Program</label>
-                                    <select class="form-control" name="program[]">
-                                        <option value="">Select Program</option>
-                                        <option value="General Education">General Education</option>
-                                        <option value="Computer Science">Computer Science</option>
-                                        <option value="Accountancy">Accountancy</option>
-                                        <option value="Entrepreneurship">Entrepreneurship</option>
-                                        <option value="Accountancy Information System">Accountancy Information System</option>
-                                        <option value="Tourism Management">Tourism Management</option>
-                                    </select>
+                                    <input type="text" class="form-control" name="program[]">
                                     <small class="form-text text-muted">
-                                        <i class="fas fa-info-circle mr-1"></i> Choose the academic program this book is most relevant to.
+                                        <i class="fas fa-info-circle mr-1"></i> Example options: General Education, Computer Science, Accountancy, Entrepreneurship, Accountancy Information System, Tourism Management
                                     </small>
                                 </div>
                                 <div class="form-group">
                                     <label>Details</label>
                                     <textarea class="form-control" name="subject_paragraphs[]" 
-                                    rows="3" placeholder="Enter additional details about this subject"></textarea>
+                                    rows="3"></textarea>
                                     <small class="form-text text-muted">
                                         <i class="fas fa-info-circle mr-1"></i> Provide specific subject terms, keywords, or descriptions that help identify the content.
                                     </small>
@@ -727,7 +707,8 @@ $accession_error = '';
                                         </button>
                                     </div>
                                 </div>
-                                <!-- New file inputs with custom file upload components -->
+                                
+                                <!-- File upload section with improved layout -->
                                 <div class="row mb-4">
                                     <div class="col-md-6">
                                         <div class="form-group">
@@ -781,239 +762,103 @@ $accession_error = '';
                                 <script>
                                 // Add function to clear all file uploads
                                 window.clearFileUploads = function() {
-                                  const fileUploads = document.querySelectorAll('.file-upload-container');
-                                  
-                                  fileUploads.forEach(container => {
-                                    const input = container.querySelector('.file-upload-input');
-                                    const previewContainer = container.querySelector('.file-preview-container');
-                                    const preview = container.querySelector('.file-preview');
-                                    const fileName = container.querySelector('.file-name');
-                                    const fileSize = container.querySelector('.file-size');
+                                    const fileUploads = document.querySelectorAll('.file-upload-container');
                                     
-                                    // Clear file input
-                                    if (input) input.value = '';
-                                    
-                                    // Reset preview
-                                    if (preview) preview.style.backgroundImage = '';
-                                    
-                                    // Hide preview container
-                                    if (previewContainer) previewContainer.classList.remove('show');
-                                    
-                                    // Clear file info
-                                    if (fileName) fileName.textContent = '';
-                                    if (fileSize) fileSize.textContent = '';
-                                    
-                                    // Remove any validation classes
-                                    container.classList.remove('is-invalid');
-                                  });
+                                    fileUploads.forEach(container => {
+                                        const input = container.querySelector('.file-upload-input');
+                                        const previewContainer = container.querySelector('.file-preview-container');
+                                        const preview = container.querySelector('.file-preview');
+                                        const fileName = container.querySelector('.file-name');
+                                        const fileSize = container.querySelector('.file-size');
+                                        
+                                        // Clear file input
+                                        if (input) input.value = '';
+                                        
+                                        // Reset preview
+                                        if (preview) preview.style.backgroundImage = '';
+                                        
+                                        // Hide preview container
+                                        if (previewContainer) previewContainer.classList.remove('show');
+                                        
+                                        // Clear file info
+                                        if (fileName) fileName.textContent = '';
+                                        if (fileSize) fileSize.textContent = '';
+                                        
+                                        // Remove any validation classes
+                                        container.classList.remove('is-invalid');
+                                    });
                                 };
 
                                 // Connect the clearFileUploads function to the existing clear form functionality
                                 document.addEventListener('DOMContentLoaded', function() {
-                                  const clearFormBtn = document.querySelector('[data-clear-form]');
-                                  const clearTabBtns = document.querySelectorAll('.clear-tab-btn');
-                                  
-                                  if (clearFormBtn) {
-                                    const originalHandler = clearFormBtn.onclick;
-                                    clearFormBtn.onclick = function(e) {
-                                      // Call the original handler if it exists
-                                      if (originalHandler) originalHandler.call(this, e);
-                                      
-                                      // Clear file uploads
-                                      window.clearFileUploads();
-                                    };
-                                  }
-                                  
-                                  // Also handle "Clear Tab" for the description tab
-                                  clearTabBtns.forEach(btn => {
-                                    if (btn.getAttribute('data-tab-id') === 'description') {
-                                      const originalHandler = btn.onclick;
-                                      btn.onclick = function(e) {
-                                        // Call the original handler if it exists
-                                        if (originalHandler) originalHandler.call(this, e);
-                                        
-                                        // Clear file uploads
-                                        window.clearFileUploads();
-                                      };
+                                    const clearFormBtn = document.querySelector('[data-clear-form]');
+                                    const clearTabBtns = document.querySelectorAll('.clear-tab-btn');
+                                    
+                                    if (clearFormBtn) {
+                                        const originalHandler = clearFormBtn.onclick;
+                                        clearFormBtn.onclick = function(e) {
+                                            // Call the original handler if it exists
+                                            if (originalHandler) originalHandler.call(this, e);
+                                            
+                                            // Clear file uploads
+                                            window.clearFileUploads();
+                                        };
                                     }
-                                  });
+                                    
+                                    // Also handle "Clear Tab" for the description tab
+                                    clearTabBtns.forEach(btn => {
+                                        if (btn.getAttribute('data-tab-id') === 'description') {
+                                            const originalHandler = btn.onclick;
+                                            btn.onclick = function(e) {
+                                                // Call the original handler if it exists
+                                                if (originalHandler) originalHandler.call(this, e);
+                                                
+                                                // Clear file uploads
+                                                window.clearFileUploads();
+                                            };
+                                        }
+                                    });
                                 });
                                 </script>
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <label>Dimension (cm²)</label>
-                                        <input type="text" class="form-control" name="dimension" placeholder="e.g. 23 x 24 or 23 cm²">
-                                            <div class="mt-2">
-                                                <small class="form-text text-muted">
-                                                    <i class="fas fa-info-circle mr-1"></i> Format examples: 23 x 24, 23 * 24, or just 24 (cm² will be added automatically for single numbers)
-
-                                                </small>
-                                            </div>
+                                
+                                <!-- Physical details section with consistent layout and spacing -->
+                                <div class="card mb-3">
+                                    <div class="card-header">
+                                        <h5 class="mb-0">Physical Details</h5>
                                     </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="prefix_pages">Prefix Pages</label>
-                                            <input type="text" class="form-control" id="prefix_pages" name="prefix_pages" placeholder="e.g., xii">
-                                            <div class="mt-2">
-                                                <small class="form-text text-muted">
-                                                    <i class="fas fa-info-circle mr-1"></i> Enter the number of prefatory pages in Roman numerals.
-                                                </small>
+                                    <div class="card-body">
+                                        <div class="row mb-3">
+                                            <div class="col-md-6">
+                                                <div class="form-group mb-0">
+                                                    <label for="dimension">Dimension</label>
+                                                    <input type="text" class="form-control" id="dimension" name="dimension">
+                                                    <small class="form-text text-muted">
+                                                        <i class="fas fa-info-circle mr-1"></i> Physical dimensions of the resource (include unit: cm, mm, inches)
+                                                    </small>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-group mb-0">
+                                                    <label for="pages">Total Pages</label>
+                                                    <input type="text" class="form-control" id="pages" name="pages">
+                                                    <small class="form-text text-muted">
+                                                        <i class="fas fa-info-circle mr-1"></i> Include prefix pages and main pages (e.g., "xiii 256p." or "xii, 345p.")
+                                                    </small>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="main_pages">Main Pages</label>
-                                            <input type="text" class="form-control" id="main_pages" name="main_pages" placeholder="e.g., 350a">
-                                                <small class="form-text text-muted">
-                                                    <i class="fas fa-info-circle mr-1"></i> Provide the total number of main pages in the book. (Format examples: 345p)
-                                                </small>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Supplementary Contents</label>
-                                            <select class="form-control" name="supplementary_content[]" multiple id="supplementarySelect" onchange="updateSupplementaryPreview()">
-                                                <option value="Appendix">Appendix</option>
-                                                <option value="Bibliography">Bibliography</option>
-                                                <option value="Glossary">Glossary</option>
-                                                <option value="Index">Index</option>
-                                                <option value="Illustrations">Illustrations</option>
-                                                <option value="Maps">Maps</option>
-                                                <option value="Tables">Tables</option>
-                                            </select>
-                                            <!-- Supplementary Content Preview -->
-                                            <div class="preview-container supplementary-preview">
-                                                <div id="supplementaryPreview" class="selected-preview mt-2"></div>
-                                                <div id="supplementaryCount" class="selection-count-badge supplementary-badge">0</div>
+                                        
+                                        <div class="row">
+                                            <div class="col-12">
+                                                <div class="form-group mb-0">
+                                                    <label for="supplementary_content">Supplementary Contents</label>
+                                                    <input type="text" class="form-control" id="supplementary_content" name="supplementary_content">
+                                                    <small class="form-text text-muted">
+                                                        <i class="fas fa-info-circle mr-1"></i> Appendix (app.), Bibliography (bibl.), Glossary (gloss.), Index (ind.), Illustrations (ill.), Maps, Tables (tbl.)
+                                                    </small>
+                                                </div>
                                             </div>
-                                            <small class="text-primary d-block mb-1">
-                                                <i class="fas fa-keyboard mr-1"></i> Hold <kbd>Ctrl</kbd> (Windows) or <kbd>⌘ Cmd</kbd> (Mac) to select multiple items
-                                            </small>
-                                            <small class="form-text text-muted">
-                                                <i class="fas fa-info-circle mr-1"></i> Select any additional content included in the book.
-                                            </small>
                                         </div>
-                                        
-                                        <script>
-                                        function updateSupplementaryPreview() {
-                                            const select = document.getElementById('supplementarySelect');
-                                            const preview = document.getElementById('supplementaryPreview');
-                                            const countBadge = document.getElementById('supplementaryCount');
-                                            
-                                            // Clear current preview
-                                            preview.innerHTML = '';
-                                            const selectedCount = select.selectedOptions.length;
-                                            
-                                            // Update count badge
-                                            countBadge.textContent = selectedCount;
-                                            countBadge.style.display = selectedCount > 0 ? 'flex' : 'none';
-                                            
-                                            if (selectedCount > 0) {
-                                                countBadge.classList.remove('pulse');
-                                                setTimeout(() => countBadge.classList.add('pulse'), 10);
-                                            }
-                                            
-                                            // Generate preview badges
-                                            Array.from(select.selectedOptions).forEach((option, index) => {
-                                                const badge = document.createElement('span');
-                                                badge.className = 'preview-badge supplementary-item';
-                                                badge.style.animationDelay = `${index * 0.05}s`;
-                                                
-                                                let displayName = option.text;
-                                                if (displayName.length > 30) {
-                                                    displayName = displayName.substring(0, 27) + '...';
-                                                    badge.title = option.text;
-                                                }
-                                                
-                                                badge.innerHTML = `${displayName} <i class="fas fa-times remove-icon" data-value="${option.value}"></i>`;
-                                                preview.appendChild(badge);
-                                            });
-                                            
-                                            // Add click handlers to remove icons
-                                            preview.querySelectorAll('.remove-icon').forEach(icon => {
-                                                icon.addEventListener('click', function(e) {
-                                                    e.stopPropagation();
-                                                    const value = this.getAttribute('data-value');
-                                                    const option = Array.from(select.options).find(opt => opt.value === value);
-                                                    if (option) option.selected = false;
-                                                    updateSupplementaryPreview();
-                                                });
-                                            });
-                                            
-                                            // Save selected values to form data if available
-                                            if (typeof saveFormData === 'function') {
-                                                saveFormData();
-                                            }
-                                        }
-                                        
-                                        // Initialize preview when DOM is loaded
-                                        document.addEventListener('DOMContentLoaded', function() {
-                                            // First check if we need to restore selections from saved form data
-                                            const savedData = localStorage.getItem('bookFormData');
-                                            if (savedData) {
-                                                try {
-                                                    const formData = JSON.parse(savedData);
-                                                    const supplementarySelect = document.getElementById('supplementarySelect');
-                                                    
-                                                    if (formData['supplementary_content[]'] && Array.isArray(formData['supplementary_content[]'])) {
-                                                        // Restore selected options
-                                                        Array.from(supplementarySelect.options).forEach(option => {
-                                                            option.selected = formData['supplementary_content[]'].includes(option.value);
-                                                        });
-                                                    }
-                                                } catch (e) {
-                                                    console.error('Error restoring supplementary content selections:', e);
-                                                }
-                                            }
-                                            
-                                            // Initialize supplementary content preview
-                                            updateSupplementaryPreview();
-                                            
-                                            // Hook into the form clear functionality
-                                            const clearFormBtn = document.querySelector('[data-clear-form]');
-                                            const clearTabBtns = document.querySelectorAll('.clear-tab-btn');
-                                            
-                                            if (clearFormBtn) {
-                                                const originalClickHandler = clearFormBtn.onclick;
-                                                clearFormBtn.onclick = function(e) {
-                                                    if (originalClickHandler) originalClickHandler.call(this, e);
-                                                    // Reset supplementary select and update preview
-                                                    const supplementarySelect = document.getElementById('supplementarySelect');
-                                                    Array.from(supplementarySelect.options).forEach(option => {
-                                                        option.selected = false;
-                                                    });
-                                                    updateSupplementaryPreview();
-                                                };
-                                            }
-                                            
-                                            // Handle clearing when "Clear Tab" is clicked for the description tab
-                                            clearTabBtns.forEach(btn => {
-                                                if (btn.getAttribute('data-tab-id') === 'description') {
-                                                    btn.addEventListener('click', function() {
-                                                        // Reset supplementary select and update preview
-                                                        const supplementarySelect = document.getElementById('supplementarySelect');
-                                                        Array.from(supplementarySelect.options).forEach(option => {
-                                                            option.selected = false;
-                                                        });
-                                                        updateSupplementaryPreview();
-                                                    });
-                                                }
-                                            });
-                                        });
-                                        </script>
-                                        
-                                        <style>
-                                        .supplementary-preview .preview-badge {
-                                            background: linear-gradient(135deg, #4169E1 0%, #0000CD 100%);
-                                        }
-                                        
-                                        .supplementary-badge {
-                                            background-color: #4169E1 !important;
-                                        }
-                                        </style>
                                     </div>
                                 </div>
                             </div>
@@ -1699,58 +1544,6 @@ $accession_error = '';
                                     }
                                 }
                                 </script>
-                                <!-- System Info -->
-                                <div class="card">
-                                    <div class="card-header">
-                                        <h5 class="mb-0">System Information</h5>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <div class="form-group">
-                                                    <label for="entered_by">Entered By (Currently Logged In)</label>
-                                                    <input type="text" class="form-control" id="entered_by" name="entered_by"
-                                                        value="<?php echo ($_SESSION['admin_firstname'] ?? '') . ' ' . ($_SESSION['admin_lastname'] ?? '') . ' (' . ($_SESSION['admin_employee_id'] ?? '') . ' - ' . ($_SESSION['role'] ?? '') . ')'; ?>" readonly>
-                                                    <small class="form-text text-muted">
-                                                        <i class="fas fa-user mr-1"></i> Staff member who created this record
-                                                    </small>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <div class="form-group">
-                                                    <label for="date_added">Date Added</label>
-                                                    <input type="text" class="form-control" id="date_added" name="date_added"
-                                                        value="<?php echo date('Y-m-d H:i:s'); ?>" readonly>
-                                                    <small class="form-text text-muted">
-                                                        <i class="fas fa-calendar mr-1"></i> Date the book was added to the system
-                                                    </small>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <div class="form-group">
-                                                <label for="status">Status</label>
-                                                <input type="text" class="form-control" id="status" name="status"
-                                                    value="Available" readonly>
-                                                <small class="form-text text-muted">
-                                                    <i class="fas fa-info-circle mr-1"></i> Current availability status of the book
-                                                </small>
-                                            </div>
-                                        </div>
-                                            <div class="col-md-6">
-                                                <div class="form-group">
-                                                    <label for="last_update">Last Update</label>
-                                                    <input type="text" class="form-control" id="last_update" name="last_update"
-                                                        value="<?php echo date('Y-m-d H:i:s'); ?>" readonly>
-                                                    <small class="form-text text-muted">
-                                                        <i class="fas fa-clock mr-1"></i> Timestamp of the most recent modification
-                                                    </small>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     </div>

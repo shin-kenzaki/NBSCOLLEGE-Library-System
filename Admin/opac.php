@@ -702,7 +702,7 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                                     <div class="col-md-3">
                                         <!-- Display Front Image -->
                                         <?php if (!empty($book['front_image'])): ?>
-                                            <img src="<?php echo htmlspecialchars('../' . $book['front_image']); ?>" alt="Front Cover" class="img-fluid mb-3 rounded shadow-sm">
+                                            <img src="<?php echo htmlspecialchars($book['front_image']); ?>" alt="Front Cover" class="img-fluid mb-3 rounded shadow-sm">
                                         <?php else: ?>
                                             <div class="text-center p-4 bg-light rounded mb-3">
                                                 <i class="fas fa-book fa-4x text-secondary"></i>
@@ -712,7 +712,7 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
 
                                         <!-- Display Back Image -->
                                         <?php if (!empty($book['back_image'])): ?>
-                                            <img src="<?php echo htmlspecialchars('../' . $book['back_image']); ?>" alt="Back Cover" class="img-fluid rounded shadow-sm">
+                                            <img src="<?php echo htmlspecialchars($book['back_image']); ?>" alt="Back Cover" class="img-fluid rounded shadow-sm">
                                         <?php else: ?>
                                             <div class="text-center p-4 bg-light rounded mb-3">
                                                 <i class="fas fa-book fa-4x text-secondary"></i>
@@ -793,7 +793,7 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                                             <?php
                                             if (!empty($publications)) {
                                                 $pub = $publications[0];
-                                                echo htmlspecialchars($pub['place'] . ': ' . $pub['publisher'] . ', ' . $pub['publish_date']);
+                                                echo htmlspecialchars($pub['place'] . ' : ' . $pub['publisher'] . ', ' . $pub['publish_date']);
                                             } else {
                                                 echo 'Information not available';
                                             }
@@ -1455,86 +1455,358 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
 
                 <!-- ISBD View Tab -->
                 <div class="tab-pane fade" id="isbd" role="tabpanel">
-                    <div class="isbd-details p-4">
+    <div class="isbd-details p-4">
+    <?php if (isset($book)): ?>
+        <div class="isbd-record">
+            <?php
+            // Get dimensions for proper formatting
+            $dimensions = parseDimension($book['dimension']);
+            $height = !empty($dimensions['height']) ? $dimensions['height'] : '';
+            $width = !empty($dimensions['width']) ? $dimensions['width'] : '';
+            
+            // Format author name for ISBD
+            $authorFormatted = '';
+            if (!empty($primaryAuthor)) {
+                $authorFormatted = $primaryAuthor;
+            }
+            
+            // Prepare statement of responsibility
+            $responsibilityStatement = [];
+            if (!empty($contributorsByRole['Author'])) {
+                foreach ($contributorsByRole['Author'] as $author) {
+                    $responsibilityStatement[] = $author['firstname'] . ' ' . $author['middle_init'] . ' ' . $author['lastname'];
+                }
+            }
+            
+            // Get editors for statement of responsibility
+            if (!empty($contributorsByRole['Editor'])) {
+                $editorNames = [];
+                foreach ($contributorsByRole['Editor'] as $editor) {
+                    $editorNames[] = $editor['firstname'] . ' ' . $editor['middle_init'] . ' ' . $editor['lastname'];
+                }
+                if (!empty($editorNames)) {
+                    $responsibilityStatement[] = "edited by " . implode(', ', $editorNames);
+                }
+            }
+            
+            // Get translators for statement of responsibility
+            if (!empty($contributorsByRole['Translator'])) {
+                $translatorNames = [];
+                foreach ($contributorsByRole['Translator'] as $translator) {
+                    $translatorNames[] = $translator['firstname'] . ' ' . $translator['middle_init'] . ' ' . $translator['lastname'];
+                }
+                if (!empty($translatorNames)) {
+                    $responsibilityStatement[] = "translated by " . implode(', ', $translatorNames);
+                }
+            }
 
-                    <?php if (isset($book)): ?>
-                        <div class="isbd-record">
-                            <?php
-                            // Title Line
-                            echo '<div class="isbd-area">';
-                            echo htmlspecialchars($book['title']);
-                            echo '</div>';
+            // Get publication info
+            $pubPlace = '';
+            $pubName = '';
+            $pubDate = '';
+            if (!empty($publications)) {
+                $pub = $publications[0];
+                $pubPlace = $pub['place'] ?? '';
+                $pubName = $pub['publisher'] ?? '';
+                $pubDate = $pub['publish_date'] ?? '';
+            }
 
-                            // Author Line (surname first)
-                            if (!empty($authorsList)) {
-                                echo '<div class="isbd-area">';
-                                echo htmlspecialchars($authorsList[0]);
-                                echo '</div>';
-                            }
+            // AREA 1: Title and Statement of Responsibility Area
+            echo '<div class="isbd-area isbd-title-area">';
+            echo '<span class="isbd-main-entry">' . htmlspecialchars($book['title']) . '</span>';
+            
+            // Add other title info if available
+            if (!empty($book['preferred_title'])) {
+                echo ' <span class="isbd-punctuation">:</span> <span class="isbd-other-title">' . htmlspecialchars($book['preferred_title']) . '</span>';
+            }
+            
+            // Add parallel title if available
+            if (!empty($book['parallel_title'])) {
+                echo ' <span class="isbd-punctuation">=</span> <span class="isbd-parallel-title">' . htmlspecialchars($book['parallel_title']) . '</span>';
+            }
+            
+            // Add statement of responsibility
+            if (!empty($responsibilityStatement)) {
+                echo ' <span class="isbd-punctuation">/</span> <span class="isbd-responsibility">' . htmlspecialchars(implode(' ; ', $responsibilityStatement)) . '</span>';
+            }
+            echo '</div>';
+            
+            // AREA 2: Edition Area
+            if (!empty($book['edition'])) {
+                echo '<div class="isbd-area isbd-edition-area">';
+                echo '<span class="isbd-punctuation">. — </span>';
+                echo '<span class="isbd-edition">' . htmlspecialchars($book['edition']) . ' ed.</span>';
+                echo '</div>';
+            }
+            
+            // AREA 3: Material Specific Details Area (rarely used for books)
+            // Left empty for books, used for cartographic materials, music, etc.
+            
+            // AREA 4: Publication, Distribution, etc. Area
+            echo '<div class="isbd-area isbd-publication-area">';
+            echo '<span class="isbd-punctuation">. — </span>';
+            
+            // Place of publication
+            if (!empty($pubPlace)) {
+                echo '<span class="isbd-pub-place">' . htmlspecialchars($pubPlace) . '</span>';
+            } else {
+                echo '<span class="isbd-pub-place">[Place of publication not identified]</span>';
+            }
+            
+            // Publisher name
+            if (!empty($pubName)) {
+                echo ' <span class="isbd-punctuation">:</span> <span class="isbd-publisher">' . htmlspecialchars($pubName) . '</span>';
+            } else {
+                echo ' <span class="isbd-punctuation">:</span> <span class="isbd-publisher">[publisher not identified]</span>';
+            }
+            
+            // Date of publication
+            if (!empty($pubDate)) {
+                echo '<span class="isbd-punctuation">, </span><span class="isbd-pub-date">' . htmlspecialchars($pubDate) . '</span>';
+            } else {
+                echo '<span class="isbd-punctuation">, </span><span class="isbd-pub-date">[date of publication not identified]</span>';
+            }
+            echo '</div>';
+            
+            // AREA 5: Physical Description Area
+            echo '<div class="isbd-area isbd-physical-area">';
+            echo '<span class="isbd-punctuation">. — </span>';
+            
+            // Extent (pagination)
+            if (!empty($book['total_pages'])) {
+                echo '<span class="isbd-extent">' . htmlspecialchars($book['total_pages']) . '</span>';
+            } else {
+                echo '<span class="isbd-extent">[extent not given]</span>';
+            }
+            
+            // Illustrations statement
+            if (!empty($book['supplementary_contents'])) {
+                echo ' <span class="isbd-punctuation">:</span> <span class="isbd-illustrations">' . htmlspecialchars($book['supplementary_contents']) . '</span>';
+            }
+            
+            // Dimensions
+            if (!empty($height)) {
+                echo ' <span class="isbd-punctuation">;</span> <span class="isbd-dimensions">' . htmlspecialchars($height);
+                if (!empty($width)) {
+                    echo ' × ' . htmlspecialchars($width);
+                }
+                echo ' cm</span>';
+            }
+            
+            // Accompanying material (if any)
+            if (!empty($book['supplementary_material'])) {
+                echo ' <span class="isbd-punctuation">+</span> <span class="isbd-accompanying">' . htmlspecialchars($book['supplementary_material']) . '</span>';
+            }
+            echo '</div>';
+            
+            // AREA 6: Series Area
+            if (!empty($book['series']) || !empty($book['volume']) || !empty($book['part'])) {
+                echo '<div class="isbd-area isbd-series-area">';
+                echo '<span class="isbd-punctuation">. — </span>';
+                echo '<span class="isbd-punctuation">(</span>';
+                
+                if (!empty($book['series'])) {
+                    echo '<span class="isbd-series-title">' . htmlspecialchars($book['series']) . '</span>';
+                    
+                    // Volume/numbering within series
+                    if (!empty($book['volume'])) {
+                        echo ' <span class="isbd-punctuation">;</span> <span class="isbd-series-numbering">v. ' . 
+                            htmlspecialchars($book['volume']) . '</span>';
+                    }
+                    
+                    if (!empty($book['part'])) {
+                        echo '<span class="isbd-punctuation">, </span><span class="isbd-series-part">pt. ' . htmlspecialchars($book['part']) . '</span>';
+                    }
+                }
+                
+                echo '<span class="isbd-punctuation">)</span>';
+                echo '</div>';
+            }
+            
+            // AREA 7: Notes Area
+            $notes = [];
+            
+            if (!empty($book['summary'])) {
+                $notes[] = '<span class="isbd-note isbd-summary-note">Summary: ' . htmlspecialchars($book['summary']) . '</span>';
+            }
+            
+            if (!empty($book['contents'])) {
+                $notes[] = '<span class="isbd-note isbd-contents-note">Contents: ' . htmlspecialchars($book['contents']) . '</span>';
+            }
+            
+            if (!empty($book['subject_detail'])) {
+                $subjects = explode(';', $book['subject_detail']);
+                $formattedSubjects = [];
+                foreach ($subjects as $subject) {
+                    $formattedSubjects[] = trim($subject);
+                }
+                if (!empty($formattedSubjects)) {
+                    $notes[] = '<span class="isbd-note isbd-subject-note">Subjects: ' . htmlspecialchars(implode(' -- ', $formattedSubjects)) . '</span>';
+                }
+            }
+            
+            if (!empty($book['language']) && strtolower($book['language']) != 'english') {
+                $notes[] = '<span class="isbd-note isbd-language-note">Text in ' . htmlspecialchars($book['language']) . '</span>';
+            }
+            
+            if (!empty($book['URL'])) {
+                $notes[] = '<span class="isbd-note isbd-url-note">Available online at: ' . htmlspecialchars($book['URL']) . '</span>';
+            }
+            
+            if (!empty($notes)) {
+                foreach ($notes as $index => $note) {
+                    echo '<div class="isbd-area isbd-notes-area">';
+                    echo '<span class="isbd-punctuation">. — </span>';
+                    echo $note;
+                    echo '</div>';
+                }
+            }
+            
+            // AREA 8: Resource Identifier Area (ISBN)
+            if (!empty($book['ISBN'])) {
+                echo '<div class="isbd-area isbd-identifier-area">';
+                echo '<span class="isbd-punctuation">. — </span>';
+                echo '<span class="isbd-isbn">ISBN ' . htmlspecialchars($book['ISBN']) . '</span>';
+                echo '</div>';
+            }
+            
+            // Additional library information (not part of ISBD but useful)
+            if (!empty($book['call_number'])) {
+                echo '<div class="isbd-area isbd-call-number">';
+                echo '<span class="isbd-punctuation">. — </span>';
+                echo '<span class="isbd-call-number-label">Call number: </span>';
+                echo '<span class="isbd-call-number-value">' . htmlspecialchars($book['call_number']) . '</span>';
+                echo '</div>';
+            }
+            ?>
+        </div>
 
-                            // Title/Author/Co-Authors/Editors-Place/Publisher/Year Line
-                            echo '<div class="isbd-area">';
-                            // Title part
-                            echo htmlspecialchars($book['title']) . ' / ';
-
-                            // Contributors part
-                            $allContributors = array();
-                            if (!empty($authorsList)) $allContributors[] = implode(', ', $authorsList);
-                            if (!empty($coAuthorsList)) $allContributors[] = implode(', ', $coAuthorsList);
-                            if (!empty($editorsList)) $allContributors[] = implode(', ', $editorsList);
-                            echo htmlspecialchars(implode(', and ', $allContributors));
-
-                            // Publication information
-                            if (!empty($publications)) {
-                                $pub = $publications[0];
-                                echo ' - ' . htmlspecialchars($pub['place']) . ' ';
-                                echo htmlspecialchars($pub['publisher']) . ', ';
-                                echo htmlspecialchars($pub['publish_date']);
-                            }
-
-                            // Physical description - removed " pages" and " cm"
-                            echo ' - ';
-                            if (!empty($book['preliminaries'])) {
-                                echo htmlspecialchars($book['preliminaries']) . ', ';
-                            }
-                            echo htmlspecialchars($book['total_pages']) . ' ' . htmlspecialchars($book['supplementary_contents']);
-                            if (!empty($book['illustrations'])) {
-                                echo ' : illustrations';
-                            }
-                            echo ' ; ' . htmlspecialchars($book['dimension']);
-                            echo '</div>';
-
-                            // ISBN Line
-                            echo '<div class="isbd-area">';
-                            echo 'ISBN: ' . htmlspecialchars($book['ISBN']);
-                            echo '</div>';
-
-                            // Subject Category and Details
-                            if (!empty($book['subject_category']) || !empty($book['subject_detail'])) {
-                                echo '<div class="isbd-area">';
-                                if (!empty($book['subject_category'])) {
-                                    echo 'Subject Category: ' . htmlspecialchars($book['subject_category']) . '<br>';
-                                }
-                                if (!empty($book['subject_detail'])) {
-                                    $subjects = explode('|', $book['subject_detail']);
-                                    foreach ($subjects as $subject) {
-                                        echo htmlspecialchars($subject) . '<br>';
-                                    }
-                                }
-                                echo '</div>';
-                            }
-
-                            // LC Classification Number
-                            echo '<div class="isbd-area">';
-                            echo 'LC Class No.: ' . htmlspecialchars($book['call_number']);
-                            echo '</div>';
-                            ?>
-                        </div>
-                        <?php else: ?>
-                            <div class="alert alert-danger">Book not found.</div>
-                        <?php endif; ?>
-                    </div>
-                </div>
+        <style>
+            /* Enhanced styling for ISBD view */
+            .isbd-record {
+                font-family: "Times New Roman", Times, serif;
+                font-size: 16px;
+                line-height: 1.8;
+                color: #333;
+                max-width: 100%;
+                padding: 2em;
+                background: #fff;
+                border-radius: 8px;
+                box-shadow: 0 2px 6px rgba(0,0,0,.15);
+                margin-bottom: 30px;
+            }
+            
+            .isbd-area {
+                margin-bottom: 1em;
+                padding-left: 2em;
+                text-indent: -2em;
+                position: relative;
+            }
+            
+            .isbd-punctuation {
+                color: #666;
+                font-weight: 500;
+            }
+            
+            .isbd-main-entry {
+                font-weight: bold;
+            }
+            
+            .isbd-other-title,
+            .isbd-parallel-title {
+                font-style: italic;
+            }
+            
+            .isbd-responsibility {
+                font-style: normal;
+            }
+            
+            .isbd-edition {
+                font-style: normal;
+                font-weight: 500;
+            }
+            
+            .isbd-series-title {
+                font-style: italic;
+            }
+            
+            .isbd-note {
+                font-size: 0.95em;
+                display: block;
+            }
+            
+            .isbd-isbn {
+                font-weight: 500;
+            }
+            
+            .isbd-call-number-label {
+                font-weight: bold;
+            }
+            
+            .isbd-call-number-value {
+                font-family: "Courier New", monospace;
+            }
+            
+            .isbd-area:hover {
+                background-color: rgba(0,0,0,0.02);
+            }
+            
+            .isbd-area:hover .isbd-punctuation {
+                color: #333;
+            }
+            
+            /* Area labels (shown on hover) */
+            .isbd-title-area::before,
+            .isbd-edition-area::before,
+            .isbd-publication-area::before,
+            .isbd-physical-area::before,
+            .isbd-series-area::before,
+            .isbd-notes-area::before,
+            .isbd-identifier-area::before {
+                content: attr(data-area);
+                position: absolute;
+                left: -3em;
+                top: 0;
+                font-size: 0.8em;
+                color: #999;
+                opacity: 0;
+                transition: opacity 0.2s;
+            }
+            
+            .isbd-title-area:hover::before,
+            .isbd-edition-area:hover::before,
+            .isbd-publication-area:hover::before,
+            .isbd-physical-area:hover::before,
+            .isbd-series-area:hover::before,
+            .isbd-notes-area:hover::before,
+            .isbd-identifier-area:hover::before {
+                opacity: 1;
+            }
+            
+            /* Add ISBD area labels */
+            .isbd-title-area { data-area: "Area 1"; }
+            .isbd-edition-area { data-area: "Area 2"; }
+            .isbd-publication-area { data-area: "Area 4"; }
+            .isbd-physical-area { data-area: "Area 5"; }
+            .isbd-series-area { data-area: "Area 6"; }
+            .isbd-notes-area { data-area: "Area 7"; }
+            .isbd-identifier-area { data-area: "Area 8"; }
+            
+            @media print {
+                .isbd-record {
+                    box-shadow: none;
+                    padding: 0;
+                }
+                .isbd-area::before {
+                    display: none;
+                }
+            }
+        </style>
+        <?php else: ?>
+            <div class="alert alert-danger">Book not found.</div>
+        <?php endif; ?>
+    </div>
+</div>
 
             </div>
         </div>

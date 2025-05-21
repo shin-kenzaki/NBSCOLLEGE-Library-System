@@ -1,2324 +1,1247 @@
 <?php
 session_start();
 
-// Check if the user is logged in
+// Check if the user is logged in and has the appropriate admin role
 if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Librarian', 'Assistant', 'Encoder'])) {
     header("Location: index.php");
     exit();
 }
 
 include '../db.php';
-include '../admin/inc/header.php';
 
-// Add SweetAlert2 CDN in the header section
-echo '<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>';
-
-// Fetch admin names and roles for the dropdown
-$admins_query = "SELECT id, CONCAT(firstname, ' ', lastname) AS name, role FROM admins";
-$admins_result = mysqli_query($conn, $admins_query);
-$admins = [];
-while ($row = mysqli_fetch_assoc($admins_result)) {
-    $admins[] = $row;
-}
-
-// Fetch writers for the dropdown
-$writers_query = "SELECT id, CONCAT(firstname, ' ', middle_init, ' ', lastname) AS name FROM writers";
-$writers_result = mysqli_query($conn, $writers_query);
-$writers = [];
-while ($row = mysqli_fetch_assoc($writers_result)) {
-    $writers[] = $row;
-}
-
-// Fetch publishers for the dropdown
-$publishers_query = "SELECT id, publisher, place FROM publishers";
-$publishers_result = mysqli_query($conn, $publishers_query);
-$publishers = [];
-while ($row = mysqli_fetch_assoc($publishers_result)) {
-    $publishers[] = $row;
-}
-
-// Fetch corporations for the dropdown
-$corporates_query = "SELECT id, name, type FROM corporates ORDER BY name";
-$corporates_result = mysqli_query($conn, $corporates_query);
-$corporates = [];
-while ($row = mysqli_fetch_assoc($corporates_result)) {
-    $corporates[] = $row;
-}
-
-// Only keep the main subject options array
-$subject_options = array(
-    "Topical",
-    "Personal",
-    "Corporate",
-    "Geographical"
-);
-
-// Process form submission
-if (isset($_POST['submit'])) {
-    try {
-        $conn->begin_transaction();
-
-        // Validate accession numbers first
-        $bookIds = $_POST['book_ids'];
-        $accessions = $_POST['accession'];
-        $hasError = false;
-        $errorMessage = '';
-
-        // Check each accession number
-        foreach ($accessions as $index => $accession) {
-            $bookId = $bookIds[$index];
-
-            // Check if accession exists in other books
-            $check_query = "SELECT id FROM books WHERE accession = ? AND id != ?";
-            $stmt = $conn->prepare($check_query);
-            $stmt->bind_param("ii", $accession, $bookId);
-            $stmt->execute();
-            $result = $stmt->get_result();
-
-            if ($result->num_rows > 0) {
-                $hasError = true;
-                $errorMessage = "Accession number $accession is already in use by another book.";
-                break;
-            }
-        }
-
-        if ($hasError) {
-            throw new Exception($errorMessage);
-        }
-
-        // Handle image removal requests
-        if (isset($_POST['remove_front_image']) && $_POST['remove_front_image'] == 1) {
-            // Get current front image paths before removal
-            $get_images_query = "SELECT id, front_image FROM books WHERE id IN (" . implode(',', $bookIds) . ") AND front_image IS NOT NULL";
-            $image_result = $conn->query($get_images_query);
-            while ($row = $image_result->fetch_assoc()) {
-                if (!empty($row['front_image'])) {
-                    // Debug info
-                    error_log("Attempting to delete front image: " . $row['front_image'] . " for book ID " . $row['id']);
-                    
-                    $deleted = deleteImageFile($row['front_image']);
-                    if (!$deleted) {
-                        error_log("Failed to delete front image: " . $row['front_image']);
-                    }
-                }
-            }
-            
-            // Update all books in the batch to remove front image
-            $remove_front_image = "UPDATE books SET front_image = NULL WHERE id IN (" . implode(',', $bookIds) . ")";
-            $conn->query($remove_front_image);
-        }
-        
-        if (isset($_POST['remove_back_image']) && $_POST['remove_back_image'] == 1) {
-            // Get current back image paths before removal
-            $get_images_query = "SELECT id, back_image FROM books WHERE id IN (" . implode(',', $bookIds) . ") AND back_image IS NOT NULL";
-            $image_result = $conn->query($get_images_query);
-            while ($row = $image_result->fetch_assoc()) {
-                if (!empty($row['back_image'])) {
-                    // Debug info
-                    error_log("Attempting to delete back image: " . $row['back_image'] . " for book ID " . $row['id']);
-                    
-                    $deleted = deleteImageFile($row['back_image']);
-                    if (!$deleted) {
-                        error_log("Failed to delete back image: " . $row['back_image']);
-                    }
-                }
-            }
-            
-            // Update all books in the batch to remove back image
-            $remove_back_image = "UPDATE books SET back_image = NULL WHERE id IN (" . implode(',', $bookIds) . ")";
-            $conn->query($remove_back_image);
-        }
-
-        // Process front image upload if provided
-        if (!empty($_FILES['front_image']['name'])) {
-            // Get current front image paths before replacement
-            $get_images_query = "SELECT id, front_image FROM books WHERE id IN (" . implode(',', $bookIds) . ") AND front_image IS NOT NULL";
-            $image_result = $conn->query($get_images_query);
-            $old_images = [];
-            while ($row = $image_result->fetch_assoc()) {
-                if (!empty($row['front_image'])) {
-                    $old_images[] = [
-                        'id' => $row['id'],
-                        'path' => $row['front_image']
-                    ];
-                }
-            }
-            
-            $frontImageFileName = processImageUpload('front_image', $bookIds[0]);
-            
-            if ($frontImageFileName) {
-                // Update all books in the batch with the same front image
-                $update_front_image = "UPDATE books SET front_image = ? WHERE id IN (" . implode(',', $bookIds) . ")";
-                $stmt = $conn->prepare($update_front_image);
-                $stmt->bind_param("s", $frontImageFileName);
-                $stmt->execute();
-                
-                // Delete old images after successful update
-                foreach ($old_images as $old_image) {
-                    // Debug info
-                    error_log("Attempting to delete old front image: " . $old_image['path'] . " for book ID " . $old_image['id']);
-                    
-                    $deleted = deleteImageFile($old_image['path']);
-                    if (!$deleted) {
-                        error_log("Failed to delete old front image: " . $old_image['path']);
-                    }
-                }
-            }
-        }
-        
-        // Process back image upload if provided
-        if (!empty($_FILES['back_image']['name'])) {
-            // Get current back image paths before replacement
-            $get_images_query = "SELECT id, back_image FROM books WHERE id IN (" . implode(',', $bookIds) . ") AND back_image IS NOT NULL";
-            $image_result = $conn->query($get_images_query);
-            $old_images = [];
-            while ($row = $image_result->fetch_assoc()) {
-                if (!empty($row['back_image'])) {
-                    $old_images[] = [
-                        'id' => $row['id'],
-                        'path' => $row['back_image']
-                    ];
-                }
-            }
-            
-            $backImageFileName = processImageUpload('back_image', $bookIds[0]);
-            
-            if ($backImageFileName) {
-                // Update all books in the batch with the same back image
-                $update_back_image = "UPDATE books SET back_image = ? WHERE id IN (" . implode(',', $bookIds) . ")";
-                $stmt = $conn->prepare($update_back_image);
-                $stmt->bind_param("s", $backImageFileName);
-                $stmt->execute();
-                
-                // Delete old images after successful update
-                foreach ($old_images as $old_image) {
-                    // Debug info
-                    error_log("Attempting to delete old back image: " . $old_image['path'] . " for book ID " . $old_image['id']);
-                    
-                    $deleted = deleteImageFile($old_image['path']);
-                    if (!$deleted) {
-                        error_log("Failed to delete old back image: " . $old_image['path']);
-                    }
-                }
-            }
-        }
-
-        // Update general book information (applied to all books in the batch)
-        $title = $_POST['title'] ?? '';
-        $preferred_title = $_POST['preferred_title'] ?? '';
-        $parallel_title = $_POST['parallel_title'] ?? '';
-        $subject_category = $_POST['subject_category'] ?? '';
-        $program = $_POST['program'] ?? '';
-        $subject_detail = $_POST['subject_detail'] ?? '';
-        $summary = $_POST['summary'] ?? '';
-        $contents = $_POST['contents'] ?? '';
-        $dimension = $_POST['dimension'] ?? '';
-        $total_pages = $_POST['total_pages'] ?? '';
-        $content_type = $_POST['content_type'] ?? '';
-        $media_type = $_POST['media_type'] ?? '';
-        $carrier_type = $_POST['carrier_type'] ?? '';
-        $language = $_POST['language'] ?? '';
-        $url = $_POST['URL'] ?? '';
-        $isbn = $_POST['ISBN'] ?? '';
-        
-        // Process supplementary contents (selected multiple options)
-        $supplementary_contents = '';
-        if (isset($_POST['supplementary_contents']) && is_array($_POST['supplementary_contents'])) {
-            $supplementary_contents = "includes " . implode(', ', $_POST['supplementary_contents']);
-        }
-        
-        // Update general information for all books in the batch
-        $update_general = "UPDATE books SET 
-            title = ?,
-            preferred_title = ?,
-            parallel_title = ?,
-            subject_category = ?,
-            program = ?, 
-            subject_detail = ?,
-            summary = ?,
-            contents = ?,
-            dimension = ?,
-            total_pages = ?,
-            supplementary_contents = ?,
-            content_type = ?,
-            media_type = ?,
-            carrier_type = ?,
-            language = ?,
-            URL = ?,
-            ISBN = ?,
-            updated_by = ?,
-            last_update = CURRENT_DATE
-            WHERE id IN (" . implode(',', $bookIds) . ")";
-        
-        $stmt = $conn->prepare($update_general);
-        $admin_id = $_SESSION['admin_id']; // Get current admin ID from session
-        $stmt->bind_param("sssssssssssssssssi", 
-            $title, $preferred_title, $parallel_title, 
-            $subject_category, $program, $subject_detail,
-            $summary, $contents, $dimension, $total_pages,
-            $supplementary_contents, $content_type, $media_type,
-            $carrier_type, $language, $url, $isbn, $admin_id
-        );
-        $stmt->execute();
-        
-        // Update individual copy information
-        $copy_numbers = $_POST['copy_number'];
-        $individual_series = $_POST['individual_series'];
-        $individual_volumes = $_POST['individual_volume'];
-        $individual_parts = $_POST['individual_part'];
-        $individual_editions = $_POST['individual_edition'];
-        $individual_call_numbers = $_POST['individual_call_number'];
-        $statuses = $_POST['status'];
-        $shelf_locations = $_POST['shelf_location'];
-        
-        // Prepare statement for updating individual books
-        $update_individual = "UPDATE books SET 
-            accession = ?,
-            copy_number = ?,
-            series = ?,
-            volume = ?,
-            part = ?,
-            edition = ?,
-            call_number = ?,
-            status = ?,
-            shelf_location = ?
-            WHERE id = ?";
-        
-        $stmt = $conn->prepare($update_individual);
-        
-        for ($i = 0; $i < count($bookIds); $i++) {
-            $stmt->bind_param("sisssssssi", 
-                $accessions[$i],
-                $copy_numbers[$i],
-                $individual_series[$i],
-                $individual_volumes[$i],
-                $individual_parts[$i],
-                $individual_editions[$i],
-                $individual_call_numbers[$i],
-                $statuses[$i],
-                $shelf_locations[$i],
-                $bookIds[$i]
-            );
-            $stmt->execute();
-        }
-
-        // Update publication information
-        $publisher_id = $_POST['publisher_id'] ?? null;
-        $publish_date = $_POST['publish_date'] ?? null;
-        
-        if (!empty($publisher_id)) {
-            // Check if publication record exists for each book
-            foreach ($bookIds as $bookId) {
-                $check_pub_query = "SELECT id FROM publications WHERE book_id = ?";
-                $stmt = $conn->prepare($check_pub_query);
-                $stmt->bind_param("i", $bookId);
-                $stmt->execute();
-                $result = $stmt->get_result();
-                
-                if ($result->num_rows > 0) {
-                    // Update existing publication
-                    $update_pub = "UPDATE publications SET publisher_id = ?, publish_date = ? WHERE book_id = ?";
-                    $stmt = $conn->prepare($update_pub);
-                    $stmt->bind_param("isi", $publisher_id, $publish_date, $bookId);
-                    $stmt->execute();
-                } else {
-                    // Insert new publication record
-                    $insert_pub = "INSERT INTO publications (book_id, publisher_id, publish_date) VALUES (?, ?, ?)";
-                    $stmt = $conn->prepare($insert_pub);
-                    $stmt->bind_param("iis", $bookId, $publisher_id, $publish_date);
-                    $stmt->execute();
-                }
-            }
-        }
-
-        // Update contributors
-        foreach ($bookIds as $bookId) {
-            // Remove existing contributors
-            $delete_query = "DELETE FROM contributors WHERE book_id = ?";
-            $stmt = $conn->prepare($delete_query);
-            $stmt->bind_param("i", $bookId);
-            $stmt->execute();
-
-            // Remove existing corporate contributors
-            $delete_corp_query = "DELETE FROM corporate_contributors WHERE book_id = ?";
-            $stmt = $conn->prepare($delete_corp_query);
-            $stmt->bind_param("i", $bookId);
-            $stmt->execute();
-
-            // Add individual contributors
-            if (!empty($_POST['contributor_ids']) && !empty($_POST['contributor_roles'])) {
-                $insert_contributor = "INSERT INTO contributors (book_id, writer_id, role) VALUES (?, ?, ?)";
-                $stmt = $conn->prepare($insert_contributor);
-
-                for ($i = 0; $i < count($_POST['contributor_ids']); $i++) {
-                    if (!empty($_POST['contributor_ids'][$i]) && !empty($_POST['contributor_roles'][$i])) {
-                        $contributorId = $_POST['contributor_ids'][$i];
-                        $role = $_POST['contributor_roles'][$i];
-                        $stmt->bind_param("iis", $bookId, $contributorId, $role);
-                        $stmt->execute();
-                    }
-                }
-            }
-
-            // Add corporate contributors
-            if (!empty($_POST['corporate_ids']) && !empty($_POST['corporate_roles'])) {
-                $insert_corp_contributor = "INSERT INTO corporate_contributors (book_id, corporate_id, role) VALUES (?, ?, ?)";
-                $stmt = $conn->prepare($insert_corp_contributor);
-
-                for ($i = 0; $i < count($_POST['corporate_ids']); $i++) {
-                    if (!empty($_POST['corporate_ids'][$i]) && !empty($_POST['corporate_roles'][$i])) {
-                        $corporateId = $_POST['corporate_ids'][$i];
-                        $role = $_POST['corporate_roles'][$i];
-                        $stmt->bind_param("iis", $bookId, $corporateId, $role);
-                        $stmt->execute();
-                    }
-                }
-            }
-        }
-
-        $conn->commit();
-        echo "<script>
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Success!',
-                    text: 'Books updated successfully!',
-                    confirmButtonColor: '#4e73df',
-                    confirmButtonText: 'View Books'
-                }).then((result) => {
-                    window.location.href = 'book_list.php';
-                });
-              </script>";
-        exit();
-    } catch (Exception $e) {
-        $conn->rollback();
-        echo "<script>
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Error updating books: " . $e->getMessage() . "',
-                    confirmButtonColor: '#d33'
-                });
-              </script>";
-    }
-}
-
-// Function to delete image file from filesystem - update this function with better error handling and logging
-function deleteImageFile($imagePath) {
-    if (!empty($imagePath)) {
-        $fullPath = "../" . $imagePath;
-        if (file_exists($fullPath) && is_file($fullPath)) {
-            if (unlink($fullPath)) {
-                // Log success if needed
-                return true;
-            } else {
-                // Handle deletion failure
-                error_log("Failed to delete image file: " . $fullPath);
-                return false;
-            }
-        } else {
-            // File doesn't exist
-            error_log("File doesn't exist or is not a file: " . $fullPath);
-            return false;
-        }
-    }
-    return false;
-}
-
-// Function to process image upload
-function processImageUpload($fieldName, $bookId) {
-    $targetDir = "../Images/book-image/";
-    
-    // Create directory if it doesn't exist
-    if (!file_exists($targetDir)) {
-        mkdir($targetDir, 0777, true);
-    }
-    
-    $fileExtension = pathinfo($_FILES[$fieldName]['name'], PATHINFO_EXTENSION);
-    $newFileName = $fieldName . '_' . $bookId . '_' . time() . '.' . $fileExtension;
-    $targetFile = $targetDir . $newFileName;
-    
-    // Check if image file is a actual image
-    $check = getimagesize($_FILES[$fieldName]["tmp_name"]);
-    if ($check === false) {
-        return false;
-    }
-    
-    // Check file size (limit to 5MB)
-    if ($_FILES[$fieldName]["size"] > 5000000) {
-        return false;
-    }
-    
-    // Allow certain file formats
-    $allowedExtensions = array("jpg", "jpeg", "png", "gif");
-    if (!in_array(strtolower($fileExtension), $allowedExtensions)) {
-        return false;
-    }
-    
-    if (move_uploaded_file($_FILES[$fieldName]["tmp_name"], $targetFile)) {
-        return "Images/book-image/" . $newFileName; // Store relative path in database
-    } else {
-        return false;
-    }
-}
-
-// Get book title from URL parameter and first book ID from the range
-$title = isset($_GET['title']) ? $_GET['title'] : '';
-$id_range = isset($_GET['id_range']) ? $_GET['id_range'] : '';
-
-// Get accession range from URL parameter
+// Get accession range from URL
 $accession_range = isset($_GET['accession_range']) ? $_GET['accession_range'] : '';
+if (empty($accession_range)) {
+    die("No accession range provided");
+}
 
-// Initialize $books as empty array to prevent undefined variable error
-$books = [];
-$first_book = null;
-
-// Parse and validate the accession range
-if (!empty($accession_range)) {
-    $accession_parts = explode(',', $accession_range);
-    $accession_array = [];
-
-    foreach ($accession_parts as $part) {
-        $part = trim($part);
+// Function to extract all accession numbers from a range string
+function parseAccessionRange($range) {
+    $accessions = [];
+    $parts = explode(',', $range);
+    
+    foreach ($parts as $part) {
         if (strpos($part, '-') !== false) {
             list($start, $end) = explode('-', $part);
-            $start = (int)trim($start);
-            $end = (int)trim($end);
-            if ($start <= $end) {
-                $accession_array = array_merge($accession_array, range($start, $end));
+            for ($i = (int)$start; $i <= (int)$end; $i++) {
+                $accessions[] = $i;
             }
         } else {
-            if (is_numeric(trim($part))) {
-                $accession_array[] = (int)trim($part);
-            }
+            $accessions[] = (int)$part;
         }
     }
-
-    $accession_array = array_unique($accession_array);
-    sort($accession_array);
-
-    if (!empty($accession_array)) {
-        $placeholders = implode(',', array_fill(0, count($accession_array), '?'));
-        $book_query = "SELECT * FROM books WHERE accession IN ($placeholders)";
-        $stmt = $conn->prepare($book_query);
-        $types = str_repeat('i', count($accession_array));
-        $stmt->bind_param($types, ...$accession_array);
-        $stmt->execute();
-        $books_result = $stmt->get_result();
-        $books = $books_result->fetch_all(MYSQLI_ASSOC);
-
-        if (!empty($books)) {
-            $first_book = $books[0];
-        } else {
-            echo "<script>
-                    alert('No books found for the specified accession range: " . htmlspecialchars($accession_range) . "');
-                    window.location.href = 'book_list.php';
-                  </script>";
-            exit();
-        }
-    } else {
-        echo "<script>
-                alert('Invalid accession range: " . htmlspecialchars($accession_range) . "');
-                window.location.href = 'book_list.php';
-              </script>";
-        exit();
-    }
+    
+    return $accessions;
 }
 
-// Fetch contributors for the selected books
-$bookIds = isset($books) ? array_column($books, 'id') : [];
-$contributors = [];
-$corporate_contributors = [];
-if (!empty($bookIds)) {
-    $placeholders = implode(',', array_fill(0, count($bookIds), '?'));
-    $contributors_query = "SELECT book_id, writer_id, role FROM contributors WHERE book_id IN ($placeholders)";
-    $stmt = $conn->prepare($contributors_query);
-    $stmt->bind_param(str_repeat('i', count($bookIds)), ...$bookIds);
-    $stmt->execute();
-    $contributors_result = $stmt->get_result();
-    while ($row = $contributors_result->fetch_assoc()) {
-        $contributors[$row['book_id']][] = $row;
+// Parse accession range and get all accession numbers
+$accessions = parseAccessionRange($accession_range);
+$accession_list = implode(',', $accessions);
+
+// Modify the query to get all copies of the book instead of just the first one
+$query = "SELECT b.*, 
+          GROUP_CONCAT(DISTINCT CONCAT(w.lastname, ', ', w.firstname, ' ', w.middle_init, ':', c.role) ORDER BY c.role) as authors,
+          GROUP_CONCAT(DISTINCT CONCAT(corp.name, ':', cc.role) ORDER BY cc.role) as corporate_contributors,
+          p.publisher_id,
+          YEAR(p.publish_date) as publish_date,
+          pub.publisher,
+          pub.place
+          FROM books b 
+          LEFT JOIN contributors c ON b.id = c.book_id
+          LEFT JOIN writers w ON c.writer_id = w.id
+          LEFT JOIN corporate_contributors cc ON b.id = cc.book_id
+          LEFT JOIN corporates corp ON cc.corporate_id = corp.id
+          LEFT JOIN publications p ON b.id = p.book_id
+          LEFT JOIN publishers pub ON p.publisher_id = pub.id
+          WHERE b.accession IN ($accession_list)
+          GROUP BY b.id
+          ORDER BY b.copy_number";
+
+$result = $conn->query($query);
+$books = $result->fetch_all(MYSQLI_ASSOC);
+
+if (empty($books)) {
+    die("No books found with the provided accession numbers");
+}
+
+// Get all writers for dropdown
+$writers_query = "SELECT * FROM writers ORDER BY lastname, firstname";
+$writers_result = $conn->query($writers_query);
+$writers = $writers_result->fetch_all(MYSQLI_ASSOC);
+
+// Get all publishers for dropdown
+$publishers_query = "SELECT * FROM publishers ORDER BY publisher";
+$publishers_result = $conn->query($publishers_query);
+$publishers = $publishers_result->fetch_all(MYSQLI_ASSOC);
+
+// Get all corporates for dropdown
+$corporates_query = "SELECT * FROM corporates ORDER BY name";
+$corporates_result = $conn->query($corporates_query);
+$corporates = $corporates_result->fetch_all(MYSQLI_ASSOC);
+
+// Get the book's individual contributors (writers)
+$first_book_id = $books[0]['id'];
+$contributors_query = "SELECT c.*, w.firstname, w.middle_init, w.lastname 
+                      FROM contributors c 
+                      JOIN writers w ON c.writer_id = w.id 
+                      WHERE c.book_id = ?";
+$stmt = $conn->prepare($contributors_query);
+$stmt->bind_param("i", $first_book_id);
+$stmt->execute();
+$contributors_result = $stmt->get_result();
+$contributors = $contributors_result->fetch_all(MYSQLI_ASSOC);
+
+// Get the book's corporate contributors
+$corporate_contributors_query = "SELECT cc.*, corp.name, corp.type 
+                               FROM corporate_contributors cc 
+                               JOIN corporates corp ON cc.corporate_id = corp.id 
+                               WHERE cc.book_id = ?";
+$stmt = $conn->prepare($corporate_contributors_query);
+$stmt->bind_param("i", $first_book_id);
+$stmt->execute();
+$corporate_contributors_result = $stmt->get_result();
+$corporate_contributors = $corporate_contributors_result->fetch_all(MYSQLI_ASSOC);
+
+// Process form submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $error_messages = [];
+    $duplicateAccessions = [];
+
+    // Validate accession numbers for duplicates
+    if (isset($_POST['copies'])) {
+        foreach ($_POST['copies'] as $book_id => $copy_data) {
+            $accession = $copy_data['accession'];
+            $book_id = intval($book_id);
+            
+            // Check if this accession already exists in another book
+            $query = "SELECT id, title FROM books WHERE accession = ? AND id != ?";
+            $stmt = $conn->prepare($query);
+            $stmt->bind_param("si", $accession, $book_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            
+            if ($result->num_rows > 0) {
+                $duplicate = $result->fetch_assoc();
+                $duplicateAccessions[$book_id] = [
+                    'accession' => $accession,
+                    'duplicate_id' => $duplicate['id'],
+                    'duplicate_title' => $duplicate['title']
+                ];
+                $error_messages[] = "Accession number '{$accession}' is already used by another book: {$duplicate['title']}";
+            }
+        }
     }
 
-    $corp_contributors_query = "SELECT book_id, corporate_id, role FROM corporate_contributors WHERE book_id IN ($placeholders)";
-    $stmt = $conn->prepare($corp_contributors_query);
-    $stmt->bind_param(str_repeat('i', count($bookIds)), ...$bookIds);
-    $stmt->execute();
-    $corp_contributors_result = $stmt->get_result();
-    while ($row = $corp_contributors_result->fetch_assoc()) {
-        $corporate_contributors[$row['book_id']][] = $row;
+    // Only proceed if there are no duplicate accessions
+    if (empty($duplicateAccessions)) {
+        $conn->begin_transaction();
+        try {
+            // Handle image uploads first
+            $uploadPath = '../Images/book-image/';
+            if (!file_exists($uploadPath)) {
+                mkdir($uploadPath, 0777, true);
+            }
+
+            // Prepare common fields first
+            $common_fields = [
+                'title' => $_POST['title'],
+                'preferred_title' => $_POST['preferred_title'],
+                'parallel_title' => $_POST['parallel_title'],
+                'subject_category' => $_POST['subject_category'],
+                'program' => $_POST['program'],
+                'subject_detail' => $_POST['subject_detail'],
+                'summary' => $_POST['summary'],
+                'contents' => $_POST['contents'],
+                'ISBN' => $_POST['ISBN'],
+                'content_type' => $_POST['content_type'],
+                'media_type' => $_POST['media_type'],
+                'carrier_type' => $_POST['carrier_type'],
+                'language' => $_POST['language'],
+                'URL' => $_POST['URL']
+            ];
+
+            // Process front image
+            if (isset($_POST['remove_front_image']) && $_POST['remove_front_image'] == '1') {
+                $common_fields['front_image'] = '';  // Clear the image path
+            } elseif (!empty($_FILES['front_image']['name'])) {
+                $front_ext = strtolower(pathinfo($_FILES['front_image']['name'], PATHINFO_EXTENSION));
+                $front_filename = 'front_' . time() . '_' . uniqid() . '.' . $front_ext;
+                $front_image_path = $uploadPath . $front_filename;
+                
+                if (move_uploaded_file($_FILES['front_image']['tmp_name'], $front_image_path)) {
+                    $common_fields['front_image'] = $front_image_path;
+                }
+            }
+
+            // Process back image
+            if (isset($_POST['remove_back_image']) && $_POST['remove_back_image'] == '1') {
+                $common_fields['back_image'] = '';  // Clear the image path
+            } elseif (!empty($_FILES['back_image']['name'])) {
+                $back_ext = strtolower(pathinfo($_FILES['back_image']['name'], PATHINFO_EXTENSION));
+                $back_filename = 'back_' . time() . '_' . uniqid() . '.' . $back_ext;
+                $back_image_path = $uploadPath . $back_filename;
+                
+                if (move_uploaded_file($_FILES['back_image']['tmp_name'], $back_image_path)) {
+                    $common_fields['back_image'] = $back_image_path;
+                }
+            }
+            
+            // Build and execute the update query with all fields including images
+            $update_query = "UPDATE books SET " . 
+                           implode(", ", array_map(fn($k) => "$k = ?", array_keys($common_fields))) .
+                           " WHERE accession IN ($accession_list)";
+            
+            $stmt = $conn->prepare($update_query);
+            $stmt->bind_param(str_repeat('s', count($common_fields)), ...array_values($common_fields));
+            $stmt->execute();
+
+            // 2. Update individual contributors (writers)
+            // Get all book IDs that share this accession list
+            $get_books_query = "SELECT id FROM books WHERE accession IN ($accession_list)";
+            $books_result = $conn->query($get_books_query);
+            $book_ids = $books_result->fetch_all(MYSQLI_ASSOC);
+
+            // Delete existing contributors
+            $delete_contributors = "DELETE FROM contributors WHERE book_id IN (SELECT id FROM books WHERE accession IN ($accession_list))";
+            $conn->query($delete_contributors);
+
+            // Add new contributors if any are selected
+            if (isset($_POST['contributors']) && !empty($_POST['contributors'])) {
+                foreach ($book_ids as $book) {
+                    foreach ($_POST['contributors'] as $contributor) {
+                        // Parse the JSON string if it's a string, otherwise use as is
+                        $contributor_data = is_string($contributor) ? json_decode($contributor, true) : $contributor;
+                        
+                        if (!$contributor_data || !isset($contributor_data['writer_id']) || !isset($contributor_data['role'])) {
+                            continue; // Skip invalid data
+                        }
+
+                        $insert_contributor = "INSERT INTO contributors (book_id, writer_id, role) VALUES (?, ?, ?)";
+                        $stmt = $conn->prepare($insert_contributor);
+                        $stmt->bind_param('iis', $book['id'], $contributor_data['writer_id'], $contributor_data['role']);
+                        $stmt->execute();
+                    }
+                }
+            }
+
+            // 3. Update corporate contributors
+            // Delete existing corporate contributors
+            $delete_corp = "DELETE FROM corporate_contributors WHERE book_id IN (SELECT id FROM books WHERE accession IN ($accession_list))";
+            $conn->query($delete_corp);
+
+            // Add new corporate contributors if any are selected
+            if (isset($_POST['corporate_contributors']) && !empty($_POST['corporate_contributors'])) {
+                foreach ($book_ids as $book) {
+                    foreach ($_POST['corporate_contributors'] as $corporate) {
+                        // Parse the JSON string if it's a string, otherwise use as is
+                        $corporate_data = is_string($corporate) ? json_decode($corporate, true) : $corporate;
+                        
+                        if (!$corporate_data || !isset($corporate_data['corporate_id']) || !isset($corporate_data['role'])) {
+                            continue; // Skip invalid data
+                        }
+
+                        $insert_corp = "INSERT INTO corporate_contributors (book_id, corporate_id, role) VALUES (?, ?, ?)";
+                        $stmt = $conn->prepare($insert_corp);
+                        $stmt->bind_param('iis', $book['id'], $corporate_data['corporate_id'], $corporate_data['role']);
+                        $stmt->execute();
+                    }
+                }
+            }
+
+            // 4. Update individual copy details
+            foreach ($_POST['copies'] as $book_id => $copy_data) {
+                $update_copy = "UPDATE books SET 
+                               accession = ?,
+                               copy_number = ?, 
+                               edition = ?,
+                               volume = ?,
+                               part = ?,
+                               series = ?,
+                               shelf_location = ?,
+                               call_number = ?,
+                               status = ?
+                               WHERE id = ?";
+                
+                $stmt = $conn->prepare($update_copy);
+                $stmt->bind_param('sisssssssi', 
+                    $copy_data['accession'],
+                    $copy_data['copy_number'],
+                    $copy_data['edition'],
+                    $copy_data['volume'],
+                    $copy_data['part'],
+                    $copy_data['series'],
+                    $copy_data['shelf_location'],
+                    $copy_data['call_number'],
+                    $copy_data['status'],
+                    $book_id
+                );
+                $stmt->execute();
+            }
+
+            // Update publication details
+            if (isset($_POST['publisher_id'])) {
+                $update_publication = "UPDATE publications SET 
+                                     publisher_id = ?,
+                                     publish_date = ?
+                                     WHERE book_id IN (SELECT id FROM books WHERE accession IN ($accession_list))";
+                
+                $stmt = $conn->prepare($update_publication);
+                $stmt->bind_param('is', $_POST['publisher_id'], $_POST['publish_date']);
+                $stmt->execute();
+            }
+
+            // Commit transaction if everything succeeded
+            $conn->commit();
+            $_SESSION['success_message'] = "Books updated successfully!";
+            header("Location: book_list.php");
+            exit();
+
+        } catch (Exception $e) {
+            // Rollback on error
+            $conn->rollback();
+            $error_message = "Error updating books: " . $e->getMessage();
+            // Log the error for debugging
+            error_log("Update books error: " . $e->getMessage());
+        }
     }
 }
 ?>
 
-<!-- Main Content -->
-<div id="content-wrapper" class="d-flex flex-column min-vh-100">
-    <div id="content" class="flex-grow-1">
-        <div class="container-fluid">
-            <form id="bookForm" action="" method="POST" enctype="multipart/form-data" class="h-100"
-                  onkeydown="return event.key != 'Enter';">
-                <input type="hidden" name="existing_front_image" value="<?php echo htmlspecialchars($first_book['front_image'] ?? ''); ?>">
-                <input type="hidden" name="existing_back_image" value="<?php echo htmlspecialchars($first_book['back_image'] ?? ''); ?>">
-                <!-- Add hidden fields to track image removal -->
-                <input type="hidden" name="remove_front_image" id="remove_front_image" value="0">
-                <input type="hidden" name="remove_back_image" id="remove_back_image" value="0">
-                <div class="container-fluid d-flex justify-content-between align-items-center">
-                    <h1 class="h3 mb-2 text-gray-800">Update Books (<?php echo count($books); ?> copies)</h1>
-                    <div>
-                        <button type="submit" name="submit" class="btn btn-success me-2">
-                            <i class="fas fa-save"></i> Save Changes
-                        </button>
-                        <button type="button" class="btn btn-info" data-toggle="modal" data-target="#instructionsModal">
-                            <i class="fas fa-question-circle"></i> Instructions
-                        </button>
-                    </div>
-                </div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update Books</title>
+    <?php include 'inc/header.php'; ?>
+    <style>
+        .copy-details {
+            background-color: #f8f9fc;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 0.35rem;
+            border-left: 4px solid #4e73df;
+        }
+        
+        .contributors-section {
+            background-color: #f8f9fc;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border-radius: 0.35rem;
+            border-left: 4px solid #4e73df;
+        }
+        
+        .contributors-section h5 {
+            color: #4e73df;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #e3e6f0;
+        }
+        
+        .contributors-container {
+            max-height: none;
+            overflow-y: visible;
+        }
+        
+        .contributor-entry, .corporate-contributor-entry {
+            background-color: white;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 0.25rem;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+        
+        .remove-contributor {
+            color: #e74a3b;
+            cursor: pointer;
+        }
+        
+        .nav-tabs .nav-link.active {
+            background-color: #4e73df;
+            color: white;
+        }
 
-                <!-- Hidden input for book IDs -->
-                <?php foreach ($books as $book): ?>
-                    <input type="hidden" name="book_ids[]" value="<?php echo $book['id']; ?>">
-                <?php endforeach; ?>
+        .contributor-card {
+            background: #f8f9fc;
+            border-left: 4px solid #4e73df;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            border-radius: 0.35rem;
+            position: relative;
+        }
+        .contributor-card .remove-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            cursor: pointer;
+            color: #e74a3b;
+        }
+        .contributor-role {
+            display: inline-block;
+            padding: 0.25em 0.6em;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: 0.25rem;
+            background-color: #4e73df;
+            color: white;
+            margin-left: 0.5rem;
+        }
+        
+        .invalid-feedback {
+            display: none;
+            width: 100%;
+            margin-top: 0.25rem;
+            font-size: 0.875em;
+            color: #e74a3b;
+        }
+        
+        .is-invalid {
+            border-color: #e74a3b !important;
+            padding-right: calc(1.5em + 0.75rem) !important;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23e74a3b'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23e74a3b' stroke='none'/%3e%3c/svg%3e") !important;
+            background-repeat: no-repeat !important;
+            background-position: right calc(0.375em + 0.1875rem) center !important;
+            background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem) !important;
+        }
+        
+        .is-invalid + .invalid-feedback,
+        .is-invalid ~ .invalid-feedback {
+            display: block;
+        }
+        
+        /* File input styling */
+        input[type="file"].form-control {
+            padding: 0;
+            padding-right: 0.75rem;
+            padding-bottom: 0.75rem;
+            padding-left: 0.75rem;
+            background-color: #f8f9fc;
+            border: 1px solid #d1d3e2;
+            border-radius: 0.35rem;
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        }
 
-                <!-- Tab Navigation -->
-                <ul class="nav nav-tabs" id="formTabs" role="tablist">
-                    <li class="nav-item">
-                        <a class="nav-link active" data-bs-toggle="tab" href="#title-proper" role="tab">Title Proper</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" data-bs-toggle="tab" href="#subject-entry" role="tab">Access Point</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" data-bs-toggle="tab" href="#abstracts" role="tab">Abstracts</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" data-bs-toggle="tab" href="#description" role="tab">Description</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" data-bs-toggle="tab" href="#local-info" role="tab">Local Information</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" data-bs-toggle="tab" href="#publication" role="tab">Publication</a>
-                    </li>
+        input[type="file"].form-control:hover {
+            background-color: #eaecf4;
+            cursor: pointer;
+        }
+
+        input[type="file"].form-control:focus {
+            background-color: #fff;
+            border-color: #bac8f3;
+            box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+        }
+
+        /* Enhance the file input button */
+        input[type="file"].form-control::file-selector-button {
+            padding: 0.375rem 0.75rem;
+            margin: 0;
+            margin-right: 1rem;
+            margin-left: -0.75rem;
+            background-color: #e9ecef;  /* Changed to light grey */
+            color: #333;  /* Darkened text color for better contrast */
+            border: 0;
+            border-radius: 0.25rem 0 0 0.25rem;
+            transition: background-color 0.15s ease-in-out;
+        }
+
+        input[type="file"].form-control::file-selector-button:hover {
+            background-color: #dde0e3;  /* Slightly darker on hover */
+        }
+
+        /* Image preview styling */
+        .image-preview-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+        }
+        
+        .image-preview-container img {
+            max-height: 200px;
+            object-fit: contain;
+        }
+
+        /* Fix contributor cards alignment */
+        #selectedWriterCards, #selectedCorporateCards {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            width: 100%;
+        }
+
+        .writer-entry, .corporate-entry {
+            width: calc(50% - 0.5rem);
+            margin-bottom: 0;
+        }
+
+        .contributor-card {
+            height: 100%;
+            margin-bottom: 0;
+            display: flex;
+            align-items: center;
+            padding-right: 2rem;
+        }
+
+        /* Add remove image button styling */
+        .image-container {
+            position: relative;
+        }
+        
+        .remove-image {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: #e74a3b;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0 0 0 0.35rem;
+            cursor: pointer;
+            z-index: 1;
+        }
+        
+        .remove-image:hover {
+            background: #d52a1a;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <h1 class="h3 mb-4 text-gray-800">Update Books</h1>
+        
+        <?php if (!empty($error_messages)): ?>
+            <div class="alert alert-danger" role="alert">
+                <h4 class="alert-heading">Form submission failed!</h4>
+                <p>The following errors were found:</p>
+                <ul>
+                    <?php foreach ($error_messages as $msg): ?>
+                        <li><?php echo $msg; ?></li>
+                    <?php endforeach; ?>
                 </ul>
+                <p class="mb-0">Please correct these issues and try again.</p>
+            </div>
+        <?php endif; ?>
+        
+        <form action="" method="POST" id="updateBooksForm" enctype="multipart/form-data">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                        <li class="nav-item">
+                            <a class="nav-link active" data-bs-toggle="tab" href="#title">Title Proper</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#access">Access Point</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#abstract">Abstract & Notes</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#description">Description</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#local">Local Information</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#contributors">Publication & Contributors</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#copies">Individual Copies</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#images">Cover Images</a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="card-body">
+                    <div class="tab-content">
+                        <!-- Title Proper Tab -->
+                        <div class="tab-pane fade show active" id="title">
+                            <div class="row mb-3">
+                                <div class="col-md-12">
+                                    <div class="form-group">
+                                        <label>Title:</label>
+                                        <input type="text" class="form-control" name="title" value="<?php echo $books[0]['title']; ?>" required>
+                                        <small class="form-text text-muted">Main title of the resource as it appears on the source</small>
+                                    </div>
+                                </div>
+                            </div>
 
-                <div class="tab-content mt-3" id="formTabsContent">
-                    <!-- Title Proper Tab -->
-                    <div class="tab-pane fade show active" id="title-proper" role="tabpanel">
-                        <h4>Title Proper</h4>
-                        <div class="form-group">
-                            <label>Title</label>
-                            <input type="text" class="form-control" name="title" value="<?php echo htmlspecialchars($first_book['title'] ?? ''); ?>" required>
-                            <small class="form-text text-muted">
-                                <i class="fas fa-info-circle mr-1"></i> Main title of the book.
-                            </small>
-                        </div>
-                        <div class="form-group">
-                            <label>Preferred Title</label>
-                            <input type="text" class="form-control" name="preferred_title" value="<?php echo htmlspecialchars($first_book['preferred_title'] ?? ''); ?>">
-                            <small class="form-text text-muted">
-                                <i class="fas fa-info-circle mr-1"></i> Alternative title, if applicable.
-                            </small>
-                        </div>
-                        <div class="form-group">
-                            <label>Parallel Title</label>
-                            <input type="text" class="form-control" name="parallel_title" value="<?php echo htmlspecialchars($first_book['parallel_title'] ?? ''); ?>">
-                            <small class="form-text text-muted">
-                                <i class="fas fa-info-circle mr-1"></i> Title in another language.
-                            </small>
-                        </div>
-
-                        <!-- Contributors section - Updated layout -->
-                        <div class="form-group mt-4">
-                            <h5 class="mb-3">Contributors</h5>
-                            <div class="row">
-                                <!-- Individual Contributors Section -->
+                            <div class="row mb-3">
                                 <div class="col-md-6">
-                                    <div class="card mb-4">
-                                        <div class="card-header bg-primary text-white">
-                                            <h6 class="mb-0">Individual Contributors</h6>
+                                    <div class="form-group">
+                                        <label>Preferred Title:</label>
+                                        <input type="text" class="form-control" name="preferred_title" value="<?php echo $books[0]['preferred_title']; ?>">
+                                        <small class="form-text text-muted">Standardized form of the title used for cataloging</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Parallel Title:</label>
+                                        <input type="text" class="form-control" name="parallel_title" value="<?php echo $books[0]['parallel_title']; ?>">
+                                        <small class="form-text text-muted">Title in another language or script</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Access Point Tab -->
+                        <div class="tab-pane fade" id="access">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Subject Category:</label>
+                                        <input type="text" class="form-control" name="subject_category" value="<?php echo $books[0]['subject_category']; ?>">
+                                        <small class="form-text text-muted">Topical, Personal, Corporate, Geographical</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Program:</label>
+                                        <input type="text" class="form-control" name="program" value="<?php echo $books[0]['program']; ?>">
+                                        <small class="form-text text-muted">Computer Science, Accountancy, Accountancy Information System, Entrepreneurship, Tourism Management</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label>Subject Details:</label>
+                                <textarea class="form-control" name="subject_detail" rows="3"><?php echo $books[0]['subject_detail']; ?></textarea>
+                                <small class="form-text text-muted">Detailed topics, themes, or subjects covered in the resource</small>
+                            </div>
+                        </div>
+
+                        <!-- Abstract & Notes Tab -->
+                        <div class="tab-pane fade" id="abstract">
+                            <div class="form-group mb-3">
+                                <label>Summary:</label>
+                                <textarea class="form-control" name="summary" rows="4"><?php echo $books[0]['summary']; ?></textarea>
+                                <small class="form-text text-muted">Brief description of the main points or content of the resource</small>
+                            </div>
+                            
+                            <div class="form-group mb-3">
+                                <label>Contents:</label>
+                                <textarea class="form-control" name="contents" rows="4"><?php echo $books[0]['contents']; ?></textarea>
+                                <small class="form-text text-muted">List of chapters, sections, or other parts of the resource</small>
+                            </div>
+                        </div>
+
+                        <!-- Description Tab -->
+                        <div class="tab-pane fade" id="description">
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label>Dimension:</label>
+                                        <input type="text" class="form-control" name="dimension" value="<?php echo $books[0]['dimension']; ?>">
+                                        <small class="form-text text-muted">Physical dimensions of the resource (include unit: cm, mm, inches)</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label>Total Pages:</label>
+                                        <input type="text" class="form-control" name="total_pages" value="<?php echo $books[0]['total_pages']; ?>">
+                                        <small class="form-text text-muted">Include prefix pages and main pages (e.g., "xiii 256p." or "xii, 345p.")</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label>Supplementary Contents:</label>
+                                        <input type="text" class="form-control" name="supplementary_contents" value="<?php echo $books[0]['supplementary_contents']; ?>">
+                                        <small class="form-text text-muted">Appendix (app.), Bibliography (bibl.), Glossary (gloss.), Index (ind.), Illustrations (ill.), Maps, Tables (tbl.)</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Local Information Tab -->
+                        <div class="tab-pane fade" id="local">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>ISBN:</label>
+                                        <input type="text" class="form-control" name="ISBN" value="<?php echo $books[0]['ISBN']; ?>">
+                                        <small class="form-text text-muted">Example: 978-0-545-01022-1</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>URL:</label>
+                                        <input type="text" class="form-control" name="URL" value="<?php echo $books[0]['URL']; ?>">
+                                        <small class="form-text text-muted">Optional: Link to digital version if available</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label>Content Type:</label>
+                                        <select class="form-control" name="content_type">
+                                            <option value="Text" <?php echo ($books[0]['content_type'] == 'Text') ? 'selected' : ''; ?>>Text</option>
+                                            <option value="Image" <?php echo ($books[0]['content_type'] == 'Image') ? 'selected' : ''; ?>>Image</option>
+                                            <option value="Audio" <?php echo ($books[0]['content_type'] == 'Audio') ? 'selected' : ''; ?>>Audio</option>
+                                            <option value="Video" <?php echo ($books[0]['content_type'] == 'Video') ? 'selected' : ''; ?>>Video</option>
+                                            <option value="Multimedia" <?php echo ($books[0]['content_type'] == 'Multimedia') ? 'selected' : ''; ?>>Multimedia</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label>Media Type:</label>
+                                        <select class="form-control" name="media_type">
+                                            <option value="Print" <?php echo ($books[0]['media_type'] == 'Print') ? 'selected' : ''; ?>>Print</option>
+                                            <option value="Digital" <?php echo ($books[0]['media_type'] == 'Digital') ? 'selected' : ''; ?>>Digital</option>
+                                            <option value="Electronic" <?php echo ($books[0]['media_type'] == 'Electronic') ? 'selected' : ''; ?>>Electronic</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label>Carrier Type:</label>
+                                        <select class="form-control" name="carrier_type">
+                                            <option value="Book" <?php echo ($books[0]['carrier_type'] == 'Book') ? 'selected' : ''; ?>>Book</option>
+                                            <option value="CD" <?php echo ($books[0]['carrier_type'] == 'CD') ? 'selected' : ''; ?>>CD</option>
+                                            <option value="DVD" <?php echo ($books[0]['carrier_type'] == 'DVD') ? 'selected' : ''; ?>>DVD</option>
+                                            <option value="Online Resource" <?php echo ($books[0]['carrier_type'] == 'Online Resource') ? 'selected' : ''; ?>>Online Resource</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="form-group">
+                                        <label>Language:</label>
+                                        <select class="form-control" name="language">
+                                            <option value="English" <?php echo ($books[0]['language'] == 'English') ? 'selected' : ''; ?>>English</option>
+                                            <option value="Filipino" <?php echo ($books[0]['language'] == 'Filipino') ? 'selected' : ''; ?>>Filipino</option>
+                                            <option value="Multilingual" <?php echo ($books[0]['language'] == 'Multilingual') ? 'selected' : ''; ?>>Multilingual</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Contributors Tab -->
+                        <div class="tab-pane fade" id="contributors">
+                            <!-- Publication Details Section -->
+                            <div class="contributors-section">
+                                <h5><i class="fas fa-book"></i> Publication Details</h5>
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <div class="form-group mb-3">
+                                            <label>Publisher:</label>
+                                            <select name="publisher_id" class="form-control">
+                                                <option value="">Select Publisher</option>
+                                                <?php foreach ($publishers as $publisher): ?>
+                                                    <option value="<?php echo $publisher['id']; ?>" 
+                                                        <?php echo ($publisher['id'] == $books[0]['publisher_id']) ? 'selected' : ''; ?>>
+                                                        <?php echo $publisher['publisher'] . ' (' . $publisher['place'] . ')'; ?>
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                            <small class="form-text text-muted">Select the publisher of this resource</small>
                                         </div>
-                                        <div class="card-body">
-                                            <div class="input-group mb-3">
-                                                <span class="input-group-text"><i class="fas fa-search"></i></span>
-                                                <input type="text" class="form-control" id="individualContributorsSearch" 
-                                                       placeholder="Search contributors...">
-                                                <button class="btn btn-outline-secondary" type="button" id="clearIndividualSearch">
-                                                    <i class="fas fa-times"></i>
-                                                </button>
-                                                <!-- Add New Individual Contributor Button -->
-                                                <button class="btn btn-success" type="button" data-bs-toggle="modal" data-bs-target="#addIndividualContributorModal">
-                                                    <i class="fas fa-plus"></i> New
-                                                </button>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group mb-3">
+                                            <label>Publication Year:</label>
+                                            <input type="number" class="form-control" name="publish_date" 
+                                                   value="<?php echo $books[0]['publish_date']; ?>" 
+                                                   min="1900" max="<?php echo date('Y'); ?>">
+                                            <small class="form-text text-muted">Enter 4-digit year of publication</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <!-- Writer Contributors Section -->
+                                <div class="col-md-6">
+                                    <div class="contributors-section">
+                                        <h5><i class="fas fa-user-edit"></i> Writer Contributors</h5>
+                                        <div class="mb-3">
+                                            <div class="form-group">
+                                                <label>Select Writer:</label>
+                                                <select id="writerSelect" class="form-control">
+                                                    <option value="">Select Writer</option>
+                                                    <?php foreach ($writers as $writer): ?>
+                                                        <?php 
+                                                        $fullName = trim($writer['lastname'] . ', ' . $writer['firstname'] . ' ' . $writer['middle_init']); 
+                                                        ?>
+                                                        <option value="<?php echo $writer['id']; ?>"><?php echo $fullName; ?></option>
+                                                    <?php endforeach; ?>
+                                                </select>
                                             </div>
-
-                                            <!-- Search Results -->
-                                            <div id="individualSearchResults" class="search-results mb-3" style="max-height: 200px; overflow-y: auto; display: none;">
-                                                <div class="list-group">
-                                                    <!-- Search results will be dynamically populated here -->
-                                                </div>
-                                            </div>
-
-                                            <h6 class="mb-2">Selected Contributors</h6>
-                                            <div id="individualContributorsContainer">
-                                                <?php
-                                                $bookContributors = [];
-                                                if (!empty($books) && isset($contributors[$books[0]['id']])) {
-                                                    $bookContributors = $contributors[$books[0]['id']];
-                                                }
-
-                                                if (!empty($bookContributors)) {
-                                                    foreach ($bookContributors as $index => $contributor) {
-                                                        $writerInfo = null;
-                                                        foreach ($writers as $writer) {
-                                                            if ($writer['id'] == $contributor['writer_id']) {
-                                                                $writerInfo = $writer;
-                                                                break;
-                                                            }
-                                                        }
-                                                        if ($writerInfo) {
-                                                            // Get role badge class based on contributor role
-                                                            $roleBadgeClass = 'bg-primary';
-                                                            switch($contributor['role']) {
-                                                                case 'Author': $roleBadgeClass = 'bg-primary'; break;
-                                                                case 'Co Author': 
-                                                                case 'Co-Author': $roleBadgeClass = 'bg-success'; break;
-                                                                case 'Editor': $roleBadgeClass = 'bg-info'; break;
-                                                                case 'Translator': $roleBadgeClass = 'bg-warning'; break;
-                                                                case 'Illustrator': $roleBadgeClass = 'bg-secondary'; break;
-                                                            }
-                                                ?>
-                                                <div class="contributor-row d-flex align-items-center mb-2 border rounded p-2">
-                                                    <div class="flex-grow-1">
-                                                        <span class="badge <?php echo $roleBadgeClass; ?> text-white me-2">
-                                                            <?php 
-                                                            // Display "Co Author" badge text even if the database has "Co-Author"
-                                                            if ($contributor['role'] == 'Co-Author') {
-                                                                echo 'Co Author';
-                                                            } else {
-                                                                echo htmlspecialchars($contributor['role']);
-                                                            }
-                                                            ?>
-                                                        </span>
-                                                        <?php echo htmlspecialchars($writerInfo['name']); ?>
-                                                        <input type="hidden" name="contributor_ids[]" value="<?php echo $contributor['writer_id']; ?>">
-                                                    </div>
-                                                    <select class="form-control mx-2 role-select" name="contributor_roles[]" style="width: auto;"
-                                                            onchange="updateRoleBadge(this)">
-                                                        <option value="Author" <?php echo ($contributor['role'] == 'Author') ? 'selected' : ''; ?>>Author</option>
-                                                        <option value="Co Author" <?php echo ($contributor['role'] == 'Co Author' || $contributor['role'] == 'Co-Author') ? 'selected' : ''; ?>>Co Author</option>
-                                                        <option value="Editor" <?php echo ($contributor['role'] == 'Editor') ? 'selected' : ''; ?>>Editor</option>
-                                                        <option value="Translator" <?php echo ($contributor['role'] == 'Translator') ? 'selected' : ''; ?>>Translator</option>
-                                                        <option value="Illustrator" <?php echo ($contributor['role'] == 'Illustrator') ? 'selected' : ''; ?>>Illustrator</option>
+                                        </div>
+                                        <div class="mb-3">
+                                            <div class="form-group">
+                                                <label>Role:</label>
+                                                <div class="input-group">
+                                                    <select id="writerRoleSelect" class="form-control">
+                                                        <option value="">Select Role</option>
+                                                        <option value="Author">Author</option>
+                                                        <option value="Co-Author">Co-Author</option>
+                                                        <option value="Editor">Editor</option>
+                                                        <option value="Translator">Translator</option>
+                                                        <option value="Illustrator">Illustrator</option>
                                                     </select>
-                                                    <button type="button" class="btn btn-danger btn-sm remove-contributor">
-                                                        <i class="fas fa-times"></i>
+                                                    <button type="button" id="addSelectedWriter" class="btn btn-primary">
+                                                        <i class="fas fa-plus"></i> Add
                                                     </button>
                                                 </div>
-                                                <?php
-                                                        }
-                                                    }
-                                                }
+                                            </div>
+                                        </div>
+                                        <div id="selectedWriterCards">
+                                            <?php foreach ($contributors as $contributor): ?>
+                                                <?php 
+                                                $fullName = trim($contributor['lastname'] . ', ' . $contributor['firstname'] . ' ' . $contributor['middle_init']); 
                                                 ?>
-                                            </div>
-                                            <div class="form-text text-muted mt-2">
-                                                <i class="fas fa-info-circle mr-1"></i> Search and click on contributors to add them.
-                                            </div>
+                                                <div class="writer-entry" data-writer-id="<?php echo $contributor['writer_id']; ?>">
+                                                    <div class="contributor-card">
+                                                        <i class="fas fa-times remove-btn"></i>
+                                                        <i class="fas fa-user-edit me-2"></i>
+                                                        <span class="contributor-name"><?php echo $fullName; ?></span>
+                                                        <span class="contributor-role"><?php echo $contributor['role']; ?></span>
+                                                        <input type="hidden" name="contributors[]" value='{"writer_id":"<?php echo $contributor['writer_id']; ?>","role":"<?php echo $contributor['role']; ?>"}'>
+                                                    </div>
+                                                </div>
+                                            <?php endforeach; ?>
                                         </div>
                                     </div>
                                 </div>
 
                                 <!-- Corporate Contributors Section -->
                                 <div class="col-md-6">
-                                    <div class="card mb-4">
-                                        <div class="card-header bg-secondary text-white">
-                                            <h6 class="mb-0">Corporate Contributors</h6>
+                                    <div class="contributors-section">
+                                        <h5><i class="fas fa-building"></i> Corporate Contributors</h5>
+                                        <div class="mb-3">
+                                            <div class="form-group">
+                                                <label>Select Corporate Entity:</label>
+                                                <select id="corporateSelect" class="form-control">
+                                                    <option value="">Select Corporate Entity</option>
+                                                    <?php foreach ($corporates as $corporate): ?>
+                                                        <option value="<?php echo $corporate['id']; ?>"><?php echo $corporate['name']; ?></option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </div>
                                         </div>
-                                        <div class="card-body">
-                                            <div class="input-group mb-3">
-                                                <span class="input-group-text"><i class="fas fa-search"></i></span>
-                                                <input type="text" class="form-control" id="corporateContributorsSearch" 
-                                                       placeholder="Search corporate bodies...">
-                                                <button class="btn btn-outline-secondary" type="button" id="clearCorporateSearch">
-                                                    <i class="fas fa-times"></i>
-                                                </button>
-                                                <!-- Add New Corporate Contributor Button -->
-                                                <button class="btn btn-success" type="button" data-bs-toggle="modal" data-bs-target="#addCorporateContributorModal">
-                                                    <i class="fas fa-plus"></i> New
-                                                </button>
-                                            </div>
-
-                                            <!-- Search Results -->
-                                            <div id="corporateSearchResults" class="search-results mb-3" style="max-height: 200px; overflow-y: auto; display: none;">
-                                                <div class="list-group">
-                                                    <!-- Search results will be dynamically populated here -->
-                                                </div>
-                                            </div>
-
-                                            <h6 class="mb-2">Selected Corporate Bodies</h6>
-                                            <div id="corporateContributorsContainer">
-                                                <?php
-                                                $bookCorpContributors = [];
-                                                if (!empty($books) && isset($corporate_contributors[$books[0]['id']])) {
-                                                    $bookCorpContributors = $corporate_contributors[$books[0]['id']];
-                                                }
-
-                                                if (!empty($bookCorpContributors)) {
-                                                    foreach ($bookCorpContributors as $index => $corp_contributor) {
-                                                        $corpInfo = null;
-                                                        foreach ($corporates as $corporate) {
-                                                            if ($corporate['id'] == $corp_contributor['corporate_id']) {
-                                                                $corpInfo = $corporate;
-                                                                break;
-                                                            }
-                                                        }
-                                                        if ($corpInfo) {
-                                                            // Get role badge class based on corporate contributor role
-                                                            $roleBadgeClass = 'bg-primary';
-                                                            switch($corp_contributor['role']) {
-                                                                case 'Corporate Author': $roleBadgeClass = 'bg-primary'; break;
-                                                                case 'Corporate Contributor': $roleBadgeClass = 'bg-success'; break;
-                                                                case 'Publisher': $roleBadgeClass = 'bg-info'; break;
-                                                                case 'Distributor': $roleBadgeClass = 'bg-warning'; break;
-                                                                case 'Sponsor': $roleBadgeClass = 'bg-secondary'; break;
-                                                                case 'Funding Body': $roleBadgeClass = 'bg-dark'; break;
-                                                                case 'Research Institution': $roleBadgeClass = 'bg-light'; break;
-                                                            }
-                                                ?>
-                                                <div class="corporate-row d-flex align-items-center mb-2 border rounded p-2">
-                                                    <div class="flex-grow-1">
-                                                        <span class="badge <?php echo $roleBadgeClass; ?> <?php echo ($roleBadgeClass === 'bg-light') ? 'text-dark' : 'text-white'; ?> me-2"><?php echo htmlspecialchars($corp_contributor['role']); ?></span>
-                                                        <?php echo htmlspecialchars($corpInfo['name']) . ' (' . htmlspecialchars($corpInfo['type']) . ')'; ?>
-                                                        <input type="hidden" name="corporate_ids[]" value="<?php echo $corp_contributor['corporate_id']; ?>">
-                                                    </div>
-                                                    <select class="form-control mx-2 role-select" name="corporate_roles[]" style="width: auto;"
-                                                            onchange="updateRoleBadge(this)">
-                                                        <option value="Corporate Author" <?php echo ($corp_contributor['role'] == 'Corporate Author') ? 'selected' : ''; ?>>Corporate Author</option>
-                                                        <option value="Corporate Contributor" <?php echo ($corp_contributor['role'] == 'Corporate Contributor') ? 'selected' : ''; ?>>Corporate Contributor</option>
-                                                        <option value="Publisher" <?php echo ($corp_contributor['role'] == 'Publisher') ? 'selected' : ''; ?>>Publisher</option>
-                                                        <option value="Distributor" <?php echo ($corp_contributor['role'] == 'Distributor') ? 'selected' : ''; ?>>Distributor</option>
-                                                        <option value="Sponsor" <?php echo ($corp_contributor['role'] == 'Sponsor') ? 'selected' : ''; ?>>Sponsor</option>
-                                                        <option value="Funding Body" <?php echo ($corp_contributor['role'] == 'Funding Body') ? 'selected' : ''; ?>>Funding Body</option>
-                                                        <option value="Research Institution" <?php echo ($corp_contributor['role'] == 'Research Institution') ? 'selected' : ''; ?>>Research Institution</option>
+                                        <div class="mb-3">
+                                            <div class="form-group">
+                                                <label>Role:</label>
+                                                <div class="input-group">
+                                                    <select id="corporateRoleSelect" class="form-control">
+                                                        <option value="">Select Role</option>
+                                                        <option value="Corporate Author">Corporate Author</option>
+                                                        <option value="Corporate Contributor">Corporate Contributor</option>
+                                                        <option value="Publisher">Publisher</option>
+                                                        <option value="Distributor">Distributor</option>
+                                                        <option value="Sponsor">Sponsor</option>
+                                                        <option value="Funding Body">Funding Body</option>
+                                                        <option value="Research Institution">Research Institution</option>
                                                     </select>
-                                                    <button type="button" class="btn btn-danger btn-sm remove-corporate">
-                                                        <i class="fas fa-times"></i>
+                                                    <button type="button" id="addSelectedCorporate" class="btn btn-primary">
+                                                        <i class="fas fa-plus"></i> Add
                                                     </button>
                                                 </div>
-                                                <?php
-                                                        }
-                                                    }
-                                                }
-                                                ?>
                                             </div>
-                                            <div class="form-text text-muted mt-2">
-                                                <i class="fas fa-info-circle mr-1"></i> Search and click on corporate bodies to add them.
-                                            </div>
+                                        </div>
+                                        <div id="selectedCorporateCards">
+                                            <?php foreach ($corporate_contributors as $corporate): ?>
+                                                <div class="corporate-entry" data-corporate-id="<?php echo $corporate['corporate_id']; ?>">
+                                                    <div class="contributor-card">
+                                                        <i class="fas fa-times remove-btn"></i>
+                                                        <i class="fas fa-building me-2"></i>
+                                                        <span class="contributor-name"><?php echo $corporate['name']; ?></span>
+                                                        <span class="contributor-role"><?php echo $corporate['role']; ?></span>
+                                                        <input type="hidden" name="corporate_contributors[]" value='{"corporate_id":"<?php echo $corporate['corporate_id']; ?>","role":"<?php echo $corporate['role']; ?>"}'>
+                                                    </div>
+                                                </div>
+                                            <?php endforeach; ?>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-
-                    <!-- Subject Entry Tab -->
-                    <div class="tab-pane fade" id="subject-entry" role="tabpanel">
-                        <h4>Access Point</h4>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Subject Category</label>
-                                    <select class="form-control" name="subject_category">
-                                        <option value="">None</option>
-                                        <?php foreach ($subject_options as $option): ?>
-                                            <option value="<?php echo $option; ?>" <?php if(isset($first_book['subject_category']) && $first_book['subject_category'] == $option) echo 'selected'; ?>><?php echo $option; ?></option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Program Association</label>
-                                    <select class="form-control" name="program">
-                                        <option value="">None</option>
-                                        <option value="General Education" <?php if(isset($first_book['program']) && $first_book['program'] == 'General Education') echo 'selected'; ?>>General Education</option>
-                                        <option value="Computer Science" <?php if(isset($first_book['program']) && $first_book['program'] == 'Computer Science') echo 'selected'; ?>>Computer Science</option>
-                                        <option value="Accountancy" <?php if(isset($first_book['program']) && $first_book['program'] == 'Accountancy') echo 'selected'; ?>>Accountancy</option>
-                                        <option value="Entrepreneurship" <?php if(isset($first_book['program']) && $first_book['program'] == 'Entrepreneurship') echo 'selected'; ?>>Entrepreneurship</option>
-                                        <option value="Accountancy Information System" <?php if(isset($first_book['program']) && $first_book['program'] == 'Accountancy Information System') echo 'selected'; ?>>Accountancy Information System</option>
-                                        <option value="Tourism Management" <?php if(isset($first_book['program']) && $first_book['program'] == 'Tourism Management') echo 'selected'; ?>>Tourism Management</option>
-                                    </select>
-                                    <small class="form-text text-muted">
-                                        <i class="fas fa-info-circle mr-1"></i> Academic program associated with this material.
-                                    </small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Subject Details</label>
-                            <textarea class="form-control" name="subject_detail" rows="5"><?php echo htmlspecialchars($first_book['subject_detail'] ?? ''); ?></textarea>
-                            <small class="form-text text-muted">
-                                <i class="fas fa-info-circle mr-1"></i> Detailed subject information, enter multiple subjects separated by semicolons.
-                            </small>
-                        </div>
-                    </div>
-
-                    <!-- Abstracts Tab -->
-                    <div class="tab-pane fade" id="abstracts" role="tabpanel">
-                        <h4>Abstracts & Contents</h4>
-                        <div class="form-group">
-                            <label>Summary</label>
-                            <textarea class="form-control" name="summary" rows="5"><?php echo htmlspecialchars($first_book['summary'] ?? ''); ?></textarea>
-                            <small class="form-text text-muted">
-                                <i class="fas fa-info-circle mr-1"></i> Brief description or summary of the book's content.
-                            </small>
-                        </div>
-                        <div class="form-group">
-                            <label>Content Notes</label>
-                            <textarea class="form-control" name="contents" rows="5"><?php echo htmlspecialchars($first_book['contents'] ?? ''); ?></textarea>
-                            <small class="form-text text-muted">
-                                <i class="fas fa-info-circle mr-1"></i> Table of contents or chapter listings.
-                            </small>
-                        </div>
-                    </div>
-
-                    <!-- Description Tab -->
-                    <div class="tab-pane fade" id="description" role="tabpanel">
-                        <h4>Physical Description</h4>
-                        <div class="row">
-                            <!-- Front Cover Image -->
-                            <div class="col-md-6">
-                                <div class="card mb-4">
-                                    <div class="card-header bg-primary text-white">
-                                        <h5 class="m-0">Front Cover Image</h5>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="image-upload-container" id="frontCoverContainer">
-                                            <div class="drop-zone" id="frontCoverDropZone">
-                                                <span class="drop-zone__prompt">
-                                                    <i class="fas fa-cloud-upload-alt fa-2x mb-2"></i><br>
-                                                    Drop front cover image here or click to upload<br>
-                                                    <small>Supports: JPG, JPEG, PNG, GIF (max 5MB)</small>
-                                                </span>
-                                                <input type="file" name="front_image" id="frontCoverInput" class="drop-zone__input" accept="image/*">
-                                                <div class="drop-zone__thumb d-none" id="frontCoverThumb">
-                                                    <div class="drop-zone__thumb-overlay">
-                                                        <button type="button" class="btn btn-sm btn-danger remove-image" data-target="front">
-                                                            <i class="fas fa-trash-alt"></i> Remove
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <?php if (!empty($first_book['front_image'])): ?>
-                                                <div class="mt-3" id="current-front-image">
-                                                    <p><strong>Current Image:</strong></p>
-                                                    <div class="current-image-container">
-                                                        <img src="../<?php echo htmlspecialchars($first_book['front_image']); ?>" 
-                                                             alt="Current Front Cover" class="img-thumbnail" style="max-height: 150px;">
-                                                        <div class="mt-2">
-                                                            <button type="button" class="btn btn-danger btn-sm remove-current-image" data-target="front">
-                                                                <i class="fas fa-trash-alt"></i> Remove Current Image
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            <?php endif; ?>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Back Cover Image -->
-                            <div class="col-md-6">
-                                <div class="card mb-4">
-                                    <div class="card-header bg-secondary text-white">
-                                        <h5 class="m-0">Back Cover Image</h5>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="image-upload-container" id="backCoverContainer">
-                                            <div class="drop-zone" id="backCoverDropZone">
-                                                <span class="drop-zone__prompt">
-                                                    <i class="fas fa-cloud-upload-alt fa-2x mb-2"></i><br>
-                                                    Drop back cover image here or click to upload<br>
-                                                    <small>Supports: JPG, JPEG, PNG, GIF (max 5MB)</small>
-                                                </span>
-                                                <input type="file" name="back_image" id="backCoverInput" class="drop-zone__input" accept="image/*">
-                                                <div class="drop-zone__thumb d-none" id="backCoverThumb">
-                                                    <div class="drop-zone__thumb-overlay">
-                                                        <button type="button" class="btn btn-sm btn-danger remove-image" data-target="back">
-                                                            <i class="fas fa-trash-alt"></i> Remove
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <?php if (!empty($first_book['back_image'])): ?>
-                                                <div class="mt-3" id="current-back-image">
-                                                    <p><strong>Current Image:</strong></p>
-                                                    <div class="current-image-container">
-                                                        <img src="../<?php echo htmlspecialchars($first_book['back_image']); ?>" 
-                                                             alt="Current Back Cover" class="img-thumbnail" style="max-height: 150px;">
-                                                        <div class="mt-2">
-                                                            <button type="button" class="btn btn-danger btn-sm remove-current-image" data-target="back">
-                                                                <i class="fas fa-trash-alt"></i> Remove Current Image
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            <?php endif; ?>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Total Pages</label>
-                                    <input type="text" class="form-control" name="total_pages" value="<?php echo htmlspecialchars($first_book['total_pages'] ?? ''); ?>" placeholder="e.g., xiii, 234 p. or 234 p. or 10, [5] p.">
-                                    <small class="form-text text-muted">
-                                        <i class="fas fa-info-circle mr-1"></i> Total number of pages, including Roman numerals for preliminary pages (e.g., xiii) followed by main content pages with "p." suffix.
-                                    </small>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Dimensions</label>
-                                    <input type="text" class="form-control" name="dimension" value="<?php echo htmlspecialchars($first_book['dimension'] ?? ''); ?>" placeholder="e.g., 24 cm or 21 x 27 cm">
-                                    <small class="form-text text-muted">
-                                        <i class="fas fa-info-circle mr-1"></i> Physical size of the book in centimeters (cm). Specify height only (24 cm) or width x height (21 x 27 cm).
-                                    </small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Supplementary Contents</label>
-                            <?php 
-                            // Parse existing supplementary contents to identify selected options
-                            $selectedSupplements = [];
-                            if (!empty($first_book['supplementary_contents'])) {
-                                $contentStr = strtolower($first_book['supplementary_contents']);
-                                $supplements = [
-                                    'Appendix', 'Bibliography', 'Glossary', 'Index', 
-                                    'Illustrations', 'Maps', 'Tables'
-                                ];
-                                
-                                foreach ($supplements as $supplement) {
-                                    if (strpos($contentStr, strtolower($supplement)) !== false) {
-                                        $selectedSupplements[] = $supplement;
-                                    }
-                                }
-                            }
-                            ?>
-                            <select class="form-control" name="supplementary_contents[]" multiple size="7">
-                                <option value="Appendix" <?php if(in_array('Appendix', $selectedSupplements)) echo 'selected'; ?>>Appendix</option>
-                                <option value="Bibliography" <?php if(in_array('Bibliography', $selectedSupplements)) echo 'selected'; ?>>Bibliography</option>
-                                <option value="Glossary" <?php if(in_array('Glossary', $selectedSupplements)) echo 'selected'; ?>>Glossary</option>
-                                <option value="Index" <?php if(in_array('Index', $selectedSupplements)) echo 'selected'; ?>>Index</option>
-                                <option value="Illustrations" <?php if(in_array('Illustrations', $selectedSupplements)) echo 'selected'; ?>>Illustrations</option>
-                                <option value="Maps" <?php if(in_array('Maps', $selectedSupplements)) echo 'selected'; ?>>Maps</option>
-                                <option value="Tables" <?php if(in_array('Tables', $selectedSupplements)) echo 'selected'; ?>>Tables</option>
-                            </select>
-                            <small class="form-text text-muted">
-                                <i class="fas fa-info-circle mr-1"></i> Hold Ctrl/Cmd to select multiple items.
-                            </small>
-                        </div>
-                    </div>
-
-                    <!-- Local Information Tab -->
-                    <div class="tab-pane fade" id="local-info" role="tabpanel">
-                        <h4>Local Information</h4>
                         
-                        <!-- Add Audit Information Card -->
-                        <div class="card mb-4">
-                            <div class="card-header bg-secondary text-white">
-                                <h6 class="mb-0">Audit Information</h6>
-                            </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Entered By</label>
-                                            <?php
-                                            $entered_by_name = "Unknown";
-                                            if (!empty($first_book['entered_by'])) {
-                                                $admin_query = "SELECT CONCAT(firstname, ' ', lastname) as name, employee_id FROM admins WHERE employee_id = ?";
-                                                $stmt = $conn->prepare($admin_query);
-                                                $stmt->bind_param("i", $first_book['entered_by']);
-                                                $stmt->execute();
-                                                $admin_result = $stmt->get_result();
-                                                if ($admin_row = $admin_result->fetch_assoc()) {
-                                                    $entered_by_name = $admin_row['name']; // Display only the name
-                                                }
-                                            }
-                                            ?>
-                                            <input type="text" class="form-control" value="<?php echo htmlspecialchars($entered_by_name); ?>" readonly>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Date Added</label>
-                                            <input type="text" class="form-control" value="<?php echo ($first_book['date_added']) ? date('F d, Y', strtotime($first_book['date_added'])) : 'N/A'; ?>" readonly>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row mt-3">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Last Updated By</label>
-                                            <?php
-                                            $updated_by_name = "Not updated yet";
-                                            if (!empty($first_book['updated_by'])) {
-                                                $admin_query = "SELECT CONCAT(firstname, ' ', lastname) as name, employee_id FROM admins WHERE employee_id = ?";
-                                                $stmt = $conn->prepare($admin_query);
-                                                $stmt->bind_param("i", $first_book['updated_by']);
-                                                $stmt->execute();
-                                                $admin_result = $stmt->get_result();
-                                                if ($admin_row = $admin_result->fetch_assoc()) {
-                                                    $updated_by_name = $admin_row['name']; // Display only the name
-                                                }
-                                            }
-                                            ?>
-                                            <input type="text" class="form-control" value="<?php echo htmlspecialchars($updated_by_name); ?>" readonly>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Last Update</label>
-                                            <input type="text" class="form-control" value="<?php echo ($first_book['last_update']) ? date('F d, Y', strtotime($first_book['last_update'])) : 'N/A'; ?>" readonly>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <hr>
-                        <h5>Individual Copy Information</h5>
-                        <div class="table-responsive" style="max-height: 500px; overflow-y: auto; margin-bottom: 20px;">
-                            <table class="table table-bordered table-striped individual-copy-table">
-                                <thead class="sticky-top bg-white">
-                                    <tr>
-                                        <th>Accession</th>
-                                        <th>Copy Number</th>
-                                        <th>Series</th>
-                                        <th>Volume</th>
-                                        <th>Part</th>
-                                        <th>Edition</th>
-                                        <th style="min-width: 250px; width: 250px;">Call Number</th>
-                                        <th style="min-width: 150px; width: 150px;">Status</th>
-                                        <th style="min-width: 180px; width: 180px;">Shelf Location</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($books as $i => $book): ?>
-                                    <tr>
-                                        <td>
-                                            <input type="text" class="form-control" name="accession[]" value="<?php echo htmlspecialchars($book['accession'] ?? ''); ?>" required>
-                                        </td>
-                                        <td>
-                                            <input type="number" class="form-control" name="copy_number[]" value="<?php echo htmlspecialchars($book['copy_number'] ?? ''); ?>" min="1">
-                                        </td>
-                                        <td>
-                                            <input type="text" class="form-control" name="individual_series[]" value="<?php echo htmlspecialchars($book['series'] ?? ''); ?>">
-                                        </td>
-                                        <td>
-                                            <input type="text" class="form-control" name="individual_volume[]" value="<?php echo htmlspecialchars($book['volume'] ?? ''); ?>">
-                                        </td>
-                                        <td>
-                                            <input type="text" class="form-control" name="individual_part[]" value="<?php echo htmlspecialchars($book['part'] ?? ''); ?>">
-                                        </td>
-                                        <td>
-                                            <input type="text" class="form-control" name="individual_edition[]" value="<?php echo htmlspecialchars($book['edition'] ?? ''); ?>">
-                                        </td>
-                                        <td>
-                                            <input type="text" class="form-control" name="individual_call_number[]" value="<?php echo htmlspecialchars($book['call_number'] ?? ''); ?>">
-                                        </td>
-                                        <td>
-                                            <select class="form-control" name="status[]">
-                                                <option value="Available" <?php if($book['status'] == 'Available') echo 'selected'; ?>>Available</option>
-                                                <option value="Borrowed" <?php if($book['status'] == 'Borrowed') echo 'selected'; ?>>Borrowed</option>
-                                                <option value="On Reserve" <?php if($book['status'] == 'On Reserve') echo 'selected'; ?>>On Reserve</option>
-                                                <option value="Lost" <?php if($book['status'] == 'Lost') echo 'selected'; ?>>Lost</option>
-                                                <option value="Damaged" <?php if($book['status'] == 'Damaged') echo 'selected'; ?>>Damaged</option>
-                                                <option value="Under Repair" <?php if($book['status'] == 'Under Repair') echo 'selected'; ?>>Under Repair</option>
-                                                <option value="In Process" <?php if($book['status'] == 'In Process') echo 'selected'; ?>>In Process</option>
-                                            </select>
-                                        </td>
-                                        <td>
-                                            <select class="form-control" name="shelf_location[]">
-                                                <option value="TR" <?php if($book['shelf_location'] == 'TR') echo 'selected'; ?>>Teachers Reference</option>
-                                                <option value="FIL" <?php if($book['shelf_location'] == 'FIL') echo 'selected'; ?>>Filipiniana</option>
-                                                <option value="CIR" <?php if($book['shelf_location'] == 'CIR') echo 'selected'; ?>>Circulation</option>
-                                                <option value="REF" <?php if($book['shelf_location'] == 'REF') echo 'selected'; ?>>Reference</option>
-                                                <option value="SC" <?php if($book['shelf_location'] == 'SC') echo 'selected'; ?>>Special Collection</option>
-                                                <option value="BIO" <?php if($book['shelf_location'] == 'BIO') echo 'selected'; ?>>Biography</option>
-                                                <option value="RES" <?php if($book['shelf_location'] == 'RES') echo 'selected'; ?>>Reserve</option>
-                                                <option value="FIC" <?php if($book['shelf_location'] == 'FIC') echo 'selected'; ?>>Fiction</option>
-                                            </select>
-                                        </td>
-                                    </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- Publication Tab -->
-                    <div class="tab-pane fade" id="publication" role="tabpanel">
-                        <h4>Publication Information</h4>
-                        <div class="card mb-4">
-                            <div class="card-header bg-primary text-white">
-                                <h6 class="mb-0">Publisher Details</h6>
-                            </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Publisher</label>
-                                            <?php 
-                                            // Get publisher_id from the first book's publications
-                                            $publisher_id = null;
-                                            $publisher_name = "";
-                                            if (!empty($first_book['id'])) {
-                                                $pub_query = "SELECT p.publisher_id, pub.publisher FROM publications p 
-                                                              JOIN publishers pub ON p.publisher_id = pub.id 
-                                                              WHERE p.book_id = ?";
-                                                $stmt = $conn->prepare($pub_query);
-                                                $stmt->bind_param("i", $first_book['id']);
-                                                $stmt->execute();
-                                                $pub_result = $stmt->get_result();
-                                                if ($pub_row = $pub_result->fetch_assoc()) {
-                                                    $publisher_id = $pub_row['publisher_id'];
-                                                    $publisher_name = $pub_row['publisher'];
-                                                }
-                                            }
-                                            ?>
-                                            <div class="input-group">
-                                                <span class="input-group-text"><i class="fas fa-search"></i></span>
-                                                <input type="text" class="form-control" id="publisherSearch" 
-                                                       placeholder="Search publishers..." 
-                                                       value="<?php echo htmlspecialchars($publisher_name); ?>">
-                                                <button class="btn btn-outline-secondary" type="button" id="clearPublisherSearch">
-                                                    <i class="fas fa-times"></i>
-                                                </button>
-                                                <!-- Add New Publisher Button -->
-                                                <button class="btn btn-success" type="button" data-bs-toggle="modal" data-bs-target="#addPublisherModal">
-                                                    <i class="fas fa-plus"></i> New
-                                                </button>
-                                            </div>
-                                            <!-- Hidden input to store the selected publisher ID -->
-                                            <input type="hidden" name="publisher_id" id="publisher_id_input" value="<?php echo $publisher_id; ?>">
-                                            
-                                            <!-- Search Results -->
-                                            <div id="publisherSearchResults" class="search-results mt-2" style="max-height: 200px; overflow-y: auto; display: none;">
-                                                <div class="list-group">
-                                                    <!-- Search results will be dynamically populated here -->
-                                                </div>
-                                            </div>
-                                            
-                                            <!-- Selected Publisher Display -->
-                                            <div id="selectedPublisherContainer" class="mt-2 <?php echo empty($publisher_id) ? 'd-none' : ''; ?>">
-                                                <div class="selected-publisher border rounded p-2 bg-light">
-                                                    <span id="selectedPublisherName"><?php echo htmlspecialchars($publisher_name); ?></span>
+                        <!-- Individual Copies Tab -->
+                        <div class="tab-pane fade" id="copies">
+                            <?php foreach ($books as $book): ?>
+                                <div class="copy-details">
+                                    <h5>Copy #<?php echo $book['copy_number']; ?> (Accession: <?php echo $book['accession']; ?>)</h5>
+                                    <!-- Row 1: Accession, Copy Number, Edition -->
+                                    <div class="row mb-3">
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label>Accession Number:</label>
+                                                <input 
+                                                    type="text" 
+                                                    class="form-control accession-field <?php echo isset($duplicateAccessions[$book['id']]) ? 'is-invalid' : ''; ?>" 
+                                                    name="copies[<?php echo $book['id']; ?>][accession]" 
+                                                    data-book-id="<?php echo $book['id']; ?>"
+                                                    data-original="<?php echo $book['accession']; ?>"
+                                                    value="<?php echo isset($_POST['copies'][$book['id']]['accession']) ? $_POST['copies'][$book['id']]['accession'] : $book['accession']; ?>"
+                                                >
+                                                <div class="invalid-feedback">
+                                                    <?php 
+                                                        if (isset($duplicateAccessions[$book['id']])) {
+                                                            echo "This accession number already exists in another book: " . $duplicateAccessions[$book['id']]['duplicate_title'];
+                                                        } else {
+                                                            echo "This accession number already exists in another book.";
+                                                        }
+                                                    ?>
                                                 </div>
                                             </div>
                                         </div>
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label>Copy Number:</label>
+                                                <input type="number" class="form-control" name="copies[<?php echo $book['id']; ?>][copy_number]" 
+                                                       value="<?php echo $book['copy_number']; ?>">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label>Edition:</label>
+                                                <input type="text" class="form-control" name="copies[<?php echo $book['id']; ?>][edition]" 
+                                                       value="<?php echo $book['edition']; ?>">
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Publication Year</label>
-                                            <?php 
-                                            // Get publish_date from the first book's publications
-                                            $publish_date = null;
-                                            if (!empty($first_book['id'])) {
-                                                $pub_query = "SELECT publish_date FROM publications WHERE book_id = ?";
-                                                $stmt = $conn->prepare($pub_query);
-                                                $stmt->bind_param("i", $first_book['id']);
-                                                $stmt->execute();
-                                                $pub_result = $stmt->get_result();
-                                                if ($pub_row = $pub_result->fetch_assoc()) {
-                                                    $publish_date = $pub_row['publish_date'];
-                                                }
-                                            }
-                                            ?>
-                                            <input type="text" class="form-control" name="publish_date" value="<?php echo htmlspecialchars($publish_date ?? ''); ?>" placeholder="YYYY">
+                                    <!-- Row 2: Series, Volume, Part -->
+                                    <div class="row mb-3">
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label>Series:</label>
+                                                <input type="text" class="form-control" name="copies[<?php echo $book['id']; ?>][series]" 
+                                                       value="<?php echo $book['series']; ?>">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label>Volume:</label>
+                                                <input type="text" class="form-control" name="copies[<?php echo $book['id']; ?>][volume]" 
+                                                       value="<?php echo $book['volume']; ?>">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label>Part:</label>
+                                                <input type="text" class="form-control" name="copies[<?php echo $book['id']; ?>][part]" 
+                                                       value="<?php echo $book['part']; ?>">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Row 3: Shelf Location, Call Number, Status -->
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label>Shelf Location:</label>
+                                                <select class="form-control" name="copies[<?php echo $book['id']; ?>][shelf_location]">
+                                                    <?php
+                                                    $locations = ['TR' => 'Teachers Reference', 'FIL' => 'Filipiniana', 
+                                                                'CIR' => 'Circulation', 'REF' => 'Reference', 
+                                                                'SC' => 'Special Collection', 'BIO' => 'Biography',
+                                                                'RES' => 'Reserve', 'FIC' => 'Fiction'];
+                                                    foreach ($locations as $code => $name) {
+                                                        $selected = ($code == $book['shelf_location']) ? 'selected' : '';
+                                                        echo "<option value='$code' $selected>$name</option>";
+                                                    }
+                                                    ?>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label>Call Number:</label>
+                                                <input type="text" class="form-control" name="copies[<?php echo $book['id']; ?>][call_number]" 
+                                                       value="<?php echo $book['call_number']; ?>">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label>Status:</label>
+                                                <select class="form-control" name="copies[<?php echo $book['id']; ?>][status]">
+                                                    <?php
+                                                    $statuses = ['Available', 'Borrowed', 'Reserved', 'Lost', 'Damaged', 'Under Repair'];
+                                                    foreach ($statuses as $status) {
+                                                        $selected = ($status == $book['status']) ? 'selected' : '';
+                                                        echo "<option value='$status' $selected>$status</option>";
+                                                    }
+                                                    ?>
+                                                </select>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            <?php endforeach; ?>
                         </div>
-                        <div class="row">
-                            <div class="col-md-3">
-                                <div class="form-group">
-                                    <label>Content Type</label>
-                                    <select class="form-control" name="content_type">
-                                        <option value="Text" <?php echo ($first_book['content_type'] == 'Text' || empty($first_book['content_type'])) ? 'selected' : ''; ?>>Text</option>
-                                        <option value="Image" <?php echo ($first_book['content_type'] == 'Image') ? 'selected' : ''; ?>>Image</option>
-                                        <option value="Video" <?php echo ($first_book['content_type'] == 'Video') ? 'selected' : ''; ?>>Video</option>
-                                        <option value="Audio" <?php echo ($first_book['content_type'] == 'Audio') ? 'selected' : ''; ?>>Audio</option>
-                                        <option value="Multimedia" <?php echo ($first_book['content_type'] == 'Multimedia') ? 'selected' : ''; ?>>Multimedia</option>
-                                    </select>
+
+                        <!-- Cover Images Tab -->
+                        <div class="tab-pane fade" id="images">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <label>Front Cover:</label>
+                                        <?php if (!empty($books[0]['front_image'])): ?>
+                                            <div class="mb-2 image-preview-container image-container">
+                                                <div class="remove-image" data-type="front"><i class="fas fa-times"></i> Remove</div>
+                                                <img src="<?php echo $books[0]['front_image']; ?>" alt="Front Cover" class="img-thumbnail">
+                                                <input type="hidden" name="remove_front_image" value="0">
+                                            </div>
+                                        <?php endif; ?>
+                                        <input type="file" class="form-control" name="front_image" accept="image/*">
+                                        <small class="form-text text-muted">Upload new image to replace existing front cover</small>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="form-group">
-                                    <label>Media Type</label>
-                                    <select class="form-control" name="media_type">
-                                        <option value="Print" <?php echo ($first_book['media_type'] == 'Print' || empty($first_book['media_type'])) ? 'selected' : ''; ?>>Print</option>
-                                        <option value="Digital" <?php echo ($first_book['media_type'] == 'Digital') ? 'selected' : ''; ?>>Digital</option>
-                                        <option value="Audio" <?php echo ($first_book['media_type'] == 'Audio') ? 'selected' : ''; ?>>Audio</option>
-                                        <option value="Video" <?php echo ($first_book['media_type'] == 'Video') ? 'selected' : ''; ?>>Video</option>
-                                        <option value="Microform" <?php echo ($first_book['media_type'] == 'Microform') ? 'selected' : ''; ?>>Microform</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="form-group">
-                                    <label>Carrier Type</label>
-                                    <select class="form-control" name="carrier_type">
-                                        <option value="Book" <?php echo ($first_book['carrier_type'] == 'Book' || empty($first_book['carrier_type'])) ? 'selected' : ''; ?>>Book</option>
-                                        <option value="CD" <?php echo ($first_book['carrier_type'] == 'CD') ? 'selected' : ''; ?>>CD</option>
-                                        <option value="DVD" <?php echo ($first_book['carrier_type'] == 'DVD') ? 'selected' : ''; ?>>DVD</option>
-                                        <option value="USB" <?php echo ($first_book['carrier_type'] == 'USB') ? 'selected' : ''; ?>>USB</option>
-                                        <option value="Online Resource" <?php echo ($first_book['carrier_type'] == 'Online Resource') ? 'selected' : ''; ?>>Online Resource</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="form-group">
-                                    <label>Language</label>
-                                    <select class="form-control" name="language">
-                                        <option value="English" <?php echo ($first_book['language'] == 'English' || empty($first_book['language'])) ? 'selected' : ''; ?>>English</option>
-                                        <option value="Filipino" <?php echo ($first_book['language'] == 'Filipino') ? 'selected' : ''; ?>>Filipino</option>
-                                        <option value="Spanish" <?php echo ($first_book['language'] == 'Spanish') ? 'selected' : ''; ?>>Spanish</option>
-                                        <option value="French" <?php echo ($first_book['language'] == 'French') ? 'selected' : ''; ?>>French</option>
-                                        <option value="Chinese" <?php echo ($first_book['language'] == 'Chinese') ? 'selected' : ''; ?>>Chinese</option>
-                                        <option value="Japanese" <?php echo ($first_book['language'] == 'Japanese') ? 'selected' : ''; ?>>Japanese</option>
-                                        <option value="Multiple" <?php echo ($first_book['language'] == 'Multiple') ? 'selected' : ''; ?>>Multiple Languages</option>
-                                    </select>
-                                    <small class="form-text text-muted">
-                                        <i class="fas fa-info-circle mr-1"></i> Primary language of the content.
-                                    </small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row mt-3">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>URL</label>
-                                    <input type="text" class="form-control" name="URL" value="<?php echo htmlspecialchars($first_book['URL'] ?? ''); ?>" placeholder="https://...">
-                                    <small class="form-text text-muted">
-                                        <i class="fas fa-info-circle mr-1"></i> Link to digital version if available.
-                                    </small>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>ISBN</label>
-                                    <input type="text" class="form-control" name="ISBN" value="<?php echo htmlspecialchars($first_book['ISBN'] ?? ''); ?>" placeholder="e.g., 9780123456789">
-                                    <small class="form-text text-muted">
-                                        <i class="fas fa-info-circle mr-1"></i> International Standard Book Number (10 or 13 digits).
-                                    </small>
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <label>Back Cover:</label>
+                                        <?php if (!empty($books[0]['back_image'])): ?>
+                                            <div class="mb-2 image-preview-container image-container">
+                                                <div class="remove-image" data-type="back"><i class="fas fa-times"></i> Remove</div>
+                                                <img src="<?php echo $books[0]['back_image']; ?>" alt="Back Cover" class="img-thumbnail">
+                                                <input type="hidden" name="remove_back_image" value="0">
+                                            </div>
+                                        <?php endif; ?>
+                                        <input type="file" class="form-control" name="back_image" accept="image/*">
+                                        <small class="form-text text-muted">Upload new image to replace existing back cover</small>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Individual Contributor Modal -->
-    <div class="modal fade" id="addIndividualContributorModal" tabindex="-1" aria-labelledby="addIndividualContributorModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title" id="addIndividualContributorModalLabel">Add New Individual Contributor</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="addIndividualContributorForm">
-                        <div class="mb-3">
-                            <label for="individualFirstName" class="form-label">First Name</label>
-                            <input type="text" class="form-control" id="individualFirstName" name="firstname" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="individualMiddleInit" class="form-label">Middle Initial</label>
-                            <input type="text" class="form-control" id="individualMiddleInit" name="middle_init">
-                            <small class="text-muted">Optional. Include period if applicable (e.g., "P.")</small>
-                        </div>
-                        <div class="mb-3">
-                            <label for="individualLastName" class="form-label">Last Name</label>
-                            <input type="text" class="form-control" id="individualLastName" name="lastname" required>
-                        </div>
-                        <div id="individualContributorFormAlert"></div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="saveIndividualContributor">Save Contributor</button>
+                
+                <div class="card-footer">
+                    <button type="submit" class="btn btn-primary">Update Books</button>
+                    <a href="book_list.php" class="btn btn-secondary">Cancel</a>
                 </div>
             </div>
-        </div>
+        </form>
     </div>
 
-    <!-- Corporate Contributor Modal -->
-    <div class="modal fade" id="addCorporateContributorModal" tabindex="-1" aria-labelledby="addCorporateContributorModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header bg-secondary text-white">
-                    <h5 class="modal-title" id="addCorporateContributorModalLabel">Add New Corporate Contributor</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="addCorporateContributorForm">
-                        <div class="mb-3">
-                            <label for="corporateName" class="form-label">Corporate Name</label>
-                            <input type="text" class="form-control" id="corporateName" name="name" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="corporateType" class="form-label">Type</label>
-                            <select class="form-control" id="corporateType" name="type" required>
-                                <option value="">Select type...</option>
-                                <option value="Government Institution">Government Institution</option>
-                                <option value="University">University</option>
-                                <option value="University Press">University Press</option>
-                                <option value="Research Institute">Research Institute</option>
-                                <option value="Non-profit Organization">Non-profit Organization</option>
-                                <option value="Corporation">Corporation</option>
-                                <option value="Professional Association">Professional Association</option>
-                                <option value="Other">Other</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="corporateLocation" class="form-label">Location</label>
-                            <input type="text" class="form-control" id="corporateLocation" name="location">
-                            <small class="text-muted">Optional. City, Country format recommended.</small>
-                        </div>
-                        <div class="mb-3">
-                            <label for="corporateDescription" class="form-label">Description</label>
-                            <textarea class="form-control" id="corporateDescription" name="description" rows="3"></textarea>
-                            <small class="text-muted">Optional. Brief description of the organization.</small>
-                        </div>
-                        <div id="corporateContributorFormAlert"></div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="saveCorporateContributor">Save Corporate Body</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Add Publisher Modal -->
-    <div class="modal fade" id="addPublisherModal" tabindex="-1" aria-labelledby="addPublisherModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title" id="addPublisherModalLabel">Add New Publisher</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="addPublisherForm">
-                        <div class="mb-3">
-                            <label for="publisherName" class="form-label">Publisher Name</label>
-                            <input type="text" class="form-control" id="publisherName" name="publisher" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="publisherPlace" class="form-label">Place</label>
-                            <input type="text" class="form-control" id="publisherPlace" name="place" required>
-                            <small class="text-muted">City, Country format recommended (e.g., Manila, Philippines)</small>
-                        </div>
-                        <div id="publisherFormAlert"></div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="savePublisher">Save Publisher</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <?php include '../admin/inc/footer.php'; ?>
-</div>
-
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-    // Define writer data array for search
-    const writers = [
-        <?php 
-        $writerCount = count($writers);
-        if ($writerCount > 0) {
-            foreach ($writers as $i => $writer) {
-                echo "{
-                    id: {$writer['id']},
-                    name: \"" . htmlspecialchars(addslashes($writer['name'])) . "\"
-                }";
-                if ($i < $writerCount - 1) {
-                    echo ",";
-                }
-            }
-        }
-        ?>
-    ];
-
-    // Define corporate data array for search
-    const corporates = [
-        <?php 
-        $corporateCount = count($corporates);
-        if ($corporateCount > 0) {
-            foreach ($corporates as $i => $corporate) {
-                echo "{
-                    id: {$corporate['id']},
-                    name: \"" . htmlspecialchars(addslashes($corporate['name'])) . "\",
-                    type: \"" . htmlspecialchars(addslashes($corporate['type'])) . "\"
-                }";
-                if ($i < $corporateCount - 1) {
-                    echo ",";
-                }
-            }
-        }
-        ?>
-    ];
-
-    // Define publishers data array for search
-    const publishers = [
-        <?php 
-        $publisherCount = count($publishers);
-        if ($publisherCount > 0) {
-            foreach ($publishers as $i => $publisher) {
-                echo "{
-                    id: {$publisher['id']},
-                    name: \"" . htmlspecialchars(addslashes($publisher['publisher'])) . "\",
-                    place: \"" . htmlspecialchars(addslashes($publisher['place'])) . "\"
-                }";
-                if ($i < $publisherCount - 1) {
-                    echo ",";
-                }
-            }
-        }
-        ?>
-    ];
-
-    // Publisher search functionality
-    const publisherSearchInput = document.getElementById('publisherSearch');
-    const publisherSearchResults = document.getElementById('publisherSearchResults');
-    const publisherResultsList = publisherSearchResults.querySelector('.list-group');
-    const selectedPublisherContainer = document.getElementById('selectedPublisherContainer');
-    const selectedPublisherName = document.getElementById('selectedPublisherName');
-    const publisherIdInput = document.getElementById('publisher_id_input');
-    
-    // Function to select a publisher
-    function selectPublisher(id, name) {
-        publisherIdInput.value = id;
-        selectedPublisherName.textContent = name;
-        publisherSearchInput.value = name;
-        selectedPublisherContainer.classList.remove('d-none');
-        publisherSearchResults.style.display = 'none';
-    }
-    
-    // Clear publisher selection
-    document.getElementById('clearPublisherSearch').addEventListener('click', function() {
-        publisherSearchInput.value = '';
-        publisherIdInput.value = '';
-        selectedPublisherContainer.classList.add('d-none');
-        publisherSearchResults.style.display = 'none';
-    });
-    
-    // Publisher search input handler
-    publisherSearchInput.addEventListener('input', function() {
-        const searchTerm = this.value.toLowerCase().trim();
-        
-        if (searchTerm.length < 1) {
-            publisherSearchResults.style.display = 'none';
-            return;
-        }
-        
-        // Filter publishers based on search term
-        const filteredPublishers = publishers.filter(publisher => 
-            publisher.name.toLowerCase().includes(searchTerm) || 
-            publisher.place.toLowerCase().includes(searchTerm)
-        );
-        
-        // Clear previous results
-        publisherResultsList.innerHTML = '';
-        
-        if (filteredPublishers.length === 0) {
-            publisherResultsList.innerHTML = '<div class="list-group-item">No publishers found</div>';
-        } else {
-            // Add results to the list
-            filteredPublishers.forEach(publisher => {
-                const resultItem = document.createElement('a');
-                resultItem.className = 'list-group-item list-group-item-action';
-                resultItem.href = '#';
-                resultItem.textContent = `${publisher.name} (${publisher.place})`;
-                resultItem.dataset.id = publisher.id;
-                resultItem.dataset.name = publisher.name;
+    <script>
+        $(document).ready(function() {
+            // Add image removal handling
+            $('.remove-image').click(function() {
+                const type = $(this).data('type');
+                const container = $(this).closest('.image-container');
                 
-                resultItem.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    selectPublisher(this.dataset.id, this.dataset.name);
-                });
+                // Set the hidden input value to 1 to indicate removal
+                $(`input[name="remove_${type}_image"]`).val(1);
                 
-                publisherResultsList.appendChild(resultItem);
-            });
-        }
-        
-        publisherSearchResults.style.display = 'block';
-    });
-    
-    // Close publisher search results when clicking outside
-    document.addEventListener('click', function(e) {
-        if (!publisherSearchInput.contains(e.target) && !publisherSearchResults.contains(e.target)) {
-            publisherSearchResults.style.display = 'none';
-        }
-    });
-
-    // Handle Publisher Form Submission
-    document.getElementById('savePublisher').addEventListener('click', function() {
-        const form = document.getElementById('addPublisherForm');
-        const formData = new FormData(form);
-        const alertBox = document.getElementById('publisherFormAlert');
-        
-        // Basic validation
-        const name = formData.get('publisher').trim();
-        const place = formData.get('place').trim();
-        
-        if (!name || !place) {
-            alertBox.innerHTML = `<div class="alert alert-danger">Publisher name and place are required.</div>`;
-            return;
-        }
-        
-        // Disable the button and show loading state
-        const saveButton = this;
-        saveButton.disabled = true;
-        saveButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
-        
-        // Send AJAX request to save the new publisher
-        fetch('../ajax/add_publisher.php', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.success) {
-                // Add the new publisher to the publishers array
-                publishers.push({
-                    id: data.publisher_id,
-                    name: data.publisher_name,
-                    place: data.publisher_place
-                });
+                // Hide the image container
+                container.slideUp(300);
                 
-                // Select the new publisher
-                selectPublisher(data.publisher_id, data.publisher_name);
-                
-                // Reset the form and close the modal
-                form.reset();
-                $('#addPublisherModal').modal('hide');
-                
-                // Show success message
+                // Show confirmation
                 Swal.fire({
                     icon: 'success',
-                    title: 'Success!',
-                    text: 'Publisher added successfully and selected for this book.',
-                    timer: 2000,
-                    showConfirmButton: false
+                    title: 'Image Removal',
+                    text: `The ${type} cover image will be removed when you save the changes.`,
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000
                 });
-            } else {
-                alertBox.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
-            }
-        })
-        .catch(error => {
-            alertBox.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
-        })
-        .finally(() => {
-            // Re-enable the button
-            saveButton.disabled = false;
-            saveButton.innerHTML = 'Save Publisher';
-        });
-    });
-    
-    // Clear form alerts when modal is closed
-    $('#addPublisherModal').on('hidden.bs.modal', function() {
-        document.getElementById('publisherFormAlert').innerHTML = '';
-        document.getElementById('addPublisherForm').reset();
-    });
-
-    // Search functionality for individual contributors
-    const individualSearchInput = document.getElementById('individualContributorsSearch');
-    const individualSearchResults = document.getElementById('individualSearchResults');
-    const individualResultsList = individualSearchResults.querySelector('.list-group');
-    
-    individualSearchInput.addEventListener('input', function() {
-        const searchTerm = this.value.toLowerCase().trim();
-        
-        if (searchTerm.length < 1) {
-            individualSearchResults.style.display = 'none';
-            return;
-        }
-        
-        // Filter writers based on search term
-        const filteredWriters = writers.filter(writer => 
-            writer.name.toLowerCase().includes(searchTerm)
-        );
-        
-        // Clear previous results
-        individualResultsList.innerHTML = '';
-        
-        if (filteredWriters.length === 0) {
-            individualResultsList.innerHTML = '<div class="list-group-item">No results found</div>';
-        } else {
-            // Add results to the list
-            filteredWriters.forEach(writer => {
-                const resultItem = document.createElement('a');
-                resultItem.className = 'list-group-item list-group-item-action';
-                resultItem.href = '#';
-                resultItem.textContent = writer.name;
-                resultItem.dataset.id = writer.id;
-                
-                resultItem.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    addIndividualContributor(writer.id, writer.name);
-                    individualSearchInput.value = '';
-                    individualSearchResults.style.display = 'none';
-                });
-                
-                individualResultsList.appendChild(resultItem);
             });
-        }
-        
-        individualSearchResults.style.display = 'block';
-    });
-    
-    // Clear individual search
-    document.getElementById('clearIndividualSearch').addEventListener('click', function() {
-        individualSearchInput.value = '';
-        individualSearchResults.style.display = 'none';
-    });
 
-    // Add individual contributor function
-    function addIndividualContributor(id, name) {
-        const container = document.getElementById('individualContributorsContainer');
-        
-        // Check if contributor already exists
-        const existingContributors = container.querySelectorAll('input[name="contributor_ids[]"]');
-        for (let i = 0; i < existingContributors.length; i++) {
-            if (existingContributors[i].value == id) {
-                alert('This contributor is already added.');
-                return;
-            }
-        }
-        
-        const newRow = document.createElement('div');
-        newRow.className = 'contributor-row d-flex align-items-center mb-2 border rounded p-2';
-        
-        const nameDiv = document.createElement('div');
-        nameDiv.className = 'flex-grow-1';
-        
-        // Create role badge
-        const roleBadge = document.createElement('span');
-        roleBadge.className = 'badge bg-primary text-white me-2';
-        roleBadge.textContent = 'Author'; // Default role
-        nameDiv.appendChild(roleBadge);
-        
-        // Add contributor name
-        const nameText = document.createTextNode(name);
-        nameDiv.appendChild(nameText);
-        
-        const hiddenInput = document.createElement('input');
-        hiddenInput.type = 'hidden';
-        hiddenInput.name = 'contributor_ids[]';
-        hiddenInput.value = id;
-        nameDiv.appendChild(hiddenInput);
-        
-        const roleSelect = document.createElement('select');
-        roleSelect.className = 'form-control mx-2 role-select';
-        roleSelect.name = 'contributor_roles[]';
-        roleSelect.style.width = 'auto';
-        roleSelect.setAttribute('onchange', 'updateRoleBadge(this)');
-        
-        const roles = ["Author", "Co Author", "Editor", "Translator", "Illustrator"];
-        roles.forEach(role => {
-            const roleOption = document.createElement('option');
-            roleOption.value = role;
-            roleOption.textContent = role;
-            roleSelect.appendChild(roleOption);
-        });
-        
-        const removeBtn = document.createElement('button');
-        removeBtn.type = 'button';
-        removeBtn.className = 'btn btn-danger btn-sm remove-contributor';
-        removeBtn.innerHTML = '<i class="fas fa-times"></i>';
-        
-        removeBtn.addEventListener('click', function() {
-            container.removeChild(newRow);
-        });
-        
-        newRow.appendChild(nameDiv);
-        newRow.appendChild(roleSelect);
-        newRow.appendChild(removeBtn);
-        
-        container.appendChild(newRow);
-    }
-
-    // Search functionality for corporate contributors
-    const corporateSearchInput = document.getElementById('corporateContributorsSearch');
-    const corporateSearchResults = document.getElementById('corporateSearchResults');
-    const corporateResultsList = corporateSearchResults.querySelector('.list-group');
-    
-    corporateSearchInput.addEventListener('input', function() {
-        const searchTerm = this.value.toLowerCase().trim();
-        
-        if (searchTerm.length < 1) {
-            corporateSearchResults.style.display = 'none';
-            return;
-        }
-        
-        // Filter corporates based on search term
-        const filteredCorporates = corporates.filter(corp => 
-            corp.name.toLowerCase().includes(searchTerm) || 
-            corp.type.toLowerCase().includes(searchTerm)
-        );
-        
-        // Clear previous results
-        corporateResultsList.innerHTML = '';
-        
-        if (filteredCorporates.length === 0) {
-            corporateResultsList.innerHTML = '<div class="list-group-item">No results found</div>';
-        } else {
-            // Add results to the list
-            filteredCorporates.forEach(corp => {
-                const resultItem = document.createElement('a');
-                resultItem.className = 'list-group-item list-group-item-action';
-                resultItem.href = '#';
-                resultItem.textContent = `${corp.name} (${corp.type})`;
-                resultItem.dataset.id = corp.id;
+            // Modify the writer card template
+            $('#addSelectedWriter').click(function() {
+                const writerId = $('#writerSelect').val();
+                const writerName = $('#writerSelect option:selected').text();
+                const role = $('#writerRoleSelect').val();
                 
-                resultItem.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    addCorporateContributor(corp.id, corp.name, corp.type);
-                    corporateSearchInput.value = '';
-                    corporateSearchResults.style.display = 'none';
-                });
-                
-                corporateResultsList.appendChild(resultItem);
-            });
-        }
-        
-        corporateSearchResults.style.display = 'block';
-    });
-    
-    // Clear corporate search
-    document.getElementById('clearCorporateSearch').addEventListener('click', function() {
-        corporateSearchInput.value = '';
-        corporateSearchResults.style.display = 'none';
-    });
-
-    // Add corporate contributor function
-    function addCorporateContributor(id, name, type) {
-        const container = document.getElementById('corporateContributorsContainer');
-        
-        // Check if corporate contributor already exists
-        const existingContributors = container.querySelectorAll('input[name="corporate_ids[]"]');
-        for (let i = 0; i < existingContributors.length; i++) {
-            if (existingContributors[i].value == id) {
-                alert('This corporate body is already added.');
-                return;
-            }
-        }
-        
-        const newRow = document.createElement('div');
-        newRow.className = 'corporate-row d-flex align-items-center mb-2 border rounded p-2';
-        
-        const nameDiv = document.createElement('div');
-        nameDiv.className = 'flex-grow-1';
-        
-        // Create role badge
-        const roleBadge = document.createElement('span');
-        roleBadge.className = 'badge bg-primary text-white me-2';
-        roleBadge.textContent = 'Corporate Author'; // Default role
-        nameDiv.appendChild(roleBadge);
-        
-        // Add corporate name and type
-        const nameText = document.createTextNode(`${name} (${type})`);
-        nameDiv.appendChild(nameText);
-        
-        const hiddenInput = document.createElement('input');
-        hiddenInput.type = 'hidden';
-        hiddenInput.name = 'corporate_ids[]';
-        hiddenInput.value = id;
-        nameDiv.appendChild(hiddenInput);
-        
-        const roleSelect = document.createElement('select');
-        roleSelect.className = 'form-control mx-2 role-select';
-        roleSelect.name = 'corporate_roles[]';
-        roleSelect.style.width = 'auto';
-        roleSelect.setAttribute('onchange', 'updateRoleBadge(this)');
-        
-        const roles = ["Corporate Author", "Corporate Contributor", "Publisher", "Distributor", "Sponsor", "Funding Body", "Research Institution"];
-        roles.forEach(role => {
-            const roleOption = document.createElement('option');
-            roleOption.value = role;
-            roleOption.textContent = role;
-            roleSelect.appendChild(roleOption);
-        });
-        
-        const removeBtn = document.createElement('button');
-        removeBtn.type = 'button';
-        removeBtn.className = 'btn btn-danger btn-sm remove-corporate';
-        removeBtn.innerHTML = '<i class="fas fa-times"></i>';
-        
-        removeBtn.addEventListener('click', function() {
-            container.removeChild(newRow);
-        });
-        
-        newRow.appendChild(nameDiv);
-        newRow.appendChild(roleSelect);
-        newRow.appendChild(removeBtn);
-        
-        container.appendChild(newRow);
-    }
-
-    // Handle Individual Contributor Form Submission
-    document.getElementById('saveIndividualContributor').addEventListener('click', function() {
-        const form = document.getElementById('addIndividualContributorForm');
-        const formData = new FormData(form);
-        const alertBox = document.getElementById('individualContributorFormAlert');
-        
-        // Basic validation
-        const firstname = formData.get('firstname').trim();
-        const lastname = formData.get('lastname').trim();
-        
-        if (!firstname || !lastname) {
-            alertBox.innerHTML = `<div class="alert alert-danger">First name and last name are required.</div>`;
-            return;
-        }
-        
-        // Disable the button and show loading state
-        const saveButton = this;
-        saveButton.disabled = true;
-        saveButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
-        
-        // Send AJAX request to save the new contributor
-        fetch('../ajax/add_writer.php', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.success) {
-                // Add the new writer to the writers array
-                writers.push({
-                    id: data.writer_id,
-                    name: data.writer_name
-                });
-                
-                // Add the new contributor to the selected contributors
-                addIndividualContributor(data.writer_id, data.writer_name);
-                
-                // Reset the form and close the modal - FIX: Use jQuery to close the modal
-                form.reset();
-                $('#addIndividualContributorModal').modal('hide');
-                
-                // Show success message
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Success!',
-                    text: 'Contributor added successfully and selected for this book.',
-                    timer: 2000,
-                    showConfirmButton: false
-                });
-            } else {
-                alertBox.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
-            }
-        })
-        .catch(error => {
-            alertBox.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
-        })
-        .finally(() => {
-            // Re-enable the button
-            saveButton.disabled = false;
-            saveButton.innerHTML = 'Save Contributor';
-        });
-    });
-    
-    // Handle Corporate Contributor Form Submission
-    document.getElementById('saveCorporateContributor').addEventListener('click', function() {
-        const form = document.getElementById('addCorporateContributorForm');
-        const formData = new FormData(form);
-        const alertBox = document.getElementById('corporateContributorFormAlert');
-        
-        // Basic validation
-        const name = formData.get('name').trim();
-        const type = formData.get('type');
-        
-        if (!name || !type) {
-            alertBox.innerHTML = `<div class="alert alert-danger">Name and type are required.</div>`;
-            return;
-        }
-        
-        // Disable the button and show loading state
-        const saveButton = this;
-        saveButton.disabled = true;
-        saveButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
-        
-        // Send AJAX request to save the new corporate contributor
-        fetch('../ajax/add_corporate.php', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.success) {
-                // Add the new corporate to the corporates array
-                corporates.push({
-                    id: data.corporate_id,
-                    name: data.name,
-                    type: data.type
-                });
-                
-                // Add the new corporate contributor to the selected contributors
-                addCorporateContributor(data.corporate_id, data.name, data.type);
-                
-                // Reset the form and close the modal - FIX: Use jQuery to close the modal
-                form.reset();
-                $('#addCorporateContributorModal').modal('hide');
-                
-                // Show success message
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Success!',
-                    text: 'Corporate body added successfully and selected for this book.',
-                    timer: 2000,
-                    showConfirmButton: false
-                });
-            } else {
-                alertBox.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
-            }
-        })
-        .catch(error => {
-            alertBox.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
-        })
-        .finally(() => {
-            // Re-enable the button
-            saveButton.disabled = false;
-            saveButton.innerHTML = 'Save Corporate Body';
-        });
-    });
-    
-    // Clear form alerts when modal is closed - Fix: Use jQuery events for Bootstrap 4 modals
-    $('#addIndividualContributorModal').on('hidden.bs.modal', function() {
-        document.getElementById('individualContributorFormAlert').innerHTML = '';
-        document.getElementById('addIndividualContributorForm').reset();
-    });
-    
-    $('#addCorporateContributorModal').on('hidden.bs.modal', function() {
-        document.getElementById('corporateContributorFormAlert').innerHTML = '';
-        document.getElementById('addCorporateContributorForm').reset();
-    });
-
-    // Setup event listeners for existing remove buttons
-    document.querySelectorAll(".remove-contributor").forEach(button => {
-        button.addEventListener("click", function() {
-            const row = this.closest('.contributor-row');
-            row.parentElement.removeChild(row);
-        });
-    });
-
-    document.querySelectorAll(".remove-corporate").forEach(button => {
-        button.addEventListener("click", function() {
-            const row = this.closest('.corporate-row');
-            row.parentElement.removeChild(row);
-        });
-    });
-
-    // Close search results when clicking outside
-    document.addEventListener('click', function(e) {
-        if (!individualSearchInput.contains(e.target) && !individualSearchResults.contains(e.target)) {
-            individualSearchResults.style.display = 'none';
-        }
-        
-        if (!corporateSearchInput.contains(e.target) && !corporateSearchResults.contains(e.target)) {
-            corporateSearchResults.style.display = 'none';
-        }
-    });
-
-    // Drag and drop image upload functionality
-    document.querySelectorAll(".drop-zone__input").forEach(inputElement => {
-        const dropZoneElement = inputElement.closest(".drop-zone");
-        const targetId = inputElement.id === "frontCoverInput" ? "frontCoverThumb" : "backCoverThumb";
-        const thumbElement = document.getElementById(targetId);
-
-        // Click to select file
-        dropZoneElement.addEventListener("click", e => {
-            // Don't trigger if clicking on the remove button
-            if (e.target.closest('.remove-image')) {
-                return;
-            }
-            inputElement.click();
-        });
-
-        // Change selected file
-        inputElement.addEventListener("change", e => {
-            if (inputElement.files.length) {
-                updateThumbnail(dropZoneElement, thumbElement, inputElement.files[0]);
-            }
-        });
-
-        // Drag over event
-        dropZoneElement.addEventListener("dragover", e => {
-            e.preventDefault();
-            dropZoneElement.classList.add("drop-zone--over");
-        });
-
-        // Drag leave event
-        ["dragleave", "dragend"].forEach(type => {
-            dropZoneElement.addEventListener(type, e => {
-                dropZoneElement.classList.remove("drop-zone--over");
-            });
-        });
-
-        // Drop event
-        dropZoneElement.addEventListener("drop", e => {
-            e.preventDefault();
-            
-            if (e.dataTransfer.files.length) {
-                inputElement.files = e.dataTransfer.files;
-                updateThumbnail(dropZoneElement, thumbElement, e.dataTransfer.files[0]);
-            }
-            
-            dropZoneElement.classList.remove("drop-zone--over");
-        });
-    });
-
-    // Function to update thumbnail
-    function updateThumbnail(dropZoneElement, thumbElement, file) {
-        // Show thumbnail for image files
-        if (file.type.startsWith("image/")) {
-            const reader = new FileReader();
-            
-            reader.readAsDataURL(file);
-            reader.onload = () => {
-                thumbElement.style.backgroundImage = `url('${reader.result}')`;
-                thumbElement.setAttribute("data-label", file.name);
-                thumbElement.classList.remove("d-none");
-                
-                // Hide the prompt text when showing thumbnail
-                const promptElement = dropZoneElement.querySelector(".drop-zone__prompt");
-                if (promptElement) {
-                    promptElement.style.display = "none";
+                if (!writerId || !role) {
+                    alert('Please select both a writer and a role');
+                    return;
                 }
-            };
-        } else {
-            // Not an image file - show error or default thumbnail
-            thumbElement.style.backgroundImage = null;
-            thumbElement.setAttribute("data-label", "Not a valid image");
-        }
-    }
+                
+                // Create writer card
+                const writerCard = `
+                    <div class="writer-entry" data-writer-id="${writerId}">
+                        <div class="contributor-card">
+                            <i class="fas fa-times remove-btn"></i>
+                            <i class="fas fa-user-edit me-2"></i>
+                            <span class="contributor-name">${writerName}</span>
+                            <span class="contributor-role">${role}</span>
+                            <input type="hidden" name="contributors[]" value='{"writer_id":"${writerId}","role":"${role}"}'>
+                        </div>
+                    </div>
+                `;
+                
+                $('#selectedWriterCards').append(writerCard);
+                
+                // Reset selections
+                $('#writerSelect').val('').trigger('change');
+                $('#writerRoleSelect').val('');
+            });
 
-    // Remove selected image
-    document.querySelectorAll(".remove-image").forEach(button => {
-        button.addEventListener("click", e => {
-            const target = e.currentTarget.getAttribute("data-target");
-            const inputId = target === "front" ? "frontCoverInput" : "backCoverInput";
-            const thumbId = target === "front" ? "frontCoverThumb" : "backCoverThumb";
-            const dropZoneId = target === "front" ? "frontCoverDropZone" : "backCoverDropZone";
-            
-            // Clear the file input
-            const input = document.getElementById(inputId);
-            input.value = "";
-            
-            // Hide the thumbnail
-            const thumb = document.getElementById(thumbId);
-            thumb.classList.add("d-none");
-            thumb.style.backgroundImage = "";
-            
-            // Show the prompt text again
-            const dropZone = document.getElementById(dropZoneId);
-            const prompt = dropZone.querySelector(".drop-zone__prompt");
-            if (prompt) {
-                prompt.style.display = "block";
-            }
-        });
-    });
+            // Modify the corporate card template
+            $('#addSelectedCorporate').click(function() {
+                const corporateId = $('#corporateSelect').val();
+                const corporateName = $('#corporateSelect option:selected').text();
+                const role = $('#corporateRoleSelect').val();
+                
+                if (!corporateId || !role) {
+                    alert('Please select both a corporate entity and a role');
+                    return;
+                }
+                
+                // Create corporate card
+                const corporateCard = `
+                    <div class="corporate-entry" data-corporate-id="${corporateId}">
+                        <div class="contributor-card">
+                            <i class="fas fa-times remove-btn"></i>
+                            <i class="fas fa-building me-2"></i>
+                            <span class="contributor-name">${corporateName}</span>
+                            <span class="contributor-role">${role}</span>
+                            <input type="hidden" name="corporate_contributors[]" value='{"corporate_id":"${corporateId}","role":"${role}"}'>
+                        </div>
+                    </div>
+                `;
+                
+                $('#selectedCorporateCards').append(corporateCard);
+                
+                // Reset selections
+                $('#corporateSelect').val('').trigger('change');
+                $('#corporateRoleSelect').val('');
+            });
 
-    // Remove current image functionality
-    document.querySelectorAll(".remove-current-image").forEach(button => {
-        button.addEventListener("click", e => {
-            const target = e.currentTarget.getAttribute("data-target");
+            // Update remove contributor handler
+            $(document).on('click', '.remove-btn', function() {
+                $(this).closest('.writer-entry, .corporate-entry').remove();
+            });
+
+            // Initialize select2 with search
+            $('#writerSelect, #corporateSelect').select2({
+                placeholder: "Search and select...",
+                allowClear: true
+            });
             
-            // Show confirmation dialog
-            Swal.fire({
-                title: 'Remove image?',
-                text: "This will remove the current image from all copies of this book.",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#3085d6',
-                confirmButtonText: 'Yes, remove it!'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Set the hidden field value to indicate removal
-                    if (target === "front") {
-                        document.getElementById("remove_front_image").value = "1";
-                        document.getElementById("current-front-image").style.display = "none";
-                    } else {
-                        document.getElementById("remove_back_image").value = "1";
-                        document.getElementById("current-back-image").style.display = "none";
+            // Object to track validation errors
+            let accessionErrors = {};
+            
+            // Function to check for duplicate accession number
+            function checkDuplicateAccession(input) {
+                const accessionField = $(input);
+                const bookId = accessionField.data('book-id');
+                const accession = accessionField.val().trim();
+                const originalAccession = accessionField.data('original');
+                
+                // Skip validation if the accession hasn't changed
+                if (accession === originalAccession) {
+                    accessionField.removeClass('is-invalid');
+                    delete accessionErrors[bookId];
+                    updateSubmitButton();
+                    return;
+                }
+                
+                // Skip validation if the field is empty
+                if (!accession) {
+                    accessionField.removeClass('is-invalid');
+                    delete accessionErrors[bookId];
+                    updateSubmitButton();
+                    return;
+                }
+                
+                // Make AJAX request to check for duplication
+                $.ajax({
+                    url: 'check_accession.php',
+                    method: 'POST',
+                    data: {
+                        accession: accession,
+                        book_id: bookId
+                    },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.exists) {
+                            accessionField.addClass('is-invalid');
+                            accessionField.next('.invalid-feedback').text('This accession number already exists in another book.');
+                            accessionErrors[bookId] = true;
+                        } else {
+                            accessionField.removeClass('is-invalid');
+                            delete accessionErrors[bookId];
+                        }
+                        updateSubmitButton();
+                    },
+                    error: function() {
+                        // If the request fails, don't block submission
+                        accessionField.removeClass('is-invalid');
+                        delete accessionErrors[bookId];
+                        updateSubmitButton();
                     }
+                });
+            }
+            
+            // Update the submit button state based on validation errors
+            function updateSubmitButton() {
+                if (Object.keys(accessionErrors).length > 0) {
+                    $('#updateBooksForm button[type="submit"]').prop('disabled', true);
+                } else {
+                    $('#updateBooksForm button[type="submit"]').prop('disabled', false);
+                }
+            }
+            
+            // Add validation on input change with debounce
+            let debounceTimer;
+            $('.accession-field').on('input', function() {
+                const input = this;
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(function() {
+                    checkDuplicateAccession(input);
+                }, 300); // 300ms delay
+            });
+            
+            // Also validate on blur
+            $('.accession-field').on('blur', function() {
+                clearTimeout(debounceTimer);
+                checkDuplicateAccession(this);
+            });
+            
+            // Validate all fields on form submission
+            $('#updateBooksForm').on('submit', function(e) {
+                // Check all accession fields for duplicates
+                $('.accession-field').each(function() {
+                    checkDuplicateAccession(this);
+                });
+                
+                // Prevent form submission if there are errors
+                if (Object.keys(accessionErrors).length > 0) {
+                    e.preventDefault();
                     
-                    // Show a success message
-                    Swal.fire(
-                        'Marked for removal',
-                        'The image will be removed when you save changes.',
-                        'success'
-                    );
+                    // Switch to the copies tab
+                    $('a[href="#copies"]').tab('show');
+                    
+                    // Scroll to the first invalid field
+                    setTimeout(function() {
+                        const firstError = $('.is-invalid').first();
+                        if (firstError.length) {
+                            $('html, body').animate({
+                                scrollTop: firstError.offset().top - 100
+                            }, 200);
+                            firstError.focus();
+                        }
+                    }, 200);
+                    
+                    // Show error message
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Validation Error',
+                        text: 'There are duplicate accession numbers. Please fix the highlighted fields.'
+                    });
                 }
             });
+            
+            // Check for existing errors on page load
+            $('.accession-field').each(function() {
+                if ($(this).hasClass('is-invalid')) {
+                    const bookId = $(this).data('book-id');
+                    accessionErrors[bookId] = true;
+                }
+            });
+            updateSubmitButton();
         });
-    });
-
-    // Style for search results
-    const style = document.createElement('style');
-    style.textContent = `
-        .search-results {
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.15);
-        }
-        .list-group-item-action:hover {
-            background-color: #f8f9fa;
-        }
-        .contributor-row, .corporate-row {
-            transition: background-color 0.2s;
-        }
-        .contributor-row:hover, .corporate-row:hover {
-            background-color: #f8f9fa;
-        }
-    `;
-    document.head.appendChild(style);
-});
-
-// Function to update the role badge when the role dropdown changes
-function updateRoleBadge(selectElement) {
-    const role = selectElement.value;
-    const row = selectElement.closest('.contributor-row, .corporate-row');
-    const badge = row.querySelector('.badge');
-    
-    // Remove existing color classes
-    badge.classList.remove(
-        'bg-primary', 'bg-success', 'bg-info', 
-        'bg-warning', 'bg-secondary', 'bg-dark', 
-        'bg-light', 'text-dark', 'text-white'
-    );
-    
-    // Assign new color class based on role
-    badge.textContent = role;
-    
-    // Set appropriate color based on role
-    if (role === 'Author' || role === 'Corporate Author') {
-        badge.classList.add('bg-primary', 'text-white');
-    } else if (role === 'Co Author' || role === 'Co-Author' || role === 'Corporate Contributor') {
-        badge.classList.add('bg-success', 'text-white');
-    } else if (role === 'Editor' || role === 'Publisher') {
-        badge.classList.add('bg-info', 'text-white');
-    } else if (role === 'Translator' || role === 'Distributor') {
-        badge.classList.add('bg-warning', 'text-white');
-    } else if (role === 'Illustrator' || role === 'Sponsor') {
-        badge.classList.add('bg-secondary', 'text-white');
-    } else if (role === 'Funding Body') {
-        badge.classList.add('bg-dark', 'text-white');
-    } else if (role === 'Research Institution') {
-        badge.classList.add('bg-light', 'text-dark');
-    }
-}
-</script>
-
-<style>
-/* Drag and drop image upload styles */
-.drop-zone {
-    max-width: 100%;
-    height: 200px;
-    padding: 25px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    cursor: pointer;
-    color: #666;
-    border: 2px dashed #ccc;
-    border-radius: 10px;
-    position: relative;
-    transition: all 0.3s ease;
-}
-
-.drop-zone:hover {
-    border-color: #4e73df;
-    background-color: #f8f9fc;
-}
-
-.drop-zone.drop-zone--over {
-    border-color: #4e73df;
-    background-color: #eef1ff;
-}
-
-.drop-zone__input {
-    display: none;
-}
-
-.drop-zone__thumb {
-    width: 100%;
-    height: 100%;
-    border-radius: 10px;
-    overflow: hidden;
-    background-color: #f8f9fc;
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
-    position: relative;
-}
-
-.drop-zone__thumb::after {
-    content: attr(data-label);
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    padding: 5px 0;
-    color: #fff;
-    background-color: rgba(0, 0, 0, 0.5);
-    font-size: 14px;
-    text-align: center;
-}
-
-.drop-zone__thumb-overlay {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    display: flex;
-    gap: 5px;
-}
-
-.current-image-container {
-    margin-top: 10px;
-    background-color: #f8f9fc;
-    padding: 10px;
-    border-radius: 5px;
-    border: 1px solid #e3e6f0;
-    text-align: center;
-}
-</style>
+    </script>
+</body>
+</html>

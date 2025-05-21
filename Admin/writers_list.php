@@ -143,6 +143,35 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['firstname'])) { // Che
     exit();
 }
 
+// Handle update writer submission
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['action'] == 'updateWriter') {
+    $writer_id = $conn->real_escape_string($_POST['writer_id']);
+    $firstname = $conn->real_escape_string($_POST['update_firstname']);
+    $middle_init = $conn->real_escape_string($_POST['update_middle_init']);
+    $lastname = $conn->real_escape_string($_POST['update_lastname']);
+
+    // Check for duplicate names excluding current writer
+    $checkSql = "SELECT * FROM writers WHERE firstname = '$firstname' AND middle_init = '$middle_init' 
+                 AND lastname = '$lastname' AND id != '$writer_id'";
+    $checkResult = $conn->query($checkSql);
+
+    if ($checkResult->num_rows > 0) {
+        $_SESSION['error_message'] = "A writer with this name already exists.";
+    } else {
+        $sql = "UPDATE writers SET firstname = '$firstname', middle_init = '$middle_init', 
+                lastname = '$lastname' WHERE id = '$writer_id'";
+        
+        if ($conn->query($sql)) {
+            $_SESSION['success_message'] = "Writer updated successfully.";
+        } else {
+            $_SESSION['error_message'] = "Error updating writer: " . $conn->error;
+        }
+    }
+
+    header("Location: writers_list.php");
+    exit();
+}
+
 // Get the search query if it exists
 $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
 
@@ -248,6 +277,52 @@ $result = $conn->query($sql);
     </div>
 </div>
 
+<!-- Update Writer Modal -->
+<div class="modal fade" id="updateWriterModal" tabindex="-1" role="dialog" aria-labelledby="updateWriterModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title" id="updateWriterModalLabel">Update Writer</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="updateWriterForm" method="POST" action="writers_list.php">
+                    <input type="hidden" name="action" value="updateWriter">
+                    <input type="hidden" name="writer_id" id="update_writer_id">
+                    <div class="form-group">
+                        <label for="update_firstname">First Name</label>
+                        <input type="text" class="form-control" name="update_firstname" id="update_firstname" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="update_middle_init">Middle Initial</label>
+                        <input type="text" class="form-control" name="update_middle_init" id="update_middle_init">
+                    </div>
+                    <div class="form-group">
+                        <label for="update_lastname">Last Name</label>
+                        <input type="text" class="form-control" name="update_lastname" id="update_lastname" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-warning" id="updateWriterBtn">Update Writer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Context Menu -->
+<div id="contextMenu" class="dropdown-menu context-menu" style="display: none; position: absolute;">
+    <a class="dropdown-item" href="#" id="contextMenuUpdate">
+        <i class="fas fa-edit text-warning"></i> Edit Writer
+    </a>
+    <a class="dropdown-item" href="#" id="contextMenuDelete">
+        <i class="fas fa-trash text-danger"></i> Delete Writer
+    </a>
+</div>
+
 <!-- Footer -->
 <?php include '../Admin/inc/footer.php'; ?>
 <!-- End of Footer -->
@@ -255,6 +330,8 @@ $result = $conn->query($sql);
 <script>
 $(document).ready(function () {
     var selectedIds = [];
+    var contextMenuTargetId = null;
+    var contextMenuTargetData = null;
 
     // Handle select all checkbox
     $('#selectAll').on('change', function () {
@@ -279,23 +356,127 @@ $(document).ready(function () {
     // Update delete button state and count
     function updateDeleteButton() {
         const count = selectedIds.length;
-        $('#deleteSelectedBtn span').text(count);
+        $('#selectedDeleteCount').text(count);
         $('#deleteSelectedBtn').prop('disabled', count === 0);
     }
+
+    // Context menu setup
+    $('#dataTable tbody').on('contextmenu', 'tr', function (e) {
+        e.preventDefault();
+        
+        // Get data from row
+        contextMenuTargetId = $(this).find('td:eq(1)').text();
+        contextMenuTargetData = {
+            firstname: $(this).find('td:eq(2)').text(),
+            middleInit: $(this).find('td:eq(3)').text(),
+            lastname: $(this).find('td:eq(4)').text()
+        };
+        
+        // Position the context menu at the cursor position
+        $('#contextMenu').css({
+            top: e.pageY + 'px',
+            left: e.pageX + 'px'
+        }).show();
+        
+        // Highlight the selected row
+        $('#dataTable tbody tr').removeClass('table-active');
+        $(this).addClass('table-active');
+    });
+
+    // Hide context menu when clicking elsewhere
+    $(document).on('click', function () {
+        $('#contextMenu').hide();
+        $('#dataTable tbody tr').removeClass('table-active');
+    });
+
+    // Handle context menu update action
+    $('#contextMenuUpdate').on('click', function (e) {
+        e.preventDefault();
+        
+        // Populate update modal with selected writer data
+        $('#update_writer_id').val(contextMenuTargetId);
+        $('#update_firstname').val(contextMenuTargetData.firstname);
+        $('#update_middle_init').val(contextMenuTargetData.middleInit);
+        $('#update_lastname').val(contextMenuTargetData.lastname);
+        
+        // Show the modal
+        $('#updateWriterModal').modal('show');
+    });
+
+    // Handle context menu delete action
+    $('#contextMenuDelete').on('click', function (e) {
+        e.preventDefault();
+        
+        // Set up confirmation dialog for deletion
+        Swal.fire({
+            title: 'Confirm Deletion',
+            html: `Are you sure you want to delete writer <strong>${contextMenuTargetData.firstname} ${contextMenuTargetData.lastname}</strong>?<br><br>
+                   <span class="text-danger">This action cannot be undone!</span>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!',
+            cancelButtonText: 'Cancel',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // If confirmed, perform deletion via AJAX
+                $.ajax({
+                    url: 'writers_list.php',
+                    method: 'POST',
+                    data: {
+                        action: 'deleteWriter',
+                        writer_id: contextMenuTargetId
+                    },
+                    success: function (response) {
+                        const data = JSON.parse(response);
+                        if (data.success) {
+                            Swal.fire({
+                                title: 'Deleted!',
+                                text: 'Writer has been deleted successfully.',
+                                icon: 'success',
+                                confirmButtonColor: '#3085d6'
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Error!',
+                                text: data.error || 'An error occurred while deleting the writer.',
+                                icon: 'error',
+                                confirmButtonColor: '#d33'
+                            });
+                        }
+                    },
+                    error: function () {
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'An error occurred while deleting the writer.',
+                            icon: 'error',
+                            confirmButtonColor: '#d33'
+                        });
+                    }
+                });
+            }
+        });
+    });
 
     // Handle bulk delete button click
     $('#deleteSelectedBtn').on('click', function () {
         if (selectedIds.length === 0) return;
 
         Swal.fire({
-            title: 'Confirm Bulk Deletion',
-            html: `Are you sure you want to delete <strong>${selectedIds.length}</strong> selected writer(s)?`,
+            title: 'Confirm Deletion',
+            html: `Are you sure you want to delete <strong>${selectedIds.length}</strong> selected writer(s)?<br><br>
+                   <span class="text-danger">This action cannot be undone!</span>`,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#d33',
             cancelButtonColor: '#3085d6',
             confirmButtonText: 'Yes, delete them!',
-            cancelButtonText: 'Cancel'
+            cancelButtonText: 'Cancel',
+            reverseButtons: true
         }).then((result) => {
             if (result.isConfirmed) {
                 // Submit the form with selected IDs
@@ -321,6 +502,15 @@ $(document).ready(function () {
         });
     });
 
+    // Handle form submissions
+    $('#saveWriter').click(function () {
+        $('#addWriterForm').submit();
+    });
+
+    $('#updateWriterBtn').click(function () {
+        $('#updateWriterForm').submit();
+    });
+
     $('#dataTable').DataTable({
         "dom": "<'row mb-3'<'col-sm-6'l><'col-sm-6 d-flex justify-content-end'f>>" +
                "<'row'<'col-sm-12'tr>>" +
@@ -339,8 +529,37 @@ $(document).ready(function () {
         }
     });
 
-    $('#saveWriter').click(function () {
-        $('#addWriterForm').submit();
+    // Add CSS for the context menu and table row highlighting
+    $('<style>')
+        .prop('type', 'text/css')
+        .html(`
+            .context-menu {
+                z-index: 1000;
+                min-width: 200px;
+                box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+            }
+            .table-active {
+                background-color: rgba(0, 123, 255, 0.1) !important;
+            }
+            .dropdown-item:hover {
+                background-color: rgba(0, 123, 255, 0.1);
+            }
+        `)
+        .appendTo('head');
+
+    // Double-click row to open update modal
+    $('#dataTable tbody').on('dblclick', 'tr', function () {
+        const id = $(this).find('td:eq(1)').text();
+        const firstname = $(this).find('td:eq(2)').text();
+        const middleInit = $(this).find('td:eq(3)').text();
+        const lastname = $(this).find('td:eq(4)').text();
+        
+        $('#update_writer_id').val(id);
+        $('#update_firstname').val(firstname);
+        $('#update_middle_init').val(middleInit);
+        $('#update_lastname').val(lastname);
+        
+        $('#updateWriterModal').modal('show');
     });
 
     // Display session messages using SweetAlert2
