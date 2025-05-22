@@ -9,7 +9,7 @@
 // Database credentials
 $hostname = "localhost";
 $username = "root";
-$password = "";
+$password = "shinkenzaki032324";
 $database = "librarysystem";
 
 // Create connection

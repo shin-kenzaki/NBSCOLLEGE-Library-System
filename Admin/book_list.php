@@ -959,7 +959,7 @@ $result = $stmt->get_result();
                 maxAccession = parseInt(maxAccession) || 0;
                 // Shelf location options
                 const shelfOptions = [
-                    ['TR', 'Teachers Reference'],
+                    ['TH', 'Thesis'],
                     ['FIL', 'Filipiniana'],
                     ['CIR', 'Circulation'],
                     ['REF', 'Reference'],

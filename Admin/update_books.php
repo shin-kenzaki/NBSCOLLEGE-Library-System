@@ -142,6 +142,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 mkdir($uploadPath, 0777, true);
             }
 
+            // Get current date for the update
+            $current_date = date('Y-m-d');
+
             // Prepare common fields first
             $common_fields = [
                 'title' => $_POST['title'],
@@ -152,12 +155,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'subject_detail' => $_POST['subject_detail'],
                 'summary' => $_POST['summary'],
                 'contents' => $_POST['contents'],
+                'dimension' => $_POST['dimension'],
+                'total_pages' => $_POST['total_pages'],
+                'supplementary_contents' => $_POST['supplementary_contents'],
                 'ISBN' => $_POST['ISBN'],
                 'content_type' => $_POST['content_type'],
                 'media_type' => $_POST['media_type'],
                 'carrier_type' => $_POST['carrier_type'],
                 'language' => $_POST['language'],
-                'URL' => $_POST['URL']
+                'URL' => $_POST['URL'],
+                'updated_by' => $_SESSION['admin_employee_id'],  // Add admin employee ID
+                'last_update' => $current_date  // Add current date
             ];
 
             // Process front image
@@ -638,16 +646,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </div>
                                 <div class="col-md-4">
                                     <div class="form-group">
-                                        <label>Total Pages:</label>
+                                        <label>Extent of Text and Illustrations:</label>
                                         <input type="text" class="form-control" name="total_pages" value="<?php echo $books[0]['total_pages']; ?>">
-                                        <small class="form-text text-muted">Include prefix pages and main pages (e.g., "xiii 256p." or "xii, 345p.")</small>
+                                        <small class="form-text text-muted">Format as: preliminary pages + main text (e.g., "xiii, 256p." or "xii, 345p. : ill.")</small>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <label>Supplementary Contents:</label>
                                         <input type="text" class="form-control" name="supplementary_contents" value="<?php echo $books[0]['supplementary_contents']; ?>">
-                                        <small class="form-text text-muted">Appendix (app.), Bibliography (bibl.), Glossary (gloss.), Index (ind.), Illustrations (ill.), Maps, Tables (tbl.)</small>
+                                        <small class="form-text text-muted">Includes: Appendix (app.), Bibliography (bibl.), Glossary (gloss.), Index (ind.), Maps, Tables (tbl.)</small>
                                     </div>
                                 </div>
                             </div>
@@ -939,7 +947,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                 <label>Shelf Location:</label>
                                                 <select class="form-control" name="copies[<?php echo $book['id']; ?>][shelf_location]">
                                                     <?php
-                                                    $locations = ['TR' => 'Teachers Reference', 'FIL' => 'Filipiniana', 
+                                                    $locations = ['TH' => 'Thesis', 
+                                                                'FIL' => 'Filipiniana', 
                                                                 'CIR' => 'Circulation', 'REF' => 'Reference', 
                                                                 'SC' => 'Special Collection', 'BIO' => 'Biography',
                                                                 'RES' => 'Reserve', 'FIC' => 'Fiction'];

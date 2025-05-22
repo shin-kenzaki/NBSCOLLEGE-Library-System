@@ -839,10 +839,10 @@ $accession_error = '';
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="form-group mb-0">
-                                                    <label for="pages">Total Pages</label>
+                                                    <label for="pages">Extent of Text and Illustrations</label>
                                                     <input type="text" class="form-control" id="pages" name="pages">
                                                     <small class="form-text text-muted">
-                                                        <i class="fas fa-info-circle mr-1"></i> Include prefix pages and main pages (e.g., "xiii 256p." or "xii, 345p.")
+                                                        <i class="fas fa-info-circle mr-1"></i> Format as: preliminary pages + main text (e.g., "xiii, 256p." or "xii, 345p. : ill.")
                                                     </small>
                                                 </div>
                                             </div>
@@ -854,7 +854,7 @@ $accession_error = '';
                                                     <label for="supplementary_content">Supplementary Contents</label>
                                                     <input type="text" class="form-control" id="supplementary_content" name="supplementary_content">
                                                     <small class="form-text text-muted">
-                                                        <i class="fas fa-info-circle mr-1"></i> Appendix (app.), Bibliography (bibl.), Glossary (gloss.), Index (ind.), Illustrations (ill.), Maps, Tables (tbl.)
+                                                        <i class="fas fa-info-circle mr-1"></i> Includes: Appendix (app.), Bibliography (bibl.), Glossary (gloss.), Index (ind.), Maps, Tables (tbl.)
                                                     </small>
                                                 </div>
                                             </div>
@@ -3154,7 +3154,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
                     // Add shelf location options
                     const shelfOptions = [
-                        ['TR', 'Teachers Reference'],
+                        ['TH', 'Thesis'],
                         ['FIL', 'Filipiniana'],
                         ['CIR', 'Circulation'],
                         ['REF', 'Reference'],
@@ -3825,7 +3825,7 @@ function updateISBNFields() {
 
             // Add shelf location options
             const shelfOptions = [
-                ['TR', 'Teachers Reference'],
+                ['TH', 'Thesis'],
                 ['FIL', 'Filipiniana'],
                 ['CIR', 'Circulation'],
                 ['REF', 'Reference'],
@@ -4138,7 +4138,7 @@ function updateCallNumbers() {
 
             // Add shelf location options
             const shelfOptions = [
-                ['TR', 'Teachers Reference'],
+                ['TH', 'Thesis'],
                 ['FIL', 'Filipiniana'],
                 ['CIR', 'Circulation'],
                 ['REF', 'Reference'],
@@ -4261,7 +4261,7 @@ function createCallNumberRow(container, baseAccession, increment, groupIndex) {
 
     // Add shelf location options
     const shelfOptions = [
-        ['TR', 'Teachers Reference'],
+        ['TH', 'Thesis'],
         ['FIL', 'Filipiniana'],
         ['CIR', 'Circulation'],
         ['REF', 'Reference'],
@@ -4524,7 +4524,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 // Add shelf locations
                 [
-                    ['TR', 'Teachers Reference'],
+                    ['TH', 'Thesis'],
                     ['FIL', 'Filipiniana'],
                     ['CIR', 'Circulation'],
                     ['REF', 'Reference'],

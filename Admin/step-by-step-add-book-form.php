@@ -1092,11 +1092,11 @@ $showCorporateContributors = !isset($_SESSION['book_shortcut']['contributor_type
                                             </div>
                                         </div>
                                         <div class="col-md-6">
-                                            <label>Total Pages</label>
+                                            <label>Extent of Text and Illustrations</label>
                                             <input type="text" class="form-control" name="total_pages">
                                             <div class="mt-2">
                                                 <small class="form-text text-muted">
-                                                    <i class="fas fa-info-circle mr-1"></i> Include prefix pages and main pages (e.g., "xiii 256p." or "xii, 345p.")
+                                                    <i class="fas fa-info-circle mr-1"></i> Format as: preliminary pages + main text (e.g., "xiii, 256p." or "xii, 345p. : ill.")
                                                 </small>
                                             </div>
                                         </div>
@@ -1109,7 +1109,7 @@ $showCorporateContributors = !isset($_SESSION['book_shortcut']['contributor_type
                                             <input type="text" class="form-control" name="supplementary_content">
                                             <div class="mt-2">
                                                 <small class="form-text text-muted">
-                                                    <i class="fas fa-info-circle mr-1"></i> Appendix (app.), Bibliography (bibl.), Glossary (gloss.), Index (ind.), Illustrations (ill.), Maps, Tables (tbl.)
+                                                    <i class="fas fa-info-circle mr-1"></i> Includes: Appendix (app.), Bibliography (bibl.), Glossary (gloss.), Index (ind.), Maps, Tables (tbl.)
                                                 </small>
                                             </div>
                                         </div>
@@ -1589,7 +1589,7 @@ function updateISBNFields() {
 
             // Add shelf location options
             const shelfOptions = [
-                ['TR', 'Teachers Reference'],
+                ['TH', 'Thesis'],
                 ['FIL', 'Filipiniana'],
                 ['CIR', 'Circulation'],
                 ['REF', 'Reference'],
