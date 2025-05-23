@@ -303,6 +303,10 @@ $result = $stmt->get_result();
                     <a href="import_books.php" class="btn btn-success btn-sm">
                         <i class="fas fa-file-import"></i> Import CSV
                     </a>
+                    <!-- New: Card Catalog Generation Button -->
+                    <a href="generate_card_catalog.php" class="btn btn-warning btn-sm">
+                        <i class="fas fa-file-excel"></i> Card Catalog
+                    </a>
                     <!-- New: Refresh Button -->
                     <button type="button" class="btn btn-info btn-sm" onclick="location.reload();" title="Refresh page">
                         <i class="fas fa-sync-alt"></i> Refresh

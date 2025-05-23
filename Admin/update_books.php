@@ -771,15 +771,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         <div class="mb-3">
                                             <div class="form-group">
                                                 <label>Select Writer:</label>
-                                                <select id="writerSelect" class="form-control">
-                                                    <option value="">Select Writer</option>
-                                                    <?php foreach ($writers as $writer): ?>
-                                                        <?php 
-                                                        $fullName = trim($writer['lastname'] . ', ' . $writer['firstname'] . ' ' . $writer['middle_init']); 
-                                                        ?>
-                                                        <option value="<?php echo $writer['id']; ?>"><?php echo $fullName; ?></option>
-                                                    <?php endforeach; ?>
-                                                </select>
+                                                <div class="input-group">
+                                                    <select id="writerSelect" class="form-control">
+                                                        <option value="">Select Writer</option>
+                                                        <?php foreach ($writers as $writer): ?>
+                                                            <?php 
+                                                            $fullName = trim($writer['lastname'] . ', ' . $writer['firstname'] . ' ' . $writer['middle_init']); 
+                                                            ?>
+                                                            <option value="<?php echo $writer['id']; ?>"><?php echo $fullName; ?></option>
+                                                        <?php endforeach; ?>
+                                                    </select>
+                                                    <button type="button" id="addNewWriter" class="btn btn-outline-primary">
+                                                        <i class="fas fa-plus"></i> New Writer
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                         <div class="mb-3">
@@ -826,12 +831,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         <div class="mb-3">
                                             <div class="form-group">
                                                 <label>Select Corporate Entity:</label>
-                                                <select id="corporateSelect" class="form-control">
-                                                    <option value="">Select Corporate Entity</option>
-                                                    <?php foreach ($corporates as $corporate): ?>
-                                                        <option value="<?php echo $corporate['id']; ?>"><?php echo $corporate['name']; ?></option>
-                                                    <?php endforeach; ?>
-                                                </select>
+                                                <div class="input-group">
+                                                    <select id="corporateSelect" class="form-control">
+                                                        <option value="">Select Corporate Entity</option>
+                                                        <?php foreach ($corporates as $corporate): ?>
+                                                            <option value="<?php echo $corporate['id']; ?>"><?php echo $corporate['name']; ?></option>
+                                                        <?php endforeach; ?>
+                                                    </select>
+                                                    <button type="button" id="addNewCorporate" class="btn btn-outline-primary">
+                                                        <i class="fas fa-plus"></i> New Corporate
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                         <div class="mb-3">
@@ -1030,6 +1040,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </form>
     </div>
 
+    <?php include 'includes/writer-corporate-modals.php'; ?>
+    <script src="js/writer-corporate-management.js"></script>
     <script>
         $(document).ready(function() {
             // Add image removal handling
