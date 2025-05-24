@@ -982,7 +982,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                 <label>Status:</label>
                                                 <select class="form-control" name="copies[<?php echo $book['id']; ?>][status]">
                                                     <?php
-                                                    $statuses = ['Available', 'Borrowed', 'Reserved', 'Lost', 'Damaged', 'Under Repair'];
+                                                    $statuses = ['Available', 'Borrowed', 'Reserved', 'Lost', 'Damaged', 'Under Repair', 'Withdrawn'];
                                                     foreach ($statuses as $status) {
                                                         $selected = ($status == $book['status']) ? 'selected' : '';
                                                         echo "<option value='$status' $selected>$status</option>";

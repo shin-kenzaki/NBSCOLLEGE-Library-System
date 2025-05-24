@@ -1464,7 +1464,7 @@ function updateISBNFields() {
 
         // Create ISBN input cell
         const isbnDiv = document.createElement('div');
-        isbnDiv.className = 'col-md-2';
+        isbnDiv.className = 'col-md-3'; 
         const isbnLabel = document.createElement('small');
         isbnLabel.className = 'd-block';
         isbnLabel.textContent = 'ISBN';
@@ -1524,7 +1524,7 @@ function updateISBNFields() {
 
         // Create Edition input cell
         const editionDiv = document.createElement('div');
-        editionDiv.className = 'col-md-2';
+        editionDiv.className = 'col-md-3'; 
         const editionLabel = document.createElement('small');
         editionLabel.className = 'd-block';
         editionLabel.textContent = 'Edition';

@@ -1,6 +1,9 @@
 <?php
 session_start();
 
+// Increase max execution time for large exports
+set_time_limit(600); // 10 minutes
+
 // Check if the user is logged in and has the appropriate admin role
 if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['Admin', 'Librarian', 'Assistant', 'Encoder'])) {
     header("Location: index.php");
@@ -19,7 +22,7 @@ use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Font;
 
 // Function to generate card catalog Excel with traditional card format
-function generateCardCatalogExcel($conn, $format = 'all') {
+function generateCardCatalogExcel($conn, $format = 'all', $status_filter = '') {
     $spreadsheet = new Spreadsheet();
     $sheet = $spreadsheet->getActiveSheet();
     $sheet->setTitle('Library Card Catalog');
@@ -40,6 +43,11 @@ function generateCardCatalogExcel($conn, $format = 'all') {
     $whereClause = "WHERE b.title IS NOT NULL AND b.title != ''";
     if ($format === 'available') {
         $whereClause .= " AND b.status = 'Available'";
+    } else if ($format === 'withdrawn') {
+        $whereClause .= " AND b.status = 'Withdrawn'";
+    }
+    if ($status_filter && $status_filter !== 'all') {
+        $whereClause .= " AND b.status = '" . $conn->real_escape_string($status_filter) . "'";
     }
 
     // Query to get books with all details
@@ -64,24 +72,23 @@ function generateCardCatalogExcel($conn, $format = 'all') {
         b.supplementary_contents,
         b.language,
         b.dimension,
+        b.date_added,
         p.publish_date,
         pub.publisher,
         pub.place,
         GROUP_CONCAT(
-            CASE c.role
-                WHEN 'Author' THEN CONCAT('AUTH: ', w.lastname, ', ', w.firstname, 
-                    CASE WHEN w.middle_init IS NOT NULL AND w.middle_init != '' 
-                         THEN CONCAT(' ', w.middle_init) ELSE '' END)
-                WHEN 'Editor' THEN CONCAT('ED: ', w.lastname, ', ', w.firstname,
-                    CASE WHEN w.middle_init IS NOT NULL AND w.middle_init != '' 
-                         THEN CONCAT(' ', w.middle_init) ELSE '' END)
-                WHEN 'Co-Author' THEN CONCAT('CO-AUTH: ', w.lastname, ', ', w.firstname,
-                    CASE WHEN w.middle_init IS NOT NULL AND w.middle_init != '' 
-                         THEN CONCAT(' ', w.middle_init) ELSE '' END)
-                ELSE CONCAT(c.role, ': ', w.lastname, ', ', w.firstname,
-                    CASE WHEN w.middle_init IS NOT NULL AND w.middle_init != '' 
-                         THEN CONCAT(' ', w.middle_init) ELSE '' END)
-            END
+            CONCAT(
+                CASE c.role
+                    WHEN 'Author' THEN 'AUTH'
+                    WHEN 'Editor' THEN 'ED'
+                    WHEN 'Co-Author' THEN 'CO-AUTH'
+                    ELSE UPPER(c.role)
+                END,
+                ': ',
+                w.lastname, ', ', w.firstname,
+                CASE WHEN w.middle_init IS NOT NULL AND w.middle_init != '' 
+                     THEN CONCAT(' ', w.middle_init) ELSE '' END
+            )
             ORDER BY c.role, w.lastname 
             SEPARATOR '\n'
         ) as contributors
@@ -205,9 +212,17 @@ function generateCardCatalogExcel($conn, $format = 'all') {
         
         // ISBN
         if (!empty($book['ISBN'])) {
-            $sheet->setCellValue("A$currentRow", "ISBN:");
-            $sheet->setCellValue("B$currentRow", $book['ISBN']);
+            $sheet->setCellValueExplicit(
+                "A$currentRow", "ISBN:",
+                \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING
+            );
+            $sheet->setCellValueExplicit(
+                "B$currentRow", $book['ISBN'],
+                \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING
+            );
             $sheet->getStyle("A$currentRow")->getFont()->setBold(true);
+            // Force text format for ISBN cell
+            $sheet->getStyle("B$currentRow")->getNumberFormat()->setFormatCode('@');
             $currentRow++;
         }
         
@@ -269,6 +284,9 @@ function generateCardCatalogExcel($conn, $format = 'all') {
             case 'Damaged':
                 $statusColor = 'FFA500'; // Orange
                 break;
+            case 'Withdrawn':
+                $statusColor = 'B0B0B0'; // Gray
+                break;
         }
         if ($statusColor) {
             $sheet->getStyle("E$currentRow")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($statusColor);
@@ -282,11 +300,27 @@ function generateCardCatalogExcel($conn, $format = 'all') {
         $sheet->getStyle("A$currentRow")->getFont()->setBold(true);
         $currentRow++;
         
+        // Notes for withdrawn/lost/damaged
+        $notes = '';
+        if ($book['status'] === 'Withdrawn') {
+            $notes = 'Withdrawn from collection';
+        } else if ($book['status'] === 'Lost') {
+            $notes = 'Book reported lost';
+        } else if ($book['status'] === 'Damaged') {
+            $notes = 'Book reported damaged';
+        }
+        if ($notes) {
+            $sheet->setCellValue("A$currentRow", "NOTES:");
+            $sheet->setCellValue("B$currentRow", $notes);
+            $sheet->getStyle("A$currentRow")->getFont()->setBold(true);
+            $currentRow++;
+        }
+
         // Add border around the entire card
         $cardEndRow = $currentRow - 1;
         $sheet->getStyle("A$cardStartRow:F$cardEndRow")->getBorders()->getOutline()->setBorderStyle(Border::BORDER_THICK);
         $sheet->getStyle("A$cardStartRow:F$cardEndRow")->getBorders()->getInside()->setBorderStyle(Border::BORDER_THIN);
-        
+
         // Add spacing between cards
         $currentRow += 2;
     }
@@ -315,7 +349,7 @@ function generateCardCatalogExcel($conn, $format = 'all') {
 }
 
 // Function to generate traditional CSV format (keep existing for compatibility)
-function generateCardCatalog($conn, $format = 'all') {
+function generateCardCatalog($conn, $format = 'all', $status_filter = '') {
     // Set headers for download
     $filename = 'Library_Card_Catalog_' . date('Y-m-d_H-i-s') . '.csv';
     header('Content-Type: text/csv');
@@ -339,7 +373,8 @@ function generateCardCatalog($conn, $format = 'all') {
         'Copy Number',
         'Location',
         'Status',
-        'Supplementary Contents',  // Added supplementary contents header
+        'Supplementary Contents',
+        'Date Added',
         'Notes'
     ]);
 
@@ -347,9 +382,14 @@ function generateCardCatalog($conn, $format = 'all') {
     $whereClause = "WHERE b.title IS NOT NULL AND b.title != ''";
     if ($format === 'available') {
         $whereClause .= " AND b.status = 'Available'";
+    } else if ($format === 'withdrawn') {
+        $whereClause .= " AND b.status = 'Withdrawn'";
+    }
+    if ($status_filter && $status_filter !== 'all') {
+        $whereClause .= " AND b.status = '" . $conn->real_escape_string($status_filter) . "'";
     }
 
-    // Query to get books with author and publisher info - now including supplementary_contents
+    // Query to get books with author and publisher info - now including supplementary_contents and date_added
     $query = "SELECT 
         b.id,
         b.accession,
@@ -364,7 +404,8 @@ function generateCardCatalog($conn, $format = 'all') {
         b.status,
         b.contents,
         b.summary,
-        b.supplementary_contents,  /* Added supplementary_contents field */
+        b.supplementary_contents,
+        b.date_added,
         p.publish_date,
         pub.publisher,
         pub.place,
@@ -409,7 +450,7 @@ function generateCardCatalog($conn, $format = 'all') {
             $publication = $book['publisher'];
         }
 
-        // Format notes (combine summary and contents if available)
+        // Format notes (combine summary and contents if available, add withdrawn/damaged/lost)
         $notes = '';
         if (!empty($book['summary'])) {
             $notes = 'Summary: ' . $book['summary'];
@@ -417,6 +458,13 @@ function generateCardCatalog($conn, $format = 'all') {
         if (!empty($book['contents'])) {
             if (!empty($notes)) $notes .= ' | ';
             $notes .= 'Contents: ' . $book['contents'];
+        }
+        if ($book['status'] === 'Withdrawn') {
+            $notes = trim($notes . ' | Withdrawn from collection', ' |');
+        } else if ($book['status'] === 'Lost') {
+            $notes = trim($notes . ' | Book reported lost', ' |');
+        } else if ($book['status'] === 'Damaged') {
+            $notes = trim($notes . ' | Book reported damaged', ' |');
         }
 
         // Write each row to CSV
@@ -434,7 +482,8 @@ function generateCardCatalog($conn, $format = 'all') {
             $book['copy_number'] ?: '1',
             $book['shelf_location'] ?: 'N/A',
             $book['status'] ?: 'Available',
-            $book['supplementary_contents'] ?: 'N/A',  // Added supplementary contents data
+            $book['supplementary_contents'] ?: 'N/A',
+            $book['date_added'] ?: 'N/A',
             $notes
         ]);
     }
@@ -447,12 +496,13 @@ function generateCardCatalog($conn, $format = 'all') {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $format = $_POST['catalog_format'] ?? 'all';
     $output_format = $_POST['output_format'] ?? 'excel';
-    
+    $status_filter = $_POST['status_filter'] ?? '';
+
     try {
         if ($output_format === 'excel') {
-            generateCardCatalogExcel($conn, $format);
+            generateCardCatalogExcel($conn, $format, $status_filter);
         } else {
-            generateCardCatalog($conn, $format);
+            generateCardCatalog($conn, $format, $status_filter);
         }
     } catch (Exception $e) {
         $_SESSION['error_message'] = 'Error generating card catalog: ' . $e->getMessage();
@@ -461,18 +511,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Get statistics for display
+// Get statistics for display (include withdrawn)
 $statsQuery = "SELECT 
     COUNT(*) as total_books,
     COUNT(DISTINCT title) as unique_titles,
-    COUNT(DISTINCT call_number) as unique_call_numbers
+    COUNT(DISTINCT call_number) as unique_call_numbers,
+    SUM(status = 'Withdrawn') as withdrawn_books
 FROM books 
 WHERE title IS NOT NULL AND title != ''";
-
 $statsResult = $conn->query($statsQuery);
 $stats = $statsResult->fetch_assoc();
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -554,20 +603,85 @@ $stats = $statsResult->fetch_assoc();
             <?php endif; ?>
 
             <!-- Statistics -->
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-number"><?php echo number_format($stats['total_books']); ?></div>
-                    <div class="stat-label">Total Book Copies</div>
+            <div class="row mb-4">
+                <!-- Total Book Copies -->
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-primary shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                        Total Book Copies</div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        <?php echo number_format($stats['total_books']); ?>
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-book fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-number"><?php echo number_format($stats['unique_titles']); ?></div>
-                    <div class="stat-label">Unique Titles</div>
+                <!-- Unique Titles -->
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-success shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                        Unique Titles</div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        <?php echo number_format($stats['unique_titles']); ?>
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-layer-group fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-number"><?php echo number_format($stats['unique_call_numbers']); ?></div>
-                    <div class="stat-label">Unique Call Numbers</div>
+                <!-- Unique Call Numbers -->
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-info shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                        Unique Call Numbers</div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        <?php echo number_format($stats['unique_call_numbers']); ?>
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-barcode fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Withdrawn Books -->
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-secondary shadow h-100 py-2" style="border-color:#888!important;">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">
+                                        Withdrawn Books</div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        <?php echo number_format($stats['withdrawn_books']); ?>
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-times-circle fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
+            <!-- End Statistics Cards -->
 
             <div class="row">
                 <div class="col-lg-8">
@@ -595,10 +709,26 @@ $stats = $statsResult->fetch_assoc();
                                     <select class="form-control" id="catalog_format" name="catalog_format">
                                         <option value="all">Complete Card Catalog (All Books)</option>
                                         <option value="available">Available Books Only</option>
+                                        <option value="withdrawn">Withdrawn Books Only</option>
                                         <option value="by_location">Group by Shelf Location</option>
                                     </select>
                                     <small class="form-text text-muted">
                                         Choose which books to include in your catalog export.
+                                    </small>
+                                </div>
+
+                                <div class="form-group mb-3">
+                                    <label for="status_filter" class="form-label">Status Filter:</label>
+                                    <select class="form-control" id="status_filter" name="status_filter">
+                                        <option value="all">All Statuses</option>
+                                        <option value="Available">Available</option>
+                                        <option value="Borrowed">Borrowed</option>
+                                        <option value="Lost">Lost</option>
+                                        <option value="Damaged">Damaged</option>
+                                        <option value="Withdrawn">Withdrawn</option>
+                                    </select>
+                                    <small class="form-text text-muted">
+                                        Filter catalog by specific book status.
                                     </small>
                                 </div>
 
@@ -607,7 +737,8 @@ $stats = $statsResult->fetch_assoc();
                                     <ul class="mb-0">
                                         <li><strong>Traditional Layout:</strong> Each book appears as a properly formatted library card</li>
                                         <li><strong>Multiple Lines:</strong> All information is organized in separate lines like real catalog cards</li>
-                                        <li><strong>Status Color Coding:</strong> Available (green), Borrowed (gold), Lost (red), Damaged (orange)</li>
+                                        <li><strong>Status Color Coding:</strong> Available (green), Borrowed (gold), Lost (red), Damaged (orange), Withdrawn (gray)</li>
+                                        <li><strong>Notes:</strong> Withdrawn, lost, or damaged books are marked with a note</li>
                                         <li><strong>Complete Information:</strong> Contributors, subjects, physical description, and notes</li>
                                         <li><strong>Professional Borders:</strong> Each card has proper borders and spacing</li>
                                         <li><strong>Print Ready:</strong> Formatted for professional library use</li>
@@ -668,12 +799,10 @@ $stats = $statsResult->fetch_assoc();
                                     </div>
                                 </div>
                             </div>
-                            
                             <div class="alert alert-success">
                                 <small><i class="fas fa-lightbulb"></i> 
                                 <strong>Professional Format:</strong> The Excel output follows traditional library cataloging standards with proper formatting, borders, and color coding for easy reference.</small>
                             </div>
-
                             <div class="alert alert-warning">
                                 <small><i class="fas fa-print"></i> 
                                 <strong>Print Tip:</strong> For printing, set your Excel to landscape orientation and adjust margins for best results.</small>
@@ -713,6 +842,17 @@ $stats = $statsResult->fetch_assoc();
                 $('.alert-info h6').html('<i class="fas fa-info-circle"></i> Excel Card Catalog Features:');
             } else {
                 $('.alert-info h6').html('<i class="fas fa-info-circle"></i> CSV Export Information:');
+            }
+        });
+        // Optionally, update status filter based on catalog_format
+        $('#catalog_format').on('change', function() {
+            var val = $(this).val();
+            if (val === 'withdrawn') {
+                $('#status_filter').val('Withdrawn');
+            } else if (val === 'available') {
+                $('#status_filter').val('Available');
+            } else {
+                $('#status_filter').val('all');
             }
         });
     </script>

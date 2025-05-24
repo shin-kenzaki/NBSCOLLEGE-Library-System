@@ -445,6 +445,37 @@ $diagnosticsAvailable = true;
         </div>
     </div>
 
+    <!-- Backup Logs Section -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">Backup Logs</h6>
+            <button class="btn btn-outline-secondary btn-sm" type="button" data-toggle="collapse" data-target="#logsCollapse" aria-expanded="false" aria-controls="logsCollapse">
+                Show/Hide Logs
+            </button>
+        </div>
+        <div class="collapse" id="logsCollapse">
+            <div class="card-body" style="max-height:400px;overflow:auto;">
+                <?php
+                // Display the most recent 5 log files from LOGS_DIR
+                $log_files = glob(LOGS_DIR . '/backup_log_*.txt');
+                usort($log_files, function($a, $b) { return filemtime($b) - filemtime($a); });
+                if (empty($log_files)) {
+                    echo '<div class="text-muted">No backup logs found.</div>';
+                } else {
+                    $max_logs = 5;
+                    foreach (array_slice($log_files, 0, $max_logs) as $log_file) {
+                        $log_date = basename($log_file, '.txt');
+                        echo '<div class="mb-3">';
+                        echo '<h6 class="font-weight-bold mb-2">' . htmlspecialchars($log_date) . '</h6>';
+                        echo '<pre class="bg-light p-2 rounded" style="font-size:0.95em;">' . htmlspecialchars(file_get_contents($log_file)) . '</pre>';
+                        echo '</div>';
+                    }
+                }
+                ?>
+            </div>
+        </div>
+    </div>
+
     <!-- Context Menu -->
     <div id="contextMenu" class="dropdown-menu context-menu" style="display: none; position: absolute;">
         <a class="dropdown-item" href="#" id="contextMenuDownload">

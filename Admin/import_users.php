@@ -16,7 +16,6 @@ $errorCount = 0;
 $errors = [];
 $importedUsers = [];
 
-// Function to send email to users
 function sendUserEmail($email, $schoolId, $password, $firstname, $lastname) {
     $mail = require __DIR__ . '/mailer.php'; // Include the PHPMailer instance
 
@@ -100,31 +99,45 @@ function processCSV($filePath, $conn) {
 
     if (($handle = fopen($filePath, "r")) !== FALSE) {
         $header = fgetcsv($handle, 1000, ",");
-        $expectedHeader = ['ID', 'Firstname', 'Middle Initial', 'Lastname', 'Gender', 'Department', 'Usertype'];
+        $expectedHeader = ['School_ID', 'Firstname', 'Middle_Initial', 'Lastname', 'Email', 'Contact_No', 'Department', 'Usertype', 'Fullname'];
 
         // Validate header
+        $headerValid = true;
         foreach ($expectedHeader as $index => $column) {
             if (!isset($header[$index]) || strtolower(trim($header[$index])) !== strtolower($column)) {
-                return ['success' => 0, 'error' => 1, 'errors' => ["CSV header does not match the expected format."]];
+                $headerValid = false;
+                break;
             }
+        }
+
+        if (!$headerValid) {
+            return ['success' => 0, 'error' => 1, 'errors' => ["CSV header does not match the expected format. Expected: " . implode(", ", $expectedHeader)]];
         }
 
         $rowNum = 1;
         while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
             $rowNum++;
-            if (count($data) < 7) {
+            if (count($data) < count($expectedHeader)) {
                 $error++;
-                $errors[] = "Row $rowNum: Not enough columns. Expected 7, got " . count($data);
+                $errors[] = "Row $rowNum: Not enough columns. Expected " . count($expectedHeader) . ", got " . count($data);
                 continue;
             }
 
+            // Map data from CSV format
             $schoolId = trim($data[0]);
             $firstname = trim($data[1]);
             $middleInit = trim($data[2]);
             $lastname = trim($data[3]);
-            $gender = trim($data[4]);
-            $department = trim($data[5]);
-            $usertype = trim($data[6]);
+            $email = !empty(trim($data[4])) && trim($data[4]) !== 'N/A' ? trim($data[4]) : null;
+            $contactNo = !empty(trim($data[5])) && trim($data[5]) !== 'N/A' ? trim($data[5]) : '';
+            $department = trim($data[6]);
+            $usertype = trim($data[7]);
+            // Fullname is in data[8] but we don't need it since we have the individual name parts
+
+            // Convert 'N/A' to empty strings for name fields
+            $firstname = ($firstname === 'N/A') ? '' : $firstname;
+            $middleInit = ($middleInit === 'N/A') ? '' : $middleInit;
+            $lastname = ($lastname === 'N/A') ? '' : $lastname;
 
             // Skip empty rows
             if (empty($schoolId) && empty($firstname) && empty($lastname)) {
@@ -150,16 +163,19 @@ function processCSV($filePath, $conn) {
                 continue;
             }
 
-            // Generate email and password
-            $firstnameLetter = strtolower(substr($firstname, 0, 1));
-            $lastnameForEmail = strtolower(str_replace(' ', '', $lastname));
-            $yearFromId = '20' . substr($schoolId, 0, 2);
-            $email = $firstnameLetter . $lastnameForEmail . $yearFromId . "@student.nbscollege.edu.ph";
+            // Generate email if not provided
+            if ($email === null) {
+                $firstnameLetter = strtolower(substr($firstname, 0, 1));
+                $lastnameForEmail = strtolower(str_replace(' ', '', $lastname));
+                $yearFromId = '20' . substr($schoolId, 0, 2);
+                $email = $firstnameLetter . $lastnameForEmail . $yearFromId . "@student.nbscollege.edu.ph";
+            }
+
+            // Generate random password
             $password = generateStrongPassword(12);
             $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
             // Set default values
-            $contact_no = '';
             $user_image = '../Images/Profile/default-avatar.jpg';
             $address = '';
             $id_type = '';
@@ -175,9 +191,9 @@ function processCSV($filePath, $conn) {
 
             if ($checkResult->num_rows > 0) {
                 // Update existing record
-                $updateSql = "UPDATE users SET firstname = ?, middle_init = ?, lastname = ?, department = ?, usertype = ? WHERE school_id = ?";
+                $updateSql = "UPDATE users SET firstname = ?, middle_init = ?, lastname = ?, email = ?, contact_no = ?, department = ?, usertype = ? WHERE school_id = ?";
                 $updateStmt = $conn->prepare($updateSql);
-                $updateStmt->bind_param("sssssi", $firstname, $middleInit, $lastname, $department, $usertype, $schoolId);
+                $updateStmt->bind_param("sssssssi", $firstname, $middleInit, $lastname, $email, $contactNo, $department, $usertype, $schoolId);
 
                 if ($updateStmt->execute()) {
                     $success++;
@@ -190,7 +206,7 @@ function processCSV($filePath, $conn) {
                 // Insert new record
                 $insertSql = "INSERT INTO users (school_id, firstname, middle_init, lastname, email, password, contact_no, user_image, department, usertype, address, id_type, id_image, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 $insertStmt = $conn->prepare($insertSql);
-                $insertStmt->bind_param("issssssssssssi", $schoolId, $firstname, $middleInit, $lastname, $email, $hashed_password, $contact_no, $user_image, $department, $usertype, $address, $id_type, $id_image, $status);
+                $insertStmt->bind_param("issssssssssssi", $schoolId, $firstname, $middleInit, $lastname, $email, $hashed_password, $contactNo, $user_image, $department, $usertype, $address, $id_type, $id_image, $status);
 
                 if ($insertStmt->execute()) {
                     $success++;
@@ -203,8 +219,8 @@ function processCSV($filePath, $conn) {
                         'department' => $department
                     ];
 
-                    // Send email to the user
-                    sendUserEmail($email, $schoolId, $password, $firstname, $lastname);
+                    // Comment out email sending
+                    // sendUserEmail($email, $schoolId, $password, $firstname, $lastname);
                 } else {
                     $error++;
                     $errors[] = "Row $rowNum: Error inserting record: " . $conn->error;
@@ -263,7 +279,7 @@ function processXLSX($filePath, $conn) {
         $worksheet = $spreadsheet->getActiveSheet();
 
         // Check the header row (row 1)
-        $expectedHeader = ['ID', 'Firstname', 'Middle Initial', 'Lastname', 'Gender', 'Department', 'Usertype'];
+        $expectedHeader = ['School_ID', 'Firstname', 'Middle_Initial', 'Lastname', 'Email', 'Contact_No', 'Department', 'Usertype', 'Fullname'];
         $headerMatch = true;
 
         for ($col = 1; $col <= count($expectedHeader); $col++) {
@@ -288,21 +304,23 @@ function processXLSX($filePath, $conn) {
 
         // Process each row starting from row 2 (after header)
         for ($row = 2; $row <= $highestRow; $row++) {
-            $colA = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(1) . $row;
-            $colB = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(2) . $row;
-            $colC = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(3) . $row;
-            $colD = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(4) . $row;
-            $colE = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(5) . $row;
-            $colF = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(6) . $row;
-            $colG = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(7) . $row;
+            // Get cell values from each column
+            $schoolId = trim($worksheet->getCell(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(1) . $row)->getValue());
+            $firstname = trim($worksheet->getCell(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(2) . $row)->getValue());
+            $middleInit = trim($worksheet->getCell(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(3) . $row)->getValue());
+            $lastname = trim($worksheet->getCell(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(4) . $row)->getValue());
+            $email = trim($worksheet->getCell(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(5) . $row)->getValue());
+            $contactNo = trim($worksheet->getCell(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(6) . $row)->getValue());
+            $department = trim($worksheet->getCell(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(7) . $row)->getValue());
+            $usertype = trim($worksheet->getCell(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(8) . $row)->getValue());
+            // Fullname is in column 9 but we don't need it since we have the individual name parts
 
-            $schoolId = trim($worksheet->cellExists($colA) ? $worksheet->getCell($colA)->getValue() : '');
-            $firstname = trim($worksheet->cellExists($colB) ? $worksheet->getCell($colB)->getValue() : '');
-            $middleInit = trim($worksheet->cellExists($colC) ? $worksheet->getCell($colC)->getValue() : '');
-            $lastname = trim($worksheet->cellExists($colD) ? $worksheet->getCell($colD)->getValue() : '');
-            $gender = trim($worksheet->cellExists($colE) ? $worksheet->getCell($colE)->getValue() : '');
-            $department = trim($worksheet->cellExists($colF) ? $worksheet->getCell($colF)->getValue() : '');
-            $usertype = trim($worksheet->cellExists($colG) ? $worksheet->getCell($colG)->getValue() : '');
+            // Use N/A as empty for names and contact fields
+            $firstname = ($firstname === 'N/A') ? '' : $firstname;
+            $middleInit = ($middleInit === 'N/A') ? '' : $middleInit;
+            $lastname = ($lastname === 'N/A') ? '' : $lastname;
+            $email = ($email === 'N/A') ? '' : $email;
+            $contactNo = ($contactNo === 'N/A') ? '' : $contactNo;
 
             // Skip empty rows
             if (empty($schoolId) && empty($firstname) && empty($lastname)) {
@@ -328,19 +346,19 @@ function processXLSX($filePath, $conn) {
                 continue;
             }
 
-            // Generate email with the correct format: first letter of firstname + lastname + 20xx@student.nbscollege.edu.ph
-            // where xx is the first two digits of the school ID
-            $firstnameLetter = strtolower(substr($firstname, 0, 1));
-            $lastnameForEmail = strtolower(str_replace(' ', '', $lastname));
-            $yearFromId = '20' . substr($schoolId, 0, 2); // Extract first 2 digits and prefix with '20'
-            $email = $firstnameLetter . $lastnameForEmail . $yearFromId . "@student.nbscollege.edu.ph";
+            // Generate email if not provided
+            if (empty($email)) {
+                $firstnameLetter = strtolower(substr($firstname, 0, 1));
+                $lastnameForEmail = strtolower(str_replace(' ', '', $lastname));
+                $yearFromId = '20' . substr($schoolId, 0, 2);
+                $email = $firstnameLetter . $lastnameForEmail . $yearFromId . "@student.nbscollege.edu.ph";
+            }
 
             // Generate random password
             $password = generateStrongPassword(12);
             $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
             // Set default values
-            $contact_no = '';
             $user_image = '../Images/Profile/default-avatar.jpg';
             $address = '';
             $id_type = '';
@@ -356,13 +374,9 @@ function processXLSX($filePath, $conn) {
 
             if ($checkResult->num_rows > 0) {
                 // Update existing record
-                $updateSql = "UPDATE users
-                              SET firstname = ?, middle_init = ?, lastname = ?,
-                              department = ?, usertype = ?
-                              WHERE school_id = ?";
+                $updateSql = "UPDATE users SET firstname = ?, middle_init = ?, lastname = ?, email = ?, contact_no = ?, department = ?, usertype = ? WHERE school_id = ?";
                 $updateStmt = $conn->prepare($updateSql);
-                $updateStmt->bind_param("sssssi", $firstname, $middleInit, $lastname,
-                                      $department, $usertype, $schoolId);
+                $updateStmt->bind_param("sssssssi", $firstname, $middleInit, $lastname, $email, $contactNo, $department, $usertype, $schoolId);
 
                 if ($updateStmt->execute()) {
                     $success++;
@@ -372,9 +386,9 @@ function processXLSX($filePath, $conn) {
                 }
                 $updateStmt->close();
             } else {
-                // Insert new record - fixed bind_param count
+                // Insert new record
                 $insertSql = "INSERT INTO users (
-                    school_id, firstname, middle_init, lastname,
+                    school_id, firstname, middle_init, lastname, 
                     email, password, contact_no, user_image,
                     department, usertype, address, id_type,
                     id_image, status
@@ -388,7 +402,7 @@ function processXLSX($filePath, $conn) {
                 $insertStmt = $conn->prepare($insertSql);
                 $insertStmt->bind_param("issssssssssssi",
                     $schoolId, $firstname, $middleInit, $lastname,
-                    $email, $hashed_password, $contact_no, $user_image,
+                    $email, $hashed_password, $contactNo, $user_image,
                     $department, $usertype, $address, $id_type,
                     $id_image, $status
                 );
@@ -404,8 +418,8 @@ function processXLSX($filePath, $conn) {
                         'department' => $department
                     ];
 
-                     // Send email to the user
-                     sendUserEmail($email, $schoolId, $password, $firstname, $lastname);
+                    // Comment out email sending
+                    // sendUserEmail($email, $schoolId, $password, $firstname, $lastname);
                 } else {
                     $error++;
                     $errors[] = "Row $row: Error inserting record: " . $conn->error;
@@ -449,567 +463,797 @@ function generateStrongPassword($length = 12) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Import Users - NBSC Library</title>
+    <title>Import Users from CSV/Excel - NBSC Library</title>
 
-    <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="Admin/img/nbslogo.png">
-
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-
-    <!-- Font Awesome -->
-    <link href="Admin/vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
-
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet">
-
-    <!-- SweetAlert2 -->
-    <link href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bootstrap-4/bootstrap-4.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Use the same header includes as import_books.php -->
+    <?php include '../admin/inc/header.php'; ?>
 
     <style>
-        body {
-            background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('Images/BG/library-background.jpg');
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-            background-attachment: fixed;
-            min-height: 100vh;
-            font-family: 'Nunito', sans-serif;
-            padding: 2rem 0;
+        /* Enhanced File Upload Styling */
+        .file-upload-container {
+            position: relative;
+            width: 100%;
+            margin-bottom: 20px;
         }
 
-        .page-container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 2rem;
-            backdrop-filter: blur(10px);
-            background-color: rgba(255, 255, 255, 0.9);
-            border-radius: 15px;
-            box-shadow: 0 0 30px rgba(0, 0, 0, 0.2);
-        }
-
-        h1 {
-            color: #4e73df;
+        .file-upload-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            background-color: #f8f9fc;
+            padding: 20px;
             text-align: center;
-            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            min-height: 180px;
         }
 
-        .import-steps {
-            background-color: rgba(78, 115, 223, 0.1);
-            border-left: 4px solid #4e73df;
-            padding: 1rem;
-            margin-bottom: 2rem;
-            border-radius: 0 5px 5px 0;
+        .file-upload-area:hover, .file-upload-area.drag-over {
+            border-color: #4e73df;
+            background-color: rgba(78, 115, 223, 0.05);
         }
 
-        .import-steps ol {
-            margin-bottom: 0;
-            padding-left: 1.5rem;
+        .file-upload-area .upload-icon {
+            font-size: 2rem;
+            color: #4e73df;
+            margin-bottom: 10px;
         }
 
-        .import-steps li {
-            margin-bottom: 0.5rem;
+        .file-upload-area .upload-text {
+            color: #6e707e;
+            margin-bottom: 10px;
         }
 
-        .import-steps li:last-child {
-            margin-bottom: 0;
+        .file-upload-area .upload-hint {
+            font-size: 0.8rem;
+            color: #858796;
         }
 
-        .custom-file-label {
+        .file-upload-input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .file-preview-container {
+            display: none;
+            margin-top: 15px;
+            border: 1px solid #e3e6f0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .file-preview-container.show {
+            display: block;
+        }
+
+        .csv-preview {
+            padding: 15px;
+            background-color: #f8f9fc;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+
+        .csv-preview-header {
+            background-color: #4e73df;
+            color: white;
+            padding: 8px 15px;
+            font-weight: bold;
+        }
+
+        .file-info {
+            padding: 10px 15px;
+            background: #f8f9fc;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid #e3e6f0;
+        }
+
+        .file-info .file-name {
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            max-width: 70%;
+            font-weight: bold;
         }
 
-        .table-errors {
-            max-height: 300px;
-            overflow-y: auto;
+        .file-info .file-size {
+            color: #858796;
         }
 
-        .back-link {
-            display: inline-block;
-            margin-top: 1rem;
+        .file-info .file-icon {
+            margin-right: 10px;
             color: #4e73df;
-            text-decoration: none;
-            font-weight: 600;
         }
 
-        .back-link:hover {
-            text-decoration: underline;
-            color: #2e59d9;
-        }
-
-        .sample-header {
-            font-family: monospace;
-            background-color: #f8f9fc;
-            padding: 10px;
-            border-radius: 5px;
-            border: 1px solid #d1d3e2;
-            margin: 15px 0;
-            overflow-x: auto;
-        }
-
-        .password-table {
-            margin-top: 1.5rem;
-            overflow-x: auto;
-        }
-
-        .password-table table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .password-table th,
-        .password-table td {
-            padding: 8px 12px;
-            border: 1px solid #e3e6f0;
-            text-align: left;
-        }
-
-        .password-table th {
-            background-color: #f8f9fc;
-            color: #4e73df;
-            font-weight: 600;
-        }
-
-        .password-table tr:nth-child(even) {
-            background-color: #f8f9fc;
-        }
-
-        .password-table tr:hover {
-            background-color: rgba(78, 115, 223, 0.1);
-        }
-
-        .copy-button {
-            background-color: #4e73df;
-            color: #fff;
-            border: none;
-            border-radius: 3px;
-            padding: 5px 10px;
-            font-size: 12px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-
-        .copy-button:hover {
-            background-color: #2e59d9;
-        }
-
-        .password-field {
-            font-family: monospace;
-            background-color: #f8f9fe;
-            padding: 3px 8px;
-            border-radius: 3px;
-            border: 1px solid #e3e6f0;
-            display: inline-block;
-            min-width: 120px;
-        }
-
-        .export-buttons {
-            margin-top: 1rem;
+        .file-actions {
             display: flex;
-            gap: 10px;
-            justify-content: center;
+            padding: 10px 15px;
+            border-top: 1px solid #e3e6f0;
+            background-color: #f8f9fc;
         }
 
-        .export-btn {
-            background-color: #1cc88a;
-            color: #fff;
-            border: none;
-            border-radius: 5px;
-            padding: 8px 16px;
+        .file-remove {
+            color: #e74a3b;
             cursor: pointer;
-            transition: background-color 0.3s;
-            display: inline-flex;
+            display: flex;
             align-items: center;
-            gap: 8px;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
         }
 
-        .export-btn:hover {
-            background-color: #169b6b;
+        .file-remove:hover {
+            color: #be3128;
         }
 
-        .alert-info {
-            background-color: #d1ecf1;
-            color: #0c5460;
-            border-color: #bee5eb;
+        .file-validate {
+            color: #1cc88a;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            font-size: 0.85rem;
+            margin-left: auto;
+            transition: all 0.2s ease;
+        }
+
+        .file-validate:hover {
+            color: #169a6e;
+        }
+
+        /* Progress Bar Animation */
+        @keyframes progress-bar-stripes {
+            from { background-position: 1rem 0; }
+            to { background-position: 0 0; }
+        }
+
+        .progress-bar {
+            transition: width 0.4s ease;
+        }
+        
+        .progress-bar.complete {
+            background-color: #1cc88a !important;
+            transition: background-color 0.5s ease;
+        }
+
+        /* Loading Overlay Styles */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .loading-content {
+            width: 90%;
+            max-width: 500px;
+        }
+        
+        .processing-log-container {
+            margin-bottom: 1rem;
+        }
+        
+        #processingInfo {
+            font-family: monospace;
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+        
+        #processingInfo div {
+            margin-bottom: 0.25rem;
+            padding: 0.25rem 0;
+            border-bottom: 1px dotted #e0e0e0;
+        }
+        
+        #processingInfo div:last-child {
+            border-bottom: none;
         }
     </style>
 </head>
 <body>
-    <div class="container page-container">
-        <h1>Import Users</h1>
-
-        <?php if ($status === 'success'): ?>
-            <div class="alert alert-success">
-                <?php echo $message; ?>
+    <!-- Main Content -->
+    <div id="content" class="d-flex flex-column min-vh-100">
+        <div class="container-fluid">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0 text-gray-800">Import Users from CSV/Excel</h1>
+                <a href="users_list.php" class="btn btn-sm btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Users
+                </a>
             </div>
 
-            <?php if (!empty($importedUsers)): ?>
-                <div class="alert alert-info">
-                    <h5 class="mb-3">Important:</h5>
-                    <p>The following passwords have been generated for the imported users. Please save this information as it will not be displayed again.</p>
-                    <p><strong>Tip:</strong> You can use the "Export to Excel" or "Copy All" buttons to save this information for your records.</p>
+            <!-- File Format Instructions -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">CSV/Excel File Format</h6>
                 </div>
-
-                <div class="password-table">
-                    <table id="users-password-table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Name</th>
-                                <th>Email</th>
-                                <th>Department</th>
-                                <th>User Type</th>
-                                <th>Password</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($importedUsers as $user): ?>
-                                <tr>
-                                    <td><?php echo htmlspecialchars($user['id']); ?></td>
-                                    <td><?php echo htmlspecialchars($user['name']); ?></td>
-                                    <td><?php echo htmlspecialchars($user['email']); ?></td>
-                                    <td><?php echo htmlspecialchars($user['department']); ?></td>
-                                    <td><?php echo htmlspecialchars($user['usertype']); ?></td>
-                                    <td><span class="password-field"><?php echo htmlspecialchars($user['password']); ?></span></td>
-                                    <td>
-                                        <button type="button" class="copy-button" onclick="copyPassword('<?php echo htmlspecialchars($user['password']); ?>')">
-                                            Copy
-                                        </button>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="export-buttons">
-                    <button type="button" class="export-btn" onclick="exportToExcel()">
-                        <i class="fas fa-file-excel"></i> Export to Excel
-                    </button>
-                    <button type="button" class="export-btn" onclick="exportToPDF()">
-                        <i class="fas fa-file-pdf"></i> Export to PDF
-                    </button>
-                    <button type="button" class="export-btn" onclick="copyAllPasswords()">
-                        <i class="fas fa-copy"></i> Copy All
-                    </button>
-                    <a href="users_list.php" class="export-btn">
-                        <i class="fas fa-users"></i> Go to Users List
-                    </a>
-                </div>
-            <?php else: ?>
-                <div class="d-grid gap-2 d-md-flex justify-content-center mt-3">
-                    <a href="users_list.php" class="btn btn-primary">
-                        <i class="fas fa-users"></i> Go to Users List
-                    </a>
-                </div>
-            <?php endif; ?>
-
-        <?php elseif ($status === 'error'): ?>
-            <div class="alert alert-danger">
-                <?php echo $message; ?>
-            </div>
-        <?php endif; ?>
-
-        <?php if (!$status): ?>
-            <div class="import-steps">
-                <h5>Instructions:</h5>
-                <ol>
-                    <li>Prepare your Excel (XLSX) or CSV file with the following columns:
-                        <div class="sample-header">
-                            ID, Firstname, Middle Initial, Lastname, Gender, Department, Usertype
+                <div class="card-body">
+                    <p>The file should have the following columns:</p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <ol>
+                                <li>School_ID</li>
+                                <li>Firstname</li>
+                                <li>Middle_Initial</li>
+                                <li>Lastname</li>
+                                <li>Email</li>
+                            </ol>
                         </div>
-                    </li>
-                    <li>Ensure the first row contains the column headers exactly as shown above</li>
-                    <li>The "ID" column will be used as the school_id in the system</li>
-                    <li>The "Department" should be one of: Computer Science, Accounting Information System, Accountancy, Entrepreneurship, Tourism Management</li>
-                    <li>The "Usertype" field should be one of: Student, Faculty, Staff, or Visitor</li>
-                    <li>For CSV files, use comma (,) as the delimiter</li>
-                    <li>Select your file using the form below and click "Import"</li>
-                    <li>A system-generated email and password will be created for new users</li>
-                </ol>
+                        <div class="col-md-6">
+                            <ol start="6">
+                                <li>Contact_No</li>
+                                <li>Department</li>
+                                <li>Usertype</li>
+                                <li>Fullname</li>
+                            </ol>
+                        </div>
+                    </div>
+                    <p><strong>Example:</strong></p>
+                    <div class="csv-example">
+                        School_ID,Firstname,Middle_Initial,Lastname,Email,Contact_No,Department,Usertype,Fullname
+                        210078,Kenneth,P.,Bonaagua,N/A,N/A,Computer Science,Student,"BONAAGUA, KENNETH"
+                    </div>
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-info-circle"></i> Note: 
+                        <ul>
+                            <li>The first row must contain the exact column names as shown above.</li>
+                            <li>For empty fields, use N/A or leave blank.</li>
+                            <li>Email and Contact_No are optional - system will generate email addresses for empty fields.</li>
+                        </ul>
+                    </div>
+                </div>
             </div>
 
-            <form method="POST" action="" enctype="multipart/form-data">
-                <div class="mb-3">
-                    <label for="import_file" class="form-label">Select File (XLSX or CSV)</label>
-                    <input class="form-control" type="file" id="import_file" name="import_file" accept=".xlsx,.csv" required>
-                    <div class="form-text">
-                        Maximum file size: 5MB
+            <!-- Enhanced Upload Form -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Upload File</h6>
+                </div>
+                <div class="card-body">
+                    <form id="csvUploadForm" action="" method="POST" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <label for="import_file">Select CSV or Excel File:</label>
+                            
+                            <!-- Enhanced File Upload Container -->
+                            <div class="file-upload-container">
+                                <div class="file-upload-area">
+                                    <i class="fas fa-file-upload upload-icon"></i>
+                                    <div class="upload-text">Drag & drop your CSV or Excel file here</div>
+                                    <div class="upload-hint">or click to browse files</div>
+                                </div>
+                                <input type="file" class="file-upload-input" id="import_file" name="import_file" accept=".csv,.xlsx" required>
+                                <div class="invalid-feedback">Please select a valid CSV or Excel file.</div>
+                                
+                                <!-- File Preview Container -->
+                                <div class="file-preview-container">
+                                    <div class="csv-preview-header">
+                                        File Preview
+                                    </div>
+                                    <div class="csv-preview" id="csvPreview">
+                                        <!-- File preview content will be shown here -->
+                                    </div>
+                                    <div class="file-info">
+                                        <div>
+                                            <i class="fas fa-file-csv file-icon"></i>
+                                            <span class="file-name">No file selected</span>
+                                        </div>
+                                        <span class="file-size">0 KB</span>
+                                    </div>
+                                    <div class="file-actions">
+                                        <div class="file-remove">
+                                            <i class="fas fa-trash-alt mr-1"></i> Remove
+                                        </div>
+                                        <div class="file-validate">
+                                            <i class="fas fa-check-circle mr-1"></i> Validate Structure
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <small class="form-text text-muted mt-2">Please upload a valid CSV or Excel file with the correct format.</small>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-file-import"></i> Upload and Import
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Import Results & Loading Overlay - Similar to import_books.php -->
+            <?php if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['import_file'])): ?>
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Import Results</h6>
+                    </div>
+                    <div class="card-body">
+                        <?php if (!empty($errors)): ?>
+                            <div class="alert alert-danger">
+                                <h5><i class="fas fa-exclamation-triangle"></i> Errors:</h5>
+                                <ul>
+                                    <?php foreach ($errors as $error): ?>
+                                        <li><?php echo htmlspecialchars($error); ?></li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            </div>
+                        <?php endif; ?>
+
+                        <div class="import-summary">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h5 class="card-title">Summary:</h5>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <div class="card bg-success text-white">
+                                                <div class="card-body">
+                                                    <h5 class="card-title">Successfully Imported</h5>
+                                                    <p class="card-text display-4"><?php echo $importCount; ?></p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-6 mb-3">
+                                            <div class="card bg-danger text-white">
+                                                <div class="card-body">
+                                                    <h5 class="card-title">Errors</h5>
+                                                    <p class="card-text display-4"><?php echo $errorCount; ?></p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <?php if ($importCount > 0): ?>
+                            <div class="mt-4">
+                                <a href="users_list.php" class="btn btn-success">
+                                    <i class="fas fa-list"></i> View Users List
+                                </a>
+                                <a href="import_users.php" class="btn btn-primary ml-2">
+                                    <i class="fas fa-upload"></i> Import More Users
+                                </a>
+                                <button id="exportUsersBtn" class="btn btn-info ml-2">
+                                    <i class="fas fa-file-export"></i> Export Credentials
+                                </button>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
 
-                <div class="d-grid gap-2 d-md-flex">
-                    <button type="submit" class="btn btn-primary flex-grow-1">
-                        <i class="fas fa-file-import me-2"></i> Import
-                    </button>
-                    <a href="users_list.php" class="btn btn-secondary flex-grow-1">
-                        <i class="fas fa-times me-2"></i> Cancel
-                    </a>
-                </div>
-            </form>
-        <?php endif; ?>
+                <!-- Table of Imported Users with Credentials -->
+                <?php if (!empty($importedUsers)): ?>
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                            <h6 class="m-0 font-weight-bold text-primary">Imported Users</h6>
+                            <span class="badge badge-pill badge-success"><?php echo count($importedUsers); ?> Users</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i> The passwords shown below are temporary. Users should change them upon first login. Please save this information before leaving the page!
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped" id="importedUsersTable" width="100%" cellspacing="0">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Name</th>
+                                            <th>Email</th>
+                                            <th>Department</th>
+                                            <th>User Type</th>
+                                            <th>Password</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($importedUsers as $user): ?>
+                                            <tr>
+                                                <td><?php echo htmlspecialchars($user['id']); ?></td>
+                                                <td><?php echo htmlspecialchars($user['name']); ?></td>
+                                                <td><?php echo htmlspecialchars($user['email']); ?></td>
+                                                <td><?php echo htmlspecialchars($user['department']); ?></td>
+                                                <td><?php echo htmlspecialchars($user['usertype']); ?></td>
+                                                <td>
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control form-control-sm password-field" value="<?php echo htmlspecialchars($user['password']); ?>" readonly>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-primary copy-password" data-password="<?php echo htmlspecialchars($user['password']); ?>">
+                                                        <i class="fas fa-copy"></i> Copy
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <script>
+                        $(document).ready(function() {
+                            // Initialize DataTable
+                            $('#importedUsersTable').DataTable({
+                                "pageLength": 10,
+                                "order": [[0, "asc"]],
+                                "language": {
+                                    "search": "_INPUT_",
+                                    "searchPlaceholder": "Search imported users..."
+                                }
+                            });
+                            
+                            // Copy password to clipboard
+                            $('.copy-password').on('click', function() {
+                                const password = $(this).data('password');
+                                const tempInput = document.createElement('input');
+                                document.body.appendChild(tempInput);
+                                tempInput.value = password;
+                                tempInput.select();
+                                document.execCommand('copy');
+                                document.body.removeChild(tempInput);
+                                
+                                // Show tooltip or notification
+                                Swal.fire({
+                                    title: 'Copied!',
+                                    text: 'Password copied to clipboard',
+                                    icon: 'success',
+                                    toast: true,
+                                    position: 'top-end',
+                                    showConfirmButton: false,
+                                    timer: 2000
+                                });
+                            });
+                            
+                            // Export credentials as CSV
+                            $('#exportUsersBtn').on('click', function() {
+                                // Create CSV content
+                                const csvContent = "ID,Name,Email,Department,User Type,Password\n";
+                                const rows = [];
+                                
+                                // Add each user to the CSV
+                                <?php foreach ($importedUsers as $user): ?>
+                                rows.push([
+                                    "<?php echo addslashes($user['id']); ?>",
+                                    "<?php echo addslashes($user['name']); ?>",
+                                    "<?php echo addslashes($user['email']); ?>",
+                                    "<?php echo addslashes($user['department']); ?>",
+                                    "<?php echo addslashes($user['usertype']); ?>",
+                                    "<?php echo addslashes($user['password']); ?>"
+                                ].join(","));
+                                <?php endforeach; ?>
+                                
+                                // Create and download the CSV file
+                                const csv = csvContent + rows.join("\n");
+                                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                                const url = URL.createObjectURL(blob);
+                                const link = document.createElement('a');
+                                link.setAttribute('href', url);
+                                link.setAttribute('download', 'imported_users_credentials.csv');
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                            });
+                        });
+                    </script>
+                <?php endif; ?>
+            <?php endif; ?>
 
-        <?php if ($errorCount > 0): ?>
-            <div class="mt-4">
-                <h5>Import Errors (<?php echo $errorCount; ?>):</h5>
-                <div class="table-errors">
-                    <table class="table table-sm table-striped">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Error</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($errors as $key => $error): ?>
-                                <tr>
-                                    <td><?php echo $key + 1; ?></td>
-                                    <td><?php echo $error; ?></td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+            <!-- Loading Overlay for CSV Processing -->
+            <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+                <div class="loading-content">
+                    <div class="card shadow">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="m-0"><i class="fas fa-sync fa-spin me-2"></i> Processing User Import</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="progress mb-4" style="height: 25px;">
+                                <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                                     role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" 
+                                     aria-valuemax="100">0%</div>
+                            </div>
+                            
+                            <p id="progressText" class="text-center mb-3">Initializing import process...</p>
+                            
+                            <div class="processing-log-container">
+                                <div class="card mb-3">
+                                    <div class="card-header bg-light">
+                                        <h6 class="m-0 font-weight-bold">Processing Log</h6>
+                                    </div>
+                                    <div class="card-body p-2" style="height: 150px; overflow-y: auto;">
+                                        <div id="processingInfo" class="small"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-        <?php endif; ?>
+        </div>
 
-        <?php if (!$status): ?>
-            <div class="text-center mt-4">
-                <a href="users_list.php" class="back-link">
-                    <i class="fas fa-users me-1"></i>Back to Users List
-                </a>
-            </div>
-        <?php endif; ?>
-    </div>
+        <!-- Footer -->
+        <?php include '../Admin/inc/footer.php' ?>
 
-    <!-- Bootstrap Bundle with Popper -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-
-    <!-- Add SheetJS (for Excel export) -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-
-    <!-- Add jsPDF for PDF export -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
-
-    <script>
-        function copyPassword(password) {
-            const tempInput = document.createElement('input');
-            tempInput.value = password;
-            document.body.appendChild(tempInput);
-            tempInput.select();
-            document.execCommand('copy');
-            document.body.removeChild(tempInput);
-
-            // Show a tooltip or notification
-            showToast('Password copied to clipboard');
-        }
-
-        function showToast(message) {
-            // Create toast element
-            const toast = document.createElement('div');
-            toast.className = 'toast-notification';
-            toast.textContent = message;
-            toast.style.position = 'fixed';
-            toast.style.bottom = '20px';
-            toast.style.right = '20px';
-            toast.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-            toast.style.color = 'white';
-            toast.style.padding = '10px 20px';
-            toast.style.borderRadius = '5px';
-            toast.style.zIndex = '9999';
-
-            // Add to document
-            document.body.appendChild(toast);
-
-            // Remove after timeout
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                toast.style.transition = 'opacity 0.5s';
-                setTimeout(() => {
-                    document.body.removeChild(toast);
-                }, 500);
-            }, 2000);
-        }
-
-        function exportToExcel() {
-            const table = document.getElementById('users-password-table');
-            const wb = XLSX.utils.table_to_book(table, { sheet: "Imported Users" });
-            XLSX.writeFile(wb, 'imported_users_' + new Date().toISOString().slice(0,10) + '.xlsx');
-
-            showToast('Exported to Excel successfully');
-        }
-
-        function exportToPDF() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF('landscape');
-
-            // Set document properties
-            doc.setProperties({
-                title: 'Imported Users - NBSC Library System',
-                subject: 'User Credentials',
-                author: 'NBSC Library System',
-                creator: 'NBSC Library System'
+        <!-- Scripts -->
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                initializeFileUpload();
+                setupFormSubmission();
             });
+            
+            // Initialize file upload handling
+            function initializeFileUpload() {
+                const container = document.querySelector('.file-upload-container');
+                const input = container.querySelector('.file-upload-input');
+                const uploadArea = container.querySelector('.file-upload-area');
+                const previewContainer = container.querySelector('.file-preview-container');
+                const csvPreview = container.querySelector('#csvPreview');
+                const fileName = container.querySelector('.file-name');
+                const fileSize = container.querySelector('.file-size');
+                const removeButton = container.querySelector('.file-remove');
+                const validateButton = container.querySelector('.file-validate');
 
-            // Get page dimensions
-            const pageWidth = doc.internal.pageSize.getWidth();
-            const pageHeight = doc.internal.pageSize.getHeight();
-            const marginLeft = 10;
-            const marginRight = 10;
-            const availableWidth = pageWidth - marginLeft - marginRight;
-
-            // Draw a colored header background for the entire width of the page
-            doc.setFillColor(78, 115, 223);
-            doc.rect(0, 0, pageWidth, 20, 'F');
-
-            // Add title across full width of the page with proper styling
-            doc.setFontSize(18);
-            doc.setFont(undefined, 'bold');
-            doc.setTextColor(255, 255, 255); // White text on blue background
-            doc.text('NBSC Library - Imported Users', pageWidth / 2, 14, {
-                align: 'center'
-            });
-
-            // Add date and info text
-            doc.setFontSize(10);
-            doc.setFont(undefined, 'normal');
-            doc.setTextColor(0, 0, 0);
-            doc.text('Generated on ' + new Date().toLocaleString(), pageWidth / 2, 25, { align: 'center' });
-            doc.setTextColor(255, 0, 0);
-            doc.text('IMPORTANT: Store these credentials in a secure location.', pageWidth / 2, 30, { align: 'center' });
-            doc.setTextColor(0, 0, 0);
-
-            // Create data for table
-            const table = document.getElementById('users-password-table');
-            const tableData = [];
-
-            // Get headers
-            const headers = [];
-            table.querySelectorAll('thead th').forEach((th, index) => {
-                // Skip the 'Action' column (last column)
-                if (index < 6) {
-                    headers.push(th.textContent.trim());
-                }
-            });
-
-            // Get rows
-            table.querySelectorAll('tbody tr').forEach(tr => {
-                const row = [];
-                tr.querySelectorAll('td').forEach((td, index) => {
-                    // Skip the 'Action' column (last column)
-                    if (index < 6) {
-                        // For password column (index 5), get the text from the span
-                        if (index === 5) {
-                            const passwordField = td.querySelector('.password-field');
-                            if (passwordField) {
-                                row.push(passwordField.textContent.trim());
-                            } else {
-                                row.push('');
-                            }
-                        } else {
-                            row.push(td.textContent.trim());
-                        }
-                    }
+                // Handle file selection
+                input.addEventListener('change', function() {
+                    handleFileSelection(this.files[0]);
                 });
-                tableData.push(row);
-            });
 
-            // Calculate proportional column widths that use the full page width
-            // Set column width proportions (total should be 1)
-            const colProportions = [0.08, 0.22, 0.30, 0.15, 0.10, 0.15];
-            const colWidths = {};
+                // Handle drag and drop
+                uploadArea.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    uploadArea.classList.add('drag-over');
+                });
 
-            colProportions.forEach((proportion, index) => {
-                colWidths[index] = availableWidth * proportion;
-            });
+                uploadArea.addEventListener('dragleave', function() {
+                    uploadArea.classList.remove('drag-over');
+                });
 
-            // Add table to the PDF using autoTable plugin
-            doc.autoTable({
-                head: [headers],
-                body: tableData,
-                startY: 35, // Increased to make room for the header
-                theme: 'striped',
-                margin: { left: marginLeft, right: marginRight },
-                styles: {
-                    fontSize: 8,
-                    cellPadding: 2,
-                    overflow: 'linebreak',
-                    halign: 'left'
-                },
-                headStyles: {
-                    fillColor: [78, 115, 223],
-                    textColor: 255,
-                    fontStyle: 'bold'
-                },
-                columnStyles: {
-                    0: { cellWidth: colWidths[0] }, // ID
-                    1: { cellWidth: colWidths[1] }, // Name
-                    2: { cellWidth: colWidths[2] }, // Email
-                    3: { cellWidth: colWidths[3] }, // Department
-                    4: { cellWidth: colWidths[4] }, // User Type
-                    5: { cellWidth: colWidths[5] }  // Password
-                },
-                alternateRowStyles: {
-                    fillColor: [240, 240, 240]
+                uploadArea.addEventListener('drop', function(e) {
+                    e.preventDefault();
+                    uploadArea.classList.remove('drag-over');
+                    handleFileSelection(e.dataTransfer.files[0]);
+                });
+
+                // Click on upload area triggers file input
+                uploadArea.addEventListener('click', function() {
+                    input.click();
+                });
+
+                // Remove file
+                removeButton.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    clearFileSelection();
+                });
+
+                // Validate file structure
+                validateButton.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    validateFileStructure(input.files[0]);
+                });
+
+                function handleFileSelection(file) {
+                    if (!file) return;
+                    
+                    const validExtensions = ['.csv', '.xlsx'];
+                    const fileExt = '.' + file.name.split('.').pop().toLowerCase();
+                    
+                    if (!validExtensions.includes(fileExt)) {
+                        alert('Please select a CSV or Excel file');
+                        clearFileSelection();
+                        return;
+                    }
+
+                    fileName.textContent = file.name;
+                    fileSize.textContent = formatFileSize(file.size);
+                    previewContainer.classList.add('show');
+
+                    if (fileExt === '.csv') {
+                        previewCSVFile(file);
+                    } else {
+                        csvPreview.textContent = 'Excel file preview not available';
+                    }
                 }
-            });
 
-            // Add footer note
-            const pageCount = doc.internal.getNumberOfPages();
-            for (let i = 1; i <= pageCount; i++) {
-                doc.setPage(i);
-                doc.setFontSize(8);
-                doc.setTextColor(100);
-                doc.text(
-                    'Page ' + i + ' of ' + pageCount,
-                    doc.internal.pageSize.getWidth() / 2,
-                    doc.internal.pageSize.getHeight() - 10,
-                    { align: 'center' }
-                );
-                doc.text(
-                    'Confidential - For authorized personnel only',
-                    doc.internal.pageSize.getWidth() / 2,
-                    doc.internal.pageSize.getHeight() - 5,
-                    { align: 'center' }
-                );
+                function clearFileSelection() {
+                    input.value = '';
+                    previewContainer.classList.remove('show');
+                    csvPreview.textContent = '';
+                    fileName.textContent = 'No file selected';
+                    fileSize.textContent = '0 KB';
+                }
+
+                function previewCSVFile(file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const lines = e.target.result.split('\n');
+                        const previewLines = lines.slice(0, Math.min(5, lines.length));
+                        csvPreview.textContent = previewLines.join('\n');
+                        
+                        if (lines.length > 5) {
+                            csvPreview.textContent += '\n\n[...] ' + (lines.length - 5) + ' more rows';
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+
+                function formatFileSize(bytes) {
+                    if (bytes === 0) return '0 Bytes';
+                    const k = 1024;
+                    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                    const i = Math.floor(Math.log(bytes) / Math.log(k));
+                    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+                }
+
+                function validateFileStructure(file) {
+                    if (!file) {
+                        alert('Please select a file first');
+                        return;
+                    }
+
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const content = e.target.result;
+                        const lines = content.split('\n');
+                        const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+                        // Update expected headers to match what we're actually checking in PHP
+                        const expectedHeaders = ['School_ID', 'Firstname', 'Middle_Initial', 'Lastname', 'Email', 'Contact_No', 'Department', 'Usertype', 'Fullname'];
+                        
+                        const missingHeaders = expectedHeaders.filter(h => !headers.includes(h));
+                        
+                        if (missingHeaders.length === 0) {
+                            alert('File structure validation passed!');
+                        } else {
+                            alert('Missing required columns: ' + missingHeaders.join(', '));
+                        }
+                    };
+                    reader.readAsText(file);
+                }
             }
 
-            // Save the PDF
-            doc.save('imported_users_' + new Date().toISOString().slice(0,10) + '.pdf');
-
-            showToast('Exported to PDF successfully');
-        }
-
-        function copyAllPasswords() {
-            const table = document.getElementById('users-password-table');
-            const rows = table.querySelectorAll('tbody tr');
-
-            let text = "ID\tName\tEmail\tDepartment\tUser Type\tPassword\n";
-
-            rows.forEach(row => {
-                const columns = row.querySelectorAll('td');
-                text += columns[0].textContent + "\t"; // ID
-                text += columns[1].textContent + "\t"; // Name
-                text += columns[2].textContent + "\t"; // Email
-                text += columns[3].textContent + "\t"; // Department
-                text += columns[4].textContent + "\t"; // User Type
-                text += columns[5].textContent.trim() + "\n"; // Password
-            });
-
-            const tempInput = document.createElement('textarea');
-            tempInput.value = text;
-            document.body.appendChild(tempInput);
-            tempInput.select();
-            document.execCommand('copy');
-            document.body.removeChild(tempInput);
-
-            showToast('All user data copied to clipboard');
-        }
-    </script>
-</body>
+            // Setup form submission with loading overlay
+            function setupFormSubmission() {
+                const form = document.getElementById('csvUploadForm');
+                const loadingOverlay = document.getElementById('loadingOverlay');
+                const progressBar = document.getElementById('progressBar');
+                const progressText = document.getElementById('progressText');
+                const processingInfo = document.getElementById('processingInfo');
+                
+                // Processing messages to display during import
+                const processingMessages = [
+                    "Reading file and validating format...",
+                    "Checking for existing user records...",
+                    "Processing user data...",
+                    "Generating email addresses...",
+                    "Creating secure passwords...",
+                    "Setting up user accounts...",
+                    "Sending welcome emails...",
+                    "Finalizing import process..."
+                ];
+                
+                let currentMsgIndex = 0;
+                let processingInterval;
+                
+                if (form) {
+                    form.addEventListener('submit', function(e) {
+                        const fileInput = document.querySelector('input[type="file"]');
+                        
+                        if (fileInput.files.length > 0) {
+                            e.preventDefault(); // Prevent the default form submission
+                            
+                            // Show loading overlay
+                            loadingOverlay.style.display = 'flex';
+                            
+                            // Start with 0% progress
+                            updateProgress(0, "Preparing to import users...");
+                            
+                            // Add initial processing message
+                            addProcessingMessage("Starting user import process...");
+                            
+                            // Simulate progress updates with processing messages
+                            processingInterval = setInterval(function() {
+                                // Update progress bar (random increments between 5-15%)
+                                const currentProgress = parseInt(progressBar.getAttribute('aria-valuenow'));
+                                if (currentProgress < 90) {
+                                    const increment = Math.floor(Math.random() * 10) + 5;
+                                    const newProgress = Math.min(currentProgress + increment, 90);
+                                    updateProgress(newProgress, `Processing... ${newProgress}%`);
+                                    
+                                    // Add a processing message
+                                    if (currentMsgIndex < processingMessages.length) {
+                                        addProcessingMessage(processingMessages[currentMsgIndex]);
+                                        currentMsgIndex++;
+                                    }
+                                }
+                            }, 2000); // Update every 2 seconds
+                            
+                            // Submit the form with AJAX
+                            const formData = new FormData(form);
+                            
+                            fetch(form.action || window.location.href, {
+                                method: 'POST',
+                                body: formData
+                            })
+                            .then(response => response.text())
+                            .then(html => {
+                                // Clear the interval
+                                clearInterval(processingInterval);
+                                
+                                // Complete the progress bar
+                                updateProgress(100, "Import complete!");
+                                progressBar.classList.add('complete');
+                                
+                                addProcessingMessage("User import completed successfully!");
+                                
+                                // Replace the page content with the response
+                                setTimeout(function() {
+                                    document.open();
+                                    document.write(html);
+                                    document.close();
+                                }, 1000);
+                            })
+                            .catch(error => {
+                                clearInterval(processingInterval);
+                                console.error('Error:', error);
+                                addProcessingMessage("Error occurred: " + error.message);
+                                updateProgress(100, "Import failed!");
+                                progressBar.classList.remove('complete');
+                                progressBar.classList.add('bg-danger');
+                                
+                                // Allow the user to try again
+                                setTimeout(function() {
+                                    loadingOverlay.style.display = 'none';
+                                }, 3000);
+                            });
+                            
+                            return false; // Prevent form submission
+                        }
+                    });
+                }
+                
+                // Function to update progress bar
+                function updateProgress(percent, message) {
+                    if (typeof $ !== 'undefined') {
+                        $(progressBar).animate({
+                            width: percent + '%'
+                        }, 400, function() {
+                            progressBar.setAttribute('aria-valuenow', percent);
+                            progressBar.textContent = percent + '%';
+                            progressText.textContent = message;
+                        });
+                    } else {
+                        progressBar.style.width = percent + '%';
+                        progressBar.setAttribute('aria-valuenow', percent);
+                        progressBar.textContent = percent + '%';
+                        progressText.textContent = message;
+                    }
+                    
+                    if (percent >= 100) {
+                        progressBar.classList.add('complete');
+                    }
+                }
+                
+                // Function to add processing message
+                function addProcessingMessage(message) {
+                    const messageElement = document.createElement('div');
+                    messageElement.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+                    processingInfo.appendChild(messageElement);
+                    processingInfo.parentElement.scrollTop = processingInfo.parentElement.scrollHeight;
+                }
+            }
+        </script>
+    </body>
 </html>

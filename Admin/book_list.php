@@ -311,6 +311,10 @@ $result = $stmt->get_result();
                     <button type="button" class="btn btn-info btn-sm" onclick="location.reload();" title="Refresh page">
                         <i class="fas fa-sync-alt"></i> Refresh
                     </button>
+                    <!-- New: Generate All Barcodes Button -->
+                    <a href="export_barcodes.php?all=1" class="btn btn-dark btn-sm" target="_blank">
+                        <i class="fas fa-barcode"></i> Generate All Barcodes
+                    </a>
                 </div>
                 <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#instructionsModal">
                     <i class="fas fa-question-circle"></i> Instructions
