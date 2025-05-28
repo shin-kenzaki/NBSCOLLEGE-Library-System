@@ -6,8 +6,7 @@ $token = $_GET["token"];
 
 $token_hash = hash("sha256", $token);
 
-$conn = require __DIR__ . "/../db.php";
-
+// Use $conn directly, do NOT reassign it!
 $sql = "SELECT * FROM users WHERE reset_token = ?";
 
 $stmt = $conn->prepare($sql);
