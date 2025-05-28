@@ -1,23 +1,15 @@
 <?php
 session_start();
-require '../db.php';
+require __DIR__ . "/../db.php"; // <-- just require, do not assign
 
 $token = $_GET["token"];
-
 $token_hash = hash("sha256", $token);
 
-$conn = require __DIR__ . "/../db.php";  // ✅ Fixed variable
-
 $sql = "SELECT * FROM admins WHERE reset_token = ?";
-
-$stmt = $conn->prepare($sql);  // ✅ Updated to use $conn
-
+$stmt = $conn->prepare($sql);
 $stmt->bind_param("s", $token_hash);
-
 $stmt->execute();
-
 $result = $stmt->get_result();
-
 $user = $result->fetch_assoc();
 
 if ($user === null) {
@@ -27,9 +19,6 @@ if ($user === null) {
 if (strtotime($user["reset_expires"]) <= time()) {
     die("Token has expired");
 }
-
-
-
 ?>
 
 <!DOCTYPE html>
