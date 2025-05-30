@@ -131,9 +131,21 @@ class DatabaseBackup {
             // Create backup filename with timestamp
             $timestamp = date('Y-m-d_H-i-s');
             $backup_filename = "library_backup_{$timestamp}.sql";
-            $compressed_backup_filename = "library_backup_{$timestamp}.zip";
             $backup_file_path = $this->backup_dir . '/' . $backup_filename;
-            $compressed_backup_path = $this->backup_dir . '/' . $compressed_backup_filename;
+            
+            // Check if ZIP is available
+            $zip_available = class_exists('ZipArchive');
+            $use_compression = $zip_available;
+            
+            if (!$zip_available) {
+                if (CREATE_UNCOMPRESSED_BACKUP_IF_NO_ZIP) {
+                    $this->log("INFO: ZIP extension not available. Creating uncompressed backup (fallback mode).");
+                } else {
+                    throw new Exception("ZIP extension is required but not available, and uncompressed backup creation is disabled");
+                }
+            } else {
+                $this->log("ZIP extension available. Backup will be compressed.");
+            }
             
             $this->log("Backup file path: $backup_file_path");
             
@@ -210,20 +222,35 @@ class DatabaseBackup {
             
             $this->log("Database exported successfully to $backup_filename");
             
-            // Compress the SQL file
-            $zip = new ZipArchive();
-            if ($zip->open($compressed_backup_path, ZipArchive::CREATE) === TRUE) {
-                $zip->addFile($backup_file_path, $backup_filename);
-                $zip->close();
+            // Handle compression if available
+            if ($use_compression) {
+                $compressed_backup_filename = "library_backup_{$timestamp}.zip";
+                $compressed_backup_path = $this->backup_dir . '/' . $compressed_backup_filename;
                 
-                // Delete the uncompressed SQL file
-                unlink($backup_file_path);
-                
-                $this->log("Backup compressed successfully to $compressed_backup_filename");
-                $this->backup_file = $compressed_backup_path;
-                $this->success_message = "Database backup completed successfully. File: $compressed_backup_filename";
+                // Compress the SQL file
+                $zip = new ZipArchive();
+                if ($zip->open($compressed_backup_path, ZipArchive::CREATE) === TRUE) {
+                    $zip->addFile($backup_file_path, $backup_filename);
+                    $zip->close();
+                    
+                    // Delete the uncompressed SQL file
+                    unlink($backup_file_path);
+                    
+                    $this->log("Backup compressed successfully to $compressed_backup_filename");
+                    $this->backup_file = $compressed_backup_path;
+                    $this->success_message = "Database backup completed successfully. File: $compressed_backup_filename";
+                    $final_filename = $compressed_backup_filename;
+                    $final_path = $compressed_backup_path;
+                } else {
+                    throw new Exception("Failed to create zip archive");
+                }
             } else {
-                throw new Exception("Failed to create zip archive");
+                // Use uncompressed backup
+                $this->log("Backup saved as uncompressed SQL file: $backup_filename");
+                $this->backup_file = $backup_file_path;
+                $this->success_message = "Database backup completed successfully (uncompressed). File: $backup_filename";
+                $final_filename = $backup_filename;
+                $final_path = $backup_file_path;
             }
             
             // Apply retention policy
@@ -236,8 +263,8 @@ class DatabaseBackup {
             
             return [
                 'success' => true,
-                'filename' => $compressed_backup_filename,
-                'path' => $compressed_backup_path,
+                'filename' => $final_filename,
+                'path' => $final_path,
                 'message' => $this->success_message
             ];
             
@@ -261,8 +288,11 @@ class DatabaseBackup {
     private function applyRetentionPolicy() {
         $this->log("Applying retention policy...");
         
-        // Get all backup files
-        $backup_files = glob($this->backup_dir . '/library_backup_*.zip');
+        // Get all backup files (both .zip and .sql)
+        $backup_files = array_merge(
+            glob($this->backup_dir . '/library_backup_*.zip'),
+            glob($this->backup_dir . '/library_backup_*.sql')
+        );
         
         // Sort by modification time (newest first)
         usort($backup_files, function($a, $b) {
@@ -308,8 +338,11 @@ class DatabaseBackup {
             }
         }
         
-        // Get backup files for status update
-        $backup_files = glob($this->backup_dir . '/library_backup_*.zip');
+        // Get backup files for status update (both .zip and .sql)
+        $backup_files = array_merge(
+            glob($this->backup_dir . '/library_backup_*.zip'),
+            glob($this->backup_dir . '/library_backup_*.sql')
+        );
         
         if (!empty($backup_files)) {
             // Sort by modification time (newest first)
@@ -326,6 +359,8 @@ class DatabaseBackup {
             $status['last_run'] = $backup_timestamp;
             $status['last_status'] = 'success';
             $status['last_successful_backup'] = $backup_date;
+            $status['last_successful_file'] = basename($newest_backup);
+            $status['last_successful_size'] = filesize($newest_backup);
             $status['last_message'] = 'Backup file: ' . basename($newest_backup);
         }
         
@@ -374,7 +409,11 @@ class DatabaseBackup {
     // Get all available backups
     public function getBackups() {
         $backups = [];
-        $backup_files = glob($this->backup_dir . '/library_backup_*.zip');
+        // Get both .zip and .sql backup files
+        $backup_files = array_merge(
+            glob($this->backup_dir . '/library_backup_*.zip'),
+            glob($this->backup_dir . '/library_backup_*.sql')
+        );
         
         // Sort by modification time (newest first)
         usort($backup_files, function($a, $b) {
@@ -385,7 +424,8 @@ class DatabaseBackup {
             $backups[] = [
                 'filename' => basename($file),
                 'size' => filesize($file),
-                'date' => date('Y-m-d H:i:s', filemtime($file))
+                'date' => date('Y-m-d H:i:s', filemtime($file)),
+                'type' => pathinfo($file, PATHINFO_EXTENSION) // 'zip' or 'sql'
             ];
         }
         
@@ -411,9 +451,13 @@ class DatabaseBackup {
         if (file_exists($file_path)) {
             $this->log("Backup downloaded: " . basename($filename));
             
+            // Determine content type based on file extension
+            $extension = pathinfo($filename, PATHINFO_EXTENSION);
+            $content_type = ($extension === 'zip') ? 'application/zip' : 'application/sql';
+            
             // Set headers and output file
             header('Content-Description: File Transfer');
-            header('Content-Type: application/zip');
+            header('Content-Type: ' . $content_type);
             header('Content-Disposition: attachment; filename="' . basename($file_path) . '"');
             header('Expires: 0');
             header('Cache-Control: must-revalidate');

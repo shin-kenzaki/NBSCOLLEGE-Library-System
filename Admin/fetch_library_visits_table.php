@@ -123,11 +123,59 @@ if ($totalPages > 1): ?>
             <a class="page-link vpagination-link" href="#" data-page="<?= $page-1 ?>" tabindex="-1">Previous</a>
         </li>
         
-        <?php for($i = 1; $i <= $totalPages; $i++): ?>
-            <li class="page-item <?= ($page == $i) ? 'active' : '' ?>">
-                <a class="page-link vpagination-link" href="#" data-page="<?= $i ?>"><?= $i ?></a>
-            </li>
-        <?php endfor; ?>
+        <?php
+        // Show limited number of pages with ellipses
+        $maxVisiblePages = 5;
+        $halfVisible = floor($maxVisiblePages/2);
+        
+        // Calculate start and end page numbers to display
+        if ($totalPages <= $maxVisiblePages) {
+            // If we have fewer pages than our max, show all of them
+            $startPage = 1;
+            $endPage = $totalPages;
+        } else {
+            // Calculate which pages to show based on current page
+            $startPage = max(1, $page - $halfVisible);
+            $endPage = min($totalPages, $page + $halfVisible);
+            
+            // Adjust if we're near the beginning or end
+            if ($startPage == 1) {
+                $endPage = $maxVisiblePages;
+            } else if ($endPage == $totalPages) {
+                $startPage = $totalPages - $maxVisiblePages + 1;
+            }
+        }
+        
+        // Always show first page
+        if ($startPage > 1) {
+            echo '<li class="page-item ' . ($page == 1 ? 'active' : '') . '">';
+            echo '<a class="page-link vpagination-link" href="#" data-page="1">1</a></li>';
+            
+            // Show ellipsis if needed
+            if ($startPage > 2) {
+                echo '<li class="page-item disabled"><a class="page-link" href="#">...</a></li>';
+            }
+        }
+        
+        // Loop through the visible page range
+        for ($i = $startPage; $i <= $endPage; $i++) {
+            if ($i > 1 && $i < $totalPages) {  // Skip first and last page since they're handled separately
+                echo '<li class="page-item ' . ($page == $i ? 'active' : '') . '">';
+                echo '<a class="page-link vpagination-link" href="#" data-page="' . $i . '">' . $i . '</a></li>';
+            }
+        }
+        
+        // Always show last page
+        if ($endPage < $totalPages) {
+            // Show ellipsis if needed
+            if ($endPage < $totalPages - 1) {
+                echo '<li class="page-item disabled"><a class="page-link" href="#">...</a></li>';
+            }
+            
+            echo '<li class="page-item ' . ($page == $totalPages ? 'active' : '') . '">';
+            echo '<a class="page-link vpagination-link" href="#" data-page="' . $totalPages . '">' . $totalPages . '</a></li>';
+        }
+        ?>
         
         <li class="page-item <?= ($page >= $totalPages) ? 'disabled' : '' ?>">
             <a class="page-link vpagination-link" href="#" data-page="<?= $page+1 ?>">Next</a>

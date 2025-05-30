@@ -1,0 +1,17 @@
+[2025-05-27 05:39:39] Database connection initialized: host=localhost, db=librarysystem, user=root
+[2025-05-27 05:41:39] Database connection initialized: host=localhost, db=librarysystem, user=root
+[2025-05-27 05:41:39] Starting database backup process...
+[2025-05-27 05:41:39] Using mysqldump path: C:/xampp/mysql/bin/mysqldump.exe
+[2025-05-27 05:41:39] ZIP extension available. Backup will be compressed.
+[2025-05-27 05:41:39] Backup file path: C:\xampp\htdocs\Library-System\Admin\backup/backups/library_backup_2025-05-27_05-41-39.sql
+[2025-05-27 05:41:39] Using mysqldump command for database export
+[2025-05-27 05:41:39] Executing command: "C:/xampp/mysql/bin/mysqldump.exe" --host="localhost" --user="root" --password=***** --databases librarysystem --result-file="C:\xampp\htdocs\Library-System\Admin\backup/backups/library_backup_2025-05-27_05-41-39.sql" --add-drop-table --skip-lock-tables --single-transaction
+[2025-05-27 05:41:39] Database exported successfully to library_backup_2025-05-27_05-41-39.sql
+[2025-05-27 05:41:39] Backup compressed successfully to library_backup_2025-05-27_05-41-39.zip
+[2025-05-27 05:41:39] Applying retention policy...
+[2025-05-27 05:41:39] Found 2 backups, no need to apply retention policy yet
+[2025-05-27 05:41:39] Backup status file updated
+[2025-05-27 05:41:41] Failed to send notification email
+[2025-05-27 05:41:42] Database connection initialized: host=localhost, db=librarysystem, user=root
+[2025-05-27 17:38:23] Database connection initialized: host=localhost, db=librarysystem, user=root
+[2025-05-27 17:45:34] Database connection initialized: host=localhost, db=librarysystem, user=root

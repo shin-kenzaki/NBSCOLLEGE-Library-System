@@ -2,6 +2,79 @@
 session_start();
 include '../db.php';
 
+// Add this pagination function at the top of the file
+function generatePagination($currentPage, $totalPages, $linkClass) {
+    $html = '';
+    $maxVisiblePages = 5;
+    $halfVisible = floor($maxVisiblePages/2);
+    
+    // Opening tags
+    $html .= '<nav aria-label="Page navigation">';
+    $html .= '<ul class="pagination justify-content-center mt-4">';
+    
+    // Previous button
+    $html .= '<li class="page-item ' . ($currentPage <= 1 ? 'disabled' : '') . '">';
+    $html .= '<a class="page-link ' . $linkClass . '" href="#" data-page="' . ($currentPage-1) . '" tabindex="-1">Previous</a></li>';
+    
+    // Calculate start and end page numbers to display
+    if ($totalPages <= $maxVisiblePages) {
+        // If we have fewer pages than our max, show all of them
+        $startPage = 1;
+        $endPage = $totalPages;
+    } else {
+        // Calculate which pages to show based on current page
+        $startPage = max(1, $currentPage - $halfVisible);
+        $endPage = min($totalPages, $currentPage + $halfVisible);
+        
+        // Adjust if we're near the beginning or end
+        if ($startPage == 1) {
+            $endPage = $maxVisiblePages;
+        } else if ($endPage == $totalPages) {
+            $startPage = $totalPages - $maxVisiblePages + 1;
+        }
+    }
+    
+    // Always show first page
+    if ($startPage > 1) {
+        $html .= '<li class="page-item ' . ($currentPage == 1 ? 'active' : '') . '">';
+        $html .= '<a class="page-link ' . $linkClass . '" href="#" data-page="1">1</a></li>';
+        
+        // Show ellipsis if needed
+        if ($startPage > 2) {
+            $html .= '<li class="page-item disabled"><a class="page-link" href="#">...</a></li>';
+        }
+    }
+    
+    // Loop through the visible page range
+    for ($i = $startPage; $i <= $endPage; $i++) {
+        if ($i > 1 && $i < $totalPages) {  // Skip first and last page since they're handled separately
+            $html .= '<li class="page-item ' . ($currentPage == $i ? 'active' : '') . '">';
+            $html .= '<a class="page-link ' . $linkClass . '" href="#" data-page="' . $i . '">' . $i . '</a></li>';
+        }
+    }
+    
+    // Always show last page
+    if ($endPage < $totalPages) {
+        // Show ellipsis if needed
+        if ($endPage < $totalPages - 1) {
+            $html .= '<li class="page-item disabled"><a class="page-link" href="#">...</a></li>';
+        }
+        
+        $html .= '<li class="page-item ' . ($currentPage == $totalPages ? 'active' : '') . '">';
+        $html .= '<a class="page-link ' . $linkClass . '" href="#" data-page="' . $totalPages . '">' . $totalPages . '</a></li>';
+    }
+    
+    // Next button
+    $html .= '<li class="page-item ' . ($currentPage >= $totalPages ? 'disabled' : '') . '">';
+    $html .= '<a class="page-link ' . $linkClass . '" href="#" data-page="' . ($currentPage+1) . '">Next</a></li>';
+    
+    // Closing tags
+    $html .= '</ul>';
+    $html .= '</nav>';
+    
+    return $html;
+}
+
 // Prevent caching
 header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
 header("Expires: Sat, 26 Jul 1997 05:00:00 GMT");
@@ -407,11 +480,6 @@ $vwhereClause = "WHERE 1=1";
 // Exclude records with purpose 'Exit'
 $vwhereClause .= " AND lv.purpose != 'Exit'";
 
-
-
-
-
-
 $vcourseFilter = isset($_GET['vcourse']) ? trim($_GET['vcourse']) : '';
 if ($vcourseFilter !== '') {
     $vwhereClause .= " AND u.department = '" . mysqli_real_escape_string($conn, $vcourseFilter) . "'";
@@ -759,23 +827,7 @@ include 'inc/header.php';
                         <!-- Pagination with filters -->
                         <div id="paginationContainer">
                             <?php if ($totalPages > 1): ?>
-                            <nav aria-label="Borrowings pagination">
-                                <ul class="pagination justify-content-center mt-4">
-                                    <li class="page-item <?= ($page <= 1) ? 'disabled' : '' ?>">
-                                        <a class="page-link pagination-link" href="#" data-page="<?= $page-1 ?>" tabindex="-1">Previous</a>
-                                    </li>
-
-                                    <?php for($i = 1; $i <= $totalPages; $i++): ?>
-                                        <li class="page-item <?= ($page == $i) ? 'active' : '' ?>">
-                                            <a class="page-link pagination-link" href="#" data-page="<?= $i ?>"><?= $i ?></a>
-                                        </li>
-                                    <?php endfor; ?>
-
-                                    <li class="page-item <?= ($page >= $totalPages) ? 'disabled' : '' ?>">
-                                        <a class="page-link pagination-link" href="#" data-page="<?= $page+1 ?>">Next</a>
-                                    </li>
-                                </ul>
-                            </nav>
+                            <?= generatePagination($page, $totalPages, 'pagination-link') ?>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -955,23 +1007,7 @@ include 'inc/header.php';
                         <!-- Pagination with filters -->
                         <div id="rpaginationContainer">
                             <?php if ($rtotalPages > 1): ?>
-                            <nav aria-label="Reservations pagination">
-                                <ul class="pagination justify-content-center mt-4">
-                                    <li class="page-item <?= ($rpage <= 1) ? 'disabled' : '' ?>">
-                                        <a class="page-link rpagination-link" href="#" data-page="<?= $rpage-1 ?>" tabindex="-1">Previous</a>
-                                    </li>
-
-                                    <?php for($i = 1; $i <= $rtotalPages; $i++): ?>
-                                        <li class="page-item <?= ($rpage == $i) ? 'active' : '' ?>">
-                                            <a class="page-link rpagination-link" href="#" data-page="<?= $i ?>"><?= $i ?></a>
-                                        </li>
-                                    <?php endfor; ?>
-
-                                    <li class="page-item <?= ($rpage >= $rtotalPages) ? 'disabled' : '' ?>">
-                                        <a class="page-link rpagination-link" href="#" data-page="<?= $rpage+1 ?>">Next</a>
-                                    </li>
-                                </ul>
-                            </nav>
+                            <?= generatePagination($rpage, $rtotalPages, 'rpagination-link') ?>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -1139,21 +1175,36 @@ include 'inc/header.php';
                                             <option value="Reserved">Reserved</option>
                                             <option value="Damaged">Damaged</option>
                                             <option value="Lost">Lost</option>
+                                            <option value="Withdrawn">Withdrawn</option>
                                         </select>
                                     </div>
                                 </div>
                                 <div class="col-md-2">
                                     <div class="form-group">
-                                        <label for="bookdate_start">From Date</label>
-                                        <input type="date" class="form-control form-control-sm" id="bookdate_start"
-                                            name="bookdate_start" value="">
+                                        <label for="bookprogram">Program</label>
+                                        <select class="form-control form-control-sm" id="bookprogram" name="bookprogram">
+                                            <option value="">All Programs</option>
+                                            <?php
+                                            $programResult = mysqli_query($conn, "SELECT DISTINCT program FROM books WHERE program IS NOT NULL AND program != '' ORDER BY program");
+                                            while ($row = mysqli_fetch_assoc($programResult)) {
+                                                echo '<option value="' . htmlspecialchars($row['program']) . '">' . htmlspecialchars($row['program']) . '</option>';
+                                            }
+                                            ?>
+                                        </select>
                                     </div>
                                 </div>
                                 <div class="col-md-2">
                                     <div class="form-group">
-                                        <label for="bookdate_end">To Date</label>
-                                        <input type="date" class="form-control form-control-sm" id="bookdate_end"
-                                            name="bookdate_end" value="">
+                                        <label for="booksubject_category">Subject Category</label>
+                                        <select class="form-control form-control-sm" id="booksubject_category" name="booksubject_category">
+                                            <option value="">All Categories</option>
+                                            <?php
+                                            $categoryResult = mysqli_query($conn, "SELECT DISTINCT subject_category FROM books WHERE subject_category IS NOT NULL AND subject_category != '' ORDER BY subject_category");
+                                            while ($row = mysqli_fetch_assoc($categoryResult)) {
+                                                echo '<option value="' . htmlspecialchars($row['subject_category']) . '">' . htmlspecialchars($row['subject_category']) . '</option>';
+                                            }
+                                            ?>
+                                        </select>
                                     </div>
                                 </div>
                                 <div class="col-md-2">
@@ -1166,8 +1217,15 @@ include 'inc/header.php';
                                 <div class="col-md-2">
                                     <div class="form-group">
                                         <label for="booklocation">Location</label>
-                                        <input type="text" class="form-control form-control-sm" id="booklocation"
-                                            name="booklocation" placeholder="Shelf location" value="">
+                                        <select class="form-control form-control-sm" id="booklocation" name="booklocation">
+                                            <option value="">All Locations</option>
+                                            <?php
+                                            $locationResult = mysqli_query($conn, "SELECT DISTINCT shelf_location FROM books WHERE shelf_location IS NOT NULL AND shelf_location != '' ORDER BY shelf_location");
+                                            while ($row = mysqli_fetch_assoc($locationResult)) {
+                                                echo '<option value="' . htmlspecialchars($row['shelf_location']) . '">' . htmlspecialchars($row['shelf_location']) . '</option>';
+                                            }
+                                            ?>
+                                        </select>
                                     </div>
                                 </div>
                                 <div class="col-md-2">
@@ -2108,16 +2166,16 @@ document.addEventListener('DOMContentLoaded', function() {
     // Export books table to Excel
     document.getElementById('exportBooksTable').addEventListener('click', function() {
         const statusFilter = document.getElementById('bookstatus').value;
-        const dateStart = document.getElementById('bookdate_start').value;
-        const dateEnd = document.getElementById('bookdate_end').value;
+        const programFilter = document.getElementById('bookprogram').value;
+        const subjectCategoryFilter = document.getElementById('booksubject_category').value;
         const titleFilter = document.getElementById('booktitle').value;
         const locationFilter = document.getElementById('booklocation').value;
 
         // Build query string with current filters
         let params = new URLSearchParams();
         if (statusFilter) params.append('status', statusFilter);
-        if (dateStart) params.append('date_start', dateStart);
-        if (dateEnd) params.append('date_end', dateEnd);
+        if (programFilter) params.append('program', programFilter);
+        if (subjectCategoryFilter) params.append('subject_category', subjectCategoryFilter);
         if (titleFilter) params.append('title', titleFilter);
         if (locationFilter) params.append('location', locationFilter);
 
@@ -2131,8 +2189,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // AJAX function to load books table data
     function loadBooksTable(page = 1) {
         const statusFilter = document.getElementById('bookstatus').value;
-        const dateStart = document.getElementById('bookdate_start').value;
-        const dateEnd = document.getElementById('bookdate_end').value;
+        const programFilter = document.getElementById('bookprogram').value;
+        const subjectCategoryFilter = document.getElementById('booksubject_category').value;
         const titleFilter = document.getElementById('booktitle').value;
         const locationFilter = document.getElementById('booklocation').value;
 
@@ -2143,8 +2201,8 @@ document.addEventListener('DOMContentLoaded', function() {
         let params = new URLSearchParams();
         params.append('page', page);
         if (statusFilter) params.append('status', statusFilter);
-        if (dateStart) params.append('date_start', dateStart);
-        if (dateEnd) params.append('date_end', dateEnd);
+        if (programFilter) params.append('program', programFilter);
+        if (subjectCategoryFilter) params.append('subject_category', subjectCategoryFilter);
         if (titleFilter) params.append('title', titleFilter);
         if (locationFilter) params.append('location', locationFilter);
         params.append('ajax', 'true'); // Indicate this is an AJAX request
@@ -2162,7 +2220,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('bookpaginationContainer').innerHTML = data.paginationHtml;
 
                 // Update filter summary
-                if (statusFilter || dateStart || dateEnd || titleFilter || locationFilter) {
+                if (statusFilter || programFilter || subjectCategoryFilter || titleFilter || locationFilter) {
                     document.getElementById('bookfilterSummary').classList.remove('d-none');
                     document.getElementById('booktotalResults').textContent = data.totalRecords;
                     document.getElementById('bookpluralSuffix').textContent = data.totalRecords != 1 ? 's' : '';
@@ -2188,8 +2246,8 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('resetBooksFilters').addEventListener('click', function() {
         // Clear all filter values
         document.getElementById('bookstatus').value = '';
-        document.getElementById('bookdate_start').value = '';
-        document.getElementById('bookdate_end').value = '';
+        document.getElementById('bookprogram').value = '';
+        document.getElementById('booksubject_category').value = '';
         document.getElementById('booktitle').value = '';
         document.getElementById('booklocation').value = '';
 
@@ -2230,7 +2288,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (dateStart) params.append('date_start', dateStart);
         if (dateEnd) params.append('date_end', dateEnd);
         if (userFilter) params.append('user', userFilter);
-        if (typeFilter) params.append('type', typeFilter);
+        if (typeFilter) params.append('ftype', typeFilter);
 
         // Create export URL with filters
         const exportUrl = 'export_fines_excel.php?' + params.toString();
@@ -2321,44 +2379,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
-
-// Handle tab switching to refresh charts
-$('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
-    // Resize charts when tab is shown
-    window.dispatchEvent(new Event('resize'));
-});
-
-// Function to export table to Excel
-function exportTableToExcel(tableID, filename = '') {
-    var downloadLink;
-    var dataType = 'application/vnd.ms-excel';
-    var tableSelect = document.getElementById(tableID);
-    var tableHTML = tableSelect.outerHTML.replace(/ /g, '%20');
-
-    // Specify file name
-    filename = filename ? filename + '.xls' : 'excel_data.xls';
-
-    // Create download link element
-    downloadLink = document.createElement("a");
-
-    document.body.appendChild(downloadLink);
-
-    if(navigator.msSaveOrOpenBlob) {
-        var blob = new Blob(['\ufeff', tableHTML], {
-            type: dataType
-        });
-        navigator.msSaveOrOpenBlob(blob, filename);
-    } else {
-        // Create a link to the file
-        downloadLink.href = 'data:' + dataType + ', ' + tableHTML;
-
-        // Setting the file name
-        downloadLink.download = filename;
-
-        // Triggering the function
-        downloadLink.click();
-    }
-}
 
 // SCRIPT FOR LIBRARY VISITS
 document.addEventListener('DOMContentLoaded', function() {
@@ -2667,8 +2687,8 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('exportBooksPDF').addEventListener('click', function(e) {
         e.preventDefault();
         const statusFilter = document.getElementById('bookstatus').value;
-        const dateStart = document.getElementById('bookdate_start').value;
-        const dateEnd = document.getElementById('bookdate_end').value;
+        const programFilter = document.getElementById('bookprogram').value;
+        const subjectCategoryFilter = document.getElementById('booksubject_category').value;
         const titleFilter = document.getElementById('booktitle').value;
         const locationFilter = document.getElementById('booklocation').value;
 
@@ -2676,8 +2696,8 @@ document.addEventListener('DOMContentLoaded', function() {
         let params = new URLSearchParams();
         params.append('type', 'books');
         if (statusFilter) params.append('status', statusFilter);
-        if (dateStart) params.append('date_start', dateStart);
-        if (dateEnd) params.append('date_end', dateEnd);
+        if (programFilter) params.append('program', programFilter);
+        if (subjectCategoryFilter) params.append('subject_category', subjectCategoryFilter);
         if (titleFilter) params.append('title', titleFilter);
         if (locationFilter) params.append('location', locationFilter);
 

@@ -66,6 +66,9 @@ define('BACKUP_ACCESS_KEY', 'change_this_to_a_secure_random_string'); // Used fo
 // Use PHP's native PDO backup if exec() isn't available
 define('USE_PDO_BACKUP_FALLBACK', true);
 
+// Create uncompressed backups if ZIP is not available
+define('CREATE_UNCOMPRESSED_BACKUP_IF_NO_ZIP', true);
+
 // Create necessary directories if they don't exist
 if (!file_exists(BACKUP_DIR)) {
     mkdir(BACKUP_DIR, 0755, true);

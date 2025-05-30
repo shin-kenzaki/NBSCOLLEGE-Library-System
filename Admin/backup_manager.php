@@ -177,6 +177,11 @@ $diagnosticsAvailable = true;
     <?php if ($message): ?>
     <div class="alert alert-success">
         <i class="fas fa-check-circle"></i> <?php echo $message; ?>
+        <?php if (strpos($message, 'uncompressed') !== false): ?>
+        <div class="mt-2">
+            <small><i class="fas fa-info-circle"></i> <strong>Note:</strong> This backup was created as an uncompressed SQL file because ZIP compression is not available on this server.</small>
+        </div>
+        <?php endif; ?>
     </div>
     <?php endif; ?>
 
@@ -191,9 +196,22 @@ $diagnosticsAvailable = true;
                 <li>Verify database credentials in the db.php file</li>
                 <li>Make sure backup directories have write permissions</li>
                 <li>Check if PHP has permission to execute system commands</li>
-                <li>Run the <a href="backup/diagnostics.php" class="alert-link">diagnostics tool</a> for detailed troubleshooting</li>
+                <li>Run the <a href="#" class="alert-link" id="runDiagnosticsLink">diagnostics tool</a> for detailed troubleshooting</li>
             </ul>
         </div>
+    </div>
+    <?php endif; ?>
+
+    <?php 
+    // Check if ZIP is not available and show info message
+    $zip_available = class_exists('ZipArchive');
+    if (!$zip_available && defined('CREATE_UNCOMPRESSED_BACKUP_IF_NO_ZIP') && CREATE_UNCOMPRESSED_BACKUP_IF_NO_ZIP): 
+    ?>
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i> <strong>Information:</strong> ZIP compression is not available on this server. Backups will be created as uncompressed SQL files, which may be larger but are still fully functional.
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
     </div>
     <?php endif; ?>
 
@@ -433,7 +451,14 @@ $diagnosticsAvailable = true;
                                     <td style="text-align: center;">
                                         <input type="checkbox" class="row-checkbox" value="<?php echo htmlspecialchars($backup['filename']); ?>">
                                     </td>
-                                    <td><?php echo htmlspecialchars($backup['filename']); ?></td>
+                                    <td>
+                                        <?php echo htmlspecialchars($backup['filename']); ?>
+                                        <?php if (isset($backup['type']) && $backup['type'] === 'sql'): ?>
+                                            <span class="badge badge-info ml-2" title="Uncompressed SQL file">SQL</span>
+                                        <?php elseif (isset($backup['type']) && $backup['type'] === 'zip'): ?>
+                                            <span class="badge badge-success ml-2" title="Compressed ZIP file">ZIP</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td style="text-align: center;"><?php echo date('M d, Y g:i A', strtotime($backup['date'])); ?></td>
                                     <td style="text-align: center;"><?php echo round($backup['size'] / 1024 / 1024, 2); ?> MB</td>
                                 </tr>
@@ -701,7 +726,7 @@ $(document).ready(function() {
     });
 
     // Handle diagnostics button click
-    $('#runDiagnostics').on('click', function(e) {
+    $('#runDiagnostics, #runDiagnosticsLink').on('click', function(e) {
         e.preventDefault();
         
         // Show the modal

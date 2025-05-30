@@ -181,14 +181,37 @@ function checkPDOAvailability() {
 
 function checkZipSupport() {
     $zip_enabled = class_exists('ZipArchive');
+    $fallback_enabled = defined('CREATE_UNCOMPRESSED_BACKUP_IF_NO_ZIP') && CREATE_UNCOMPRESSED_BACKUP_IF_NO_ZIP;
     
-    return [
-        'status' => $zip_enabled ? 'success' : 'error',
-        'message' => $zip_enabled ? 'ZIP support is enabled' : 'ZIP support is not available',
-        'details' => [
-            'zip_enabled' => $zip_enabled ? 'Yes' : 'No'
-        ]
-    ];
+    if ($zip_enabled) {
+        return [
+            'status' => 'success',
+            'message' => 'ZIP support is enabled',
+            'details' => [
+                'zip_enabled' => 'Yes',
+                'compression_available' => 'Yes'
+            ]
+        ];
+    } else if ($fallback_enabled) {
+        return [
+            'status' => 'info',
+            'message' => 'ZIP support not available, but uncompressed backup fallback is enabled',
+            'details' => [
+                'zip_enabled' => 'No',
+                'fallback_enabled' => 'Yes',
+                'backup_method' => 'Uncompressed SQL files'
+            ]
+        ];
+    } else {
+        return [
+            'status' => 'error',
+            'message' => 'ZIP support is not available and fallback is disabled',
+            'details' => [
+                'zip_enabled' => 'No',
+                'fallback_enabled' => 'No'
+            ]
+        ];
+    }
 }
 
 function checkPHPSettings() {

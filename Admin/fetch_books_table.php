@@ -15,8 +15,8 @@ $recordsPerPage = 10;
 $offset = ($page - 1) * $recordsPerPage;
 
 $statusFilter = isset($_GET['status']) ? $_GET['status'] : '';
-$dateStart = isset($_GET['date_start']) ? $_GET['date_start'] : '';
-$dateEnd = isset($_GET['date_end']) ? $_GET['date_end'] : '';
+$programFilter = isset($_GET['program']) ? $_GET['program'] : '';
+$subjectCategoryFilter = isset($_GET['subject_category']) ? $_GET['subject_category'] : '';
 $titleFilter = isset($_GET['title']) ? $_GET['title'] : '';
 $locationFilter = isset($_GET['location']) ? $_GET['location'] : '';
 
@@ -29,14 +29,14 @@ if ($statusFilter) {
     $filterParams[] = "status=$statusFilter";
 }
 
-if ($dateStart) {
-    $whereClause .= $whereClause ? " AND b.date_added >= '$dateStart'" : "WHERE b.date_added >= '$dateStart'";
-    $filterParams[] = "date_start=$dateStart";
+if ($programFilter) {
+    $whereClause .= $whereClause ? " AND b.program = '$programFilter'" : "WHERE b.program = '$programFilter'";
+    $filterParams[] = "program=$programFilter";
 }
 
-if ($dateEnd) {
-    $whereClause .= $whereClause ? " AND b.date_added <= '$dateEnd'" : "WHERE b.date_added <= '$dateEnd'";
-    $filterParams[] = "date_end=$dateEnd";
+if ($subjectCategoryFilter) {
+    $whereClause .= $whereClause ? " AND b.subject_category = '$subjectCategoryFilter'" : "WHERE b.subject_category = '$subjectCategoryFilter'";
+    $filterParams[] = "subject_category=$subjectCategoryFilter";
 }
 
 if ($titleFilter) {
@@ -173,11 +173,59 @@ if ($totalPages > 1): ?>
             <a class="page-link bookpagination-link" href="#" data-page="<?= $page-1 ?>" tabindex="-1">Previous</a>
         </li>
         
-        <?php for($i = 1; $i <= $totalPages; $i++): ?>
-            <li class="page-item <?= ($page == $i) ? 'active' : '' ?>">
-                <a class="page-link bookpagination-link" href="#" data-page="<?= $i ?>"><?= $i ?></a>
-            </li>
-        <?php endfor; ?>
+        <?php
+        // Show limited number of pages with ellipses
+        $maxVisiblePages = 5;
+        $halfVisible = floor($maxVisiblePages/2);
+        
+        // Calculate start and end page numbers to display
+        if ($totalPages <= $maxVisiblePages) {
+            // If we have fewer pages than our max, show all of them
+            $startPage = 1;
+            $endPage = $totalPages;
+        } else {
+            // Calculate which pages to show based on current page
+            $startPage = max(1, $page - $halfVisible);
+            $endPage = min($totalPages, $page + $halfVisible);
+            
+            // Adjust if we're near the beginning or end
+            if ($startPage == 1) {
+                $endPage = $maxVisiblePages;
+            } else if ($endPage == $totalPages) {
+                $startPage = $totalPages - $maxVisiblePages + 1;
+            }
+        }
+        
+        // Always show first page
+        if ($startPage > 1) {
+            echo '<li class="page-item ' . ($page == 1 ? 'active' : '') . '">';
+            echo '<a class="page-link bookpagination-link" href="#" data-page="1">1</a></li>';
+            
+            // Show ellipsis if needed
+            if ($startPage > 2) {
+                echo '<li class="page-item disabled"><a class="page-link" href="#">...</a></li>';
+            }
+        }
+        
+        // Loop through the visible page range
+        for ($i = $startPage; $i <= $endPage; $i++) {
+            if ($i > 1 && $i < $totalPages) {  // Skip first and last page since they're handled separately
+                echo '<li class="page-item ' . ($page == $i ? 'active' : '') . '">';
+                echo '<a class="page-link bookpagination-link" href="#" data-page="' . $i . '">' . $i . '</a></li>';
+            }
+        }
+        
+        // Always show last page
+        if ($endPage < $totalPages) {
+            // Show ellipsis if needed
+            if ($endPage < $totalPages - 1) {
+                echo '<li class="page-item disabled"><a class="page-link" href="#">...</a></li>';
+            }
+            
+            echo '<li class="page-item ' . ($page == $totalPages ? 'active' : '') . '">';
+            echo '<a class="page-link bookpagination-link" href="#" data-page="' . $totalPages . '">' . $totalPages . '</a></li>';
+        }
+        ?>
         
         <li class="page-item <?= ($page >= $totalPages) ? 'disabled' : '' ?>">
             <a class="page-link bookpagination-link" href="#" data-page="<?= $page+1 ?>">Next</a>

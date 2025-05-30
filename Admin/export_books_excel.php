@@ -14,8 +14,8 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 // Get filter parameters
 $statusFilter = isset($_GET['status']) ? $_GET['status'] : '';
-$dateStart = isset($_GET['date_start']) ? $_GET['date_start'] : '';
-$dateEnd = isset($_GET['date_end']) ? $_GET['date_end'] : '';
+$programFilter = isset($_GET['program']) ? $_GET['program'] : '';
+$subjectCategoryFilter = isset($_GET['subject_category']) ? $_GET['subject_category'] : '';
 $titleFilter = isset($_GET['title']) ? $_GET['title'] : '';
 $locationFilter = isset($_GET['location']) ? $_GET['location'] : '';
 
@@ -28,14 +28,14 @@ if ($statusFilter) {
     $filterParams[] = "status=$statusFilter";
 }
 
-if ($dateStart) {
-    $whereClause .= $whereClause ? " AND b.date_added >= '$dateStart'" : "WHERE b.date_added >= '$dateStart'";
-    $filterParams[] = "date_start=$dateStart";
+if ($programFilter) {
+    $whereClause .= $whereClause ? " AND b.program = '$programFilter'" : "WHERE b.program = '$programFilter'";
+    $filterParams[] = "program=$programFilter";
 }
 
-if ($dateEnd) {
-    $whereClause .= $whereClause ? " AND b.date_added <= '$dateEnd'" : "WHERE b.date_added <= '$dateEnd'";
-    $filterParams[] = "date_end=$dateEnd";
+if ($subjectCategoryFilter) {
+    $whereClause .= $whereClause ? " AND b.subject_category = '$subjectCategoryFilter'" : "WHERE b.subject_category = '$subjectCategoryFilter'";
+    $filterParams[] = "subject_category=$subjectCategoryFilter";
 }
 
 if ($titleFilter) {
@@ -155,23 +155,20 @@ foreach (range('A', 'K') as $column) {
 }
 
 // Generate a descriptive filename based on filters
-function generateDescriptiveFilename($statusFilter, $dateStart, $dateEnd, $locationFilter) {
+function generateDescriptiveFilename($statusFilter, $programFilter, $subjectCategoryFilter, $locationFilter) {
     $filenameParts = ['books'];
-    $dateRangeSpecified = false;
     $onlyStatusFilter = false;
     $statusAndLocationFilter = false;
-    $statusLocationAndDateRangeFilter = false;
-    $dateRangePart = '';
+    $statusLocationAndProgramFilter = false;
     $currentDate = date('Y-m-d');
     
     // First, determine the filter combinations
-    if ($statusFilter && empty($dateStart) && empty($dateEnd) && empty($locationFilter)) {
+    if ($statusFilter && empty($programFilter) && empty($subjectCategoryFilter) && empty($locationFilter)) {
         $onlyStatusFilter = true;
-    } else if ($statusFilter && empty($dateStart) && empty($dateEnd) && !empty($locationFilter)) {
+    } else if ($statusFilter && empty($programFilter) && empty($subjectCategoryFilter) && !empty($locationFilter)) {
         $statusAndLocationFilter = true;
-    } else if ($statusFilter && !empty($locationFilter) && (!empty($dateStart) || !empty($dateEnd))) {
-        // New case: status + location + date range
-        $statusLocationAndDateRangeFilter = true;
+    } else if ($statusFilter && !empty($locationFilter) && (!empty($programFilter) || !empty($subjectCategoryFilter))) {
+        $statusLocationAndProgramFilter = true;
     }
     
     // Add status to filename if filtered
@@ -179,52 +176,31 @@ function generateDescriptiveFilename($statusFilter, $dateStart, $dateEnd, $locat
         $filenameParts[] = strtolower($statusFilter);
     }
     
-    // Store date range part separately for later reordering
-    if (!empty(trim($dateStart)) && !empty(trim($dateEnd))) {
-        $dateRangePart = 'period_' . $dateStart . '_to_' . $dateEnd;
-        $dateRangeSpecified = true;
-    } elseif (!empty(trim($dateStart))) {
-        // If we have a start date but no end date, include the current date as the implicit end
-        $dateRangePart = 'from_' . $dateStart . '_to_' . $currentDate;
-        $dateRangeSpecified = true;
-    } elseif (!empty(trim($dateEnd))) {
-        $dateRangePart = 'until_' . $dateEnd;
-        $dateRangeSpecified = true;
-    } else if (!$onlyStatusFilter && !$statusAndLocationFilter) {
-        // Only add 'all_time' if not a simple filter combination
-        $dateRangePart = 'all_time';
+    // Add program to filename if filtered
+    if ($programFilter) {
+        $cleanProgram = preg_replace('/[^a-zA-Z0-9]/', '_', $programFilter);
+        $filenameParts[] = 'program_' . $cleanProgram;
     }
     
-    // Add location to filename if filtered (before date range)
+    // Add subject category to filename if filtered
+    if ($subjectCategoryFilter) {
+        $cleanCategory = preg_replace('/[^a-zA-Z0-9]/', '_', $subjectCategoryFilter);
+        $filenameParts[] = 'category_' . $cleanCategory;
+    }
+    
+    // Add location to filename if filtered
     if ($locationFilter) {
-        // Clean up location for filename
         $cleanLocation = preg_replace('/[^a-zA-Z0-9]/', '_', $locationFilter);
         $filenameParts[] = 'location_' . $cleanLocation;
     }
     
-    // Now add the date range part after location
-    if (!empty($dateRangePart)) {
-        $filenameParts[] = $dateRangePart;
-    }
-    
     // If no specific filters applied, indicate this is a complete inventory
-    if (count($filenameParts) === 1 || 
-        (in_array('all_time', $filenameParts) && count($filenameParts) === 2)) {
+    if (count($filenameParts) === 1) {
         $filenameParts[0] = 'all_books_inventory';
-        // Remove the all_time part since "all_books_inventory" implies it
-        if (($key = array_search('all_time', $filenameParts)) !== false) {
-            unset($filenameParts[$key]);
-            $filenameParts = array_values($filenameParts); // Reindex array
-        }
     }
     
     // Determine if we should include a timestamp
-    // Skip timestamp for specific combinations: status only, status+location, or status+location+date range
-    $skipTimestamp = $onlyStatusFilter || $statusAndLocationFilter || $statusLocationAndDateRangeFilter;
-    
-    // Also skip timestamp if date range already includes the current date
-    $dateRangeIncludesCurrentDate = strpos($dateRangePart, $currentDate) !== false;
-    $skipTimestamp = $skipTimestamp || $dateRangeIncludesCurrentDate;
+    $skipTimestamp = $onlyStatusFilter || $statusAndLocationFilter || $statusLocationAndProgramFilter;
     
     // Add date for uniqueness - with or without time portion
     if (!$skipTimestamp) {
@@ -244,7 +220,7 @@ function generateDescriptiveFilename($statusFilter, $dateStart, $dateEnd, $locat
 }
 
 // Set filename with descriptive elements based on filters
-$filename = generateDescriptiveFilename($statusFilter, $dateStart, $dateEnd, $locationFilter);
+$filename = generateDescriptiveFilename($statusFilter, $programFilter, $subjectCategoryFilter, $locationFilter);
 
 // Set headers for download
 header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
