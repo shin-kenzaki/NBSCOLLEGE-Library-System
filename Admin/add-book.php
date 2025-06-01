@@ -2069,6 +2069,31 @@ document.addEventListener('DOMContentLoaded', function() {
     margin-top: 15px;
 }
 
+/* Add styling for optional field indicators */
+.optional-field {
+    position: relative;
+}
+
+.optional-indicator {
+    color: #6c757d;
+    font-size: 0.875rem;
+    font-style: italic;
+}
+
+.auto-generate-hint {
+    color: #28a745;
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+}
+
+.accession-auto-info {
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 0.25rem;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+}
+
 /* SweetAlert Custom Styles */
 .swal2-popup {
     padding: 1.5em;
@@ -2701,6 +2726,42 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <script>
+// Remove accession validation and make auto-generation the default
+document.addEventListener('DOMContentLoaded', function() {
+    // Remove required attributes from accession inputs
+    document.querySelectorAll('.accession-input').forEach(input => {
+        input.removeAttribute('required');
+        input.classList.remove('live-validate');
+        
+        // Update placeholder to indicate optional nature
+        input.placeholder = 'Auto-generated if empty';
+    });
+    
+    // Update accession labels to show they're optional
+    updateAccessionLabels();
+    
+    // Add event listener for manual generation button
+    const autoGenerateBtn = document.getElementById('autoGenerateBtn');
+    if (autoGenerateBtn) {
+        autoGenerateBtn.addEventListener('click', autoGenerateAccessionNumbers);
+    }
+    
+    // Remove validation indicators from accession inputs
+    setTimeout(function() {
+        document.querySelectorAll('.accession-input').forEach(input => {
+            // Remove validation classes
+            input.classList.remove('is-invalid', 'is-valid', 'live-validate');
+            
+            // Remove validation indicators
+            const parentGroup = input.closest('.accession-group');
+            if (parentGroup) {
+                const indicators = parentGroup.querySelectorAll('.validation-indicator, .validation-check');
+                indicators.forEach(indicator => indicator.remove());
+            }
+        });
+    }, 500);
+});
+
 // Check if we need to reset the form (after successful submission)
 <?php if ($resetForm): ?>
 document.addEventListener('DOMContentLoaded', function() {
@@ -2814,6 +2875,76 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }, 1000);
 });
+
+// Function to auto-generate accession numbers
+function autoGenerateAccessionNumbers() {
+    // First, get the next available accession number from the server
+    fetch('ajax/get_next_accession.php')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                let nextAccession = parseInt(data.next_accession);
+                
+                // Find all accession inputs and populate them
+                const accessionInputs = document.querySelectorAll('.accession-input');
+                accessionInputs.forEach((input, index) => {
+                    // Calculate total copies for all previous groups
+                    let previousCopies = 0;
+                    for (let i = 0; i < index; i++) {
+                        const copiesInput = document.querySelectorAll('.copies-input')[i];
+                        previousCopies += parseInt(copiesInput.value) || 1;
+                    }
+                    
+                    // Set the accession number
+                    const accessionNumber = (nextAccession + previousCopies).toString().padStart(4, '0');
+                    input.value = accessionNumber;
+                });
+                
+                // Update call numbers after setting accession numbers
+                setTimeout(() => {
+                    if (typeof updateISBNFields === 'function') {
+                        updateISBNFields();
+                    }
+                }, 100);
+                
+                // Show success message
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Accession Numbers Generated',
+                    text: 'Accession numbers have been automatically generated starting from ' + nextAccession.toString().padStart(4, '0'),
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to generate accession numbers: ' + (data.message || 'Unknown error')
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to connect to server for accession generation'
+            });
+        });
+}
+
+// Update accession labels to show they're optional
+function updateAccessionLabels() {
+    const accessionLabels = document.querySelectorAll('label[for*="accession"]');
+    accessionLabels.forEach(label => {
+        if (!label.querySelector('.optional-indicator')) {
+            const optionalSpan = document.createElement('span');
+            optionalSpan.className = 'optional-indicator ml-2';
+            optionalSpan.textContent = '(optional - auto-generated if empty)';
+            label.appendChild(optionalSpan);
+        }
+    });
+}
 </script>
 
 <!-- Add this new script block at the end, after your other scripts but before the closing body tag -->

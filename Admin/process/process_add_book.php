@@ -27,14 +27,34 @@ function formatContributorRole($role) {
     return ucwords($role);
 }
 
+// Function to get the next available accession number
+function getNextAccessionNumber($conn) {
+    // Query to find the highest numeric accession number
+    $query = "SELECT accession FROM books WHERE accession REGEXP '^[0-9]+$' ORDER BY CAST(accession AS UNSIGNED) DESC LIMIT 1";
+    $result = mysqli_query($conn, $query);
+    
+    if ($result && mysqli_num_rows($result) > 0) {
+        $row = mysqli_fetch_assoc($result);
+        $highest_accession = intval($row['accession']);
+        return $highest_accession + 1;
+    } else {
+        // If no numeric accessions found, start from 1
+        return 1;
+    }
+}
+
+// Function to format accession number with leading zeros
+function formatAccessionNumber($number, $width = 4) {
+    return str_pad($number, $width, '0', STR_PAD_LEFT);
+}
+
 // Check if the form was submitted
 if (isset($_POST['submit'])) {
-    // Validate required fields
+    // Validate required fields - accession is NOT required anymore
     $required_fields = [
         'title',
         'publisher',
-        'publish_date',
-        'accession'
+        'publish_date'
     ];
     
     // Note: Both individual and corporate contributors are OPTIONAL fields
@@ -124,9 +144,28 @@ if (isset($_POST['submit'])) {
             mysqli_begin_transaction($conn);
         }
 
-        // Process each accession group
+        // Always auto-generate accession numbers unless specifically provided
+        $auto_generate_accession = true;
+        $next_accession_number = getNextAccessionNumber($conn);
+        
+        // Check if user provided any accession numbers
         if (isset($_POST['accession']) && is_array($_POST['accession'])) {
+            foreach ($_POST['accession'] as $accession) {
+                if (!empty(trim($accession))) {
+                    $auto_generate_accession = false;
+                    break;
+                }
+            }
+        }
+        
+        if ($auto_generate_accession) {
+            error_log("Auto-generating accession numbers starting from: " . $next_accession_number);
+        }
+
+        // Process each accession group or create default if none provided
+        if (isset($_POST['accession']) && is_array($_POST['accession']) && count($_POST['accession']) > 0) {
             $current_index = 0; // Track overall index across all groups
+            $global_accession_counter = $next_accession_number; // For auto-generation
 
             // Extract subject fields from form submission
             $subject_category = mysqli_real_escape_string($conn, $_POST['subject_category'] ?? '');
@@ -134,10 +173,19 @@ if (isset($_POST['submit'])) {
 
             foreach ($_POST['accession'] as $i => $base_accession) {
                 $copies = intval($_POST['number_of_copies'][$i] ?? 1);
+                
+                // Always use auto-generated if empty, otherwise use provided value
+                if (empty(trim($base_accession))) {
+                    $base_accession = formatAccessionNumber($global_accession_counter);
+                    error_log("Using auto-generated accession: " . $base_accession . " for group " . $i);
+                } else {
+                    $base_accession = trim($base_accession);
+                }
+                
                 $isbn = mysqli_real_escape_string($conn, $_POST['isbn'][$i] ?? '');
                 $series = mysqli_real_escape_string($conn, $_POST['series'][$i] ?? '');
                 $volume = mysqli_real_escape_string($conn, $_POST['volume'][$i] ?? '');
-                $part = mysqli_real_escape_string($conn, $_POST['part'][$i] ?? ''); // Add the part field
+                $part = mysqli_real_escape_string($conn, $_POST['part'][$i] ?? '');
                 $edition = mysqli_real_escape_string($conn, $_POST['edition'][$i] ?? '');
 
                 // Track the total copies being added
@@ -151,7 +199,14 @@ if (isset($_POST['submit'])) {
                 // Process copies for this accession group
                 for ($copy = 0; $copy < $copies; $copy++) {
                     // Handle accession number appropriately
-                    $accession_str = calculateAccession($base_accession, $copy);
+                    if (empty(trim($_POST['accession'][$i]))) {
+                        // Use auto-generated sequential numbers
+                        $accession_str = formatAccessionNumber($global_accession_counter + $copy);
+                    } else {
+                        // Use user-provided accession with increment
+                        $accession_str = calculateAccession($base_accession, $copy);
+                    }
+                    
                     $accession = mysqli_real_escape_string($conn, $accession_str);
 
                     // Make sure we have a valid accession string
@@ -473,9 +528,79 @@ if (isset($_POST['submit'])) {
                         }
                     }
 
-                    $current_index++; // <-- increment for each copy processed
+                    $current_index++;
                 }
+                
+                // Update global counter for next group
+                $global_accession_counter += $copies;
             }
+        } else {
+            // No accession groups provided - create default book with auto-generated accession
+            $copies = 1; // Default to 1 copy
+            $base_accession = formatAccessionNumber($next_accession_number);
+            
+            error_log("No accession groups provided, creating default book with auto-generated accession: " . $base_accession);
+            
+            // Create a default book entry
+            $accession_str = $base_accession;
+            $accession = mysqli_real_escape_string($conn, $accession_str);
+            
+            // Process default book entry
+            $title = mysqli_real_escape_string($conn, $_POST['title']);
+            if (!in_array($title, $book_titles)) {
+                $book_titles[] = $title;
+            }
+
+            $preferred_title = mysqli_real_escape_string($conn, $_POST['preferred_title'] ?? '');
+            $parallel_title = mysqli_real_escape_string($conn, $_POST['parallel_title'] ?? '');
+            $subject_category = mysqli_real_escape_string($conn, $_POST['subject_category'] ?? '');
+            $subject_detail = mysqli_real_escape_string($conn, $_POST['subject_detail'] ?? '');
+
+            // ...continue with the rest of the book processing logic for default entry...
+            $summary = mysqli_real_escape_string($conn, $_POST['abstract'] ?? '');
+            $contents = mysqli_real_escape_string($conn, $_POST['notes'] ?? '');
+            $dimension = mysqli_real_escape_string($conn, $_POST['dimension'] ?? '');
+            $copy_number = 1;
+            $total_pages = mysqli_real_escape_string($conn, trim($_POST['pages'] ?? ''));
+            $supplementary_contents = mysqli_real_escape_string($conn, trim($_POST['supplementary_content'] ?? ''));
+            $content_type = mysqli_real_escape_string($conn, $_POST['content_type'] ?? 'text');
+            $media_type = mysqli_real_escape_string($conn, $_POST['media_type'] ?? 'unmediated');
+            $carrier_type = mysqli_real_escape_string($conn, $_POST['carrier_type'] ?? 'volume');
+            $language = mysqli_real_escape_string($conn, $_POST['language'] ?? 'eng');
+            $url = mysqli_real_escape_string($conn, $_POST['url'] ?? '');
+            $call_number = '';
+            $shelf_location = 'CIR';
+            $status = mysqli_real_escape_string($conn, $_POST['status'] ?? 'Available');
+            $entered_by = intval($_SESSION['admin_employee_id']);
+            $date_added = date('Y-m-d H:i:s');
+            $isbn = '';
+            $series = '';
+            $volume = '';
+            $part = '';
+            $edition = '';
+
+            // Insert the book
+            $insert_book_query = "INSERT INTO books (
+                accession, title, preferred_title, parallel_title,
+                summary, contents, dimension, series, volume, part, edition, copy_number,
+                total_pages, supplementary_contents, ISBN, content_type, media_type,
+                carrier_type, call_number, URL, language, shelf_location,
+                entered_by, date_added, status, subject_category, subject_detail
+            ) VALUES (
+                '$accession', '$title', '$preferred_title', '$parallel_title',
+                '$summary', '$contents', '$dimension', '', '', '', '', 1,
+                '$total_pages', '$supplementary_contents', '', '$content_type', '$media_type',
+                '$carrier_type', '$call_number', '$url', '$language', '$shelf_location',
+                '$entered_by', '$date_added', '$status', '$subject_category', '$subject_detail'
+            )";
+
+            if (!mysqli_query($conn, $insert_book_query)) {
+                throw new Exception("Error inserting book: " . mysqli_error($conn));
+            }
+
+            $successful_inserts++;
+            $total_copies_added = 1;
+            $inserted_accessions[] = $accession_str;
         }
 
         // ---   Move image and supplementary_contents update logic here, after all books are inserted ---
@@ -598,7 +723,9 @@ if (isset($_POST['submit'])) {
 
         mysqli_query($conn, $insert_update_query);
 
-        $_SESSION['success_message'] = "Book(s) added successfully! Title: " . implode(', ', $book_titles) . " | Total Copies: $total_copies_added";
+        // Update success message to indicate accession numbers were auto-generated
+        $accession_message = $auto_generate_accession ? " (Accession numbers auto-generated)" : "";
+        $_SESSION['success_message'] = "Book(s) added successfully! Title: " . implode(', ', $book_titles) . " | Total Copies: $total_copies_added" . $accession_message;
 
         // Store book title and count in session for display on book_list.php
         $_SESSION['added_book_title'] = $book_title;
