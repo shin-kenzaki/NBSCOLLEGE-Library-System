@@ -22,6 +22,23 @@ try {
     $transactionSupported = false;
 }
 
+// Helper function to get the next available accession number
+function getNextAccessionNumber($conn) {
+    // Query to find the highest numeric accession number
+    $query = "SELECT MAX(CAST(accession AS UNSIGNED)) as max_accession FROM books WHERE accession REGEXP '^[0-9]+$'";
+    $result = mysqli_query($conn, $query);
+    
+    if ($result && mysqli_num_rows($result) > 0) {
+        $row = mysqli_fetch_assoc($result);
+        if ($row['max_accession']) {
+            return intval($row['max_accession']) + 1;
+        }
+    }
+    
+    // If no numeric accession numbers exist or query failed, start with 1
+    return 1;
+}
+
 // Helper function to calculate accession number with increment
 function calculateAccession($baseAccession, $increment) {
     if (!$baseAccession) return '';
@@ -108,11 +125,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $success_count = 0;
         $error_messages = array();
         $call_number_index = 0;
+        
+        // Find the next available accession number once before processing groups
+        $next_available_accession = getNextAccessionNumber($conn);
 
         // Process each accession group
         for ($i = 0; $i < count($accessions); $i++) {
             $base_accession = $accessions[$i];
             $copies_for_this_accession = (int)$number_of_copies_array[$i];
+            
+            // Auto-generate accession if empty
+            if (empty(trim($base_accession))) {
+                // Format with leading zeros to match existing pattern (4 digits)
+                $base_accession = str_pad($next_available_accession, 4, '0', STR_PAD_LEFT);
+                // Update next_available_accession for the next empty group
+                $next_available_accession += $copies_for_this_accession;
+            }
+            
             $current_series = mysqli_real_escape_string($conn, $_POST['series'][$i]);
             $current_volume = mysqli_real_escape_string($conn, $_POST['volume'][$i]);
             $current_part = mysqli_real_escape_string($conn, $_POST['part'][$i]); // Add part field
@@ -886,6 +915,44 @@ $showCorporateContributors = !isset($_SESSION['book_shortcut']['contributor_type
                                     ?>
                                 <?php endif; ?>
 
+                                <div class="form-group">
+                                    <label>Series</label>
+                                    <input type="text" class="form-control" name="series[]">
+                                    <small class="form-text text-muted">
+                                        <i class="fas fa-info-circle mr-1"></i> If the book is part of a series, specify the series name.
+                                    </small>
+                                </div>
+                                <div class="form-group">
+                                    <label>Volume</label>
+                                    <input type="text" class="form-control" name="volume[]">
+                                    <small class="form-text text-muted">
+                                        <i class="fas fa-info-circle mr-1"></i> Specify the volume number if applicable.
+                                    </small>
+                                </div>
+                                <div class="form-group">
+                                    <label>Part</label>
+                                    <input type="text" class="form-control" name="part[]">
+                                    <small class="form-text text-muted">
+                                        <i class="fas fa-info-circle mr-1"></i> Specify the part number if applicable.
+                                    </small>
+                                </div>
+                                <div class="form-group">
+                                    <label>Edition</label>
+                                    <input type="text" class="form-control" name="edition[]">
+                                    <small class="form-text text-muted">
+                                        <i class="fas fa-info-circle mr-1"></i> Specify the edition of the book.
+                                    </small>
+                                </div>
+
+                                <!-- ISBN field - show only if not using shortcut -->
+                                <div class="form-group">
+                                    <label>ISBN</label>
+                                    <input type="text" class="form-control" name="isbn[]">
+                                    <small class="form-text text-muted">
+                                        <i class="fas fa-info-circle mr-1"></i> International Standard Book Number.
+                                    </small>
+                                </div>
+
                                 <!-- Display selected contributors based on contributor type -->
                                 <?php if ($showIndividualContributors && !empty($_SESSION['book_shortcut']['selected_writers'])): ?>
                                 <div class="alert alert-info mt-4">
@@ -1129,14 +1196,14 @@ $showCorporateContributors = !isset($_SESSION['book_shortcut']['contributor_type
                                                         <div class="form-group">
                                                             <label><i class="fas fa-barcode mr-1"></i> Accession Group 1 <span class="text-danger">*</span></label>
                                                             <input type="text" class="form-control accession-input live-validate" name="accession[]"
-                                                                placeholder="e.g., 0001 (will auto-increment based on copies)" required>
+                                                                placeholder="Leave blank to auto-generate">
                                                                 <small class="form-text text-muted">
-                                                                    <i class="fas fa-info-circle mr-1"></i> If you enter 0001 and set 3 copies, it will create: 0001, 0002, 0003
+                                                                    <i class="fas fa-info-circle mr-1"></i> Leave blank to auto-generate from next available accession
                                                                 </small>
                                                             <?php if ($accession_error): ?>
                                                                 <small class="text-danger"><?php echo $accession_error; ?></small>
                                                             <?php endif; ?>
-                                                            <div class="validation-message">This field is required</div>
+                                                            <div class="validation-message">This field will auto-generate if left empty</div>
                                                         </div>
                                                     </div>
                                                     <div class="col-md-4">
@@ -1448,8 +1515,14 @@ function updateISBNFields() {
     const accessionGroups = document.querySelectorAll('.accession-group');
 
     accessionGroups.forEach((group, groupIndex) => {
-        const accessionInput = group.querySelector('.accession-input').value;
+        const accessionInput = group.querySelector('.accession-input');
+        const accessionValue = accessionInput.value;
         const copiesCount = parseInt(group.querySelector('.copies-input').value) || 1;
+        
+        // Update placeholder to indicate auto-generation if the field is empty
+        if (!accessionValue.trim()) {
+            accessionInput.placeholder = "Auto-generate from next available";
+        }
 
         // Create a container for Series, Volume, Edition, and ISBN inputs (in Publication tab)
         const groupDiv = document.createElement('div');
@@ -1548,14 +1621,15 @@ function updateISBNFields() {
         // Track index across all copies for accessing saved copy numbers
         let globalCopyIndex = 0;
         for (let i = 0; i < copiesCount; i++) {
-            const currentAccession = calculateAccession(accessionInput, i);
+            // Calculate display accession numbers - show placeholder for empty values
+            let displayAccession = accessionValue ? calculateAccession(accessionValue, i) : `(Auto #${i+1})`;
 
             const callNumberDiv = document.createElement('div');
             callNumberDiv.className = 'input-group mb-2';
 
             const accessionLabel = document.createElement('span');
             accessionLabel.className = 'input-group-text';
-            accessionLabel.textContent = `Accession ${currentAccession}`;
+            accessionLabel.textContent = `Accession ${displayAccession}`;
 
             const callNumberInput = document.createElement('input');
             callNumberInput.type = 'text';
@@ -1660,11 +1734,11 @@ document.addEventListener('click', function(e) {
                     <div class="form-group">
                         <label><i class="fas fa-barcode mr-1"></i> Accession Group ${groupCount} <span class="text-danger">*</span></label>
                         <input type="text" class="form-control accession-input live-validate" name="accession[]"
-                            placeholder="e.g., 0001" required>
+                            placeholder="Leave blank to auto-generate">
                             <small class="form-text text-muted">
-                                <i class="fas fa-info-circle mr-1"></i> If you enter 0001 and set 3 copies, it will create: 0001, 0002, 0003
+                                <i class="fas fa-info-circle mr-1"></i> Leave blank to auto-generate from next available accession
                             </small>
-                        <div class="validation-message">This field is required</div>
+                        <div class="validation-message">This field will auto-generate if left empty</div>
                     </div>
                 </div>
                 <div class="col-md-4">
@@ -1721,27 +1795,11 @@ document.addEventListener('click', function(e) {
     }
 });
 
-// Add this to your existing form validation
+// Update form validation
 document.getElementById('bookForm').addEventListener('submit', function(e) {
     let hasErrors = false;
     
-    // Validate all accession inputs
-    document.querySelectorAll('.accession-input').forEach(input => {
-        if (!input.value.trim()) {
-            input.classList.add('is-invalid');
-            const parentGroup = input.closest('.accession-group');
-            if (parentGroup) {
-                parentGroup.classList.add('is-invalid');
-                const indicator = parentGroup.querySelector('.validation-indicator');
-                if (indicator) {
-                    indicator.classList.add('show');
-                }
-            }
-            hasErrors = true;
-        }
-    });
-    
-    // Validate all copies inputs
+    // Only validate that number of copies is set for each accession group
     document.querySelectorAll('.copies-input').forEach(input => {
         const value = parseInt(input.value);
         if (isNaN(value) || value < 1) {
@@ -1760,7 +1818,7 @@ document.getElementById('bookForm').addEventListener('submit', function(e) {
     
     if (hasErrors) {
         e.preventDefault();
-        alert('Please fill in all required accession fields and ensure number of copies is at least 1.');
+        alert('Please ensure number of copies is at least 1 for all accession groups.');
         return false;
     }
 });
