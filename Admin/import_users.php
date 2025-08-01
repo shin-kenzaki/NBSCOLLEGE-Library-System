@@ -17,7 +17,8 @@ $errors = [];
 $importedUsers = [];
 
 // Function to send email to users
-function sendUserEmail($email, $schoolId, $password, $firstname, $lastname) {
+function sendUserEmail($email, $schoolId, $password, $firstname, $lastname)
+{
     $mail = require __DIR__ . '/mailer.php'; // Include the PHPMailer instance
 
     try {
@@ -92,7 +93,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['import_file'])) {
     }
 }
 
-function processCSV($filePath, $conn) {
+function processCSV($filePath, $conn)
+{
     $success = 0;
     $error = 0;
     $errors = [];
@@ -236,7 +238,8 @@ function processCSV($filePath, $conn) {
  * @param mysqli $conn Database connection
  * @return array Results of the import process
  */
-function processXLSX($filePath, $conn) {
+function processXLSX($filePath, $conn)
+{
     $success = 0;
     $error = 0;
     $errors = [];
@@ -361,8 +364,15 @@ function processXLSX($filePath, $conn) {
                               department = ?, usertype = ?
                               WHERE school_id = ?";
                 $updateStmt = $conn->prepare($updateSql);
-                $updateStmt->bind_param("sssssi", $firstname, $middleInit, $lastname,
-                                      $department, $usertype, $schoolId);
+                $updateStmt->bind_param(
+                    "sssssi",
+                    $firstname,
+                    $middleInit,
+                    $lastname,
+                    $department,
+                    $usertype,
+                    $schoolId
+                );
 
                 if ($updateStmt->execute()) {
                     $success++;
@@ -386,11 +396,22 @@ function processXLSX($filePath, $conn) {
                 )";
 
                 $insertStmt = $conn->prepare($insertSql);
-                $insertStmt->bind_param("issssssssssssi",
-                    $schoolId, $firstname, $middleInit, $lastname,
-                    $email, $hashed_password, $contact_no, $user_image,
-                    $department, $usertype, $address, $id_type,
-                    $id_image, $status
+                $insertStmt->bind_param(
+                    "issssssssssssi",
+                    $schoolId,
+                    $firstname,
+                    $middleInit,
+                    $lastname,
+                    $email,
+                    $hashed_password,
+                    $contact_no,
+                    $user_image,
+                    $department,
+                    $usertype,
+                    $address,
+                    $id_type,
+                    $id_image,
+                    $status
                 );
 
                 if ($insertStmt->execute()) {
@@ -404,8 +425,8 @@ function processXLSX($filePath, $conn) {
                         'department' => $department
                     ];
 
-                     // Send email to the user
-                     sendUserEmail($email, $schoolId, $password, $firstname, $lastname);
+                    // Send email to the user
+                    sendUserEmail($email, $schoolId, $password, $firstname, $lastname);
                 } else {
                     $error++;
                     $errors[] = "Row $row: Error inserting record: " . $conn->error;
@@ -434,7 +455,8 @@ function processXLSX($filePath, $conn) {
  * @param int $length Length of the password
  * @return string The generated password
  */
-function generateStrongPassword($length = 12) {
+function generateStrongPassword($length = 12)
+{
     $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()';
     $password = '';
     for ($i = 0; $i < $length; $i++) {
@@ -446,6 +468,7 @@ function generateStrongPassword($length = 12) {
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -637,6 +660,7 @@ function generateStrongPassword($length = 12) {
         }
     </style>
 </head>
+
 <body>
     <div class="container page-container">
         <h1>Import Users</h1>
@@ -842,14 +866,18 @@ function generateStrongPassword($length = 12) {
 
         function exportToExcel() {
             const table = document.getElementById('users-password-table');
-            const wb = XLSX.utils.table_to_book(table, { sheet: "Imported Users" });
-            XLSX.writeFile(wb, 'imported_users_' + new Date().toISOString().slice(0,10) + '.xlsx');
+            const wb = XLSX.utils.table_to_book(table, {
+                sheet: "Imported Users"
+            });
+            XLSX.writeFile(wb, 'imported_users_' + new Date().toISOString().slice(0, 10) + '.xlsx');
 
             showToast('Exported to Excel successfully');
         }
 
         function exportToPDF() {
-            const { jsPDF } = window.jspdf;
+            const {
+                jsPDF
+            } = window.jspdf;
             const doc = new jsPDF('landscape');
 
             // Set document properties
@@ -883,9 +911,13 @@ function generateStrongPassword($length = 12) {
             doc.setFontSize(10);
             doc.setFont(undefined, 'normal');
             doc.setTextColor(0, 0, 0);
-            doc.text('Generated on ' + new Date().toLocaleString(), pageWidth / 2, 25, { align: 'center' });
+            doc.text('Generated on ' + new Date().toLocaleString(), pageWidth / 2, 25, {
+                align: 'center'
+            });
             doc.setTextColor(255, 0, 0);
-            doc.text('IMPORTANT: Store these credentials in a secure location.', pageWidth / 2, 30, { align: 'center' });
+            doc.text('IMPORTANT: Store these credentials in a secure location.', pageWidth / 2, 30, {
+                align: 'center'
+            });
             doc.setTextColor(0, 0, 0);
 
             // Create data for table
@@ -938,7 +970,10 @@ function generateStrongPassword($length = 12) {
                 body: tableData,
                 startY: 35, // Increased to make room for the header
                 theme: 'striped',
-                margin: { left: marginLeft, right: marginRight },
+                margin: {
+                    left: marginLeft,
+                    right: marginRight
+                },
                 styles: {
                     fontSize: 8,
                     cellPadding: 2,
@@ -951,12 +986,24 @@ function generateStrongPassword($length = 12) {
                     fontStyle: 'bold'
                 },
                 columnStyles: {
-                    0: { cellWidth: colWidths[0] }, // ID
-                    1: { cellWidth: colWidths[1] }, // Name
-                    2: { cellWidth: colWidths[2] }, // Email
-                    3: { cellWidth: colWidths[3] }, // Department
-                    4: { cellWidth: colWidths[4] }, // User Type
-                    5: { cellWidth: colWidths[5] }  // Password
+                    0: {
+                        cellWidth: colWidths[0]
+                    }, // ID
+                    1: {
+                        cellWidth: colWidths[1]
+                    }, // Name
+                    2: {
+                        cellWidth: colWidths[2]
+                    }, // Email
+                    3: {
+                        cellWidth: colWidths[3]
+                    }, // Department
+                    4: {
+                        cellWidth: colWidths[4]
+                    }, // User Type
+                    5: {
+                        cellWidth: colWidths[5]
+                    } // Password
                 },
                 alternateRowStyles: {
                     fillColor: [240, 240, 240]
@@ -972,19 +1019,21 @@ function generateStrongPassword($length = 12) {
                 doc.text(
                     'Page ' + i + ' of ' + pageCount,
                     doc.internal.pageSize.getWidth() / 2,
-                    doc.internal.pageSize.getHeight() - 10,
-                    { align: 'center' }
+                    doc.internal.pageSize.getHeight() - 10, {
+                        align: 'center'
+                    }
                 );
                 doc.text(
                     'Confidential - For authorized personnel only',
                     doc.internal.pageSize.getWidth() / 2,
-                    doc.internal.pageSize.getHeight() - 5,
-                    { align: 'center' }
+                    doc.internal.pageSize.getHeight() - 5, {
+                        align: 'center'
+                    }
                 );
             }
 
             // Save the PDF
-            doc.save('imported_users_' + new Date().toISOString().slice(0,10) + '.pdf');
+            doc.save('imported_users_' + new Date().toISOString().slice(0, 10) + '.pdf');
 
             showToast('Exported to PDF successfully');
         }
@@ -1016,4 +1065,5 @@ function generateStrongPassword($length = 12) {
         }
     </script>
 </body>
+
 </html>
