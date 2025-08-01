@@ -16,7 +16,9 @@ $errorCount = 0;
 $errors = [];
 $importedUsers = [];
 
-function sendUserEmail($email, $schoolId, $password, $firstname, $lastname) {
+// Function to send email to users
+function sendUserEmail($email, $schoolId, $password, $firstname, $lastname)
+{
     $mail = require __DIR__ . '/mailer.php'; // Include the PHPMailer instance
 
     try {
@@ -91,7 +93,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['import_file'])) {
     }
 }
 
-function processCSV($filePath, $conn) {
+function processCSV($filePath, $conn)
+{
     $success = 0;
     $error = 0;
     $errors = [];
@@ -252,7 +255,8 @@ function processCSV($filePath, $conn) {
  * @param mysqli $conn Database connection
  * @return array Results of the import process
  */
-function processXLSX($filePath, $conn) {
+function processXLSX($filePath, $conn)
+{
     $success = 0;
     $error = 0;
     $errors = [];
@@ -376,7 +380,15 @@ function processXLSX($filePath, $conn) {
                 // Update existing record
                 $updateSql = "UPDATE users SET firstname = ?, middle_init = ?, lastname = ?, email = ?, contact_no = ?, department = ?, usertype = ? WHERE school_id = ?";
                 $updateStmt = $conn->prepare($updateSql);
-                $updateStmt->bind_param("sssssssi", $firstname, $middleInit, $lastname, $email, $contactNo, $department, $usertype, $schoolId);
+                $updateStmt->bind_param(
+                    "sssssi",
+                    $firstname,
+                    $middleInit,
+                    $lastname,
+                    $department,
+                    $usertype,
+                    $schoolId
+                );
 
                 if ($updateStmt->execute()) {
                     $success++;
@@ -400,11 +412,22 @@ function processXLSX($filePath, $conn) {
                 )";
 
                 $insertStmt = $conn->prepare($insertSql);
-                $insertStmt->bind_param("issssssssssssi",
-                    $schoolId, $firstname, $middleInit, $lastname,
-                    $email, $hashed_password, $contactNo, $user_image,
-                    $department, $usertype, $address, $id_type,
-                    $id_image, $status
+                $insertStmt->bind_param(
+                    "issssssssssssi",
+                    $schoolId,
+                    $firstname,
+                    $middleInit,
+                    $lastname,
+                    $email,
+                    $hashed_password,
+                    $contact_no,
+                    $user_image,
+                    $department,
+                    $usertype,
+                    $address,
+                    $id_type,
+                    $id_image,
+                    $status
                 );
 
                 if ($insertStmt->execute()) {
@@ -418,8 +441,8 @@ function processXLSX($filePath, $conn) {
                         'department' => $department
                     ];
 
-                    // Comment out email sending
-                    // sendUserEmail($email, $schoolId, $password, $firstname, $lastname);
+                    // Send email to the user
+                    sendUserEmail($email, $schoolId, $password, $firstname, $lastname);
                 } else {
                     $error++;
                     $errors[] = "Row $row: Error inserting record: " . $conn->error;
@@ -448,7 +471,8 @@ function processXLSX($filePath, $conn) {
  * @param int $length Length of the password
  * @return string The generated password
  */
-function generateStrongPassword($length = 12) {
+function generateStrongPassword($length = 12)
+{
     $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()';
     $password = '';
     for ($i = 0; $i < $length; $i++) {
@@ -460,6 +484,7 @@ function generateStrongPassword($length = 12) {
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -666,6 +691,7 @@ function generateStrongPassword($length = 12) {
         }
     </style>
 </head>
+
 <body>
     <!-- Main Content -->
     <div id="content" class="d-flex flex-column min-vh-100">
@@ -985,275 +1011,256 @@ function generateStrongPassword($length = 12) {
             </div>
         </div>
 
-        <!-- Footer -->
-        <?php include '../Admin/inc/footer.php' ?>
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 
-        <!-- Scripts -->
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                initializeFileUpload();
-                setupFormSubmission();
+    <!-- Add SheetJS (for Excel export) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <!-- Add jsPDF for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+
+    <script>
+        function copyPassword(password) {
+            const tempInput = document.createElement('input');
+            tempInput.value = password;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+
+            // Show a tooltip or notification
+            showToast('Password copied to clipboard');
+        }
+
+        function showToast(message) {
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.className = 'toast-notification';
+            toast.textContent = message;
+            toast.style.position = 'fixed';
+            toast.style.bottom = '20px';
+            toast.style.right = '20px';
+            toast.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+            toast.style.color = 'white';
+            toast.style.padding = '10px 20px';
+            toast.style.borderRadius = '5px';
+            toast.style.zIndex = '9999';
+
+            // Add to document
+            document.body.appendChild(toast);
+
+            // Remove after timeout
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.5s';
+                setTimeout(() => {
+                    document.body.removeChild(toast);
+                }, 500);
+            }, 2000);
+        }
+
+        function exportToExcel() {
+            const table = document.getElementById('users-password-table');
+            const wb = XLSX.utils.table_to_book(table, {
+                sheet: "Imported Users"
             });
-            
-            // Initialize file upload handling
-            function initializeFileUpload() {
-                const container = document.querySelector('.file-upload-container');
-                const input = container.querySelector('.file-upload-input');
-                const uploadArea = container.querySelector('.file-upload-area');
-                const previewContainer = container.querySelector('.file-preview-container');
-                const csvPreview = container.querySelector('#csvPreview');
-                const fileName = container.querySelector('.file-name');
-                const fileSize = container.querySelector('.file-size');
-                const removeButton = container.querySelector('.file-remove');
-                const validateButton = container.querySelector('.file-validate');
+            XLSX.writeFile(wb, 'imported_users_' + new Date().toISOString().slice(0, 10) + '.xlsx');
 
-                // Handle file selection
-                input.addEventListener('change', function() {
-                    handleFileSelection(this.files[0]);
-                });
+            showToast('Exported to Excel successfully');
+        }
 
-                // Handle drag and drop
-                uploadArea.addEventListener('dragover', function(e) {
-                    e.preventDefault();
-                    uploadArea.classList.add('drag-over');
-                });
+        function exportToPDF() {
+            const {
+                jsPDF
+            } = window.jspdf;
+            const doc = new jsPDF('landscape');
 
-                uploadArea.addEventListener('dragleave', function() {
-                    uploadArea.classList.remove('drag-over');
-                });
+            // Set document properties
+            doc.setProperties({
+                title: 'Imported Users - NBSC Library System',
+                subject: 'User Credentials',
+                author: 'NBSC Library System',
+                creator: 'NBSC Library System'
+            });
 
-                uploadArea.addEventListener('drop', function(e) {
-                    e.preventDefault();
-                    uploadArea.classList.remove('drag-over');
-                    handleFileSelection(e.dataTransfer.files[0]);
-                });
+            // Get page dimensions
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+            const marginLeft = 10;
+            const marginRight = 10;
+            const availableWidth = pageWidth - marginLeft - marginRight;
 
-                // Click on upload area triggers file input
-                uploadArea.addEventListener('click', function() {
-                    input.click();
-                });
+            // Draw a colored header background for the entire width of the page
+            doc.setFillColor(78, 115, 223);
+            doc.rect(0, 0, pageWidth, 20, 'F');
 
-                // Remove file
-                removeButton.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    clearFileSelection();
-                });
+            // Add title across full width of the page with proper styling
+            doc.setFontSize(18);
+            doc.setFont(undefined, 'bold');
+            doc.setTextColor(255, 255, 255); // White text on blue background
+            doc.text('NBSC Library - Imported Users', pageWidth / 2, 14, {
+                align: 'center'
+            });
 
-                // Validate file structure
-                validateButton.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    validateFileStructure(input.files[0]);
-                });
+            // Add date and info text
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(0, 0, 0);
+            doc.text('Generated on ' + new Date().toLocaleString(), pageWidth / 2, 25, {
+                align: 'center'
+            });
+            doc.setTextColor(255, 0, 0);
+            doc.text('IMPORTANT: Store these credentials in a secure location.', pageWidth / 2, 30, {
+                align: 'center'
+            });
+            doc.setTextColor(0, 0, 0);
 
-                function handleFileSelection(file) {
-                    if (!file) return;
-                    
-                    const validExtensions = ['.csv', '.xlsx'];
-                    const fileExt = '.' + file.name.split('.').pop().toLowerCase();
-                    
-                    if (!validExtensions.includes(fileExt)) {
-                        alert('Please select a CSV or Excel file');
-                        clearFileSelection();
-                        return;
-                    }
+            // Create data for table
+            const table = document.getElementById('users-password-table');
+            const tableData = [];
 
-                    fileName.textContent = file.name;
-                    fileSize.textContent = formatFileSize(file.size);
-                    previewContainer.classList.add('show');
-
-                    if (fileExt === '.csv') {
-                        previewCSVFile(file);
-                    } else {
-                        csvPreview.textContent = 'Excel file preview not available';
-                    }
+            // Get headers
+            const headers = [];
+            table.querySelectorAll('thead th').forEach((th, index) => {
+                // Skip the 'Action' column (last column)
+                if (index < 6) {
+                    headers.push(th.textContent.trim());
                 }
+            });
 
-                function clearFileSelection() {
-                    input.value = '';
-                    previewContainer.classList.remove('show');
-                    csvPreview.textContent = '';
-                    fileName.textContent = 'No file selected';
-                    fileSize.textContent = '0 KB';
-                }
-
-                function previewCSVFile(file) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        const lines = e.target.result.split('\n');
-                        const previewLines = lines.slice(0, Math.min(5, lines.length));
-                        csvPreview.textContent = previewLines.join('\n');
-                        
-                        if (lines.length > 5) {
-                            csvPreview.textContent += '\n\n[...] ' + (lines.length - 5) + ' more rows';
-                        }
-                    };
-                    reader.readAsText(file);
-                }
-
-                function formatFileSize(bytes) {
-                    if (bytes === 0) return '0 Bytes';
-                    const k = 1024;
-                    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-                    const i = Math.floor(Math.log(bytes) / Math.log(k));
-                    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-                }
-
-                function validateFileStructure(file) {
-                    if (!file) {
-                        alert('Please select a file first');
-                        return;
-                    }
-
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        const content = e.target.result;
-                        const lines = content.split('\n');
-                        const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-                        // Update expected headers to match what we're actually checking in PHP
-                        const expectedHeaders = ['School_ID', 'Firstname', 'Middle_Initial', 'Lastname', 'Email', 'Contact_No', 'Department', 'Usertype', 'Fullname'];
-                        
-                        const missingHeaders = expectedHeaders.filter(h => !headers.includes(h));
-                        
-                        if (missingHeaders.length === 0) {
-                            alert('File structure validation passed!');
+            // Get rows
+            table.querySelectorAll('tbody tr').forEach(tr => {
+                const row = [];
+                tr.querySelectorAll('td').forEach((td, index) => {
+                    // Skip the 'Action' column (last column)
+                    if (index < 6) {
+                        // For password column (index 5), get the text from the span
+                        if (index === 5) {
+                            const passwordField = td.querySelector('.password-field');
+                            if (passwordField) {
+                                row.push(passwordField.textContent.trim());
+                            } else {
+                                row.push('');
+                            }
                         } else {
-                            alert('Missing required columns: ' + missingHeaders.join(', '));
+                            row.push(td.textContent.trim());
                         }
-                    };
-                    reader.readAsText(file);
+                    }
+                });
+                tableData.push(row);
+            });
+
+            // Calculate proportional column widths that use the full page width
+            // Set column width proportions (total should be 1)
+            const colProportions = [0.08, 0.22, 0.30, 0.15, 0.10, 0.15];
+            const colWidths = {};
+
+            colProportions.forEach((proportion, index) => {
+                colWidths[index] = availableWidth * proportion;
+            });
+
+            // Add table to the PDF using autoTable plugin
+            doc.autoTable({
+                head: [headers],
+                body: tableData,
+                startY: 35, // Increased to make room for the header
+                theme: 'striped',
+                margin: {
+                    left: marginLeft,
+                    right: marginRight
+                },
+                styles: {
+                    fontSize: 8,
+                    cellPadding: 2,
+                    overflow: 'linebreak',
+                    halign: 'left'
+                },
+                headStyles: {
+                    fillColor: [78, 115, 223],
+                    textColor: 255,
+                    fontStyle: 'bold'
+                },
+                columnStyles: {
+                    0: {
+                        cellWidth: colWidths[0]
+                    }, // ID
+                    1: {
+                        cellWidth: colWidths[1]
+                    }, // Name
+                    2: {
+                        cellWidth: colWidths[2]
+                    }, // Email
+                    3: {
+                        cellWidth: colWidths[3]
+                    }, // Department
+                    4: {
+                        cellWidth: colWidths[4]
+                    }, // User Type
+                    5: {
+                        cellWidth: colWidths[5]
+                    } // Password
+                },
+                alternateRowStyles: {
+                    fillColor: [240, 240, 240]
                 }
+            });
+
+            // Add footer note
+            const pageCount = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.setTextColor(100);
+                doc.text(
+                    'Page ' + i + ' of ' + pageCount,
+                    doc.internal.pageSize.getWidth() / 2,
+                    doc.internal.pageSize.getHeight() - 10, {
+                        align: 'center'
+                    }
+                );
+                doc.text(
+                    'Confidential - For authorized personnel only',
+                    doc.internal.pageSize.getWidth() / 2,
+                    doc.internal.pageSize.getHeight() - 5, {
+                        align: 'center'
+                    }
+                );
             }
 
-            // Setup form submission with loading overlay
-            function setupFormSubmission() {
-                const form = document.getElementById('csvUploadForm');
-                const loadingOverlay = document.getElementById('loadingOverlay');
-                const progressBar = document.getElementById('progressBar');
-                const progressText = document.getElementById('progressText');
-                const processingInfo = document.getElementById('processingInfo');
-                
-                // Processing messages to display during import
-                const processingMessages = [
-                    "Reading file and validating format...",
-                    "Checking for existing user records...",
-                    "Processing user data...",
-                    "Generating email addresses...",
-                    "Creating secure passwords...",
-                    "Setting up user accounts...",
-                    "Sending welcome emails...",
-                    "Finalizing import process..."
-                ];
-                
-                let currentMsgIndex = 0;
-                let processingInterval;
-                
-                if (form) {
-                    form.addEventListener('submit', function(e) {
-                        const fileInput = document.querySelector('input[type="file"]');
-                        
-                        if (fileInput.files.length > 0) {
-                            e.preventDefault(); // Prevent the default form submission
-                            
-                            // Show loading overlay
-                            loadingOverlay.style.display = 'flex';
-                            
-                            // Start with 0% progress
-                            updateProgress(0, "Preparing to import users...");
-                            
-                            // Add initial processing message
-                            addProcessingMessage("Starting user import process...");
-                            
-                            // Simulate progress updates with processing messages
-                            processingInterval = setInterval(function() {
-                                // Update progress bar (random increments between 5-15%)
-                                const currentProgress = parseInt(progressBar.getAttribute('aria-valuenow'));
-                                if (currentProgress < 90) {
-                                    const increment = Math.floor(Math.random() * 10) + 5;
-                                    const newProgress = Math.min(currentProgress + increment, 90);
-                                    updateProgress(newProgress, `Processing... ${newProgress}%`);
-                                    
-                                    // Add a processing message
-                                    if (currentMsgIndex < processingMessages.length) {
-                                        addProcessingMessage(processingMessages[currentMsgIndex]);
-                                        currentMsgIndex++;
-                                    }
-                                }
-                            }, 2000); // Update every 2 seconds
-                            
-                            // Submit the form with AJAX
-                            const formData = new FormData(form);
-                            
-                            fetch(form.action || window.location.href, {
-                                method: 'POST',
-                                body: formData
-                            })
-                            .then(response => response.text())
-                            .then(html => {
-                                // Clear the interval
-                                clearInterval(processingInterval);
-                                
-                                // Complete the progress bar
-                                updateProgress(100, "Import complete!");
-                                progressBar.classList.add('complete');
-                                
-                                addProcessingMessage("User import completed successfully!");
-                                
-                                // Replace the page content with the response
-                                setTimeout(function() {
-                                    document.open();
-                                    document.write(html);
-                                    document.close();
-                                }, 1000);
-                            })
-                            .catch(error => {
-                                clearInterval(processingInterval);
-                                console.error('Error:', error);
-                                addProcessingMessage("Error occurred: " + error.message);
-                                updateProgress(100, "Import failed!");
-                                progressBar.classList.remove('complete');
-                                progressBar.classList.add('bg-danger');
-                                
-                                // Allow the user to try again
-                                setTimeout(function() {
-                                    loadingOverlay.style.display = 'none';
-                                }, 3000);
-                            });
-                            
-                            return false; // Prevent form submission
-                        }
-                    });
-                }
-                
-                // Function to update progress bar
-                function updateProgress(percent, message) {
-                    if (typeof $ !== 'undefined') {
-                        $(progressBar).animate({
-                            width: percent + '%'
-                        }, 400, function() {
-                            progressBar.setAttribute('aria-valuenow', percent);
-                            progressBar.textContent = percent + '%';
-                            progressText.textContent = message;
-                        });
-                    } else {
-                        progressBar.style.width = percent + '%';
-                        progressBar.setAttribute('aria-valuenow', percent);
-                        progressBar.textContent = percent + '%';
-                        progressText.textContent = message;
-                    }
-                    
-                    if (percent >= 100) {
-                        progressBar.classList.add('complete');
-                    }
-                }
-                
-                // Function to add processing message
-                function addProcessingMessage(message) {
-                    const messageElement = document.createElement('div');
-                    messageElement.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-                    processingInfo.appendChild(messageElement);
-                    processingInfo.parentElement.scrollTop = processingInfo.parentElement.scrollHeight;
-                }
-            }
-        </script>
-    </body>
+            // Save the PDF
+            doc.save('imported_users_' + new Date().toISOString().slice(0, 10) + '.pdf');
+
+            showToast('Exported to PDF successfully');
+        }
+
+        function copyAllPasswords() {
+            const table = document.getElementById('users-password-table');
+            const rows = table.querySelectorAll('tbody tr');
+
+            let text = "ID\tName\tEmail\tDepartment\tUser Type\tPassword\n";
+
+            rows.forEach(row => {
+                const columns = row.querySelectorAll('td');
+                text += columns[0].textContent + "\t"; // ID
+                text += columns[1].textContent + "\t"; // Name
+                text += columns[2].textContent + "\t"; // Email
+                text += columns[3].textContent + "\t"; // Department
+                text += columns[4].textContent + "\t"; // User Type
+                text += columns[5].textContent.trim() + "\n"; // Password
+            });
+
+            const tempInput = document.createElement('textarea');
+            tempInput.value = text;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+
+            showToast('All user data copied to clipboard');
+        }
+    </script>
+</body>
+
 </html>
