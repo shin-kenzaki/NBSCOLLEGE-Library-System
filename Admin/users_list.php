@@ -7,7 +7,7 @@ function sendUserEmail($email, $schoolId, $password, $firstname, $lastname)
     $mail = require __DIR__ . '/mailer.php'; // Include the PHPMailer instance
 
     try {
-        $mail->setFrom('cevangelista2021@student.nbscollege.edu.ph', 'Library System');
+        $mail->setFrom('library@nbscollege.edu.ph', 'Library System');
         $mail->addAddress($email);
         $mail->Subject = 'NBS College Library System - Account Created';
         $mail->Body = "

@@ -12,7 +12,7 @@ $user_id = $_SESSION['user_id'];
 
 // Fetch user analytics from borrowings table instead of users table
 $query = "SELECT 
-          COUNT(CASE WHEN status IN ('Borrowed', 'Overdue') THEN 1 END) as borrowed_books,
+          COUNT(CASE WHEN status IN ('Active', 'Overdue') THEN 1 END) as borrowed_books,
           COUNT(CASE WHEN status = 'Returned' THEN 1 END) as returned_books,
           COUNT(CASE WHEN status = 'Damaged' THEN 1 END) as damaged_books,
           COUNT(CASE WHEN status = 'Lost' THEN 1 END) as lost_books

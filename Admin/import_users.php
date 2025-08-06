@@ -22,7 +22,7 @@ function sendUserEmail($email, $schoolId, $password, $firstname, $lastname)
     $mail = require __DIR__ . '/mailer.php'; // Include the PHPMailer instance
 
     try {
-        $mail->setFrom('cevangelista2021@student.nbscollege.edu.ph', 'Library System');
+        $mail->setFrom('library@nbscollege.edu.ph', 'Library System');
         $mail->addAddress($email);
         $mail->Subject = 'NBS College Library System - Account Created';
         $mail->Body = "
@@ -153,12 +153,19 @@ function processCSV($filePath, $conn)
             }
 
             // Generate email and password
+            // Generate email and password
             $firstnameLetter = strtolower(substr($firstname, 0, 1));
             $lastnameForEmail = strtolower(str_replace(' ', '', $lastname));
             $yearFromId = '20' . substr($schoolId, 0, 2);
-            $email = $firstnameLetter . $lastnameForEmail . $yearFromId . "@student.nbscollege.edu.ph";
+
+            $email = '';
+            if (strtolower($usertype) === 'student') {
+                $email = $firstnameLetter . $lastnameForEmail . $yearFromId . "@student.nbscollege.edu.ph";
+            }
+
             $password = generateStrongPassword(12);
             $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+
 
             // Set default values
             $contact_no = '';
@@ -174,6 +181,7 @@ function processCSV($filePath, $conn)
             $checkStmt->bind_param("i", $schoolId);
             $checkStmt->execute();
             $checkResult = $checkStmt->get_result();
+
 
             if ($checkResult->num_rows > 0) {
                 // Update existing record
