@@ -8,6 +8,14 @@ if (!isset($_SESSION['admin_id'])) {
     exit();
 }
 
+ini_set('max_execution_time', 0);    // No timeout
+ini_set('set_time_limit', 0);
+ini_set('upload_max_filesize', '0'); // Unlimited file size
+ini_set('post_max_size', '0');       // Unlimited POST data
+ini_set('memory_limit', '-1');       // Unlimited memory
+ini_set('max_input_time', -1);       // Unlimited input parsing time
+ini_set('max_file_uploads', 1000);   // Allow up to 1000 files
+
 // Initialize variables
 $message = '';
 $status = '';
@@ -153,14 +161,20 @@ function processCSV($filePath, $conn)
             }
 
             // Generate email and password
-            // Generate email and password
             $firstnameLetter = strtolower(substr($firstname, 0, 1));
             $lastnameForEmail = strtolower(str_replace(' ', '', $lastname));
             $yearFromId = '20' . substr($schoolId, 0, 2);
 
+            // Combine all first names (no spaces)
+            $firstnameNoSpaces = strtolower(str_replace(' ', '', $firstname));
+            $lastnameNoSpaces = strtolower(str_replace(' ', '', $lastname));
+
             $email = '';
+
             if (strtolower($usertype) === 'student') {
-                $email = $firstnameLetter . $lastnameForEmail . $yearFromId . "@student.nbscollege.edu.ph";
+                $email = $firstnameLetter . $lastnameNoSpaces . $yearFromId . "@student.nbscollege.edu.ph";
+            } else {
+                $email = $firstnameNoSpaces . '.' . $lastnameNoSpaces . "@nbscollege.edu.ph";
             }
 
             $password = generateStrongPassword(12);
@@ -214,7 +228,7 @@ function processCSV($filePath, $conn)
                     ];
 
                     // Send email to the user
-                    sendUserEmail($email, $schoolId, $password, $firstname, $lastname);
+                    // sendUserEmail($email, $schoolId, $password, $firstname, $lastname);
                 } else {
                     $error++;
                     $errors[] = "Row $rowNum: Error inserting record: " . $conn->error;
@@ -769,9 +783,6 @@ function generateStrongPassword($length = 12)
                 <div class="mb-3">
                     <label for="import_file" class="form-label">Select File (XLSX or CSV)</label>
                     <input class="form-control" type="file" id="import_file" name="import_file" accept=".xlsx,.csv" required>
-                    <div class="form-text">
-                        Maximum file size: 5MB
-                    </div>
                 </div>
 
                 <div class="d-grid gap-2 d-md-flex">
