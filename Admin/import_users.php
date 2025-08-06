@@ -228,7 +228,7 @@ function processCSV($filePath, $conn)
                     ];
 
                     // Send email to the user
-                    // sendUserEmail($email, $schoolId, $password, $firstname, $lastname);
+                    sendUserEmail($email, $schoolId, $password, $firstname, $lastname);
                 } else {
                     $error++;
                     $errors[] = "Row $rowNum: Error inserting record: " . $conn->error;
