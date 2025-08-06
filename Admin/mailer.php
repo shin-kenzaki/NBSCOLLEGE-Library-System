@@ -21,8 +21,8 @@ $mail->SMTPAuth = true;
 $mail->Host = "smtp.gmail.com";
 $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
 $mail->Port = 587;
-$mail->Username = "cevangelista2021@student.nbscollege.edu.ph";
-$mail->Password = "bzid uvxz qmys xqjq";
+$mail->Username = "library@nbscollege.edu.ph";
+$mail->Password = "rrye zmzs qhio exxo";
 
 $mail->isHTML(true);
 

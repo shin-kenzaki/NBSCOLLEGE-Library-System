@@ -67,7 +67,7 @@ $query = "SELECT
 FROM borrowings br
 JOIN books b ON br.book_id = b.id
 LEFT JOIN admins a ON br.issued_by = a.id
-WHERE br.user_id = ? AND br.status = 'Active'
+WHERE br.user_id = ? AND br.status IN ('Active', 'Overdue')
 ORDER BY br.due_date ASC";
 
 $stmt = $conn->prepare($query);

@@ -61,7 +61,8 @@ $query = "SELECT
     br.return_date,
     br.status,
     DATEDIFF(IFNULL(br.return_date, CURRENT_DATE), br.issue_date) as days_borrowed,
-    CASE 
+    CASE
+        WHEN br.status = 'Overdue' AND br.return_date IS NULL THEN DATEDIFF(CURRENT_DATE, br.due_date)
         WHEN br.return_date > br.due_date THEN DATEDIFF(br.return_date, br.due_date)
         ELSE 0
     END as days_overdue
@@ -81,60 +82,73 @@ include 'inc/header.php';
 <head>
     <style>
         .dataTables_filter input {
-            width: 400px; 
+            width: 400px;
         }
+
         .dataTables_wrapper .dataTables_length,
         .dataTables_wrapper .dataTables_filter,
         .dataTables_wrapper .dataTables_info,
         .dataTables_wrapper .dataTables_paginate {
-            margin-bottom: 1rem; 
+            margin-bottom: 1rem;
         }
+
         .table-responsive {
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
             width: 100%;
         }
+
         table.dataTable {
             width: 100% !important;
         }
+
         /* Allow book details column to wrap */
         .table-responsive table td.book-details {
             white-space: normal;
         }
+
         .book-details-title {
             font-weight: bold;
             color: #4e73df;
             margin-bottom: 5px;
         }
+
         .book-details-info {
             color: #666;
             font-size: 0.9em;
         }
+
         .table-responsive table td,
         .table-responsive table th {
             vertical-align: middle !important;
         }
+
         /* Table styling without vertical lines */
         .table-no-lines {
             border-collapse: collapse;
         }
+
         .table-no-lines th,
         .table-no-lines td {
             border: none;
             border-bottom: 1px solid #e3e6f0;
         }
+
         .table-no-lines thead th {
             border-bottom: 2px solid #e3e6f0;
             background-color: #f8f9fc;
         }
+
         /* Navigation pills styling - kept for reference */
         .nav-pills {
             margin-bottom: 15px;
         }
+
         .nav-pills .nav-link {
             border-radius: 0.25rem;
             margin-right: 5px;
         }
+
         .nav-pills .nav-link.active {
             background-color: #4e73df;
         }
@@ -159,7 +173,7 @@ include 'inc/header.php';
             <div class="card-body">
                 <!-- Display borrowing limits -->
                 <div class="alert alert-info" role="alert">
-                    <i class="fas fa-info-circle me-2"></i> 
+                    <i class="fas fa-info-circle me-2"></i>
                     As a <?php echo htmlspecialchars($userType); ?>, you can borrow or reserve up to <?php echo $maxItems; ?> items at once.
                     You currently have <?php echo $currentTotal; ?> active item(s) (borrowed or reserved).
                     <?php if ($remainingSlots > 0): ?>
@@ -168,7 +182,7 @@ include 'inc/header.php';
                         You cannot borrow any more items until you return some.
                     <?php endif; ?>
                 </div>
-                
+
                 <div class="table-responsive">
                     <table class="table table-no-lines" id="dataTable" width="100%" cellspacing="0">
                         <thead>
@@ -183,7 +197,7 @@ include 'inc/header.php';
                             </tr>
                         </thead>
                         <tbody>
-                            <?php while ($row = $result->fetch_assoc()): 
+                            <?php while ($row = $result->fetch_assoc()):
                                 // Determine row styling based on overdue status
                                 $rowClass = $row['days_overdue'] > 0 ? 'table-danger' : '';
 
@@ -194,7 +208,7 @@ include 'inc/header.php';
                                 if (!empty($row['volume'])) $detailsArray[] = 'Vol: ' . htmlspecialchars($row['volume']);
                                 if (!empty($row['part'])) $detailsArray[] = 'Part: ' . htmlspecialchars($row['part']);
                                 if (!empty($row['edition'])) $detailsArray[] = 'Ed: ' . htmlspecialchars($row['edition']);
-                                
+
                                 $additionalDetails = !empty($detailsArray) ? implode(' | ', $detailsArray) : '';
                             ?>
                                 <tr class="<?php echo $rowClass; ?>">
@@ -204,9 +218,9 @@ include 'inc/header.php';
                                             <?php echo htmlspecialchars($row['title']); ?>
                                         </div>
                                         <?php if (!empty($additionalDetails)): ?>
-                                        <div class="book-details-info">
-                                            <?php echo $additionalDetails; ?>
-                                        </div>
+                                            <div class="book-details-info">
+                                                <?php echo $additionalDetails; ?>
+                                            </div>
                                         <?php endif; ?>
                                     </td>
                                     <td class="text-center"><?php echo date('M j, Y', strtotime($row['issue_date'])); ?></td>
@@ -217,7 +231,7 @@ include 'inc/header.php';
                                     <td class="text-center"><?php echo $row['days_borrowed']; ?> days</td>
                                     <td class="text-center">
                                         <?php if ($row['days_overdue'] > 0): ?>
-                                            <span class="badge badge-danger"><?php echo $row['days_overdue']; ?> days overdue</span>
+                                            <span class="badge badge-danger"><?php echo $row['days_overdue']; ?> day/s overdue</span>
                                         <?php else: ?>
                                             <span class="badge badge-success">On time</span>
                                         <?php endif; ?>
@@ -235,30 +249,32 @@ include 'inc/header.php';
 <?php include 'inc/footer.php'; ?>
 
 <script>
-$(document).ready(function() {
-    $('#dataTable').DataTable({
-        "dom": "<'row mb-3'<'col-sm-6'l><'col-sm-6 d-flex justify-content-end'f>>" +
-               "<'row'<'col-sm-12'tr>>" +
-               "<'row mt-3'<'col-sm-5'i><'col-sm-7 d-flex justify-content-end'p>>",
-        "language": {
-            "search": "_INPUT_",
-            "searchPlaceholder": "Search within results...",
-            "emptyTable": "No borrowing history found",
-            "zeroRecords": "No matching borrowings found"
-        },
-        "pageLength": 10,
-        "order": [[2, 'desc']], // Sort by issue date (newest first)
-        "responsive": false,
-        "scrollX": true,
-        "autoWidth": false,
-        "initComplete": function() {
-            $('#dataTable_filter input').addClass('form-control form-control-sm');
-        }
+    $(document).ready(function() {
+        $('#dataTable').DataTable({
+            "dom": "<'row mb-3'<'col-sm-6'l><'col-sm-6 d-flex justify-content-end'f>>" +
+                "<'row'<'col-sm-12'tr>>" +
+                "<'row mt-3'<'col-sm-5'i><'col-sm-7 d-flex justify-content-end'p>>",
+            "language": {
+                "search": "_INPUT_",
+                "searchPlaceholder": "Search within results...",
+                "emptyTable": "No borrowing history found",
+                "zeroRecords": "No matching borrowings found"
+            },
+            "pageLength": 10,
+            "order": [
+                [2, 'desc']
+            ], // Sort by issue date (newest first)
+            "responsive": false,
+            "scrollX": true,
+            "autoWidth": false,
+            "initComplete": function() {
+                $('#dataTable_filter input').addClass('form-control form-control-sm');
+            }
+        });
+
+        // Adjust table columns on window resize
+        $(window).on('resize', function() {
+            $('#dataTable').DataTable().columns.adjust();
+        });
     });
-    
-    // Adjust table columns on window resize
-    $(window).on('resize', function () {
-        $('#dataTable').DataTable().columns.adjust();
-    });
-});
 </script>
