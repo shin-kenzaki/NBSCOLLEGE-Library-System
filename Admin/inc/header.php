@@ -163,6 +163,14 @@
                     <span>Library Reports</span>
                 </a>
             </li>
+            
+            <!-- Backup Manager - Admin only -->
+            <li class="nav-item <?php echo $currentPage == 'backup_manager.php' ? 'active-page' : ''; ?>">
+                <a class="nav-link" href="backup_manager.php">
+                    <i class="fas fa-database icon-admin"></i>
+                    <span>Database Backups</span>
+                </a>
+            </li>
             <?php endif; ?>
 
             <!-- Divider -->

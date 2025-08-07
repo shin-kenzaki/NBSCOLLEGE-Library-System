@@ -1,0 +1,52 @@
+[2025-08-07 06:57:50] Database connection initialized: host=localhost, db=librarysystem, user=root
+[2025-08-07 06:58:51] Database connection initialized: host=localhost, db=librarysystem, user=root
+[2025-08-07 06:58:51] Database connection initialized: host=localhost, db=librarysystem, user=root
+[2025-08-07 06:58:51] Starting database backup process...
+[2025-08-07 06:58:51] Using mysqldump path: C:/xampp/mysql/bin/mysqldump.exe
+[2025-08-07 06:58:51] INFO: ZIP extension not available. Creating uncompressed backup (fallback mode).
+[2025-08-07 06:58:51] Backup file path: C:\xampp\htdocs\Library-System\Admin\backup/backups/library_backup_2025-08-07_06-58-51.sql
+[2025-08-07 06:58:51] Using mysqldump command for database export
+[2025-08-07 06:58:51] Executing command: "C:/xampp/mysql/bin/mysqldump.exe" --host="localhost" --user="root" --password=***** --databases librarysystem --result-file="C:\xampp\htdocs\Library-System\Admin\backup/backups/library_backup_2025-08-07_06-58-51.sql" --add-drop-table --skip-lock-tables --single-transaction
+[2025-08-07 06:58:52] Database exported successfully to library_backup_2025-08-07_06-58-51.sql
+[2025-08-07 06:58:52] Backup saved as uncompressed SQL file: library_backup_2025-08-07_06-58-51.sql
+[2025-08-07 06:58:52] Applying retention policy...
+[2025-08-07 06:58:52] Found 3 backups, no need to apply retention policy yet
+[2025-08-07 06:58:52] Backup status file updated
+[2025-08-07 06:58:54] Failed to send notification email
+[2025-08-07 06:58:54] Database connection initialized: host=localhost, db=librarysystem, user=root
+[2025-08-07 06:59:06] Database connection initialized: host=localhost, db=librarysystem, user=root
+[2025-08-07 07:04:06] Database connection initialized: host=localhost, db=librarysystem, user=root
+[2025-08-07 07:04:19] Database connection initialized: host=localhost, db=librarysystem, user=root
+[2025-08-07 07:04:19] Database connection initialized: host=localhost, db=librarysystem, user=root
+[2025-08-07 07:04:19] Starting database backup process...
+[2025-08-07 07:04:19] Using mysqldump path: C:/xampp/mysql/bin/mysqldump.exe
+[2025-08-07 07:04:19] INFO: ZIP extension not available. Creating uncompressed backup (fallback mode).
+[2025-08-07 07:04:19] Backup file path: C:\xampp\htdocs\NBSCOLLEGE-Library-System\Admin\backup/backups/library_backup_2025-08-07_07-04-19.sql
+[2025-08-07 07:04:19] Using mysqldump command for database export
+[2025-08-07 07:04:19] Executing command: "C:/xampp/mysql/bin/mysqldump.exe" --host="localhost" --user="root" --password=***** --databases librarysystem --result-file="C:\xampp\htdocs\NBSCOLLEGE-Library-System\Admin\backup/backups/library_backup_2025-08-07_07-04-19.sql" --add-drop-table --skip-lock-tables --single-transaction
+[2025-08-07 07:04:19] Database exported successfully to library_backup_2025-08-07_07-04-19.sql
+[2025-08-07 07:04:19] Backup saved as uncompressed SQL file: library_backup_2025-08-07_07-04-19.sql
+[2025-08-07 07:04:19] Applying retention policy...
+[2025-08-07 07:04:19] Found 4 backups, no need to apply retention policy yet
+[2025-08-07 07:04:19] Backup status file updated
+[2025-08-07 07:04:21] Failed to send notification email
+[2025-08-07 07:04:21] Database connection initialized: host=localhost, db=librarysystem, user=root
+[2025-08-07 07:04:30] Database connection initialized: host=localhost, db=librarysystem, user=root
+[2025-08-07 07:04:30] Starting database backup process...
+[2025-08-07 07:04:30] Using mysqldump path: C:/xampp/mysql/bin/mysqldump.exe
+[2025-08-07 07:04:30] INFO: ZIP extension not available. Creating uncompressed backup (fallback mode).
+[2025-08-07 07:04:30] Backup file path: C:\xampp\htdocs\NBSCOLLEGE-Library-System\Admin\backup/backups/library_backup_2025-08-07_07-04-30.sql
+[2025-08-07 07:04:30] Using mysqldump command for database export
+[2025-08-07 07:04:30] Executing command: "C:/xampp/mysql/bin/mysqldump.exe" --host="localhost" --user="root" --password=***** --databases librarysystem --result-file="C:\xampp\htdocs\NBSCOLLEGE-Library-System\Admin\backup/backups/library_backup_2025-08-07_07-04-30.sql" --add-drop-table --skip-lock-tables --single-transaction
+[2025-08-07 07:04:30] Database exported successfully to library_backup_2025-08-07_07-04-30.sql
+[2025-08-07 07:04:30] Backup saved as uncompressed SQL file: library_backup_2025-08-07_07-04-30.sql
+[2025-08-07 07:04:30] Applying retention policy...
+[2025-08-07 07:04:30] Found 5 backups, no need to apply retention policy yet
+[2025-08-07 07:04:30] Backup status file updated
+[2025-08-07 07:04:32] Failed to send notification email
+[2025-08-07 07:04:32] Database connection initialized: host=localhost, db=librarysystem, user=root
+[2025-08-07 07:05:18] Database connection initialized: host=localhost, db=librarysystem, user=root
+[2025-08-07 07:05:40] Database connection initialized: host=localhost, db=librarysystem, user=root
+[2025-08-07 07:05:40] Backup downloaded: library_backup_2025-08-07_07-04-30.sql
+[2025-08-07 07:05:44] Database connection initialized: host=localhost, db=librarysystem, user=root
+[2025-08-07 07:05:44] Database connection initialized: host=localhost, db=librarysystem, user=root
