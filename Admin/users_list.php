@@ -15,7 +15,7 @@ function sendUserEmail($email, $schoolId, $password, $firstname, $lastname)
             <p>We are pleased to inform you that your account has been successfully created in the NBS College Library System. Below are your login credentials:</p>
             <p><strong>ID Number:</strong> $schoolId</p>
             <p><strong>Password:</strong> $password</p>
-            <p>Please visit the library PC to log in and change your password immediately for security purposes. You may also access our library system through our school wifi at: <a href='http://192.168.8.26/library-system'>192.168.8.26/library-system/user/</a></p>
+            <p>Please visit the library PC to log in and change your password immediately for security purposes. You may also access our library system through our school wifi at: <a href='http://192.168.8.26/library-system/user/'>192.168.8.26/library-system/user/</a></p>
             <p>Note: This is an auto-generated email. Please do not reply to this email address.</p>
             <p>Thank you for using the NBS College Library System.</p>
             <p>Best regards,</p>
