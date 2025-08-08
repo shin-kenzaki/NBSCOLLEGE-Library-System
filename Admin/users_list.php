@@ -149,12 +149,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 school_id, firstname, middle_init, lastname, 
                 email, password, contact_no, user_image, 
                 usertype, address, id_type, id_image, 
-                status, date_added, last_update, department
+                status, date_added, department
             ) VALUES (
                 ?, ?, ?, ?, 
                 ?, ?, ?, ?,
                 ?, ?, ?, ?,
-                ?, NOW(), NOW(), ?
+                ?, NOW(), ?
             )";
 
             $stmt = $conn->prepare($sql);

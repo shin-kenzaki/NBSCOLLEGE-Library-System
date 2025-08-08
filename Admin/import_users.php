@@ -211,7 +211,7 @@ function processCSV($filePath, $conn)
                 $updateStmt->close();
             } else {
                 // Insert new record
-                $insertSql = "INSERT INTO users (school_id, firstname, middle_init, lastname, email, password, contact_no, user_image, department, usertype, address, id_type, id_image, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                $insertSql = "INSERT INTO users (school_id, firstname, middle_init, lastname, email, password, contact_no, user_image, department, usertype, address, id_type, id_image, status, date_added) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
                 $insertStmt = $conn->prepare($insertSql);
                 $insertStmt->bind_param("issssssssssssi", $schoolId, $firstname, $middleInit, $lastname, $email, $hashed_password, $contact_no, $user_image, $department, $usertype, $address, $id_type, $id_image, $status);
 
