@@ -2,6 +2,14 @@
 session_start();
 include '../db.php';
 
+ini_set('max_execution_time', 0);    // No timeout
+ini_set('set_time_limit', 0);
+ini_set('upload_max_filesize', '0'); // Unlimited file size
+ini_set('post_max_size', '0');       // Unlimited POST data
+ini_set('memory_limit', '-1');       // Unlimited memory
+ini_set('max_input_time', -1);       // Unlimited input parsing time
+ini_set('max_file_uploads', 1000);   // Allow up to 1000 files
+
 // Determine if the user is logged in or a guest
 $isLoggedIn = isset($_SESSION['user_id']);
 
@@ -9,6 +17,7 @@ $isLoggedIn = isset($_SESSION['user_id']);
 $searchTerm = isset($_GET['search']) ? $_GET['search'] : '';
 $program = isset($_GET['program']) ? $_GET['program'] : '';
 $category = isset($_GET['category']) ? $_GET['category'] : '';
+$limit = isset($_GET['limit']) ? $_GET['limit'] : '25'; // Default to 25 items
 
 // Check if this is an AJAX request
 $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
@@ -133,6 +142,13 @@ LEFT JOIN writers ON contributors.writer_id = writers.id
 GROUP BY book_counts.id
 ORDER BY book_counts.id DESC, book_counts.title";
 
+// Add limit if not 'All'
+if ($limit !== 'All') {
+    $sql .= " LIMIT ?";
+    $params[] = (int)$limit;
+    $types .= "i";
+}
+
 // Get all unique programs and categories for filter dropdowns
 $programsQuery = "SELECT DISTINCT program FROM books WHERE program IS NOT NULL AND program != '' ORDER BY program";
 $programsResult = $conn->query($programsQuery);
@@ -166,7 +182,8 @@ if ($isAjax) {
         'books' => $books,
         'searchTerm' => $searchTerm,
         'program' => $program,
-        'category' => $category
+        'category' => $category,
+        'limit' => $limit
     ]);
     exit;
 }
@@ -387,6 +404,19 @@ if ($isAjax) {
         .book-actions .btn {
             flex: 1;
         }
+        
+        /* Items per page selector */
+        .items-per-page {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .items-per-page label {
+            margin-bottom: 0;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
@@ -405,15 +435,6 @@ if ($isAjax) {
                     </div>
                 </div>
               </nav>';
-
-        echo '<div class="container mt-3">
-              <div class="guest-banner">
-                You are browsing as a guest.
-                <a href="index.php" class="btn btn-sm btn-outline-danger">Log In</a> or
-                <a href="register.php" class="btn btn-sm btn-outline-danger">Register</a>
-                to borrow or reserve books.
-              </div>
-            </div>';
     }
     ?><div id="content" class="d-flex flex-column min-vh-100">
         <!-- Hero Section -->
@@ -437,7 +458,7 @@ if ($isAjax) {
                         </div>
                     </div>
 
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <label for="program" class="filter-label">Program</label>
                         <select class="form-select" name="program" id="program">
                             <option value="">All Programs</option>
@@ -449,7 +470,7 @@ if ($isAjax) {
                         </select>
                     </div>
 
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <label for="category" class="filter-label">Category</label>
                         <select class="form-select" name="category" id="category">
                             <option value="">All Categories</option>
@@ -458,6 +479,18 @@ if ($isAjax) {
                                     <?php echo htmlspecialchars($row['subject_category']); ?>
                                 </option>
                             <?php endwhile; ?>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label for="limit" class="filter-label">Items per page</label>
+                        <select class="form-select" name="limit" id="limit">
+                            <option value="25" <?php if ($limit === '25') echo 'selected'; ?>>25</option>
+                            <option value="50" <?php if ($limit === '50') echo 'selected'; ?>>50</option>
+                            <option value="100" <?php if ($limit === '100') echo 'selected'; ?>>100</option>
+                            <option value="250" <?php if ($limit === '250') echo 'selected'; ?>>250</option>
+                            <option value="500" <?php if ($limit === '500') echo 'selected'; ?>>500</option>
+                            <option value="All" <?php if ($limit === 'All') echo 'selected'; ?>>All</option>
                         </select>
                     </div>
                 </form>
@@ -634,7 +667,7 @@ if ($isAjax) {
             });
 
             // Auto-submit form when changing select fields
-            $('#program, #category').on('change', function() {
+            $('#program, #category, #limit').on('change', function() {
                 performSearch();
             });
 
@@ -654,6 +687,7 @@ if ($isAjax) {
                 const searchTerm = $('#searchInput').val();
                 const program = $('#program').val();
                 const category = $('#category').val();
+                const limit = $('#limit').val();
 
                 // Show loading spinner or indicator
                 $('#searchResults').html('<div class="col-12 text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>');
@@ -665,7 +699,8 @@ if ($isAjax) {
                     data: {
                         search: searchTerm,
                         program: program,
-                        category: category
+                        category: category,
+                        limit: limit
                     },
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest'

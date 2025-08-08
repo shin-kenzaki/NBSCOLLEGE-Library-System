@@ -667,16 +667,6 @@ if ($bookId > 0) {
                     </div>
                 </div>
               </nav>';
-
-        // Show guest notification banner
-        echo '<div class="container mt-3">
-              <div class="alert alert-warning">
-                <i class="fas fa-info-circle me-2"></i> You are viewing as a guest.
-                <a href="index.php" class="btn btn-sm btn-outline-primary ms-2">Log In</a> or
-                <a href="register.php" class="btn btn-sm btn-outline-primary ms-2">Register</a>
-                to borrow or reserve books.
-              </div>
-            </div>';
     }
     ?>
 
