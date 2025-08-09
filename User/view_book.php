@@ -700,7 +700,7 @@ if ($bookId > 0) {
                 <!-- Book Cover Column -->
                 <div class="col-lg-3 mb-4">
                     <?php if (!empty($book['front_image'])): ?>
-                        <img src="<?php echo htmlspecialchars('../' . $book['front_image']); ?>" alt="Front Cover" class="img-fluid mb-3 rounded shadow-sm">
+                        <img src="<?php echo htmlspecialchars($book['front_image']); ?>" alt="Front Cover" class="img-fluid mb-3 rounded shadow-sm">
                     <?php else: ?>
                         <div class="no-image-placeholder">
                             <i class="fas fa-book fa-5x text-muted"></i>
