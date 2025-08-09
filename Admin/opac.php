@@ -702,7 +702,7 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
                                     <div class="col-md-3">
                                         <!-- Display Front Image -->
                                         <?php if (!empty($book['front_image'])): ?>
-                                            <img src="<?php echo htmlspecialchars('../' . $book['front_image']); ?>" alt="Front Cover" class="img-fluid mb-3 rounded shadow-sm">
+                                            <img src="<?php echo htmlspecialchars($book['front_image']); ?>" alt="Front Cover" class="img-fluid mb-3 rounded shadow-sm">
                                         <?php else: ?>
                                             <div class="text-center p-4 bg-light rounded mb-3">
                                                 <i class="fas fa-book fa-4x text-secondary"></i>
@@ -712,7 +712,7 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['standard', 'marc21', '
 
                                         <!-- Display Back Image -->
                                         <?php if (!empty($book['back_image'])): ?>
-                                            <img src="<?php echo htmlspecialchars('../' . $book['back_image']); ?>" alt="Back Cover" class="img-fluid rounded shadow-sm">
+                                            <img src="<?php echo htmlspecialchars($book['back_image']); ?>" alt="Back Cover" class="img-fluid rounded shadow-sm">
                                         <?php else: ?>
                                             <div class="text-center p-4 bg-light rounded mb-3">
                                                 <i class="fas fa-book fa-4x text-secondary"></i>
